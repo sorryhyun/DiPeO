@@ -1,72 +1,52 @@
 # GraphQL 구독(Subscriptions) 구현 가이드
 
-원문 문서:&#x20;
-
 ## 개요
 
-DiPeO는 실시간 업데이트를 위해 GraphQL 구독만을 사용합니다. GraphQL 구독은 통합된 WebSocket 전송 메커니즘을 통해 모든 실시간 통신을 처리합니다. 이 가이드는 구독 시스템 아키텍처와 새로운 구독을 추가하는 방법을 설명합니다.&#x20;
+DiPeO는 실시간 업데이트를 **오직 GraphQL 구독**으로 처리합니다. 단일 WebSocket 전송 메커니즘 위에서 모든 실시간 메시지를 주고받으며, 이 문서는 구독 시스템의 아키텍처와 새로운 구독을 추가하는 방법을 설명합니다.
 
 ### 사용 가능한 구독
 
-1. **execution\_updates**: 실행 생애주기 이벤트를 위한 메인 구독
+1. **execution_updates**: 실행 생애주기 이벤트를 위한 기본 구독입니다.
+   - 실행 시작, 완료, 실패, 로그 등 모든 실행 이벤트를 전달합니다.
+   - 프런트엔드 모니터링, 로그 스트리밍, 인터랙티브 컴포넌트에서 사용됩니다.
+   - 현재 TypeScript 정의에서 생성되는 **유일한** 구독입니다.
 
-   * 실행 관련 모든 이벤트 처리(시작, 완료, 실패, 로그 등)
-   * 프런트엔드 모니터링 및 로깅 컴포넌트에서 사용
-
-2. **node\_updates**: 노드별 상태 업데이트
-
-   * 개별 노드의 상태 변화와 진행 상황 추적
-   * `node_id`로 선택적 필터링 가능
-
-3. **interactive\_prompts**: 사용자 상호작용 요청
-
-   * 실행 중 사용자 입력이 필요한 프롬프트 처리
-   * `UserResponseNode` 및 인터랙티브 워크플로우에서 사용
-
-4. **execution\_logs**: 전용 로그 스트리밍
-
-   * `EXECUTION_LOG` 이벤트만을 대상으로 필터링
-   * 로그 뷰어 컴포넌트에서 사용&#x20;
+**참고**: 인프라는 여러 구독 타입을 지원하지만, 기본 제공되는 생성 파이프라인은 `execution_updates` 하나만 생성합니다. 다른 구독을 사용하려면 쿼리 정의를 확장하고 코드 생성을 다시 실행해야 합니다.
 
 ## 아키텍처
 
 ### 구성요소
 
-1. **백엔드 구독 핸들러** (`/dipeo/application/graphql/schema/subscriptions.py`)
-
-   * GraphQL 구독 엔드포인트 정의
-   * 이벤트 분배를 위한 MessageRouter와 연결
-   * JSON 호환 직렬화 수행
-   * 현재 4개 구독 구현: `execution_updates`, `node_updates`, `interactive_prompts`, `execution_logs`
+1. **백엔드 구독 핸들러** (`/dipeo/application/graphql/schema/subscription_resolvers.py`)
+   - GraphQL 구독 엔드포인트를 정의합니다.
+   - 이벤트 분배를 위해 MessageRouter와 연결됩니다.
+   - JSON 직렬화를 담당합니다.
+   - 현재 TypeScript로부터 생성된 구독은 `execution_updates` 하나입니다.
 
 2. **이벤트 시스템** (`/dipeo/diagram_generated/enums.py`)
-
-   * `EventType` enum이 모든 이벤트 타입 정의
-   * 이벤트는 `AsyncEventBus`를 통해 발행
-   * 예: `EXECUTION_STARTED`, `NODE_COMPLETED`, `NODE_STATUS_CHANGED`, `EXECUTION_LOG` 등
+   - `EventType` enum이 모든 이벤트 타입을 정의합니다.
+   - 이벤트는 `AsyncEventBus`를 통해 발행됩니다.
+   - 예: `EXECUTION_STARTED`, `NODE_COMPLETED`, `NODE_STATUS_CHANGED`, `EXECUTION_LOG` 등.
 
 3. **메시지 라우터** (`/dipeo/infrastructure/adapters/messaging/message_router.py`)
-
-   * 중앙 이벤트 분배 허브
-   * 연결 라이프사이클 관리
-   * 특징:
-
-     * 이벤트 버퍼링(실행별 최근 50개, TTL 5분)
-     * 성능을 위한 이벤트 배칭(주기/크기 구성 가능)
-     * 연결 상태 모니터링
-     * 유한 큐 기반의 백프레셔 처리
+   - 중앙 메시지 분배 허브입니다.
+   - 연결 수명 주기를 관리합니다.
+   - 특징:
+     - 실행별 최근 50개 이벤트를 5분 동안 버퍼링합니다.
+     - 구성 가능한 주기·크기로 이벤트를 배치 처리합니다.
+     - 연결 상태를 모니터링합니다.
+     - 유한 큐 기반으로 백프레셔를 제어합니다.
 
 4. **프런트엔드 훅** (`/apps/web/src/domain/execution/hooks/`)
-
-   * GraphQL 구독을 구독하는 React 훅
-   * 수신 이벤트를 처리하고 UI 상태를 갱신
-   * 예: 로그 스트리밍용 `useExecutionLogStream`&#x20;
+   - GraphQL 구독을 사용하는 React 훅을 제공합니다.
+   - 수신 이벤트를 처리해 UI 상태를 갱신합니다.
+   - 예: 로그 스트리밍용 `useExecutionLogStream`.
 
 ## 새 구독 추가하기
 
 ### 1단계: 이벤트 타입 정의
 
-TypeScript enum에 새 이벤트 타입 추가:
+TypeScript enum에 새 이벤트 타입을 추가합니다.
 
 ```typescript
 // /dipeo/models/src/core/enums/execution.ts
@@ -76,7 +56,7 @@ export enum EventType {
 }
 ```
 
-백엔드 모델 재생성:
+백엔드 모델을 다시 생성합니다.
 
 ```bash
 cd /dipeo/models && pnpm build
@@ -86,7 +66,8 @@ make apply-syntax-only
 
 ### 2단계: GraphQL 구독 생성
 
-백엔드 스키마에 구독 추가:
+백엔드 스키마에 새 구독을 추가합니다.
+
 ```python
 # /dipeo/application/graphql/schema/subscriptions.py
 @strawberry.subscription
@@ -138,7 +119,8 @@ async def your_new_subscription(
 
 ### 3단계: 쿼리 정의에 구독 추가
 
-해당 쿼리 정의 파일에 구독 추가:
+해당 쿼리 정의 파일에 새 구독을 추가합니다.
+
 ```typescript
 // /dipeo/models/src/frontend/query-definitions/executions.ts
 // Add to executionQueries.queries array:
@@ -164,7 +146,8 @@ async def your_new_subscription(
 }
 ```
 
-프런트엔드 쿼리 재생성:
+프런트엔드 쿼리를 다시 생성합니다.
+
 ```bash
 # Build TypeScript models
 cd dipeo/models && pnpm build
@@ -179,7 +162,8 @@ make graphql-schema
 
 ### 4단계: 프런트엔드 훅 생성
 
-구독을 위한 React 훅 생성:
+React 훅을 만들어 구독을 소비합니다.
+
 ```typescript
 // /apps/web/src/domain/execution/hooks/useYourNewSubscription.ts
 import { useState, useEffect } from 'react';
@@ -208,10 +192,11 @@ export function useYourNewSubscription(executionIdParam: ReturnType<typeof execu
 
 ### 5단계: 이벤트 발행
 
-`AsyncEventBus`를 사용하여 이벤트 발행:
+`AsyncEventBus`를 통해 이벤트를 발행합니다.
+
 ```python
 # In any handler or service
-from dipeo.infrastructure.events.adapters.legacy import AsyncEventBus, Event
+from dipeo.core.events import AsyncEventBus, Event
 
 event_bus = AsyncEventBus.get_instance()
 await event_bus.emit(Event(
@@ -223,26 +208,26 @@ await event_bus.emit(Event(
 ))
 ```
 
-MessageRouter는 이러한 이벤트를 자동으로 감지하고 구독된 연결로 분배합니다.
+MessageRouter는 이 이벤트를 자동으로 감지해 구독된 연결로 전달합니다.
 
 ## 예시: ExecutionUpdates 구현
 
-`ExecutionUpdates` 구독은 전체 구현 패턴을 보여줍니다:
+`execution_updates` 구독은 전체 구현 패턴을 보여 줍니다.
 
-1. **이벤트 타입**: `EXECUTION_STARTED`, `NODE_COMPLETED`, `EXECUTION_LOG` 등 다수 이벤트 처리
-2. **GraphQL 구독**: `/dipeo/application/graphql/schema/subscriptions.py`의 `execution_updates`
-3. **프런트엔드 쿼리 정의**: `/dipeo/models/src/frontend/query-definitions/executions.ts`에 정의
-4. **생성된 쿼리**: `/apps/web/src/__generated__/queries/all-queries.ts`에 생성
-5. **React 훅**: `useExecutionLogStream`이 `useExecutionUpdatesSubscription` 사용
-6. **이벤트 발행**: `AsyncEventBus`가 발행하고 MessageRouter가 분배&#x20;
+1. **이벤트 타입**: `EXECUTION_STARTED`, `NODE_COMPLETED`, `EXECUTION_LOG` 등 여러 이벤트를 처리합니다.
+2. **GraphQL 구독**: `/dipeo/application/graphql/schema/subscriptions.py`의 `execution_updates` 정의를 사용합니다.
+3. **프런트엔드 쿼리 정의**: `/dipeo/models/src/frontend/query-definitions/executions.ts`에 선언되어 있습니다.
+4. **생성된 쿼리**: `/apps/web/src/__generated__/queries/all-queries.ts`에서 생성됩니다.
+5. **React 훅**: `useExecutionLogStream` 훅이 `useExecutionUpdatesSubscription`을 사용합니다.
+6. **이벤트 발행**: `AsyncEventBus`가 이벤트를 발행하고 MessageRouter가 이를 분배합니다.
 
 ## 모범 사례
 
-1. **이벤트 명명**: 이벤트 타입은 UPPER\_SNAKE\_CASE 사용
-2. **데이터 직렬화**: 복잡한 객체는 항상 `serialize_for_json()` 사용
-3. **에러 처리**: `try-catch`와 `finally`에서 정리 로직 포함
-4. **타임아웃 처리**: 적절한 타임아웃으로 `asyncio.wait_for` 사용
-5. **연결 정리**: 완료 시 항상 구독 해제 및 등록 해제 수행&#x20;
+1. **이벤트 명명**: 이벤트 타입은 항상 `UPPER_SNAKE_CASE`를 사용합니다.
+2. **데이터 직렬화**: 복잡한 객체는 반드시 `serialize_for_json()`으로 직렬화합니다.
+3. **에러 처리**: `try/except`와 `finally`를 사용해 정리(cleanup)를 보장합니다.
+4. **타임아웃 처리**: 적절한 시간으로 `asyncio.wait_for`를 사용합니다.
+5. **연결 정리**: 구독이 종료되면 항상 구독 해제 및 등록 해제를 수행합니다.
 
 ## 구독 테스트
 
@@ -264,6 +249,7 @@ await event_bus.emit(Event(
 ```
 
 ### 프런트엔드 테스트
+
 ```bash
 # Run dev server with GraphQL playground
 make dev-all
@@ -283,6 +269,7 @@ subscription {
 ```
 
 ### CLI 테스트
+
 ```bash
 # Run diagram with debug flag
 dipeo run [diagram] --debug
@@ -294,46 +281,44 @@ dipeo run [diagram] --debug
 
 ## 일반적인 이슈
 
-### 이슈: 이벤트가 수신되지 않음
-- MessageRouter 연결 등록 상태 확인  
-- 이벤트 타입이 필터와 일치하는지 확인  
-- `execution_id`가 올바른지 확인
+### 이벤트가 수신되지 않을 때
+- MessageRouter에 연결이 정상 등록되었는지 확인합니다.
+- 이벤트 타입이 필터 조건과 일치하는지 확인합니다.
+- `execution_id`가 올바른지 검증합니다.
 
-### 이슈: 이벤트 중복 수신
-- 중복 구독 여부 확인  
-- 정리(cleanup)가 정상 동작하는지 확인  
-- 동일 이벤트가 여러 번 발행되는지 확인
+### 이벤트가 중복 수신될 때
+- 동일 구독이 여러 번 생성됐는지 확인합니다.
+- 정리 로직이 제대로 실행되는지 확인합니다.
+- 이벤트가 여러 번 발행되고 있지 않은지 점검합니다.
 
-### 이슈: 메모리 누수
-- `finally` 블록에서 적절한 정리 수행  
-- 닫히지 않은 연결 확인  
-- 큐 크기 모니터링
+### 메모리 누수가 의심될 때
+- `finally` 블록에서 구독 해제·등록 해제를 수행했는지 확인합니다.
+- 닫히지 않은 연결이 있는지 점검합니다.
+- 큐 크기를 모니터링합니다.
 
 ## 아키텍처 노트
 
 ### 현재 구현
-시스템은 실시간 업데이트에 GraphQL 구독만을 사용합니다:  
-- **전송**: Apollo Client 기반 GraphQL WebSocket  
-- **백엔드**: 비동기 생성자를 사용하는 Strawberry GraphQL  
-- **메시지 라우터**: 배칭/버퍼링을 갖춘 중앙 분배 허브  
-- **타입 안정성**: GraphQL 스키마로부터 생성된 TypeScript 타입
+- **전송**: Apollo Client 기반 GraphQL WebSocket 전송을 사용합니다.
+- **백엔드**: Strawberry GraphQL과 비동기 제너레이터를 사용합니다.
+- **메시지 라우터**: 배칭·버퍼링 기능을 갖춘 중앙 분배 허브입니다.
+- **타입 안전성**: GraphQL 스키마에서 생성된 TypeScript 타입을 사용합니다.
 
 ### 멀티 워커 지원
-프로덕션에서 멀티 워커를 사용할 경우:  
-- 워커 간 구독 동작을 위해 Redis 필요  
-- Redis가 없으면 단일 워커 배포에서만 구독 동작  
-- 구성: 멀티 워커 지원을 위해 `REDIS_URL` 환경 변수 설정
+- 프로덕션에서 여러 워커를 사용할 경우 Redis가 필요합니다.
+- Redis가 없으면 단일 워커에서만 구독이 동작합니다.
+- 다중 워커 구성 시 `REDIS_URL` 환경 변수를 설정해야 합니다.
 
 ### 이벤트 시스템 통합
-- 이벤트는 `AsyncEventBus`를 통해 발행  
-- `MessageRouter`가 이벤트를 구독하고 GraphQL 연결로 분배  
-- 고빈도 업데이트를 위해 이벤트 배칭으로 성능 향상  
-- 백프레셔 대응을 위해 유한 큐로 메모리 이슈 방지 
+- 이벤트는 `AsyncEventBus`를 통해 발행됩니다.
+- `MessageRouter`가 이벤트를 구독하고 GraphQL 연결로 전달합니다.
+- 고주파 이벤트의 경우 배칭이 성능을 향상시킵니다.
+- 유한 큐로 백프레셔를 제어해 메모리 문제를 방지합니다.
 
 ## 관련 문서
 
-- DiPeO 애플리케이션 레이어 — GraphQL 스키마/리졸버 구현  
-- 인프라 레이어 — MessageRouter와 이벤트 시스템 상세  
-- 프런트엔드 아키텍처 — 구독 훅과 상태 관리  
-- 코드 생성 — 쿼리/구독 생성 방법  
-- DiPeO 모델 — TypeScript 쿼리 정의 소스
+- `../../dipeo/application/CLAUDE.md` – GraphQL 스키마와 리졸버 구현
+- `../../dipeo/infrastructure/CLAUDE.md` – MessageRouter와 이벤트 시스템 상세
+- `../../apps/web/CLAUDE.md` – 프런트엔드 구독 훅과 상태 관리
+- `../../projects/codegen/CLAUDE.md` – 쿼리·구독 생성 파이프라인
+- `../../dipeo/models/CLAUDE.md` – TypeScript 쿼리 정의의 소스

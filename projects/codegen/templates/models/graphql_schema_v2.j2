@@ -7,8 +7,8 @@
 # ============================================================================
 {%- for scalar in scalars %}
 
-"""{{ scalar.description or 'Unique identifier for ' + scalar.name.replace('ID', '').lower() }}"""
-scalar {{ scalar.name }}
+"""{{ scalar.get('description') or 'Unique identifier for ' + scalar['name'].replace('ID', '').lower() }}"""
+scalar {{ scalar['name'] }}
 {%- endfor %}
 
 # ============================================================================
@@ -16,10 +16,10 @@ scalar {{ scalar.name }}
 # ============================================================================
 {%- for enum in enums %}
 
-enum {{ enum.name }} {
+enum {{ enum['name'] }} {
 {%- for value in (enum.get('values') or enum.get('members', [])) %}
   {%- if value is mapping %}
-  {{ value.name }}
+  {{ value['name'] }}
   {%- else %}
   {{ value }}
   {%- endif %}
@@ -31,16 +31,16 @@ enum {{ enum.name }} {
 # Types
 # ============================================================================
 {%- for type_def in types %}
-{%- if type_def.description %}
+{%- if type_def.get('description') %}
 
-"""{{ type_def.description }}"""
+"""{{ type_def['description'] }}"""
 {%- endif %}
-type {{ type_def.name }} {
-{%- for field in type_def.fields %}
-  {%- if field.description %}
-  """{{ field.description }}"""
+type {{ type_def['name'] }} {
+{%- for field in type_def['fields'] %}
+  {%- if field.get('description') %}
+  """{{ field['description'] }}"""
   {%- endif %}
-  {{ field.name }}: {{ field | graphql_field_type }}
+  {{ field['name'] }}: {{ field | graphql_field_type }}
 {%- endfor %}
 }
 {%- endfor %}
@@ -49,16 +49,16 @@ type {{ type_def.name }} {
 # Input Types
 # ============================================================================
 {%- for input_type in input_types %}
-{%- if input_type.description %}
+{%- if input_type.get('description') %}
 
-"""{{ input_type.description }}"""
+"""{{ input_type['description'] }}"""
 {%- endif %}
-input {{ input_type.name }} {
-{%- for field in input_type.fields %}
-  {%- if field.description %}
-  """{{ field.description }}"""
+input {{ input_type['name'] }} {
+{%- for field in input_type['fields'] %}
+  {%- if field.get('description') %}
+  """{{ field['description'] }}"""
   {%- endif %}
-  {{ field.name }}: {{ field | graphql_field_type }}{{ ' = ' + field.default if field.default else '' }}
+  {{ field['name'] }}: {{ field | graphql_field_type }}{{ ' = ' + field['default'] if field.get('default') else '' }}
 {%- endfor %}
 }
 {%- endfor %}

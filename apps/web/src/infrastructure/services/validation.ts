@@ -52,8 +52,14 @@ export class ValidationService {
    */
   private static getNodeSchema(nodeType: NodeType): z.ZodSchema | undefined {
     // Map NodeType enum to string key for schema lookup
-    const schemaKey = nodeType.toLowerCase().replace(/_/g, '_');
-    return getNodeDataSchema(schemaKey);
+    const schemaKey = nodeType.toLowerCase().replace(/_/g, '') as 'hook' | 'start' | 'condition' | 'endpoint' | 'db' | 'apijob' | 'codejob' | 'integratedapi' | 'jsonschemavalidator' | 'personjob' | 'subdiagram' | 'templatejob' | 'typescriptast' | 'userresponse';
+
+    // Check if the key is valid before calling getNodeDataSchema
+    const validKeys = ['hook', 'start', 'condition', 'endpoint', 'db', 'apijob', 'codejob', 'integratedapi', 'jsonschemavalidator', 'personjob', 'subdiagram', 'templatejob', 'typescriptast', 'userresponse'] as const;
+    if (validKeys.includes(schemaKey as any)) {
+      return getNodeDataSchema(schemaKey);
+    }
+    return undefined;
   }
 
   /**

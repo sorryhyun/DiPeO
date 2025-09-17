@@ -123,8 +123,9 @@ class RunCommand:
         print(f"\n⏳ Waiting for execution to complete (timeout: {timeout}s)...")
         start_time = time.time()
         consecutive_none_count = 0
-        max_consecutive_none = 10  # Allow up to 20 seconds of None responses (10 * 2s)
+        max_consecutive_none = 3  # Reduced to 3 attempts (6 seconds) for faster detection
         last_known_status = None
+        has_seen_running = False  # Track if we've seen the execution running
 
         while True:
             elapsed = time.time() - start_time
@@ -152,10 +153,16 @@ class RunCommand:
                     print(f"❌ Execution {last_known_status.lower()}")
                     return False
 
-                # If too many None responses, assume completion
-                if consecutive_none_count >= max_consecutive_none:
-                    print("⚠️ Lost connection to execution state, assuming completed")
+                # If we've seen the execution running and now get consistent None responses,
+                # it likely means the execution completed and was cleaned up
+                if has_seen_running and consecutive_none_count >= max_consecutive_none:
+                    print("✅ Execution completed (CLI session ended)")
                     return True
+
+                # If we never saw it running and get many None responses, something's wrong
+                if not has_seen_running and consecutive_none_count >= max_consecutive_none * 2:
+                    print("⚠️ Unable to connect to execution state")
+                    return False
 
                 print(f"⏳ Waiting for execution result... ({int(elapsed)}s)")
                 continue
@@ -164,6 +171,10 @@ class RunCommand:
             consecutive_none_count = 0
             status = exec_result.get("status")
             last_known_status = status
+
+            # Track that we've seen the execution running
+            if status in ["RUNNING", "PENDING"]:
+                has_seen_running = True
 
             if status in ["COMPLETED", "MAXITER_REACHED"]:
                 if status == "MAXITER_REACHED":
@@ -212,6 +223,7 @@ class RunCommand:
                     start = time.time()
                     consecutive_none_count = 0
                     last_known_status = None
+                    has_seen_running = False
 
                     while True:
                         # Check timeout
@@ -226,6 +238,10 @@ class RunCommand:
                             consecutive_none_count = 0
                             status = exec_result.get("status")
                             last_known_status = status
+
+                            # Track that we've seen the execution running
+                            if status in ["RUNNING", "PENDING"]:
+                                has_seen_running = True
 
                             if status in ["COMPLETED", "MAXITER_REACHED"]:
                                 if status == "MAXITER_REACHED":
@@ -253,18 +269,41 @@ class RunCommand:
                                 subscription_task.cancel()
                                 return True
 
-                            # After many None responses, check if subscription is still running
-                            if consecutive_none_count >= 15:  # 15 seconds of None
+                            # If we've seen the execution running and now get consistent None responses,
+                            # it likely means the execution completed and was cleaned up
+                            if has_seen_running and consecutive_none_count >= 3:  # 3 seconds
                                 if subscription_task.done():
-                                    # Subscription ended, likely execution completed
+                                    # Subscription ended, execution completed
                                     print("\n✅ Execution completed (subscription ended)")
-                                    return True
                                 else:
-                                    print("\n⚠️ Lost connection to execution state")
-                                    subscription_task.cancel()
-                                    return True
+                                    # CLI session likely ended
+                                    print("\n✅ Execution completed (CLI session ended)")
+                                subscription_task.cancel()
+                                return True
+
+                            # Also check if subscription ended without us seeing completion
+                            if subscription_task.done() and consecutive_none_count >= 1:
+                                print("\n✅ Execution completed (subscription closed)")
+                                return True
+
+                            # If we never saw it running and get many None responses, something's wrong
+                            if not has_seen_running and consecutive_none_count >= 10:  # 10 seconds
+                                print("\n⚠️ Unable to connect to execution state")
+                                subscription_task.cancel()
+                                return False
 
                         await asyncio.sleep(1)
+
+                        # Check if subscription ended naturally (execution completed)
+                        if subscription_task.done():
+                            try:
+                                # Get the result to see if it completed normally
+                                await subscription_task
+                                print("\n✅ Execution completed")
+                                return True
+                            except Exception:
+                                # Subscription had an error, continue checking
+                                pass
                 except asyncio.CancelledError:
                     raise
                 finally:

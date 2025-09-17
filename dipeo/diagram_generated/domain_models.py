@@ -73,7 +73,6 @@ class DomainArrow(BaseModel):
     target: HandleID
     content_type: ContentType | None = Field(default=None)
     label: str | None = Field(default=None)
-    packing: Literal["pack", "spread"] | None = Field(default=None)
     execution_priority: float | None = Field(default=None)
     data: dict[str, Any] | None = Field(default=None)
 
@@ -240,7 +239,6 @@ class ExecutionState(BaseModel):
     error: str | None = Field(default=None)
     variables: JsonDict | None = Field(default=None)
     metadata: JsonDict | None = Field(default=None)
-    duration_seconds: float | None = Field(default=None)
     is_active: bool | None = Field(default=None)
     exec_counts: dict[str, float]
     executed_nodes: list[str]
@@ -298,7 +296,6 @@ class NodeDefinition(BaseModel):
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     type: str
-    node_schema: Any
     handler: Any
     requires_services: list[str] | None = Field(default=None)
     description: str | None = Field(default=None)
@@ -324,10 +321,8 @@ class ConversationMetadata(BaseModel):
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     started_at: str
-    last_message_at: str
     total_tokens: float
     message_count: float
-    context_resets: float
 
 
 class Conversation(BaseModel):
@@ -346,10 +341,8 @@ class CliSession(BaseModel):
     session_id: str
     user_id: str | None = Field(default=None)
     started_at: str
-    last_active: str | None = Field(default=None)
     status: Literal['active', 'inactive', 'terminated']
     metadata: dict[str, Any] | None = Field(default=None)
-    current_directory: str | None = Field(default=None)
     environment: dict[str, str] | None = Field(default=None)
 
 
@@ -670,7 +663,6 @@ class InteractivePrompt(BaseModel):
 
     execution_id: ExecutionID
     node_id: NodeID
-    prompt_id: str
     prompt: str
     timeout: Optional[float] = None
     default_value: Optional[str] = None

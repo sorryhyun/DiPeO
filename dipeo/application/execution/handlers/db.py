@@ -9,10 +9,12 @@ from typing import TYPE_CHECKING, Any
 import yaml
 from pydantic import BaseModel
 
+from dipeo.application.execution.decorators import Optional, requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.registry import DB_OPERATIONS_SERVICE
+from dipeo.application.registry.keys import TEMPLATE_PROCESSOR
 from dipeo.diagram_generated.enums import NodeType
 from dipeo.diagram_generated.unified_nodes.db_node import DbNode
 from dipeo.domain.execution.envelope import Envelope, get_envelope_factory
@@ -24,6 +26,10 @@ logger = logging.getLogger(__name__)
 
 
 @register_handler
+@requires_services(
+    db_service=DB_OPERATIONS_SERVICE,
+    template_processor=(TEMPLATE_PROCESSOR, Optional),
+)
 class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
     """File-based DB node supporting read, write and append operations."""
 
@@ -31,9 +37,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
 
     def __init__(self) -> None:
         super().__init__()
-        self._current_db_service = None
         self._current_base_dir = None
-        self._current_template_processor = None
 
     @property
     def node_class(self) -> type[DbNode]:
@@ -44,31 +48,12 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
         return DbNode
 
     @property
-    def requires_services(self) -> list[str]:
-        return ["db_operations_service"]
-
-    @property
     def description(self) -> str:
         return "File-based DB node supporting read, write and append operations"
 
     async def pre_execute(self, request: ExecutionRequest[DbNode]) -> Envelope | None:
-        """Pre-execution setup: validate database service availability.
-
-        Moves service resolution and validation out of execute_request
-        for cleaner separation of concerns.
-        """
+        """Pre-execution setup: validate operation configuration."""
         node = request.node
-
-        # Resolve database operations service
-        db_service = request.services.resolve(DB_OPERATIONS_SERVICE)
-
-        if db_service is None:
-            factory = get_envelope_factory()
-            return factory.error(
-                "Database operations service not available",
-                error_type="ValueError",
-                produced_by=str(node.id),
-            )
 
         # Validate operation type
         valid_operations = ["read", "write", "append"]
@@ -90,15 +75,8 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                 produced_by=str(node.id),
             )
 
-        # Store service and configuration in instance variables for execute_request
-        self._current_db_service = db_service
+        # Store configuration in instance variables for execute_request
         self._current_base_dir = os.getenv("DIPEO_BASE_DIR", os.getcwd())
-
-        # Initialize template processor for path interpolation
-        from dipeo.application.registry.keys import TEMPLATE_PROCESSOR
-
-        template_processor = request.services.resolve(TEMPLATE_PROCESSOR)
-        self._current_template_processor = template_processor
 
         # No early return - proceed to execute_request
         return None
@@ -175,10 +153,10 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
         node = request.node
         context = request.context
 
-        # Use pre-validated service and configuration from instance variables (set in pre_execute)
-        db_service = self._current_db_service
+        # Services are injected by decorator
+        db_service = self._db_service
+        template_processor = self._template_processor
         base_dir = self._current_base_dir
-        template_processor = self._current_template_processor
 
         file_paths = node.file
 

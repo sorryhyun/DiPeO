@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
+from dipeo.application.execution.decorators import Optional, requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
@@ -17,6 +18,7 @@ if TYPE_CHECKING:
 
 
 @register_handler
+@requires_services(filesystem_adapter=(FILESYSTEM_ADAPTER, Optional))
 class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
     """Endpoint node - pass through data and optionally save to file."""
 
@@ -26,7 +28,6 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         super().__init__()
         self._current_save_enabled = False
         self._current_filename = None
-        self._current_filesystem_adapter = None
 
     @property
     def node_class(self) -> type[EndpointNode]:
@@ -41,10 +42,6 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         return EndpointNode
 
     @property
-    def requires_services(self) -> list[str]:
-        return ["filesystem_adapter"]
-
-    @property
     def description(self) -> str:
         return "Endpoint node - pass through data and optionally save to file"
 
@@ -53,8 +50,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         services = request.services
 
         if node.save_to_file:
-            filesystem_adapter = services.resolve(FILESYSTEM_ADAPTER)
-
+            filesystem_adapter = request.get_optional_service(FILESYSTEM_ADAPTER)
             if not filesystem_adapter:
                 return EnvelopeFactory.create(
                     body={
@@ -77,17 +73,16 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
 
             self._current_save_enabled = True
             self._current_filename = file_name
-            self._current_filesystem_adapter = filesystem_adapter
         else:
             self._current_save_enabled = False
             self._current_filename = None
-            self._current_filesystem_adapter = None
 
         return None
 
     def validate(self, request: ExecutionRequest[EndpointNode]) -> str | None:
         node = request.node
-        if node.save_to_file and not request.get_service(FILESYSTEM_ADAPTER):
+        filesystem_adapter = request.get_optional_service(FILESYSTEM_ADAPTER)
+        if node.save_to_file and not filesystem_adapter:
             return "Filesystem adapter is required when save_to_file is enabled"
 
         return None
@@ -117,7 +112,9 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
 
         if self._current_save_enabled:
             file_name = self._current_filename
-            filesystem_adapter = self._current_filesystem_adapter
+            filesystem_adapter = (
+                request.get_optional_service(FILESYSTEM_ADAPTER) or self._filesystem_adapter
+            )
 
             if filesystem_adapter:
                 try:

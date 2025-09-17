@@ -5,13 +5,10 @@ consolidating infrastructure and domain configuration with sensible defaults
 and environment variable overrides.
 """
 
-try:
-    # Try Pydantic v2 with pydantic-settings
-    from pydantic import Field
-    from pydantic_settings import BaseSettings
-except ImportError:
-    # Fall back to Pydantic v1
-    from pydantic import BaseSettings, Field
+from pathlib import Path
+
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 
 class LLMSettings(BaseSettings):
@@ -99,7 +96,9 @@ class MessagingSettings(BaseSettings):
         default=None, env="DIPEO_REDIS_URL", description="Redis URL for distributed messaging"
     )
     max_queue_size: int = Field(
-        default=100, env="DIPEO_MSG_MAX_QUEUE_SIZE", description="Maximum queue size per connection"
+        default=10000,
+        env="DIPEO_MSG_MAX_QUEUE_SIZE",
+        description="Maximum queue size per connection",
     )
     broadcast_warning_threshold_s: float = Field(
         default=0.5,
@@ -141,7 +140,9 @@ class StorageSettings(BaseSettings):
     """Storage configuration settings."""
 
     base_dir: str = Field(
-        default="/home/soryhyun/DiPeO", env="DIPEO_BASE_DIR", description="Base directory for DiPeO"
+        default_factory=lambda: str(Path(__file__).resolve().parents[2]),
+        env="DIPEO_BASE_DIR",
+        description="Base directory for DiPeO",
     )
     data_dir: str = Field(
         default="files",
@@ -189,6 +190,69 @@ class MonitoringSettings(BaseSettings):
         extra = "ignore"
 
 
+class DependencyInjectionSettings(BaseSettings):
+    """Dependency injection safety and auditing configuration settings."""
+
+    # Override Control
+    allow_override: bool = Field(
+        default=False,
+        env="DIPEO_DI_ALLOW_OVERRIDE",
+        description="Allow service overrides (auto-enabled in dev/test environments)",
+    )
+
+    # Freezing Behavior
+    freeze_after_boot: bool = Field(
+        default=True,
+        env="DIPEO_DI_FREEZE_AFTER_BOOT",
+        description="Freeze registry after application bootstrap completes",
+    )
+    auto_freeze_in_production: bool = Field(
+        default=True,
+        env="DIPEO_DI_AUTO_FREEZE_PRODUCTION",
+        description="Automatically freeze registry in production environment",
+    )
+
+    # Audit Trail
+    enable_audit: bool = Field(
+        default=True,
+        env="DIPEO_DI_ENABLE_AUDIT",
+        description="Enable audit trail for service registrations",
+    )
+    audit_max_records: int = Field(
+        default=1000,
+        env="DIPEO_DI_AUDIT_MAX_RECORDS",
+        description="Maximum audit records to keep in memory",
+    )
+
+    # Safety Features
+    require_override_reason_in_prod: bool = Field(
+        default=True,
+        env="DIPEO_DI_REQUIRE_OVERRIDE_REASON_PROD",
+        description="Require override reason for production overrides",
+    )
+    validate_dependencies_on_boot: bool = Field(
+        default=True,
+        env="DIPEO_DI_VALIDATE_DEPENDENCIES",
+        description="Validate service dependencies during bootstrap",
+    )
+
+    # Development Features
+    allow_temporary_overrides: bool = Field(
+        default=True,
+        env="DIPEO_DI_ALLOW_TEMP_OVERRIDES",
+        description="Allow temporary service overrides in test contexts",
+    )
+    strict_final_services: bool = Field(
+        default=True,
+        env="DIPEO_DI_STRICT_FINAL_SERVICES",
+        description="Strictly enforce final service constraints",
+    )
+
+    class Config:
+        env_prefix = "DIPEO_DI_"
+        extra = "ignore"
+
+
 class AppSettings(BaseSettings):
     """Main application configuration combining all settings."""
 
@@ -205,13 +269,13 @@ class AppSettings(BaseSettings):
     server: ServerSettings = ServerSettings()
     storage: StorageSettings = StorageSettings()
     monitoring: MonitoringSettings = MonitoringSettings()
+    dependency_injection: DependencyInjectionSettings = DependencyInjectionSettings()
 
     class Config:
         env_prefix = "DIPEO_"
         extra = "ignore"
         env_file = ".env"
         env_file_encoding = "utf-8"
-        extra = "ignore"  # Ignore extra environment variables
 
 
 # Singleton instance

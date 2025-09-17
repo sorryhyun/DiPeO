@@ -5,14 +5,22 @@ reducing layers of abstraction from 8 to 4-5 as per the simplification plan.
 """
 
 import logging
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
+from dipeo.application.execution.decorators import Optional, Required, requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
 from dipeo.application.execution.use_cases import PromptLoadingUseCase
+from dipeo.application.registry.keys import (
+    DIAGRAM,
+    EXECUTION_ORCHESTRATOR,
+    FILESYSTEM_ADAPTER,
+    LLM_SERVICE,
+    PROMPT_BUILDER,
+)
 from dipeo.config.llm import PERSON_JOB_MAX_TOKENS, PERSON_JOB_TEMPERATURE
 from dipeo.diagram_generated.domain_models import PersonID
 from dipeo.diagram_generated.enums import NodeType
@@ -31,6 +39,13 @@ logger = logging.getLogger(__name__)
 
 
 @register_handler
+@requires_services(
+    llm_service=(LLM_SERVICE, Required),
+    diagram=(DIAGRAM, Required),
+    execution_orchestrator=(EXECUTION_ORCHESTRATOR, Required),
+    prompt_builder=(PROMPT_BUILDER, Required),
+    filesystem_adapter=(FILESYSTEM_ADAPTER, Optional),
+)
 class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     """Handler for executing AI person jobs with conversation memory.
 
@@ -44,22 +59,16 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     def __init__(self):
         super().__init__()
 
-        # Services (will be set in pre_execute)
-        self._llm_service = None
-        self._diagram = None
-        self._execution_orchestrator = None
-        self._prompt_builder = None
-        self._filesystem_adapter = None
-        self._services_configured = False
-
         # Use cases and utility handlers
-        self._prompt_loading_use_case = None
         self._text_format_handler = TextFormatHandler()
         self._conversation_handler = ConversationHandler()
         self._batch_executor = BatchExecutor(self._execute_single)
 
         # Instance variable for debug flag
         self._current_debug = False
+
+        # Will be initialized when filesystem_adapter is available
+        self._prompt_loading_use_case = None
 
     @property
     def node_class(self) -> type[PersonJobNode]:
@@ -75,13 +84,8 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
 
     @property
     def requires_services(self) -> list[str]:
-        return [
-            "llm_service",
-            "diagram",
-            "execution_orchestrator",
-            "prompt_builder",
-            "filesystem_adapter",
-        ]
+        """Legacy property for backward compatibility."""
+        return self.get_required_services() + self.get_optional_services()
 
     @property
     def description(self) -> str:
@@ -103,34 +107,12 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         return None
 
     async def pre_execute(self, request: ExecutionRequest[PersonJobNode]) -> Envelope | None:
-        """Pre-execution hook to check max_iteration limit and configure services."""
+        """Pre-execution hook to check max_iteration limit."""
         node = request.node
         context = request.context
 
         # Set debug flag for later use
         self._current_debug = False
-
-        # Configure services on first execution
-        if not self._services_configured:
-            from dipeo.application.registry.keys import (
-                DIAGRAM,
-                EXECUTION_ORCHESTRATOR,
-                FILESYSTEM_ADAPTER,
-                LLM_SERVICE,
-                PROMPT_BUILDER,
-            )
-
-            self._llm_service = request.services.resolve(LLM_SERVICE)
-            self._diagram = request.services.resolve(DIAGRAM)
-            self._execution_orchestrator = request.services.resolve(EXECUTION_ORCHESTRATOR)
-            self._prompt_builder = request.services.resolve(PROMPT_BUILDER)
-            self._filesystem_adapter = request.services.resolve(FILESYSTEM_ADAPTER)
-
-            # Initialize prompt loading use case with filesystem
-            if self._filesystem_adapter:
-                self._prompt_loading_use_case = PromptLoadingUseCase(self._filesystem_adapter)
-
-            self._services_configured = True
         return None
 
     async def prepare_inputs(
@@ -203,6 +185,10 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         """Execute person job with prepared inputs."""
         node = request.node
         request.inputs = inputs
+
+        # Initialize prompt loading use case if filesystem_adapter is available
+        if self._filesystem_adapter and not self._prompt_loading_use_case:
+            self._prompt_loading_use_case = PromptLoadingUseCase(self._filesystem_adapter)
 
         # Check if batch mode is enabled
         if getattr(node, "batch", False):

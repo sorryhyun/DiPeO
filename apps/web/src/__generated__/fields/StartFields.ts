@@ -4,15 +4,15 @@ import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConf
 export const startFields: UnifiedFieldDefinition[] = [
   {
     name: 'trigger_mode',
-    type: 'select',
-    label: 'Trigger mode',
+    type: 'text',
+    label: '"Trigger mode"',
     required: false,
     defaultValue: "none",
-    description: 'How this start node is triggered',
+    description: '"How this start node is triggered"',
     options: [
-      { value: 'none', label: 'None - Simple start point' },
-      { value: 'manual', label: 'Manual - Triggered manually with data' },
-      { value: 'hook', label: 'Hook - Triggered by external events' },
+      { value: '"none"', label: '"None - Simple start point"' },
+      { value: '"manual"', label: '"Manual - Triggered manually with data"' },
+      { value: '"hook"', label: '"Hook - Triggered by external events"' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };
@@ -21,30 +21,30 @@ export const startFields: UnifiedFieldDefinition[] = [
   {
     name: 'custom_data',
     type: 'text',
-    label: 'Custom data',
+    label: '"Custom data"',
     required: false,
-    description: 'Custom data to pass when manually triggered',
+    description: '"Custom data to pass when manually triggered"',
   },
   {
     name: 'output_data_structure',
-    type: 'code',
-    label: 'Output data structure',
+    type: 'textarea',
+    label: '"Output data structure"',
     required: false,
-    description: 'Expected output data structure',
+    description: '"Expected output data structure"',
   },
   {
     name: 'hook_event',
     type: 'text',
-    label: 'Hook event',
+    label: '"Hook event"',
     required: false,
-    placeholder: 'e.g., webhook.received, file.uploaded',
-    description: 'Event name to listen for',
+    placeholder: '"e.g., webhook.received, file.uploaded"',
+    description: '"Event name to listen for"',
   },
   {
     name: 'hook_filters',
-    type: 'code',
-    label: 'Hook filters',
+    type: 'textarea',
+    label: '"Hook filters"',
     required: false,
-    description: 'Filters to apply to incoming events',
+    description: '"Filters to apply to incoming events"',
   },
 ];

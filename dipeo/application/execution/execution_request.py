@@ -1,14 +1,15 @@
 """Unified execution request objects for handler interface."""
 
+import warnings
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union, cast
 
 from dipeo.diagram_generated import Status
 from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
 
 if TYPE_CHECKING:
     from dipeo.application.bootstrap import Container
-    from dipeo.application.registry import ServiceRegistry
+    from dipeo.application.registry import ServiceKey, ServiceRegistry
     from dipeo.domain.execution.execution_context import ExecutionContext
 
 T = TypeVar("T", bound=ExecutableNode)
@@ -52,6 +53,15 @@ class ExecutionRequest[T: ExecutableNode]:
         return None
 
     def get_service(self, name: str) -> Any:
+        """Legacy service resolution method.
+
+        DEPRECATED: Use get_required_service() or get_optional_service() instead.
+        """
+        warnings.warn(
+            "get_service() is deprecated. Use get_required_service() or get_optional_service() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if isinstance(self.services, dict):
             return self.services.get(name)
         else:
@@ -62,6 +72,66 @@ class ExecutionRequest[T: ExecutableNode]:
                 return self.services.resolve(key)
             except KeyError:
                 return self.services.get(key)
+
+    def get_required_service[S](self, key: Union["ServiceKey[S]", str]) -> S:
+        """Get a required service, raising KeyError if not found.
+
+        Args:
+            key: Service key or name string
+
+        Returns:
+            The service instance
+
+        Raises:
+            KeyError: If the service is not found
+        """
+        from dipeo.application.registry import ServiceKey
+
+        # Handle string keys for backward compatibility
+        if isinstance(key, str):
+            service_key = ServiceKey(key)
+            name = key
+        else:
+            service_key = key
+            name = key.name
+
+        if isinstance(self.services, dict):
+            if name not in self.services:
+                raise KeyError(f"Required service '{name}' not found in service container")
+            return cast(S, self.services[name])
+        else:
+            # ServiceRegistry.resolve already raises KeyError if not found
+            return self.services.resolve(service_key)
+
+    def get_optional_service[S](
+        self, key: Union["ServiceKey[S]", str], default: S | None = None
+    ) -> S | None:
+        """Get an optional service, returning default if not found.
+
+        Args:
+            key: Service key or name string
+            default: Default value to return if service not found
+
+        Returns:
+            The service instance or default value
+        """
+        from dipeo.application.registry import ServiceKey
+
+        # Handle string keys for backward compatibility
+        if isinstance(key, str):
+            service_key = ServiceKey(key)
+            name = key
+        else:
+            service_key = key
+            name = key.name
+
+        if isinstance(self.services, dict):
+            return cast(S, self.services.get(name, default))
+        else:
+            try:
+                return self.services.resolve(service_key)
+            except KeyError:
+                return default
 
     def get_input(self, name: str, default: Any = None) -> Any:
         return self.inputs.get(name, default)

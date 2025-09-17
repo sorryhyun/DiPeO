@@ -74,7 +74,9 @@ class LLMResponse:
     provider: ProviderType
     usage: LLMUsage | None = None
     tool_outputs: list[Any] | None = None
-    structured_output: Any | None = None
+    structured_output: Any | None = (
+        None  # Populated when provider returns structured Pydantic models
+    )
     raw_response: Any | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 

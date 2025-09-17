@@ -22,10 +22,12 @@ async def create_server_container() -> Container:
     # Create container with unified settings
     container = Container(settings)
     # Use minimal wiring for thin startup
-    from dipeo.application.bootstrap.wiring import (
+    import logging
+
+    from apps.server.bootstrap import (
+        bootstrap_services,
+        execute_event_subscriptions,
         wire_feature_flags,
-        wire_messaging_services,
-        wire_minimal,
     )
     from dipeo.application.registry.keys import (
         CLI_SESSION_SERVICE,
@@ -35,16 +37,17 @@ async def create_server_container() -> Container:
         STATE_STORE,
     )
 
-    # Wire only essential services
-    wire_minimal(container.registry, redis_client=None)
+    logger = logging.getLogger(__name__)
+    # Bootstrap all services
+    bootstrap_services(container.registry, redis_client=None)
 
     # Wire optional features if specified
     features = os.getenv("DIPEO_FEATURES", "").split(",") if os.getenv("DIPEO_FEATURES") else []
     if features:
         wire_feature_flags(container.registry, [f.strip() for f in features if f.strip()])
 
-    # Wire messaging services for server operation
-    wire_messaging_services(container.registry)
+    # Messaging services are already wired by bootstrap_services
+    # No need to wire separately
 
     # Get the message router from registry
     from dipeo.infrastructure.execution.messaging import MessageRouter
@@ -72,12 +75,14 @@ async def create_server_container() -> Container:
     await initialize_service(state_store)
 
     # Register for backward compatibility
-    container.registry.register(STATE_STORE, state_store)
+    # Guard against duplicate registration (STATE_STORE is marked as immutable)
+    if not container.registry.has(STATE_STORE):
+        container.registry.register(STATE_STORE, state_store)
+    else:
+        logger.debug("STATE_STORE already registered, skipping")
 
-    # CacheFirstStateStore is now wired and subscribed in wiring.py
+    # CacheFirstStateStore is now wired and subscribed in bootstrap.py
     # Execute event subscriptions to activate state store event handling
-    from dipeo.application.bootstrap.wiring import execute_event_subscriptions
-
     await execute_event_subscriptions(container.registry)
 
     # Initialize and wire MessageRouter

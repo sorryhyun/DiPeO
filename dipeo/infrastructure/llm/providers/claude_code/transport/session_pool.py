@@ -71,6 +71,19 @@ class SessionClient:
     is_busy: bool = False
     subprocess_pid: int | None = None
     owner_task: asyncio.Task | None = None
+    is_reserved: bool = False
+
+    def reserve(self) -> None:
+        """Reserve the session so it cannot be borrowed concurrently."""
+        if self.is_busy:
+            raise RuntimeError(f"Session {self.session_id} is already processing a query")
+        if self.is_reserved:
+            raise RuntimeError(f"Session {self.session_id} is already reserved")
+        self.is_reserved = True
+
+    def release_reservation(self) -> None:
+        """Release any pending reservation on the session."""
+        self.is_reserved = False
 
     async def connect(self) -> None:
         """Connect the client with None (empty initial stream).
@@ -86,6 +99,7 @@ class SessionClient:
             self.is_connected = True
             self.last_used_at = datetime.now()
             self.owner_task = asyncio.current_task()
+            self.is_reserved = False
 
             # Store the subprocess PID for targeted cleanup
             if hasattr(self.client, "_transport") and hasattr(self.client._transport, "_process"):
@@ -128,6 +142,8 @@ class SessionClient:
 
         # Update timestamp immediately when query starts (before marking busy)
         self.last_used_at = datetime.now()
+        # Reservation is no longer needed once the query starts
+        self.is_reserved = False
         self.is_busy = True
         self.query_count += 1
 
@@ -157,6 +173,8 @@ class SessionClient:
             self.is_busy = False
             # Update timestamp after query completes
             self.last_used_at = datetime.now()
+            # Ensure reservation flag is cleared after query completion
+            self.is_reserved = False
 
     async def disconnect(self) -> None:
         """Disconnect the client with timeout protection and task verification."""
@@ -169,6 +187,7 @@ class SessionClient:
             try:
                 await asyncio.wait_for(self.client.disconnect(), timeout=SESSION_DISCONNECT_GRACE)
                 self.is_connected = False
+                self.is_reserved = False
                 logger.debug(
                     f"[SessionClient] Disconnected session {self.session_id} "
                     f"after {self.query_count} queries"
@@ -258,6 +277,7 @@ class SessionClient:
                 logger.warning(f"[SessionClient] Error handling PID {pid}: {e}")
 
         self.is_connected = False
+        self.is_reserved = False
         if killed:
             logger.info(f"[SessionClient] Force disconnected session {self.session_id} (SIGKILL)")
         else:
@@ -267,7 +287,7 @@ class SessionClient:
 
     def can_reuse(self) -> bool:
         """Check if this session can be reused for another query."""
-        if not self.is_connected or self.is_busy:
+        if not self.is_connected or self.is_busy or self.is_reserved:
             return False
 
         # Check query limit
@@ -352,6 +372,12 @@ class SessionPool:
                     if not session.is_connected:
                         await session.connect()
 
+                    try:
+                        session.reserve()
+                    except RuntimeError:
+                        # Another borrower reserved between checks; skip
+                        continue
+
                     self._stats.total_borrowed += 1
                     self._stats.total_reused += 1
                     session_to_return = session
@@ -362,6 +388,7 @@ class SessionPool:
                 session = await self._create_session()
                 # Connect the session before returning
                 await session.connect()
+                session.reserve()
                 self._sessions.append(session)
                 self._stats.total_borrowed += 1
                 session_to_return = session
@@ -435,6 +462,10 @@ class SessionPool:
 
         for session in self._sessions:
             # Remove sessions that are not busy but can't be reused (e.g., reached max queries)
+            if session.is_reserved:
+                active.append(session)
+                continue
+
             if not session.is_busy and not session.can_reuse():
                 unusable.append(session)
             else:

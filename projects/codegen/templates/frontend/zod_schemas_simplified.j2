@@ -27,19 +27,19 @@ import {
 
 // Node validation schemas
 {%- for config in node_configs %}
-export const {{ config.node_name }}Schema = z.object({
-{%- for field in config.fields %}
-  {{ field.name }}: {{ field | zod_schema }}{% if not loop.last %},{% endif %}
+export const {{ config['node_name'] }}Schema = z.object({
+{%- for field in config['fields'] %}
+  {{ field['name'] }}: {{ field | zod_schema }}{% if not loop.last %},{% endif %}
 {%- endfor %}
 });
 
-export type {{ config.node_name }} = z.infer<typeof {{ config.node_name }}Schema>;
+export type {{ config['node_name'] }} = z.infer<typeof {{ config['node_name'] }}Schema>;
 {%- endfor %}
 
 // Export all schemas
 export const nodeSchemas = {
 {%- for config in node_configs %}
-  {{ config.node_name | lower }}: {{ config.node_name }}Schema{% if not loop.last %},{% endif %}
+  {{ config['node_name'] | lower }}: {{ config['node_name'] }}Schema{% if not loop.last %},{% endif %}
 {%- endfor %}
 } as const;
 
@@ -49,4 +49,41 @@ export function validateNodeData<T extends keyof typeof nodeSchemas>(
   data: unknown
 ): z.infer<typeof nodeSchemas[T]> {
   return nodeSchemas[nodeType].parse(data);
+}
+
+// Export aliases for backward compatibility
+export const NODE_DATA_SCHEMAS = nodeSchemas;
+
+// Export schema getter function
+export function getNodeDataSchema(nodeType: keyof typeof nodeSchemas) {
+  return nodeSchemas[nodeType];
+}
+// Create a field validator function for Zod schemas
+export function createZodFieldValidator(nodeType: string, fieldName: string) {
+  const schemaKey = nodeType.toLowerCase().replace(/-/g, '') as keyof typeof nodeSchemas;
+
+  return (value: unknown) => {
+    if (!(schemaKey in nodeSchemas)) {
+      return { isValid: true }; // If no schema exists, pass validation
+    }
+
+    const schema = nodeSchemas[schemaKey];
+    const fieldData = { [fieldName]: value };
+
+    try {
+      // Try to validate just this field using partial schema
+      if ('partial' in schema && typeof schema.partial === 'function') {
+        (schema as any).partial().parse(fieldData);
+      }
+      return { isValid: true };
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const fieldError = error.errors.find(err => err.path[0] === fieldName);
+        if (fieldError) {
+          return { isValid: false, error: fieldError.message };
+        }
+      }
+      return { isValid: true };
+    }
+  };
 }

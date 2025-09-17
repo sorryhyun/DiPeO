@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Optional, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from dipeo.diagram_generated import ChatResult
+    from dipeo.infrastructure.llm.drivers.types import DecisionOutput, MemorySelectionOutput
 
 
 @runtime_checkable
@@ -168,18 +169,40 @@ class LLMService(Protocol):
     async def complete(
         self,
         messages: list[dict[str, str]],
-        provider: str | None = None,
-        model: str | None = None,
-        api_key_id: str | None = None,
+        model: str,
+        api_key_id: str,
+        service_name: str | None = None,
         **kwargs,
     ) -> "ChatResult":
-        """Complete with automatic provider selection."""
+        """Complete with automatic service selection."""
         ...
 
-    async def validate_api_key(self, api_key_id: str, provider: str | None = None) -> bool:
+    async def complete_memory_selection(
+        self,
+        candidate_messages: list[Any],
+        task_preview: str,
+        criteria: str,
+        at_most: int | None,
+        model: str,
+        api_key_id: str,
+        service_name: str,
+        **kwargs,
+    ) -> "MemorySelectionOutput":
+        """Complete memory selection and return structured response."""
+        ...
+
+    async def complete_decision(
+        self,
+        prompt: str,
+        context: dict[str, Any],
+        model: str,
+        api_key_id: str,
+        service_name: str,
+        **kwargs,
+    ) -> "DecisionOutput":
+        """Complete decision evaluation and return structured response."""
+        ...
+
+    async def validate_api_key(self, api_key_id: str, service: str | None = None) -> bool:
         """Validate an API key is functional."""
-        ...
-
-    async def get_provider_for_model(self, model: str) -> str | None:
-        """Determine which provider supports a given model."""
         ...

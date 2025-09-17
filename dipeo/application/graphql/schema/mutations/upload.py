@@ -179,7 +179,7 @@ class DiagramConvertResult:
     success: bool
     message: str | None = None
     content: str | None = None
-    format: DiagramFormatGraphQL | None = None
+    format: str | None = None  # Changed from DiagramFormatGraphQL to str for JSON serialization
     error: str | None = None
 
 
@@ -350,7 +350,7 @@ def create_upload_mutations(registry: ServiceRegistry) -> type:
                     success=True,
                     message=f"Converted from {from_format_str} to {to_format_str}",
                     content=converted_content,
-                    format=to_format,
+                    format=to_format_str,  # Use string value instead of enum
                 )
 
             except Exception as e:

@@ -11,20 +11,18 @@ from pathlib import Path
 import strawberry
 from strawberry.scalars import JSON
 
-from dipeo.application.graphql.resolvers import DiagramResolver, ExecutionResolver, PersonResolver
-from dipeo.application.graphql.resolvers.provider_resolver import ProviderResolver
-from dipeo.application.graphql.types.cli_session import CliSession
-from dipeo.application.graphql.types.provider_types import (
+from dipeo.application.graphql.graphql_types.cli_session import CliSession
+from dipeo.application.graphql.graphql_types.provider_types import (
     OperationSchemaType,
     OperationType,
     ProviderStatisticsType,
     ProviderType,
 )
-from dipeo.application.graphql.types.query_types import DiagramFormatInfo
+from dipeo.application.graphql.resolvers import DiagramResolver, ExecutionResolver, PersonResolver
+from dipeo.application.graphql.resolvers.provider_resolver import ProviderResolver
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import (
     CLI_SESSION_SERVICE,
-    DIAGRAM_CONVERTER,
     DIAGRAM_PORT,
     EXECUTION_ORCHESTRATOR,
     FILESYSTEM_ADAPTER,
@@ -73,7 +71,13 @@ async def get_execution(
     """Get a single execution by ID."""
     execution_resolver = ExecutionResolver(registry)
     execution_id_typed = ExecutionID(str(execution_id))
-    return await execution_resolver.get_execution(execution_id_typed)
+    execution_state = await execution_resolver.get_execution(execution_id_typed)
+
+    if execution_state is None:
+        return None
+
+    # Convert Pydantic model to Strawberry type
+    return ExecutionStateType.from_pydantic(execution_state)
 
 
 async def list_executions(
@@ -84,7 +88,10 @@ async def list_executions(
 ) -> list[ExecutionStateType]:
     """List executions with optional filtering."""
     execution_resolver = ExecutionResolver(registry)
-    return await execution_resolver.list_executions(filter, limit, offset)
+    execution_states = await execution_resolver.list_executions(filter, limit, offset)
+
+    # Convert Pydantic models to Strawberry types
+    return [ExecutionStateType.from_pydantic(state) for state in execution_states]
 
 
 async def get_execution_order(registry: ServiceRegistry, execution_id: strawberry.ID) -> JSON:
@@ -233,7 +240,8 @@ async def get_execution_history(
             if hasattr(execution, "metrics"):
                 execution.metrics = None
 
-    return executions
+    # Convert Pydantic models to Strawberry types
+    return [ExecutionStateType.from_pydantic(execution) for execution in executions]
 
 
 # Query resolvers - Persons
@@ -398,43 +406,19 @@ async def list_conversations(
     limit: int = 100,
     offset: int = 0,
     since: datetime | None = None,
-) -> JSON:
+) -> list[JSON]:
     """List conversations with optional filtering."""
     conversation_service = registry.resolve(EXECUTION_ORCHESTRATOR)
 
     if not conversation_service or not hasattr(conversation_service, "person_conversations"):
-        return {
-            "conversations": [],
-            "total": 0,
-            "limit": limit,
-            "offset": offset,
-            "has_more": False,
-        }
+        return []
 
-    return {
-        "conversations": [],
-        "total": 0,
-        "limit": limit,
-        "offset": offset,
-        "has_more": False,
-    }
+    # Return empty list for now - full implementation pending
+    return []
 
 
-async def get_supported_formats(registry: ServiceRegistry) -> list[DiagramFormatInfo]:
-    """Get supported diagram formats."""
-    converter = registry.resolve(DIAGRAM_CONVERTER)
-    formats = converter.list_formats()
-    return [
-        DiagramFormatInfo(
-            format=fmt["id"],
-            name=fmt["name"],
-            description=fmt.get("description", ""),
-            extension=fmt["extension"],
-            supports_import=fmt.get("supports_import", True),
-            supports_export=fmt.get("supports_export", True),
-        )
-        for fmt in formats
-    ]
+# Note: get_supported_formats removed as DIAGRAM_CONVERTER service was unused
+# If needed in future, implement using DIAGRAM_SERIALIZER or other appropriate service
 
 
 async def list_prompt_files(registry: ServiceRegistry) -> list[JSON]:
@@ -512,11 +496,11 @@ async def get_prompt_file(registry: ServiceRegistry, filename: str) -> JSON:
         }
 
 
-async def get_active_cli_session(registry: ServiceRegistry) -> dict | None:
+async def get_active_cli_session(registry: ServiceRegistry) -> dict:
     """Get the active CLI session if any."""
     cli_session_service = registry.resolve(CLI_SESSION_SERVICE)
     if not cli_session_service:
-        return None
+        return {}
 
     from dipeo.application.execution.use_cases import CliSessionService
 
@@ -537,4 +521,4 @@ async def get_active_cli_session(registry: ServiceRegistry) -> dict | None:
                 "session_id": f"cli_{session_data.execution_id}",  # Include computed field
             }
 
-    return None
+    return {}

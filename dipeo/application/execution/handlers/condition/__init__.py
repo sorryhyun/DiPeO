@@ -7,9 +7,11 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel
 
+from dipeo.application.execution.decorators import requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.registry.keys import EXECUTION_ORCHESTRATOR, PROMPT_BUILDER
 from dipeo.diagram_generated.unified_nodes.condition_node import ConditionNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
@@ -28,6 +30,10 @@ logger = logging.getLogger(__name__)
 
 
 @register_handler
+@requires_services(
+    execution_orchestrator=(EXECUTION_ORCHESTRATOR, Optional),
+    prompt_builder=(PROMPT_BUILDER, Optional),
+)
 class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     """Handler for condition nodes using evaluator pattern with envelope support."""
 
@@ -55,10 +61,6 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     @property
     def schema(self) -> type[BaseModel]:
         return ConditionNode
-
-    @property
-    def requires_services(self) -> list[str]:
-        return ["execution_orchestrator", "prompt_builder"]
 
     @property
     def description(self) -> str:
@@ -168,8 +170,8 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # For LLM decision evaluator, pass required services
         if node.condition_type == "llm_decision" and hasattr(evaluator, "set_services"):
             evaluator.set_services(
-                orchestrator=request.get_service("execution_orchestrator"),
-                prompt_builder=request.get_service("prompt_builder"),
+                orchestrator=self._execution_orchestrator,
+                prompt_builder=self._prompt_builder,
             )
 
         # Track and expose loop index if configured

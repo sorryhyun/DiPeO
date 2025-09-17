@@ -179,8 +179,8 @@ export const useFileOperations = () => {
       const actualFilename = filename || `diagram.${format === DiagramFormat.NATIVE ? 'json' : 'yaml'}`;
 
       // Download the file
-      if (exportResult.content) {
-        downloadFile(exportResult.content, actualFilename);
+      if (exportResult.data) {
+        downloadFile(exportResult.data, actualFilename);
         toast.success(`Exported as ${actualFilename}`);
       }
 
@@ -223,7 +223,7 @@ export const useFileOperations = () => {
       const result = data.convert_diagram_format;
 
       return {
-        content: result.content || '',
+        content: result.data || '',
         format: result.format || format,
         filename: `diagram.${format === DiagramFormat.NATIVE ? 'json' : 'yaml'}`
       };

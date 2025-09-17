@@ -15,93 +15,168 @@ from .strawberry_nodes import *
 # Import base types
 from dipeo.diagram_generated.graphql.domain_types import *
 from dipeo.diagram_generated.graphql.inputs import *
+from .enums import DiagramFormatGraphQL
+from strawberry.file_uploads import Upload
 
 # Import services and keys
-from dipeo.application.registry import *
-from dipeo.application.registry.keys import *
+from dipeo.application.registry import ServiceRegistry
+from dipeo.application.registry.keys import (
+    DIAGRAM_PORT,
+    EXECUTION_SERVICE,
+    PERSON_REPOSITORY,
+    CONVERSATION_REPOSITORY,
+    API_KEY_SERVICE,
+    ServiceKey
+)
 
 
-# Generate input types for each node
+# Generate input types for each node if node_specs exist
+{% if node_specs %}
 {% for type_info in node_specs %}
 @strawberry.input
-class Create{{ type_info.class_name | default(type_info.display_name | pascal_case) }}Input:
-    """Input for creating a {{ type_info.display_name }} node"""
+class Create{{ type_info['name'] | pascal_case }}Input:
+    """Input for creating a {{ type_info.get('spec', {}).get('displayName', type_info['name']) }} node"""
     diagram_id: str
     position: Vec2Input
-    # TODO: Add node-specific fields from spec
-    # For now, we accept a generic data dict that will be validated
-    data: strawberry.scalars.JSON
+    label: Optional[str] = None
+
+    # Node-specific fields from specification
+    {% for field in type_info.get('spec', {}).get('fields', []) %}
+    {% if field['is_enum'] %}
+    # Enum field: {{ field['description'] }}
+    {{ field['name'] }}: {{ 'Optional[str]' if not field['required'] else 'str' }}{{ ' = None' if not field['required'] }}  # Values: {{ field['enum_values'] }}
+    {% elif field['is_object_type'] %}
+    {{ field['name'] }}: {{ 'Optional[strawberry.scalars.JSON]' if not field['required'] else 'strawberry.scalars.JSON' }}{{ ' = None' if not field['required'] }}  # {{ field['description'] }}
+    {% elif field['graphql_type'] == 'Int' %}
+    {{ field['name'] }}: {{ 'Optional[int]' if not field['required'] else 'int' }}{{ ' = None' if not field['required'] }}  # {{ field['description'] }}
+    {% elif field['graphql_type'] == 'Boolean' %}
+    {{ field['name'] }}: {{ 'Optional[bool]' if not field['required'] else 'bool' }}{{ ' = None' if not field['required'] }}  # {{ field['description'] }}
+    {% else %}
+    {{ field['name'] }}: {{ 'Optional[str]' if not field['required'] else 'str' }}{{ ' = None' if not field['required'] }}  # {{ field['description'] }}
+    {% endif %}
+    {% endfor %}
 
 @strawberry.input
-class Update{{ type_info.class_name | default(type_info.display_name | pascal_case) }}Input:
-    """Input for updating a {{ type_info.display_name }} node"""
-    # TODO: Add node-specific fields from spec
-    # For now, we accept a generic data dict that will be validated
-    data: Optional[strawberry.scalars.JSON] = None
+class Update{{ type_info['name'] | pascal_case }}Input:
+    """Input for updating a {{ type_info.get('spec', {}).get('displayName', type_info['name']) }} node"""
     position: Optional[Vec2Input] = None
+    label: Optional[str] = None
+
+    # Node-specific fields from specification (all optional for updates)
+    {% for field in type_info.get('spec', {}).get('fields', []) %}
+    {% if field['is_enum'] %}
+    # Enum field: {{ field['description'] }}
+    {{ field['name'] }}: Optional[str] = None  # Values: {{ field['enum_values'] }}
+    {% elif field['is_object_type'] %}
+    {{ field['name'] }}: Optional[strawberry.scalars.JSON] = None  # {{ field['description'] }}
+    {% elif field['graphql_type'] == 'Int' %}
+    {{ field['name'] }}: Optional[int] = None  # {{ field['description'] }}
+    {% elif field['graphql_type'] == 'Boolean' %}
+    {{ field['name'] }}: Optional[bool] = None  # {{ field['description'] }}
+    {% else %}
+    {{ field['name'] }}: Optional[str] = None  # {{ field['description'] }}
+    {% endif %}
+    {% endfor %}
 
 {% endfor %}
+{% endif %}
 
 
 @strawberry.type
 class NodeMutations:
     """Type-safe mutations for node operations"""
 
-{% for mutation in operations.mutations %}
+{# Process mutations from the operations IR data - use raw_mutations for correct structure #}
+{% if raw_mutations %}
+{% for mutation in raw_mutations %}
     @strawberry.mutation
-    async def {{ mutation.name }}(
+    async def {{ mutation.name | snake_case }}(
         self,
         info: Info,
-        {% if mutation.operation == 'create' %}input: {{ mutation.input_type }}{% else %}id: str, input: {{ mutation.input_type }}{% endif %}
-    ) -> {{ mutation.return_type }}:
-        """{{ mutation.operation.capitalize() }} a {{ mutation.node_type.replace('_', ' ').title() }} node"""
+        {% if mutation.variables %}
+        {% for var in mutation.variables %}
+        {{ var.name }}: {{ var.python_type | default(var.type) | graphql_to_python(required= var.required) }}{{ "," if not loop.last }}
+        {% endfor %}
+        {% endif %}
+    ) -> Any:  # Return type will be determined by the resolver
+        """{{ mutation.name }} - {{ mutation.entity | default('') }} mutation"""
         registry: ServiceRegistry = info.context["registry"]
 
-        {% if mutation.operation == 'create' %}
-        # Prepare node data
-        node_data = {
-            "type": "{{ mutation.node_type }}",
-            "position": input.position,
-            "data": input.data
+        # Build variables dict
+        variables = {
+            {% if mutation.variables %}
+            {% for var in mutation.variables %}
+            "{{ var.name }}": {{ var.name }}{{ "," if not loop.last }}
+            {% endfor %}
+            {% endif %}
         }
 
-        # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_PORT)
+        # Determine service and execute mutation based on type
+        mutation_lower = "{{ mutation.name }}".lower()
 
-        # Create the node
-        domain_node = await integrated_service.create_node(
-            diagram_id=input.diagram_id,
-            node_data=node_data
-        )
+        {% if 'node' in mutation.name.lower() or 'Node' in mutation.name %}
+        # Node-related mutations use DIAGRAM_PORT
+        service = registry.resolve(DIAGRAM_PORT)
+
+        # Call the appropriate method based on the operation
+        {% if 'create' in mutation.name.lower() %}
+        result = await service.create_node(**variables)
+        {% elif 'update' in mutation.name.lower() %}
+        result = await service.update_node(**variables)
+        {% elif 'delete' in mutation.name.lower() %}
+        result = await service.delete_node(**variables)
         {% else %}
-        # Get diagram service
-        integrated_service = registry.resolve(DIAGRAM_PORT)
-
-        # Update the node
-        domain_node = await integrated_service.update_node(
-            diagram_id=None,  # TODO: Need diagram_id from somewhere
-            node_id=id,
-            data=input.data
-        )
+        # Generic node operation
+        result = await service.handle_mutation("{{ mutation.name }}", variables)
         {% endif %}
 
-        # Convert to GraphQL type
-        # For now, return the DomainNodeType directly
-        return DomainNodeType(
-            id=domain_node.id,
-            type=domain_node.type,
-            position=domain_node.position,
-            data=domain_node.data
-        )
+        {% elif 'diagram' in mutation.name.lower() %}
+        # Diagram mutations
+        service = registry.resolve(DIAGRAM_PORT)
+        result = await service.handle_mutation("{{ mutation.name }}", variables)
+
+        {% elif 'execution' in mutation.name.lower() %}
+        # Execution mutations
+        service = registry.resolve(EXECUTION_SERVICE)
+        result = await service.handle_mutation("{{ mutation.name }}", variables)
+
+        {% elif 'person' in mutation.name.lower() %}
+        # Person mutations
+        service = registry.resolve(PERSON_REPOSITORY)
+        result = await service.handle_mutation("{{ mutation.name }}", variables)
+
+        {% elif 'conversation' in mutation.name.lower() %}
+        # Conversation mutations
+        service = registry.resolve(CONVERSATION_REPOSITORY)
+        result = await service.handle_mutation("{{ mutation.name }}", variables)
+
+        {% elif 'api_key' in mutation.name.lower() or 'apikey' in mutation.name.lower() %}
+        # API Key mutations
+        service = registry.resolve(API_KEY_SERVICE)
+        result = await service.handle_mutation("{{ mutation.name }}", variables)
+
+        {% else %}
+        # Default to DIAGRAM_PORT
+        service = registry.resolve(DIAGRAM_PORT)
+        result = await service.handle_mutation("{{ mutation.name }}", variables)
+        {% endif %}
+
+        return result
 
 {% endfor %}
+{% else %}
+    # No mutations defined yet
+    pass
+{% endif %}
 
 
 # Export mutations
 __all__ = [
     'NodeMutations',
+{% if node_specs %}
 {% for type_info in node_specs %}
-    'Create{{ type_info.class_name | default(type_info.display_name | pascal_case) }}Input',
-    'Update{{ type_info.class_name | default(type_info.display_name | pascal_case) }}Input',
+    'Create{{ type_info['name'] | pascal_case }}Input',
+    'Update{{ type_info['name'] | pascal_case }}Input',
 {% endfor %}
+{% endif %}
 ]

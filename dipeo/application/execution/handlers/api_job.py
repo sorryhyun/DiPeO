@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
+from dipeo.application.execution.decorators import requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
@@ -17,6 +18,9 @@ if TYPE_CHECKING:
 
 
 @register_handler
+@requires_services(
+    api_service=API_INVOKER,
+)
 class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     """Handler for API job nodes with authentication and retry support."""
 
@@ -24,7 +28,6 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
 
     def __init__(self):
         super().__init__()
-        self._current_api_service = None
         self._current_method = None
         self._current_headers = None
         self._current_params = None
@@ -44,22 +47,11 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         return ApiJobNode
 
     @property
-    def requires_services(self) -> list[str]:
-        return ["api_service"]
-
-    @property
     def description(self) -> str:
         return "Makes HTTP requests to external APIs with authentication support"
 
     async def pre_execute(self, request: ExecutionRequest[ApiJobNode]) -> Envelope | None:
         node = request.node
-
-        api_service = request.services.resolve(API_INVOKER)
-        if not api_service:
-            return EnvelopeFactory.create(
-                body={"error": "API service not available", "type": "RuntimeError"},
-                produced_by=str(node.id),
-            )
 
         if not node.url:
             return EnvelopeFactory.create(
@@ -87,7 +79,6 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
                 body={"error": parsed_data["error"], "type": "ValueError"}, produced_by=str(node.id)
             )
 
-        self._current_api_service = api_service
         self._current_method = method
         self._current_headers = parsed_data["headers"]
         self._current_params = parsed_data["params"]
@@ -105,7 +96,6 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         envelope_inputs = self.get_effective_inputs(request, inputs)
 
         api_config = {
-            "api_service": self._current_api_service,
             "method": self._current_method,
             "headers": self._current_headers.copy(),
             "params": self._current_params.copy(),
@@ -153,7 +143,8 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         node = request.node
         api_config = inputs
 
-        api_service = api_config["api_service"]
+        # Service is injected by decorator
+        api_service = self._api_service
         method = api_config["method"]
         headers = api_config["headers"]
         params = api_config["params"]

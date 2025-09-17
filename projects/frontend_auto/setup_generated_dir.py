@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Setup the generated directory with base configuration files and install dependencies.
-This ensures all config files and libraries are in place before any source code generation.
+Setup the generated directory with base configuration files, UI components, and install dependencies.
+This ensures all config files, UI components, and libraries are in place before any source code generation.
 """
 
 import json
@@ -13,13 +13,15 @@ from pathlib import Path
 
 def setup_generated_directory(inputs=None):
     """
-    Initialize the generated directory with base configuration files.
+    Initialize the generated directory with base configuration files and UI components.
 
     This function:
     1. Creates the generated directory if it doesn't exist
     2. Copies all base configuration files from base_configs/
-    3. Creates necessary subdirectories (src/, etc.)
-    4. Returns status for the diagram flow
+    3. Copies all UI component files from base_configs/ui/
+    4. Creates necessary subdirectories (src/, etc.)
+    5. Installs dependencies with pnpm
+    6. Returns status for the diagram flow
     """
 
     # Get base directory from environment or use current file's location
@@ -190,25 +192,46 @@ def setup_generated_directory(inputs=None):
     except Exception as e:
         print(f"⚠ Warning: Failed to install dependencies: {e}")
 
-    # Create UI components library structure (shadcn-style)
+    # Copy UI components from base_configs/ui/ if they exist
+    ui_source_dir = base_configs_dir / "ui"
     ui_components_dir = generated_dir / "src" / "components" / "ui"
     ui_components_dir.mkdir(parents=True, exist_ok=True)
 
-    # Create a lib/utils.ts file for cn helper
+    ui_copied = 0
+    if ui_source_dir.exists():
+        # Copy all UI component files
+        for ui_file in ui_source_dir.glob("*.tsx"):
+            shutil.copy2(ui_file, ui_components_dir / ui_file.name)
+            ui_copied += 1
+        for ui_file in ui_source_dir.glob("*.ts"):
+            shutil.copy2(ui_file, ui_components_dir / ui_file.name)
+            ui_copied += 1
+        print(f"✓ Copied {ui_copied} UI component files from base_configs/ui/")
+    else:
+        print("⚠ No UI components found in base_configs/ui/, skipping")
+
+    # Create lib/utils.ts if it doesn't exist in base_configs
+    lib_source_dir = base_configs_dir / "lib"
     lib_dir = generated_dir / "src" / "lib"
     lib_dir.mkdir(parents=True, exist_ok=True)
 
-    utils_file = lib_dir / "utils.ts"
-    utils_file.write_text("""import { type ClassValue, clsx } from "clsx"
+    if lib_source_dir.exists() and (lib_source_dir / "utils.ts").exists():
+        # Copy utils.ts from base_configs if it exists
+        shutil.copy2(lib_source_dir / "utils.ts", lib_dir / "utils.ts")
+        print("✓ Copied lib/utils.ts from base_configs")
+    else:
+        # Create default utils.ts if not in base_configs
+        utils_file = lib_dir / "utils.ts"
+        utils_file.write_text("""import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 """)
-    print("✓ Created lib/utils.ts with cn helper")
+        print("✓ Created lib/utils.ts with cn helper")
 
-    # Create a components.json config for shadcn-style components
+    # Create components.json config for shadcn-style components
     components_json = generated_dir / "components.json"
     components_json.write_text(json.dumps({
         "$schema": "https://ui.shadcn.com/schema.json",
@@ -229,90 +252,13 @@ export function cn(...inputs: ClassValue[]) {
     }, indent=2))
     print("✓ Created components.json for UI library configuration")
 
-    # Create basic UI component exports that wrap Radix UI
-    # This allows the generated code to import from @/components/ui/*
-    ui_index = ui_components_dir / "index.ts"
-    ui_index.write_text("""// Re-export all UI components from this central location
-// These components wrap Radix UI primitives with app styling
-
-export * from './button'
-export * from './card'
-export * from './dialog'
-export * from './input'
-export * from './select'
-export * from './table'
-export * from './toast'
-export * from './tooltip'
-export * from './checkbox'
-export * from './switch'
-export * from './popover'
-export * from './separator'
-export * from './scroll-area'
-export * from './skeleton'
-export * from './badge'
-export * from './alert'
-""")
-    print("✓ Created UI components index")
-
-    # Create a sample button component that wraps Radix with CVA
-    button_file = ui_components_dir / "button.tsx"
-    button_file.write_text("""import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
-import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "@/lib/utils"
-
-const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-      },
-      size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  }
-)
-
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
-  asChild?: boolean
-}
-
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button"
-    return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
-        {...props}
-      />
-    )
-  }
-)
-Button.displayName = "Button"
-
-export { Button, buttonVariants }
-""")
-    print("✓ Created Button component wrapper")
-
     # Return success status for diagram flow
-    return {"success": True, "copied_files": copied_count, "generated_dir": str(generated_dir)}
+    return {
+        "success": True,
+        "copied_files": copied_count,
+        "ui_components": ui_copied,
+        "generated_dir": str(generated_dir)
+    }
 
 
 if __name__ == "__main__":

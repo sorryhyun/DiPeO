@@ -159,6 +159,11 @@ export class DiagramService {
         action: '',
         config: {},
       },
+      [NodeType.IR_BUILDER]: {
+        builder_type: '',
+        config_path: '',
+        output_format: 'json',
+      },
     } as const;
 
     return defaults[type] || {};

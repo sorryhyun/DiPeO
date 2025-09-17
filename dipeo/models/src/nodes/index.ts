@@ -10,6 +10,7 @@ export { dbSpec } from './db.spec.js';
 export { endpointSpec } from './endpoint.spec.js';
 export { hookSpec } from './hook.spec.js';
 export { integratedApiSpec } from './integrated-api.spec.js';
+export { irBuilderSpec } from './ir-builder.spec.js';
 export { jsonSchemaValidatorSpec } from './json-schema-validator.spec.js';
 export { personJobSpec } from './person-job.spec.js';
 export { startSpec } from './start.spec.js';

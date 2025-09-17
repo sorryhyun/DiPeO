@@ -7,11 +7,17 @@ Generated at: {{ generated_at }}
 
 from datetime import datetime
 from typing import Optional, List, Any
-from strawberry.scalars import JSON
+from strawberry.scalars import JSON, ID
 
 import strawberry
 from .enums import DiagramFormatGraphQL
 
+# Import basic scalar type aliases for Strawberry
+String = str
+Int = int
+Float = float
+Boolean = bool
+DateTime = datetime
 
 # Import enums from generated modules
 from dipeo.diagram_generated.enums import APIServiceType, LLMService, NodeType, Status, DiagramFormat
@@ -22,16 +28,16 @@ from dipeo.diagram_generated.graphql.scalars import *
 {% for input_type in inputs %}
 
 @strawberry.input
-class {{ input_type.name }}:
-    {%- if input_type.description %}
-    """{{ input_type.description }}"""
+class {{ input_type['name'] }}:
+    {%- if input_type.get('description') %}
+    """{{ input_type['description'] }}"""
     {%- endif %}
-    {%- for field in input_type.fields %}
-    {%- set py_type = field.type | ts_graphql_input_to_python(field.name) %}
-    {%- if field.is_optional %}
-    {{ field.name }}: {{ py_type | ensure_optional }}{% if field.default_value %} = {{ field.default_value }}{% else %} = None{% endif %}
+    {%- for field in input_type['fields'] %}
+    {%- set py_type = field['type'] | ts_graphql_input_to_python(field['name']) %}
+    {%- if field.get('is_optional') %}
+    {{ field['name'] }}: {{ py_type | ensure_optional }}{% if field.get('default_value') %} = {{ field['default_value'] }}{% else %} = None{% endif %}
     {%- else %}
-    {{ field.name }}: {{ py_type }}{% if field.default_value %} = {{ field.default_value }}{% endif %}
+    {{ field['name'] }}: {{ py_type }}{% if field.get('default_value') %} = {{ field['default_value'] }}{% endif %}
     {%- endif %}
     {%- endfor %}
 {% endfor %}
@@ -39,6 +45,6 @@ class {{ input_type.name }}:
 # Export all input types
 __all__ = [
 {%- for input_type in inputs %}
-    '{{ input_type.name }}',
+    '{{ input_type['name'] }}',
 {%- endfor %}
 ]

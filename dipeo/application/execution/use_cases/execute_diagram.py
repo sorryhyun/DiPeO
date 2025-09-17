@@ -66,7 +66,6 @@ class ExecuteDiagramUseCase(LoggingMixin, InitializationMixin):
         options: dict[str, Any],
         execution_id: str,
         interactive_handler: Callable | None = None,
-        observers: list[Any] | None = None,  # Deprecated, kept for backward compatibility
         event_filter: Any | None = None,  # EventFilter for sub-diagram scoping
     ) -> AsyncGenerator[dict[str, Any]]:
         """Execute diagram with streaming updates."""
@@ -74,16 +73,6 @@ class ExecuteDiagramUseCase(LoggingMixin, InitializationMixin):
         # Use prepare diagram service for clean deserialization -> compilation
         typed_diagram = await self._prepare_and_compile_diagram(diagram, options)
         await self._initialize_typed_execution_state(execution_id, typed_diagram, options)
-
-        # Legacy observers parameter is deprecated
-        import logging
-
-        logger = logging.getLogger(__name__)
-
-        if observers:
-            logger.warning(
-                "Observers parameter is deprecated and will be ignored. Using event bus directly."
-            )
 
         # Store event filter in options for the engine to use
         if event_filter:
@@ -121,7 +110,7 @@ class ExecuteDiagramUseCase(LoggingMixin, InitializationMixin):
             for event_type in metrics_events:
                 await event_bus.subscribe(event_type, metrics_observer)
 
-        # Create engine with event bus only (observers are deprecated)
+        # Create engine with event bus
         engine = TypedExecutionEngine(
             service_registry=self.service_registry,
             event_bus=event_bus,

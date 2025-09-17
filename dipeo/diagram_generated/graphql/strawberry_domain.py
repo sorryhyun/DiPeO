@@ -10,7 +10,6 @@ from typing import Any, Optional
 from dipeo.diagram_generated.integrations import ToolConfig
 from dipeo.diagram_generated.domain_models import TemplatePreprocessor, JsonDictValidation as JsonDict, RecordStringString
 
-
 # Register JsonDict as a JSON scalar type
 JsonDictScalar = strawberry.scalar(
     JsonDict,
@@ -27,12 +26,10 @@ RecordStringStringScalar = strawberry.scalar(
     description="Record of string to string mappings"
 )
 
-
 @strawberry.experimental.pydantic.type(ToolConfig, all_fields=True)
 class ToolConfigType:
     """Tool configuration for AI agents"""
     pass
-
 
 @strawberry.type
 class TemplatePreprocessorType:
@@ -40,7 +37,7 @@ class TemplatePreprocessorType:
     function: str
     module: str
     args: Optional[JSONScalar] = None
-    
+
     @staticmethod
     def from_pydantic(obj: TemplatePreprocessor) -> "TemplatePreprocessorType":
         """Convert from Pydantic model"""

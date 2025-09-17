@@ -54,7 +54,7 @@ All three share a single **ServiceRegistry**, making service resolution explicit
 - `InitializationMixin` - initialization tracking
 
 **Direct Protocol Implementation**: Eliminated unnecessary adapter layers:
-- `EventBasedStateStore` directly implements state protocols
+- `CacheFirstStateStore` directly implements state protocols with cache-first optimization
 - `PersonFactory` handles object construction
 - `CleanInMemoryPersonRepository` focuses purely on persistence
 
@@ -247,7 +247,7 @@ For standalone Windows installations, use PyInstaller to create `.exe` files fro
 The system uses a fully event-driven architecture for execution and monitoring:
 
 * **Unified EventBus Protocol** – Consolidates DomainEventBus, EventEmitter, EventConsumer, and MessageBus into a single interface
-* **EventBasedStateStore** – Lock-free state persistence with per-execution caches, implements protocol directly (no adapter layer)
+* **CacheFirstStateStore** – Cache-first state persistence with Phase 4 optimizations, implements protocol directly (no adapter layer)
 * **GraphQL Subscriptions** – Real-time updates to UI (replaced SSE)
 * **No Global Locks** – Per-execution isolation enables true parallel execution
 * **Event Types** – Standardized events generated from TypeScript specifications

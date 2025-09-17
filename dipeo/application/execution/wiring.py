@@ -3,17 +3,20 @@
 import logging
 from typing import TYPE_CHECKING
 
-from dipeo.application.registry.keys import EXECUTION_ORCHESTRATOR, PREPARE_DIAGRAM_USE_CASE
-from dipeo.application.registry.service_registry import ServiceKey, ServiceRegistry
+from dipeo.application.registry.enhanced_service_registry import (
+    EnhancedServiceRegistry as ServiceRegistry,
+)
+from dipeo.application.registry.keys import (
+    CLI_SESSION_SERVICE,
+    EXECUTE_DIAGRAM_USE_CASE,
+    EXECUTION_ORCHESTRATOR,
+    PREPARE_DIAGRAM_USE_CASE,
+)
 
 if TYPE_CHECKING:
     pass
 
 logger = logging.getLogger(__name__)
-
-# Define service keys for execution context
-EXECUTE_DIAGRAM_USE_CASE = ServiceKey["ExecuteDiagramUseCase"]("execution.use_case.execute_diagram")
-CLI_SESSION_USE_CASE = ServiceKey["CliSessionService"]("execution.use_case.cli_session")
 
 
 def wire_execution(registry: ServiceRegistry) -> None:
@@ -39,11 +42,9 @@ def wire_execution(registry: ServiceRegistry) -> None:
     from dipeo.application.registry.keys import (
         FILESYSTEM_ADAPTER,
         LLM_SERVICE,
-        MEMORY_SELECTOR,
         PERSON_REPOSITORY,
         PROMPT_LOADING_SERVICE,
     )
-    from dipeo.infrastructure.llm.domain_adapters import LLMMemorySelectionAdapter
 
     def create_execution_orchestrator() -> ExecutionOrchestrator:
         """Factory for execution orchestrator with all dependencies."""
@@ -63,19 +64,13 @@ def wire_execution(registry: ServiceRegistry) -> None:
             person_repository=person_repo,
             manage_conversation_use_case=manage_conversation_use_case,
             prompt_loading_use_case=prompt_loading,
-            memory_selector=None,  # Will be set after creation
+            memory_selector=None,  # No longer using domain adapters
             llm_service=llm_service,
         )
 
-        # Create LLMMemorySelectionAdapter with orchestrator
-        memory_selector = LLMMemorySelectionAdapter(orchestrator)
-        registry.register(MEMORY_SELECTOR, memory_selector)
-
-        # Update orchestrator with memory_selector
-        orchestrator._memory_selector = memory_selector
-
         return orchestrator
 
+    # Register execution orchestrator
     registry.register(EXECUTION_ORCHESTRATOR, lambda: create_execution_orchestrator())
 
     # Wire execute diagram use case
@@ -86,6 +81,7 @@ def wire_execution(registry: ServiceRegistry) -> None:
         # ExecuteDiagramUseCase has a different constructor signature
         return ExecuteDiagramUseCase(service_registry=registry)
 
+    # Register execute diagram use case
     registry.register(EXECUTE_DIAGRAM_USE_CASE, create_execute_diagram)
 
     # Wire prepare diagram use case
@@ -101,6 +97,7 @@ def wire_execution(registry: ServiceRegistry) -> None:
             api_key_service=api_key_service, service_registry=registry
         )
 
+    # Register prepare diagram use case
     registry.register(PREPARE_DIAGRAM_USE_CASE, create_prepare_diagram)
 
     # Wire CLI session service
@@ -110,4 +107,5 @@ def wire_execution(registry: ServiceRegistry) -> None:
         """Factory for CLI session service."""
         return CliSessionService()
 
-    registry.register(CLI_SESSION_USE_CASE, create_cli_session_service)
+    # Register CLI session service
+    registry.register(CLI_SESSION_SERVICE, create_cli_session_service)

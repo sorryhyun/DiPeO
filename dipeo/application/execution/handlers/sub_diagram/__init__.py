@@ -12,9 +12,16 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel
 
+from dipeo.application.execution.decorators import requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.registry import (
+    DIAGRAM_PORT,
+    MESSAGE_ROUTER,
+    PREPARE_DIAGRAM_USE_CASE,
+    STATE_STORE,
+)
 from dipeo.diagram_generated.unified_nodes.sub_diagram_node import NodeType, SubDiagramNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
@@ -30,6 +37,12 @@ logger = logging.getLogger(__name__)
 
 
 @register_handler
+@requires_services(
+    state_store=STATE_STORE,
+    message_router=MESSAGE_ROUTER,
+    diagram_service=DIAGRAM_PORT,
+    prepare_use_case=PREPARE_DIAGRAM_USE_CASE,
+)
 class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     """Handler for executing diagrams within diagrams with envelope support.
 
@@ -68,10 +81,6 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         return SubDiagramNode
 
     @property
-    def requires_services(self) -> list[str]:
-        return ["state_store", "message_router", "diagram_service_new", "prepare_diagram_use_case"]
-
-    @property
     def description(self) -> str:
         return "Execute another diagram as a node within the current diagram, supporting single and batch execution"
 
@@ -101,30 +110,11 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         """Pre-execution hook to configure services and validate execution context."""
         # Configure services for executors on first execution
         if not self._services_configured:
-            from dipeo.application.registry import (
-                DIAGRAM_PORT,
-                MESSAGE_ROUTER,
-                PREPARE_DIAGRAM_USE_CASE,
-                STATE_STORE,
-            )
-
-            state_store = request.services.resolve(STATE_STORE)
-            message_router = request.services.resolve(MESSAGE_ROUTER)
-            diagram_service = request.services.resolve(DIAGRAM_PORT)
-            prepare_use_case = request.services.resolve(PREPARE_DIAGRAM_USE_CASE)
-
-            # Validate required services
-            if not all([state_store, message_router, diagram_service]):
-                return EnvelopeFactory.create(
-                    body={"error": "Required services not available for sub-diagram execution"},
-                    produced_by=request.node.id,
-                    trace_id=request.execution_id or "",
-                    meta={
-                        "error_type": "ValueError",
-                        "is_error": True,
-                        "execution_status": "failed",
-                    },
-                )
+            # Get services from request
+            state_store = request.get_optional_service(STATE_STORE)
+            message_router = request.get_optional_service(MESSAGE_ROUTER)
+            diagram_service = request.get_optional_service(DIAGRAM_PORT)
+            prepare_use_case = request.get_optional_service(PREPARE_DIAGRAM_USE_CASE)
 
             # Set services on executors
             self.single_executor.set_services(

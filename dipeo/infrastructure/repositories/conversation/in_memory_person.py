@@ -1,27 +1,31 @@
 """In-memory implementation of PersonRepository."""
 
-from typing import TYPE_CHECKING, Any
+from typing import Any, Optional
 
 from dipeo.diagram_generated import ApiKeyID, LLMService, PersonID, PersonLLMConfig
 from dipeo.domain.conversation import Person
 from dipeo.domain.conversation.ports import PersonRepository
 
-if TYPE_CHECKING:
-    from dipeo.application.execution.orchestrators.execution_orchestrator import (
-        ExecutionOrchestrator,
-    )
-
 
 class InMemoryPersonRepository(PersonRepository):
     """In-memory PersonRepository that doesn't persist between executions."""
 
-    def __init__(self):
-        self._persons: dict[PersonID, Person] = {}
-        self._orchestrator: ExecutionOrchestrator | None = None
+    def __init__(self, llm_service: Optional[Any] = None):
+        """Initialize repository with optional LLM service.
 
-    def set_orchestrator(self, orchestrator: "ExecutionOrchestrator") -> None:
-        """Set orchestrator to avoid circular dependencies."""
-        self._orchestrator = orchestrator
+        Args:
+            llm_service: Optional LLM service for memory strategy
+        """
+        self._persons: dict[PersonID, Person] = {}
+        self._llm_service = llm_service
+
+    def set_llm_service(self, llm_service: Any) -> None:
+        """Set LLM service for memory strategy creation.
+
+        Args:
+            llm_service: LLM service instance
+        """
+        self._llm_service = llm_service
 
     def get(self, person_id: PersonID) -> Person:
         if person_id not in self._persons:
@@ -38,21 +42,19 @@ class InMemoryPersonRepository(PersonRepository):
         llm_config: PersonLLMConfig,
     ) -> Person:
         """Create person with memory strategy configured."""
-        from dipeo.domain.conversation.memory_strategies import (
-            DefaultMemoryStrategy,
-            IntelligentMemoryStrategy,
-        )
+        from dipeo.domain.conversation.memory_strategies import IntelligentMemoryStrategy
 
+        # Create memory strategy with LLM service if available
         memory_strategy = None
+        if self._llm_service:
+            memory_strategy = IntelligentMemoryStrategy(
+                llm_service=self._llm_service, person_repository=self
+            )
 
-        if self._orchestrator:
-            from dipeo.infrastructure.llm.domain_adapters import LLMMemorySelectionAdapter
-
-            memory_selector = LLMMemorySelectionAdapter(self._orchestrator)
-
-            memory_strategy = IntelligentMemoryStrategy(memory_selector=memory_selector)
-        else:
-            memory_strategy = DefaultMemoryStrategy()
+        # If no memory strategy created, use IntelligentMemoryStrategy without LLM service
+        # It will handle this gracefully by returning None when needed
+        if not memory_strategy:
+            memory_strategy = IntelligentMemoryStrategy()
 
         person = Person(
             id=person_id,

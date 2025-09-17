@@ -1,15 +1,14 @@
-"""Memory selection strategies for conversation management.
+"""Intelligent memory selection for conversation management.
 
-This module provides a strategy pattern for memory selection,
-simplifying the previous Brain-based architecture.
+This module provides LLM-based intelligent memory selection with
+scoring and deduplication capabilities.
 """
 
 import math
-from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.config.memory import (
     MEMORY_CONTENT_KEY_LENGTH,
@@ -21,7 +20,7 @@ from dipeo.config.memory import (
 from dipeo.diagram_generated.domain_models import Message, PersonID
 
 if TYPE_CHECKING:
-    from dipeo.domain.conversation.ports import MemorySelectionPort
+    from dipeo.domain.integrations.ports import LLMService as LLMServicePort
 
 
 @dataclass
@@ -34,68 +33,18 @@ class MemoryConfig:
     default_weights: dict[str, float] = field(default_factory=lambda: MEMORY_SCORING_WEIGHTS.copy())
 
 
-class MemorySelectionStrategy(ABC):
-    """Abstract base class for memory selection strategies."""
-
-    @abstractmethod
-    async def select_memories(
-        self,
-        candidate_messages: Sequence[Message],
-        prompt_preview: str,
-        memorize_to: str | None,
-        ignore_person: str | None,
-        at_most: int | None,
-        **kwargs,
-    ) -> list[Message] | None:
-        """Select relevant memories based on criteria.
-
-        Args:
-            candidate_messages: Messages to select from
-            prompt_preview: Preview of the upcoming task
-            memorize_to: Selection criteria
-            ignore_person: Comma-separated list of person IDs to exclude
-            at_most: Maximum messages to select
-            **kwargs: Additional parameters
-
-        Returns:
-            Selected messages or None if no selection performed
-        """
-        pass
-
-
-class DefaultMemoryStrategy(MemorySelectionStrategy):
-    """Default memory strategy that returns all messages for the person."""
-
-    async def select_memories(
-        self,
-        candidate_messages: Sequence[Message],
-        prompt_preview: str,
-        memorize_to: str | None,
-        ignore_person: str | None,
-        at_most: int | None,
-        **kwargs,
-    ) -> list[Message] | None:
-        if not memorize_to:
-            return None
-
-        if memorize_to.strip().upper() == "GOLDFISH":
-            return []
-
-        if at_most:
-            return list(candidate_messages[:at_most])
-        return list(candidate_messages)
-
-
-class IntelligentMemoryStrategy(MemorySelectionStrategy):
+class IntelligentMemoryStrategy:
     """Memory strategy using LLM-based intelligent selection with scoring and deduplication."""
 
     def __init__(
         self,
-        memory_selector: Optional["MemorySelectionPort"] = None,
+        llm_service: Optional["LLMServicePort"] = None,
         config: MemoryConfig | None = None,
+        person_repository: Any = None,
     ):
         self.config = config or MemoryConfig()
-        self.memory_selector = memory_selector
+        self.llm_service = llm_service
+        self.person_repository = person_repository
 
     async def select_memories(
         self,
@@ -112,7 +61,7 @@ class IntelligentMemoryStrategy(MemorySelectionStrategy):
         if memorize_to.strip().upper() == "GOLDFISH":
             return []
 
-        if not self.memory_selector:
+        if not self.llm_service:
             return None
 
         filtered_candidates = self._filter_messages(candidate_messages, ignore_person)
@@ -126,20 +75,57 @@ class IntelligentMemoryStrategy(MemorySelectionStrategy):
         top_candidates = [msg for msg, score in scored_messages[: self.config.hard_cap]]
 
         person_id = kwargs.pop("person_id", PersonID("system"))
-        selected_ids = await self.memory_selector.select_memories(
-            person_id=person_id,
-            candidate_messages=top_candidates,
+        person_name = None
+
+        # Get person's LLM config and name if available
+        if self.person_repository:
+            try:
+                person = self.person_repository.get(person_id)
+                llm_config = person.llm_config
+                model = llm_config.model
+                api_key_id = (
+                    llm_config.api_key_id.value
+                    if hasattr(llm_config.api_key_id, "value")
+                    else str(llm_config.api_key_id)
+                )
+                service_name = (
+                    llm_config.service.value
+                    if hasattr(llm_config.service, "value")
+                    else str(llm_config.service)
+                )
+                # Get the person name
+                person_name = person.name or str(person_id)
+            except (KeyError, AttributeError):
+                # Fallback to defaults if person not found
+                model = kwargs.get("model", "gpt-5-nano-2025-08-07")
+                api_key_id = kwargs.get("api_key_id", "APIKEY_52609F")
+                service_name = kwargs.get("service_name", "openai")
+                person_name = str(person_id)
+        else:
+            # Use kwargs or defaults
+            model = kwargs.get("model", "gpt-5-nano-2025-08-07")
+            api_key_id = kwargs.get("api_key_id", "APIKEY_52609F")
+            service_name = kwargs.get("service_name", "openai")
+            person_name = str(person_id)
+
+        # Call LLM service directly
+        output = await self.llm_service.complete_memory_selection(
+            candidate_messages=list(top_candidates),
             task_preview=prompt_preview,
             criteria=memorize_to,
             at_most=at_most,
-            preprocessed=True,
+            model=model,
+            api_key_id=api_key_id,
+            service_name=service_name,
+            person_name=person_name,
             **kwargs,
         )
 
-        if selected_ids is None:
+        # Use the structured output directly
+        if not output or not output.message_ids:
             return None
 
-        idset = set(selected_ids)
+        idset = set(output.message_ids)
         return [m for m in filtered_candidates if m.id and m.id in idset]
 
     def _filter_messages(
@@ -248,28 +234,3 @@ class IntelligentMemoryStrategy(MemorySelectionStrategy):
         total_score = sum(scores.get(factor, 0) * weight for factor, weight in weights.items())
 
         return total_score
-
-
-class SimpleMemoryStrategy(MemorySelectionStrategy):
-    """Simple memory strategy with basic filtering rules."""
-
-    def __init__(self, max_messages: int = 10):
-        self.max_messages = max_messages
-
-    async def select_memories(
-        self,
-        candidate_messages: Sequence[Message],
-        prompt_preview: str,
-        memorize_to: str | None,
-        ignore_person: str | None,
-        at_most: int | None,
-        **kwargs,
-    ) -> list[Message] | None:
-        if not memorize_to:
-            return None
-
-        if memorize_to.strip().upper() == "GOLDFISH":
-            return []
-
-        limit = at_most or self.max_messages
-        return list(candidate_messages[-limit:])

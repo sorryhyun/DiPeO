@@ -70,7 +70,7 @@ install-dev: install
 # Parse TypeScript specs to prepare for code generation
 parse-typescript:
 	@echo "Cleaning TypeScript AST cache..."
-	@rm -rf temp/core temp/specifications temp/frontend temp/codegen temp/utilities temp/*.json 2>/dev/null || true
+	@rm -rf temp/core temp/specifications temp/frontend temp/codegen temp/nodes temp/utilities temp/*.json 2>/dev/null || true
 	@echo "Parsing TypeScript models..."
 	@if command -v dipeo >/dev/null 2>&1; then \
 		dipeo run projects/codegen/diagrams/parse_typescript_batch_direct --light --debug --simple --timeout=20; \
@@ -88,7 +88,7 @@ codegen: parse-typescript
 	else \
 		python -m dipeo_cli run projects/codegen/diagrams/generate_all --light --debug --timeout=35; \
 	fi
-	@echo "✓ Code generation complete. Next: make diff-staged → make apply-syntax-only → make graphql-schema"
+	@echo "✓ Code generation complete. Next: make apply-test→ make graphql-schema"
 
 # Automatic code generation with auto-apply (DANGEROUS - use with caution!)
 # Runs entire workflow: parse → generate → apply → update GraphQL
@@ -265,6 +265,20 @@ apply-syntax-only: validate-staged-syntax
 	@echo "Copying staged files to active directory..."
 	@cp -r dipeo/diagram_generated_staged/* dipeo/diagram_generated/
 	@echo "Staged changes applied successfully!"
+
+# Test server with staged code before applying (strongest validation)
+apply-test: validate-staged-syntax
+	@echo "Testing server startup with staged code..."
+	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
+		echo "Error: No staged directory found. Run 'make codegen' first."; \
+		exit 1; \
+	fi
+	@echo "Running server validation with staged imports..."
+	@python scripts/test_staged_server.py || \
+		(echo "Server test failed! Staged code not applied." && exit 1)
+	@echo "Server test passed! Applying staged changes..."
+	@cp -r dipeo/diagram_generated_staged/* dipeo/diagram_generated/
+	@echo "Staged changes applied successfully after server validation!"
 
 backup-generated:
 	@echo "Backing up current generated files..."

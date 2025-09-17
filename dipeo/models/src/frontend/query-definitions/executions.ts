@@ -21,7 +21,27 @@ const EXECUTION_FIELDS_DETAILED = [
   { name: 'node_states' },
   { name: 'node_outputs' },
   { name: 'variables' },
-  { name: 'metrics' },
+  {
+    name: 'metrics',
+    fields: [
+      { name: 'execution_id' },
+      { name: 'start_time' },
+      { name: 'end_time' },
+      { name: 'total_duration_ms' },
+      { name: 'node_metrics' },
+      { name: 'critical_path' },
+      { name: 'parallelizable_groups' },
+      {
+        name: 'bottlenecks',
+        fields: [
+          { name: 'node_id' },
+          { name: 'node_type' },
+          { name: 'duration_ms' },
+          { name: 'percentage' }
+        ]
+      }
+    ]
+  },
   {
     name: 'llm_usage',
     fields: [
@@ -35,7 +55,7 @@ const EXECUTION_FIELDS_DETAILED = [
 
 const SUBSCRIPTION_UPDATE_FIELDS = [
   { name: 'execution_id' },
-  { name: 'event_type' },
+  { name: 'type' },
   { name: 'data' },
   { name: 'timestamp' }
 ];
@@ -62,7 +82,7 @@ export const executionQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'get_execution',
+          name: 'execution',
           args: [
             { name: 'execution_id', value: 'execution_id', isVariable: true }
           ],

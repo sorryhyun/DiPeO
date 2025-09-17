@@ -26,6 +26,9 @@ from dipeo.infrastructure.llm.drivers.types import (
     ProviderCapabilities,
 )
 
+from ...drivers.types import ProviderType
+from .prompts import LLM_DECISION_PROMPT, MEMORY_SELECTION_PROMPT
+
 logger = logging.getLogger(__name__)
 
 
@@ -78,8 +81,22 @@ class UnifiedOpenAIClient:
         valid_prefixes = ["gpt", "o1", "o3", "dall-e", "whisper", "text-embedding", "embedding"]
         return any(model_lower.startswith(prefix) for prefix in valid_prefixes)
 
-    def _prepare_messages(self, messages: list[Message]) -> list[dict[str, Any]]:
+    def _prepare_messages(
+        self, messages: list[Message], execution_phase: ExecutionPhase | None = None, **kwargs
+    ) -> list[dict[str, Any]]:
         result = []
+
+        # Add phase-specific system prompt if needed
+        if execution_phase == ExecutionPhase.MEMORY_SELECTION:
+            # Get person name from kwargs if available
+            person_name = kwargs.get("person_name", "Assistant")
+            # Format the prompt with the person name
+            prompt_content = MEMORY_SELECTION_PROMPT.format(assistant_name=person_name)
+            result.append({"role": "developer", "content": prompt_content})
+
+        elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
+            result.append({"role": "developer", "content": LLM_DECISION_PROMPT})
+
         for msg in messages:
             if not msg.get("content"):
                 continue
@@ -118,39 +135,36 @@ class UnifiedOpenAIClient:
         return api_tools
 
     def _parse_response(self, response: Any) -> LLMResponse:
-        if hasattr(response, "output_parsed"):
-            return LLMResponse(
-                content=response.output_parsed,
-                raw_response=response,
-                usage=self._extract_usage(response),
-                provider="openai",
-                model=self.model,
-            )
+        """Parse OpenAI response."""
+        content = ""
+        structured_output = None
 
-        if hasattr(response, "output_text"):
-            output = response.output_text if response.output_text else None
-            if output and hasattr(output, "content"):
-                content_item = output.content[0] if output.content else None
-                if content_item and hasattr(content_item, "text"):
-                    text = content_item.text
-                else:
-                    text = str(content_item) if content_item else ""
-            else:
-                text = str(output) if output else ""
+        # Handle structured output from parse() method
+        if hasattr(response, "output_parsed") and response.output_parsed is not None:
+            structured_output = response.output_parsed  # This is already a Pydantic model instance
 
-            return LLMResponse(
-                content=text,
-                raw_response=response,
-                usage=self._extract_usage(response),
-                provider="openai",
-                model=self.model,
-            )
+        # Handle regular response from create() method
+        elif hasattr(response, "output"):
+            # New responses API structure
+            if response.output and len(response.output) > 0:
+                output_item = response.output[0]
+                if hasattr(output_item, "content"):
+                    if isinstance(output_item.content, list) and output_item.content:
+                        # Multiple content blocks
+                        text_parts = []
+                        for block in output_item.content:
+                            if hasattr(block, "text"):
+                                text_parts.append(block.text)
+                        content = "\n".join(text_parts) if text_parts else ""
+        else:
+            content = str(response)
 
         return LLMResponse(
-            content=str(response),
+            content=content,
+            structured_output=structured_output,
             raw_response=response,
-            usage=None,
-            provider="openai",
+            usage=self._extract_usage(response),
+            provider=ProviderType.OPENAI,
             model=self.model,
         )
 
@@ -178,13 +192,17 @@ class UnifiedOpenAIClient:
         temperature: float | None = None,
         max_tokens: int | None = None,
         tools: list[ToolConfig] | None = None,
-        response_format: Any | None = None,
+        text_format: Any | None = None,
         execution_phase: ExecutionPhase | None = None,
         **kwargs,
     ) -> LLMResponse:
         """Execute async chat completion with retry logic."""
-        # Prepare messages
-        prepared_messages = self._prepare_messages(messages)
+        # Prepare messages with phase-specific system prompts
+        # Pass person_name if available in kwargs
+        person_name = kwargs.get("person_name")
+        prepared_messages = self._prepare_messages(
+            messages, execution_phase, person_name=person_name
+        )
 
         # Build request parameters
         params = {
@@ -202,12 +220,6 @@ class UnifiedOpenAIClient:
         if tools:
             params["tools"] = self._prepare_tools(tools)
 
-        # Override max_output_tokens for specific execution phases
-        if execution_phase == ExecutionPhase.MEMORY_SELECTION:
-            params["max_output_tokens"] = MEMORY_SELECTION_MAX_TOKENS
-        elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
-            params["max_output_tokens"] = DECISION_EVALUATION_MAX_TOKENS
-
         # Check for text_format in kwargs (for structured output)
         text_format = kwargs.pop("text_format", None)
 
@@ -222,14 +234,11 @@ class UnifiedOpenAIClient:
 
                 text_format = DecisionOutput
 
-        structured_model = response_format or text_format
-
         # Add remaining kwargs
         kwargs_without_formats = {
             k: v
             for k, v in kwargs.items()
-            if k
-            not in ["response_format", "text_format", "messages", "execution_phase", "trace_id"]
+            if k not in ["text_format", "messages", "execution_phase", "trace_id"]
         }
         params.update(kwargs_without_formats)
 
@@ -242,12 +251,11 @@ class UnifiedOpenAIClient:
             with attempt:
                 # Handle structured output
                 if (
-                    structured_model
-                    and isinstance(structured_model, type)
-                    and issubclass(structured_model, BaseModel)
+                    text_format
+                    and isinstance(text_format, type)
+                    and issubclass(text_format, BaseModel)
                 ):
-                    params["text_format"] = structured_model
-                    print(structured_model)
+                    params["text_format"] = text_format
                     response = await self.async_client.responses.parse(**params)
                 else:
                     response = await self.async_client.responses.create(**params)
@@ -267,7 +275,12 @@ class UnifiedOpenAIClient:
             raise NotImplementedError(f"{self.provider_type} does not support streaming")
 
         # Prepare messages
-        prepared_messages = self._prepare_messages(messages)
+        # Extract execution_phase and person_name from kwargs if available
+        execution_phase = kwargs.get("execution_phase")
+        person_name = kwargs.get("person_name")
+        prepared_messages = self._prepare_messages(
+            messages, execution_phase, person_name=person_name
+        )
 
         # Build request parameters
         params = {

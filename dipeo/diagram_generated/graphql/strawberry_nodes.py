@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-14T21:21:07.176122
+Generated at: 2025-09-17T20:38:41.210630
 """
 
 import strawberry
@@ -15,25 +15,7 @@ from .domain_types import Vec2Type
 # Import Pydantic models
 
 from ..domain_models import *
-from ..unified_nodes.api_job_node import ApiJobNode
-from ..unified_nodes.code_job_node import CodeJobNode
-from ..unified_nodes.condition_node import ConditionNode
-from ..unified_nodes.db_node import DbNode
-from ..unified_nodes.endpoint_node import EndpointNode
-from ..unified_nodes.hook_node import HookNode
-from ..unified_nodes.integrated_api_node import IntegratedApiNode
-from ..unified_nodes.json_schema_validator_node import JsonSchemaValidatorNode
-from ..unified_nodes.person_job_node import PersonJobNode
-from ..unified_nodes.start_node import StartNode
-from ..unified_nodes.sub_diagram_node import SubDiagramNode
-from ..unified_nodes.template_job_node import TemplateJobNode
-from ..unified_nodes.typescript_ast_node import TypescriptAstNode
-from ..unified_nodes.user_response_node import UserResponseNode
-
-# Import Pydantic models
-
-from ..domain_models import *
-
+from ..unified_nodes import *
 
 # Import generated scalars
 from dipeo.diagram_generated.graphql.scalars import *
@@ -55,15 +37,12 @@ class ApiJobDataType:
     # Node-specific fields from specification
     
     
-    
     url: str  # API endpoint URL
     
     
     
-    
-    
-    method: str  # HTTP method
-    
+    # Enum field: HTTP method (Values: GET, POST, PUT, DELETE, PATCH)
+    method: str
     
     
     
@@ -79,15 +58,12 @@ class ApiJobDataType:
     
     
     
-    
-    timeout: Optional[str] = None  # Request timeout in seconds
-    
+    timeout: Optional[int] = None  # Request timeout in seconds
     
     
     
-    
-    auth_type: Optional[str] = None  # Authentication type
-    
+    # Enum field: Authentication type (Values: none, bearer, basic, api_key)
+    auth_type: Optional[str] = None
     
     
     
@@ -101,39 +77,55 @@ class ApiJobDataType:
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
 
-        # Get node-specific fields with Dict conversion
+        # Get node-specific fields with type conversion
         field_values = {}
         
+        field_value = getattr(node, "url", None)
         
-        field_values["url"] = getattr(node, "url", None)
-        
-        
-        
-        field_values["method"] = getattr(node, "method", None)
+        # Direct assignment for other types
+        field_values["url"] = field_value
         
         
+        field_value = getattr(node, "method", None)
         
-        field_values["headers"] = getattr(node, "headers", None)
-        
-        
-        
-        field_values["params"] = getattr(node, "params", None)
+        # Direct assignment for other types
+        field_values["method"] = field_value
         
         
+        field_value = getattr(node, "headers", None)
         
-        field_values["body"] = getattr(node, "body", None)
-        
-        
-        
-        field_values["timeout"] = getattr(node, "timeout", None)
+        # Convert dict/object fields to JSONScalar
+        field_values["headers"] = field_value
         
         
+        field_value = getattr(node, "params", None)
         
-        field_values["auth_type"] = getattr(node, "auth_type", None)
+        # Convert dict/object fields to JSONScalar
+        field_values["params"] = field_value
         
         
+        field_value = getattr(node, "body", None)
         
-        field_values["auth_config"] = getattr(node, "auth_config", None)
+        # Convert dict/object fields to JSONScalar
+        field_values["body"] = field_value
+        
+        
+        field_value = getattr(node, "timeout", None)
+        
+        # Direct assignment for other types
+        field_values["timeout"] = field_value
+        
+        
+        field_value = getattr(node, "auth_type", None)
+        
+        # Direct assignment for other types
+        field_values["auth_type"] = field_value
+        
+        
+        field_value = getattr(node, "auth_config", None)
+        
+        # Convert dict/object fields to JSONScalar
+        field_values["auth_config"] = field_value
         
         
 
@@ -162,10 +154,8 @@ class CodeJobDataType:
     # Node-specific fields from specification
     
     
-    
-    language: str  # Programming language
-    
-    
+    # Enum field: Programming language (Values: python, typescript, bash, shell)
+    language: str
     
     
     
@@ -173,11 +163,7 @@ class CodeJobDataType:
     
     
     
-    
-    
     code: Optional[str] = None  # Inline code to execute (alternative to filePath)
-    
-    
     
     
     
@@ -185,10 +171,7 @@ class CodeJobDataType:
     
     
     
-    
-    
-    timeout: Optional[str] = None  # Execution timeout in seconds
-    
+    timeout: Optional[int] = None  # Execution timeout in seconds
     
     
 
@@ -198,27 +181,37 @@ class CodeJobDataType:
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
 
-        # Get node-specific fields with Dict conversion
+        # Get node-specific fields with type conversion
         field_values = {}
         
+        field_value = getattr(node, "language", None)
         
-        field_values["language"] = getattr(node, "language", None)
-        
-        
-        
-        field_values["filePath"] = getattr(node, "filePath", None)
+        # Direct assignment for other types
+        field_values["language"] = field_value
         
         
+        field_value = getattr(node, "filePath", None)
         
-        field_values["code"] = getattr(node, "code", None)
-        
-        
-        
-        field_values["functionName"] = getattr(node, "functionName", None)
+        # Direct assignment for other types
+        field_values["filePath"] = field_value
         
         
+        field_value = getattr(node, "code", None)
         
-        field_values["timeout"] = getattr(node, "timeout", None)
+        # Direct assignment for other types
+        field_values["code"] = field_value
+        
+        
+        field_value = getattr(node, "functionName", None)
+        
+        # Direct assignment for other types
+        field_values["functionName"] = field_value
+        
+        
+        field_value = getattr(node, "timeout", None)
+        
+        # Direct assignment for other types
+        field_values["timeout"] = field_value
         
         
 
@@ -247,10 +240,8 @@ class ConditionDataType:
     # Node-specific fields from specification
     
     
-    
-    condition_type: Optional[str] = None  # Type of condition to evaluate
-    
-    
+    # Enum field: Type of condition to evaluate (Values: detect_max_iterations, check_nodes_executed, custom, llm_decision)
+    condition_type: Optional[str] = None
     
     
     
@@ -258,11 +249,7 @@ class ConditionDataType:
     
     
     
-    
-    
-    node_indices: Optional[str] = None  # Node indices for detect_max_iteration condition
-    
-    
+    node_indices: Optional[List[JSONScalar]] = None  # Node indices for detect_max_iteration condition
     
     
     
@@ -270,11 +257,7 @@ class ConditionDataType:
     
     
     
-    
-    
     judge_by: Optional[str] = None  # Prompt for LLM to make a judgment
-    
-    
     
     
     
@@ -282,17 +265,11 @@ class ConditionDataType:
     
     
     
-    
-    
     memorize_to: Optional[str] = None  # Memory control strategy (e.g., GOLDFISH for fresh evaluation)
     
     
     
-    
-    
-    at_most: Optional[str] = None  # Maximum messages to keep in memory
-    
-    
+    at_most: Optional[int] = None  # Maximum messages to keep in memory
     
     
     
@@ -300,10 +277,7 @@ class ConditionDataType:
     
     
     
-    
-    
-    skippable: Optional[str] = None  # When true, downstream nodes can execute even if this condition hasn't been evaluated yet
-    
+    skippable: Optional[bool] = None  # When true, downstream nodes can execute even if this condition hasn't been evaluated yet
     
     
 
@@ -313,47 +287,67 @@ class ConditionDataType:
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
 
-        # Get node-specific fields with Dict conversion
+        # Get node-specific fields with type conversion
         field_values = {}
         
+        field_value = getattr(node, "condition_type", None)
         
-        field_values["condition_type"] = getattr(node, "condition_type", None)
-        
-        
-        
-        field_values["expression"] = getattr(node, "expression", None)
+        # Direct assignment for other types
+        field_values["condition_type"] = field_value
         
         
+        field_value = getattr(node, "expression", None)
         
-        field_values["node_indices"] = getattr(node, "node_indices", None)
-        
-        
-        
-        field_values["person"] = getattr(node, "person", None)
+        # Direct assignment for other types
+        field_values["expression"] = field_value
         
         
+        field_value = getattr(node, "node_indices", None)
         
-        field_values["judge_by"] = getattr(node, "judge_by", None)
-        
-        
-        
-        field_values["judge_by_file"] = getattr(node, "judge_by_file", None)
+        # Direct assignment for other types
+        field_values["node_indices"] = field_value
         
         
+        field_value = getattr(node, "person", None)
         
-        field_values["memorize_to"] = getattr(node, "memorize_to", None)
-        
-        
-        
-        field_values["at_most"] = getattr(node, "at_most", None)
+        # Direct assignment for other types
+        field_values["person"] = field_value
         
         
+        field_value = getattr(node, "judge_by", None)
         
-        field_values["expose_index_as"] = getattr(node, "expose_index_as", None)
+        # Direct assignment for other types
+        field_values["judge_by"] = field_value
         
         
+        field_value = getattr(node, "judge_by_file", None)
         
-        field_values["skippable"] = getattr(node, "skippable", None)
+        # Direct assignment for other types
+        field_values["judge_by_file"] = field_value
+        
+        
+        field_value = getattr(node, "memorize_to", None)
+        
+        # Direct assignment for other types
+        field_values["memorize_to"] = field_value
+        
+        
+        field_value = getattr(node, "at_most", None)
+        
+        # Direct assignment for other types
+        field_values["at_most"] = field_value
+        
+        
+        field_value = getattr(node, "expose_index_as", None)
+        
+        # Direct assignment for other types
+        field_values["expose_index_as"] = field_value
+        
+        
+        field_value = getattr(node, "skippable", None)
+        
+        # Direct assignment for other types
+        field_values["skippable"] = field_value
         
         
 
@@ -382,10 +376,7 @@ class DbDataType:
     # Node-specific fields from specification
     
     
-    
     file: Optional[str] = None  # File path or array of file paths
-    
-    
     
     
     
@@ -393,11 +384,8 @@ class DbDataType:
     
     
     
-    
-    
-    sub_type: str  # Database operation type
-    
-    
+    # Enum field: Database operation type (Values: fixed_prompt, file, code, api_tool)
+    sub_type: str
     
     
     
@@ -405,10 +393,7 @@ class DbDataType:
     
     
     
-    
-    
     query: Optional[str] = None  # Query configuration
-    
     
     
     
@@ -416,15 +401,11 @@ class DbDataType:
     
     
     
-    
-    serialize_json: Optional[str] = None  # Serialize structured data to JSON string (for backward compatibility)
-    
-    
+    serialize_json: Optional[bool] = None  # Serialize structured data to JSON string (for backward compatibility)
     
     
     
     format: Optional[str] = None  # Data format (json, yaml, csv, text, etc.)
-    
     
     
 
@@ -434,39 +415,55 @@ class DbDataType:
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
 
-        # Get node-specific fields with Dict conversion
+        # Get node-specific fields with type conversion
         field_values = {}
         
+        field_value = getattr(node, "file", None)
         
-        field_values["file"] = getattr(node, "file", None)
-        
-        
-        
-        field_values["collection"] = getattr(node, "collection", None)
+        # Direct assignment for other types
+        field_values["file"] = field_value
         
         
+        field_value = getattr(node, "collection", None)
         
-        field_values["sub_type"] = getattr(node, "sub_type", None)
-        
-        
-        
-        field_values["operation"] = getattr(node, "operation", None)
+        # Direct assignment for other types
+        field_values["collection"] = field_value
         
         
+        field_value = getattr(node, "sub_type", None)
         
-        field_values["query"] = getattr(node, "query", None)
-        
-        
-        
-        field_values["data"] = getattr(node, "data", None)
+        # Direct assignment for other types
+        field_values["sub_type"] = field_value
         
         
+        field_value = getattr(node, "operation", None)
         
-        field_values["serialize_json"] = getattr(node, "serialize_json", None)
+        # Direct assignment for other types
+        field_values["operation"] = field_value
         
         
+        field_value = getattr(node, "query", None)
         
-        field_values["format"] = getattr(node, "format", None)
+        # Direct assignment for other types
+        field_values["query"] = field_value
+        
+        
+        field_value = getattr(node, "data", None)
+        
+        # Convert dict/object fields to JSONScalar
+        field_values["data"] = field_value
+        
+        
+        field_value = getattr(node, "serialize_json", None)
+        
+        # Direct assignment for other types
+        field_values["serialize_json"] = field_value
+        
+        
+        field_value = getattr(node, "format", None)
+        
+        # Direct assignment for other types
+        field_values["format"] = field_value
         
         
 
@@ -495,15 +492,11 @@ class EndpointDataType:
     # Node-specific fields from specification
     
     
-    
-    save_to_file: str  # Save results to file
-    
-    
+    save_to_file: bool  # Save results to file
     
     
     
     file_name: Optional[str] = None  # Output filename
-    
     
     
 
@@ -513,15 +506,19 @@ class EndpointDataType:
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
 
-        # Get node-specific fields with Dict conversion
+        # Get node-specific fields with type conversion
         field_values = {}
         
+        field_value = getattr(node, "save_to_file", None)
         
-        field_values["save_to_file"] = getattr(node, "save_to_file", None)
+        # Direct assignment for other types
+        field_values["save_to_file"] = field_value
         
         
+        field_value = getattr(node, "file_name", None)
         
-        field_values["file_name"] = getattr(node, "file_name", None)
+        # Direct assignment for other types
+        field_values["file_name"] = field_value
         
         
 
@@ -550,10 +547,8 @@ class HookDataType:
     # Node-specific fields from specification
     
     
-    
-    hook_type: str  # Type of hook to execute
-    
-    
+    # Enum field: Type of hook to execute (Values: shell, http, python, file)
+    hook_type: str
     
     
     
@@ -561,22 +556,15 @@ class HookDataType:
     
     
     
-    
-    
     url: Optional[str] = None  # Webhook URL (for HTTP hooks)
     
     
     
-    
-    
-    timeout: Optional[str] = None  # Execution timeout in seconds
-    
+    timeout: Optional[int] = None  # Execution timeout in seconds
     
     
     
-    
-    retry_count: Optional[str] = None  # Number of retries on failure
-    
+    retry_count: Optional[int] = None  # Number of retries on failure
     
     
 
@@ -586,27 +574,37 @@ class HookDataType:
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
 
-        # Get node-specific fields with Dict conversion
+        # Get node-specific fields with type conversion
         field_values = {}
         
+        field_value = getattr(node, "hook_type", None)
         
-        field_values["hook_type"] = getattr(node, "hook_type", None)
-        
-        
-        
-        field_values["command"] = getattr(node, "command", None)
+        # Direct assignment for other types
+        field_values["hook_type"] = field_value
         
         
+        field_value = getattr(node, "command", None)
         
-        field_values["url"] = getattr(node, "url", None)
-        
-        
-        
-        field_values["timeout"] = getattr(node, "timeout", None)
+        # Direct assignment for other types
+        field_values["command"] = field_value
         
         
+        field_value = getattr(node, "url", None)
         
-        field_values["retry_count"] = getattr(node, "retry_count", None)
+        # Direct assignment for other types
+        field_values["url"] = field_value
+        
+        
+        field_value = getattr(node, "timeout", None)
+        
+        # Direct assignment for other types
+        field_values["timeout"] = field_value
+        
+        
+        field_value = getattr(node, "retry_count", None)
+        
+        # Direct assignment for other types
+        field_values["retry_count"] = field_value
         
         
 
@@ -635,10 +633,7 @@ class IntegratedApiDataType:
     # Node-specific fields from specification
     
     
-    
     provider: str  # API provider to connect to
-    
-    
     
     
     
@@ -646,10 +641,7 @@ class IntegratedApiDataType:
     
     
     
-    
-    
     resource_id: Optional[str] = None  # Resource identifier (e.g., page ID, channel ID)
-    
     
     
     
@@ -657,15 +649,11 @@ class IntegratedApiDataType:
     
     
     
-    
-    timeout: Optional[str] = None  # Request timeout in seconds
-    
+    timeout: Optional[int] = None  # Request timeout in seconds
     
     
     
-    
-    max_retries: Optional[str] = None  # Maximum retry attempts
-    
+    max_retries: Optional[int] = None  # Maximum retry attempts
     
     
 
@@ -675,31 +663,141 @@ class IntegratedApiDataType:
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
 
-        # Get node-specific fields with Dict conversion
+        # Get node-specific fields with type conversion
         field_values = {}
         
+        field_value = getattr(node, "provider", None)
         
-        field_values["provider"] = getattr(node, "provider", None)
-        
-        
-        
-        field_values["operation"] = getattr(node, "operation", None)
+        # Direct assignment for other types
+        field_values["provider"] = field_value
         
         
+        field_value = getattr(node, "operation", None)
         
-        field_values["resource_id"] = getattr(node, "resource_id", None)
-        
-        
-        
-        field_values["config"] = getattr(node, "config", None)
+        # Direct assignment for other types
+        field_values["operation"] = field_value
         
         
+        field_value = getattr(node, "resource_id", None)
         
-        field_values["timeout"] = getattr(node, "timeout", None)
+        # Direct assignment for other types
+        field_values["resource_id"] = field_value
         
         
+        field_value = getattr(node, "config", None)
         
-        field_values["max_retries"] = getattr(node, "max_retries", None)
+        # Convert dict/object fields to JSONScalar
+        field_values["config"] = field_value
+        
+        
+        field_value = getattr(node, "timeout", None)
+        
+        # Direct assignment for other types
+        field_values["timeout"] = field_value
+        
+        
+        field_value = getattr(node, "max_retries", None)
+        
+        # Direct assignment for other types
+        field_values["max_retries"] = field_value
+        
+        
+
+        return cls(
+            id=node.id,
+            position=Vec2Type(x=node.position.x, y=node.position.y),
+            type=node.type,
+            label=node.label,
+            flipped=node.flipped,
+            metadata=metadata,
+            **field_values
+        )
+
+
+@strawberry.type
+class IrBuilderDataType:
+    """Build Intermediate Representation for code generation - Data fields only"""
+    # Base fields (all nodes have these)
+    id: NodeIDScalar
+    position: Vec2Type
+    type: strawberry.Private[NodeType]  # Not exposed in GraphQL
+    label: Optional[str] = None
+    flipped: Optional[bool] = False
+    metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
+
+    # Node-specific fields from specification
+    
+    
+    # Enum field: Type of IR builder to use (Values: backend, frontend, strawberry, custom)
+    builder_type: str
+    
+    
+    
+    # Enum field: Type of source data (Values: ast, schema, config, auto)
+    source_type: Optional[str] = None
+    
+    
+    
+    config_path: Optional[str] = None  # Path to configuration directory
+    
+    
+    
+    # Enum field: Output format for IR (Values: json, yaml, python)
+    output_format: Optional[str] = None
+    
+    
+    
+    cache_enabled: Optional[bool] = None  # Enable IR caching
+    
+    
+    
+    validate_output: Optional[bool] = None  # Validate IR structure before output
+    
+    
+
+    @classmethod
+    def from_pydantic(cls, node: IrBuilderNode) -> "IrBuilderDataType":
+        """Convert from Pydantic model to Strawberry type."""
+        # Convert Dict fields to JSONScalar
+        metadata = node.metadata if node.metadata else None
+
+        # Get node-specific fields with type conversion
+        field_values = {}
+        
+        field_value = getattr(node, "builder_type", None)
+        
+        # Direct assignment for other types
+        field_values["builder_type"] = field_value
+        
+        
+        field_value = getattr(node, "source_type", None)
+        
+        # Direct assignment for other types
+        field_values["source_type"] = field_value
+        
+        
+        field_value = getattr(node, "config_path", None)
+        
+        # Direct assignment for other types
+        field_values["config_path"] = field_value
+        
+        
+        field_value = getattr(node, "output_format", None)
+        
+        # Direct assignment for other types
+        field_values["output_format"] = field_value
+        
+        
+        field_value = getattr(node, "cache_enabled", None)
+        
+        # Direct assignment for other types
+        field_values["cache_enabled"] = field_value
+        
+        
+        field_value = getattr(node, "validate_output", None)
+        
+        # Direct assignment for other types
+        field_values["validate_output"] = field_value
         
         
 
@@ -728,9 +826,7 @@ class JsonSchemaValidatorDataType:
     # Node-specific fields from specification
     
     
-    
     schema_path: Optional[str] = None  # Path to JSON schema file
-    
     
     
     
@@ -738,21 +834,15 @@ class JsonSchemaValidatorDataType:
     
     
     
-    
     data_path: Optional[str] = None  # Data Path configuration
     
     
     
-    
-    
-    strict_mode: Optional[str] = None  # Strict Mode configuration
-    
+    strict_mode: Optional[bool] = None  # Strict Mode configuration
     
     
     
-    
-    error_on_extra: Optional[str] = None  # Error On Extra configuration
-    
+    error_on_extra: Optional[bool] = None  # Error On Extra configuration
     
     
 
@@ -762,27 +852,37 @@ class JsonSchemaValidatorDataType:
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
 
-        # Get node-specific fields with Dict conversion
+        # Get node-specific fields with type conversion
         field_values = {}
         
+        field_value = getattr(node, "schema_path", None)
         
-        field_values["schema_path"] = getattr(node, "schema_path", None)
-        
-        
-        
-        field_values["schema"] = getattr(node, "schema", None)
+        # Direct assignment for other types
+        field_values["schema_path"] = field_value
         
         
+        field_value = getattr(node, "schema", None)
         
-        field_values["data_path"] = getattr(node, "data_path", None)
-        
-        
-        
-        field_values["strict_mode"] = getattr(node, "strict_mode", None)
+        # Convert dict/object fields to JSONScalar
+        field_values["schema"] = field_value
         
         
+        field_value = getattr(node, "data_path", None)
         
-        field_values["error_on_extra"] = getattr(node, "error_on_extra", None)
+        # Direct assignment for other types
+        field_values["data_path"] = field_value
+        
+        
+        field_value = getattr(node, "strict_mode", None)
+        
+        # Direct assignment for other types
+        field_values["strict_mode"] = field_value
+        
+        
+        field_value = getattr(node, "error_on_extra", None)
+        
+        # Direct assignment for other types
+        field_values["error_on_extra"] = field_value
         
         
 
@@ -811,10 +911,7 @@ class PersonJobDataType:
     # Node-specific fields from specification
     
     
-    
     person: Optional[str] = None  # AI person to use
-    
-    
     
     
     
@@ -822,11 +919,7 @@ class PersonJobDataType:
     
     
     
-    
-    
     first_prompt_file: Optional[str] = None  # External prompt file for first iteration only
-    
-    
     
     
     
@@ -834,17 +927,11 @@ class PersonJobDataType:
     
     
     
-    
-    
     prompt_file: Optional[str] = None  # Path to prompt file in /files/prompts/
     
     
     
-    
-    
-    max_iteration: str  # Maximum execution iterations
-    
-    
+    max_iteration: int  # Maximum execution iterations
     
     
     
@@ -852,11 +939,7 @@ class PersonJobDataType:
     
     
     
-    
-    
-    at_most: Optional[str] = None  # Select at most N messages to keep (system messages may be preserved in addition).
-    
-    
+    at_most: Optional[int] = None  # Select at most N messages to keep (system messages may be preserved in addition).
     
     
     
@@ -864,11 +947,7 @@ class PersonJobDataType:
     
     
     
-    
-    
     tools: Optional[str] = None  # Tools available to the AI agent
-    
-    
     
     
     
@@ -876,11 +955,7 @@ class PersonJobDataType:
     
     
     
-    
-    
     text_format_file: Optional[str] = None  # Path to Python file containing Pydantic models for structured outputs
-    
-    
     
     
     
@@ -888,17 +963,11 @@ class PersonJobDataType:
     
     
     
-    
-    
     resolved_first_prompt: Optional[str] = None  # Pre-resolved first prompt content from compile-time
     
     
     
-    
-    
-    batch: Optional[str] = None  # Enable batch mode for processing multiple items
-    
-    
+    batch: Optional[bool] = None  # Enable batch mode for processing multiple items
     
     
     
@@ -906,16 +975,11 @@ class PersonJobDataType:
     
     
     
-    
-    
-    batch_parallel: Optional[str] = None  # Execute batch items in parallel
-    
+    batch_parallel: Optional[bool] = None  # Execute batch items in parallel
     
     
     
-    
-    max_concurrent: Optional[str] = None  # Maximum concurrent executions in batch mode
-    
+    max_concurrent: Optional[int] = None  # Maximum concurrent executions in batch mode
     
     
 
@@ -925,79 +989,115 @@ class PersonJobDataType:
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
 
-        # Get node-specific fields with Dict conversion
+        # Get node-specific fields with type conversion
         field_values = {}
         
+        field_value = getattr(node, "person", None)
         
-        field_values["person"] = getattr(node, "person", None)
-        
-        
-        
-        field_values["first_only_prompt"] = getattr(node, "first_only_prompt", None)
+        # Direct assignment for other types
+        field_values["person"] = field_value
         
         
+        field_value = getattr(node, "first_only_prompt", None)
         
-        field_values["first_prompt_file"] = getattr(node, "first_prompt_file", None)
-        
-        
-        
-        field_values["default_prompt"] = getattr(node, "default_prompt", None)
+        # Direct assignment for other types
+        field_values["first_only_prompt"] = field_value
         
         
+        field_value = getattr(node, "first_prompt_file", None)
         
-        field_values["prompt_file"] = getattr(node, "prompt_file", None)
-        
-        
-        
-        field_values["max_iteration"] = getattr(node, "max_iteration", None)
+        # Direct assignment for other types
+        field_values["first_prompt_file"] = field_value
         
         
+        field_value = getattr(node, "default_prompt", None)
         
-        field_values["memorize_to"] = getattr(node, "memorize_to", None)
-        
-        
-        
-        field_values["at_most"] = getattr(node, "at_most", None)
+        # Direct assignment for other types
+        field_values["default_prompt"] = field_value
         
         
+        field_value = getattr(node, "prompt_file", None)
         
-        field_values["ignore_person"] = getattr(node, "ignore_person", None)
-        
-        
-        
-        field_values["tools"] = getattr(node, "tools", None)
+        # Direct assignment for other types
+        field_values["prompt_file"] = field_value
         
         
+        field_value = getattr(node, "max_iteration", None)
         
-        field_values["text_format"] = getattr(node, "text_format", None)
-        
-        
-        
-        field_values["text_format_file"] = getattr(node, "text_format_file", None)
+        # Direct assignment for other types
+        field_values["max_iteration"] = field_value
         
         
+        field_value = getattr(node, "memorize_to", None)
         
-        field_values["resolved_prompt"] = getattr(node, "resolved_prompt", None)
-        
-        
-        
-        field_values["resolved_first_prompt"] = getattr(node, "resolved_first_prompt", None)
+        # Direct assignment for other types
+        field_values["memorize_to"] = field_value
         
         
+        field_value = getattr(node, "at_most", None)
         
-        field_values["batch"] = getattr(node, "batch", None)
-        
-        
-        
-        field_values["batch_input_key"] = getattr(node, "batch_input_key", None)
+        # Direct assignment for other types
+        field_values["at_most"] = field_value
         
         
+        field_value = getattr(node, "ignore_person", None)
         
-        field_values["batch_parallel"] = getattr(node, "batch_parallel", None)
+        # Direct assignment for other types
+        field_values["ignore_person"] = field_value
         
         
+        field_value = getattr(node, "tools", None)
         
-        field_values["max_concurrent"] = getattr(node, "max_concurrent", None)
+        # Direct assignment for other types
+        field_values["tools"] = field_value
+        
+        
+        field_value = getattr(node, "text_format", None)
+        
+        # Direct assignment for other types
+        field_values["text_format"] = field_value
+        
+        
+        field_value = getattr(node, "text_format_file", None)
+        
+        # Direct assignment for other types
+        field_values["text_format_file"] = field_value
+        
+        
+        field_value = getattr(node, "resolved_prompt", None)
+        
+        # Direct assignment for other types
+        field_values["resolved_prompt"] = field_value
+        
+        
+        field_value = getattr(node, "resolved_first_prompt", None)
+        
+        # Direct assignment for other types
+        field_values["resolved_first_prompt"] = field_value
+        
+        
+        field_value = getattr(node, "batch", None)
+        
+        # Direct assignment for other types
+        field_values["batch"] = field_value
+        
+        
+        field_value = getattr(node, "batch_input_key", None)
+        
+        # Direct assignment for other types
+        field_values["batch_input_key"] = field_value
+        
+        
+        field_value = getattr(node, "batch_parallel", None)
+        
+        # Direct assignment for other types
+        field_values["batch_parallel"] = field_value
+        
+        
+        field_value = getattr(node, "max_concurrent", None)
+        
+        # Direct assignment for other types
+        field_values["max_concurrent"] = field_value
         
         
 
@@ -1026,10 +1126,8 @@ class StartDataType:
     # Node-specific fields from specification
     
     
-    
-    trigger_mode: Optional[str] = None  # How this start node is triggered
-    
-    
+    # Enum field: How this start node is triggered (Values: none, manual, hook)
+    trigger_mode: Optional[str] = None
     
     
     
@@ -1037,14 +1135,11 @@ class StartDataType:
     
     
     
-    
     output_data_structure: Optional[JSONScalar] = None  # Expected output data structure
     
     
     
-    
     hook_event: Optional[str] = None  # Event name to listen for
-    
     
     
     
@@ -1058,27 +1153,37 @@ class StartDataType:
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
 
-        # Get node-specific fields with Dict conversion
+        # Get node-specific fields with type conversion
         field_values = {}
         
+        field_value = getattr(node, "trigger_mode", None)
         
-        field_values["trigger_mode"] = getattr(node, "trigger_mode", None)
-        
-        
-        
-        field_values["custom_data"] = getattr(node, "custom_data", None)
+        # Direct assignment for other types
+        field_values["trigger_mode"] = field_value
         
         
+        field_value = getattr(node, "custom_data", None)
         
-        field_values["output_data_structure"] = getattr(node, "output_data_structure", None)
-        
-        
-        
-        field_values["hook_event"] = getattr(node, "hook_event", None)
+        # Direct assignment for other types
+        field_values["custom_data"] = field_value
         
         
+        field_value = getattr(node, "output_data_structure", None)
         
-        field_values["hook_filters"] = getattr(node, "hook_filters", None)
+        # Convert dict/object fields to JSONScalar
+        field_values["output_data_structure"] = field_value
+        
+        
+        field_value = getattr(node, "hook_event", None)
+        
+        # Direct assignment for other types
+        field_values["hook_event"] = field_value
+        
+        
+        field_value = getattr(node, "hook_filters", None)
+        
+        # Convert dict/object fields to JSONScalar
+        field_values["hook_filters"] = field_value
         
         
 
@@ -1107,9 +1212,7 @@ class SubDiagramDataType:
     # Node-specific fields from specification
     
     
-    
     diagram_name: Optional[str] = None  # Name of the diagram to execute (e.g., 'workflow/process')
-    
     
     
     
@@ -1125,40 +1228,28 @@ class SubDiagramDataType:
     
     
     
-    
-    timeout: Optional[str] = None  # Execution timeout in seconds
-    
+    timeout: Optional[int] = None  # Execution timeout in seconds
     
     
     
-    
-    wait_for_completion: Optional[str] = None  # Whether to wait for sub-diagram completion
-    
+    wait_for_completion: Optional[bool] = None  # Whether to wait for sub-diagram completion
     
     
     
-    
-    isolate_conversation: Optional[str] = None  # Create isolated conversation context for sub-diagram
-    
+    isolate_conversation: Optional[bool] = None  # Create isolated conversation context for sub-diagram
     
     
     
-    
-    ignoreIfSub: Optional[str] = None  # Skip execution if this diagram is being run as a sub-diagram
-    
+    ignoreIfSub: Optional[bool] = None  # Skip execution if this diagram is being run as a sub-diagram
     
     
     
-    
-    diagram_format: Optional[str] = None  # Format of the diagram file (yaml, json, or light)
-    
-    
+    # Enum field: Format of the diagram file (yaml, json, or light) (Values: yaml, json, light)
+    diagram_format: Optional[str] = None
     
     
     
-    batch: Optional[str] = None  # Execute sub-diagram in batch mode for multiple inputs
-    
-    
+    batch: Optional[bool] = None  # Execute sub-diagram in batch mode for multiple inputs
     
     
     
@@ -1166,10 +1257,7 @@ class SubDiagramDataType:
     
     
     
-    
-    
-    batch_parallel: Optional[str] = None  # Execute batch items in parallel
-    
+    batch_parallel: Optional[bool] = None  # Execute batch items in parallel
     
     
 
@@ -1179,55 +1267,79 @@ class SubDiagramDataType:
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
 
-        # Get node-specific fields with Dict conversion
+        # Get node-specific fields with type conversion
         field_values = {}
         
+        field_value = getattr(node, "diagram_name", None)
         
-        field_values["diagram_name"] = getattr(node, "diagram_name", None)
-        
-        
-        
-        field_values["diagram_data"] = getattr(node, "diagram_data", None)
+        # Direct assignment for other types
+        field_values["diagram_name"] = field_value
         
         
+        field_value = getattr(node, "diagram_data", None)
         
-        field_values["input_mapping"] = getattr(node, "input_mapping", None)
-        
-        
-        
-        field_values["output_mapping"] = getattr(node, "output_mapping", None)
+        # Convert dict/object fields to JSONScalar
+        field_values["diagram_data"] = field_value
         
         
+        field_value = getattr(node, "input_mapping", None)
         
-        field_values["timeout"] = getattr(node, "timeout", None)
-        
-        
-        
-        field_values["wait_for_completion"] = getattr(node, "wait_for_completion", None)
+        # Convert dict/object fields to JSONScalar
+        field_values["input_mapping"] = field_value
         
         
+        field_value = getattr(node, "output_mapping", None)
         
-        field_values["isolate_conversation"] = getattr(node, "isolate_conversation", None)
-        
-        
-        
-        field_values["ignoreIfSub"] = getattr(node, "ignoreIfSub", None)
+        # Convert dict/object fields to JSONScalar
+        field_values["output_mapping"] = field_value
         
         
+        field_value = getattr(node, "timeout", None)
         
-        field_values["diagram_format"] = getattr(node, "diagram_format", None)
-        
-        
-        
-        field_values["batch"] = getattr(node, "batch", None)
+        # Direct assignment for other types
+        field_values["timeout"] = field_value
         
         
+        field_value = getattr(node, "wait_for_completion", None)
         
-        field_values["batch_input_key"] = getattr(node, "batch_input_key", None)
+        # Direct assignment for other types
+        field_values["wait_for_completion"] = field_value
         
         
+        field_value = getattr(node, "isolate_conversation", None)
         
-        field_values["batch_parallel"] = getattr(node, "batch_parallel", None)
+        # Direct assignment for other types
+        field_values["isolate_conversation"] = field_value
+        
+        
+        field_value = getattr(node, "ignoreIfSub", None)
+        
+        # Direct assignment for other types
+        field_values["ignoreIfSub"] = field_value
+        
+        
+        field_value = getattr(node, "diagram_format", None)
+        
+        # Direct assignment for other types
+        field_values["diagram_format"] = field_value
+        
+        
+        field_value = getattr(node, "batch", None)
+        
+        # Direct assignment for other types
+        field_values["batch"] = field_value
+        
+        
+        field_value = getattr(node, "batch_input_key", None)
+        
+        # Direct assignment for other types
+        field_values["batch_input_key"] = field_value
+        
+        
+        field_value = getattr(node, "batch_parallel", None)
+        
+        # Direct assignment for other types
+        field_values["batch_parallel"] = field_value
         
         
 
@@ -1256,10 +1368,7 @@ class TemplateJobDataType:
     # Node-specific fields from specification
     
     
-    
     template_path: Optional[str] = None  # Path to template file
-    
-    
     
     
     
@@ -1267,10 +1376,7 @@ class TemplateJobDataType:
     
     
     
-    
-    
     output_path: Optional[str] = None  # Output file path
-    
     
     
     
@@ -1278,15 +1384,12 @@ class TemplateJobDataType:
     
     
     
-    
-    engine: Optional[str] = None  # Template engine to use
-    
-    
+    # Enum field: Template engine to use (Values: internal, jinja2)
+    engine: Optional[str] = None
     
     
     
     preprocessor: Optional[str] = None  # Preprocessor function to apply before templating
-    
     
     
 
@@ -1296,31 +1399,43 @@ class TemplateJobDataType:
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
 
-        # Get node-specific fields with Dict conversion
+        # Get node-specific fields with type conversion
         field_values = {}
         
+        field_value = getattr(node, "template_path", None)
         
-        field_values["template_path"] = getattr(node, "template_path", None)
-        
-        
-        
-        field_values["template_content"] = getattr(node, "template_content", None)
+        # Direct assignment for other types
+        field_values["template_path"] = field_value
         
         
+        field_value = getattr(node, "template_content", None)
         
-        field_values["output_path"] = getattr(node, "output_path", None)
-        
-        
-        
-        field_values["variables"] = getattr(node, "variables", None)
+        # Direct assignment for other types
+        field_values["template_content"] = field_value
         
         
+        field_value = getattr(node, "output_path", None)
         
-        field_values["engine"] = getattr(node, "engine", None)
+        # Direct assignment for other types
+        field_values["output_path"] = field_value
         
         
+        field_value = getattr(node, "variables", None)
         
-        field_values["preprocessor"] = getattr(node, "preprocessor", None)
+        # Convert dict/object fields to JSONScalar
+        field_values["variables"] = field_value
+        
+        
+        field_value = getattr(node, "engine", None)
+        
+        # Direct assignment for other types
+        field_values["engine"] = field_value
+        
+        
+        field_value = getattr(node, "preprocessor", None)
+        
+        # Direct assignment for other types
+        field_values["preprocessor"] = field_value
         
         
 
@@ -1349,57 +1464,41 @@ class TypescriptAstDataType:
     # Node-specific fields from specification
     
     
-    
     source: str  # TypeScript source code to parse
     
     
     
-    
-    
-    extractPatterns: Optional[str] = None  # Patterns to extract from the AST
-    
+    extractPatterns: Optional[List[JSONScalar]] = None  # Patterns to extract from the AST
     
     
     
-    
-    includeJSDoc: Optional[str] = None  # Include JSDoc comments in the extracted data
-    
+    includeJSDoc: Optional[bool] = None  # Include JSDoc comments in the extracted data
     
     
     
-    
-    parseMode: Optional[str] = None  # TypeScript parsing mode
-    
-    
+    # Enum field: TypeScript parsing mode (Values: module, script)
+    parseMode: Optional[str] = None
     
     
     
-    transformEnums: Optional[str] = None  # Transform enum definitions to a simpler format
+    transformEnums: Optional[bool] = None  # Transform enum definitions to a simpler format
     
     
     
-    
-    
-    flattenOutput: Optional[str] = None  # Flatten the output structure for easier consumption
-    
+    flattenOutput: Optional[bool] = None  # Flatten the output structure for easier consumption
     
     
     
-    
-    outputFormat: Optional[str] = None  # Output format for the parsed data
-    
-    
+    # Enum field: Output format for the parsed data (Values: standard, for_codegen, for_analysis)
+    outputFormat: Optional[str] = None
     
     
     
-    batch: Optional[str] = None  # Enable batch processing mode
-    
-    
+    batch: Optional[bool] = None  # Enable batch processing mode
     
     
     
     batchInputKey: Optional[str] = None  # Key to extract batch items from input
-    
     
     
 
@@ -1409,43 +1508,61 @@ class TypescriptAstDataType:
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
 
-        # Get node-specific fields with Dict conversion
+        # Get node-specific fields with type conversion
         field_values = {}
         
+        field_value = getattr(node, "source", None)
         
-        field_values["source"] = getattr(node, "source", None)
-        
-        
-        
-        field_values["extractPatterns"] = getattr(node, "extractPatterns", None)
+        # Direct assignment for other types
+        field_values["source"] = field_value
         
         
+        field_value = getattr(node, "extractPatterns", None)
         
-        field_values["includeJSDoc"] = getattr(node, "includeJSDoc", None)
-        
-        
-        
-        field_values["parseMode"] = getattr(node, "parseMode", None)
+        # Direct assignment for other types
+        field_values["extractPatterns"] = field_value
         
         
+        field_value = getattr(node, "includeJSDoc", None)
         
-        field_values["transformEnums"] = getattr(node, "transformEnums", None)
-        
-        
-        
-        field_values["flattenOutput"] = getattr(node, "flattenOutput", None)
+        # Direct assignment for other types
+        field_values["includeJSDoc"] = field_value
         
         
+        field_value = getattr(node, "parseMode", None)
         
-        field_values["outputFormat"] = getattr(node, "outputFormat", None)
-        
-        
-        
-        field_values["batch"] = getattr(node, "batch", None)
+        # Direct assignment for other types
+        field_values["parseMode"] = field_value
         
         
+        field_value = getattr(node, "transformEnums", None)
         
-        field_values["batchInputKey"] = getattr(node, "batchInputKey", None)
+        # Direct assignment for other types
+        field_values["transformEnums"] = field_value
+        
+        
+        field_value = getattr(node, "flattenOutput", None)
+        
+        # Direct assignment for other types
+        field_values["flattenOutput"] = field_value
+        
+        
+        field_value = getattr(node, "outputFormat", None)
+        
+        # Direct assignment for other types
+        field_values["outputFormat"] = field_value
+        
+        
+        field_value = getattr(node, "batch", None)
+        
+        # Direct assignment for other types
+        field_values["batch"] = field_value
+        
+        
+        field_value = getattr(node, "batchInputKey", None)
+        
+        # Direct assignment for other types
+        field_values["batchInputKey"] = field_value
         
         
 
@@ -1474,15 +1591,11 @@ class UserResponseDataType:
     # Node-specific fields from specification
     
     
-    
     prompt: str  # Question to ask the user
     
     
     
-    
-    
-    timeout: Optional[str] = None  # Response timeout in seconds
-    
+    timeout: Optional[int] = None  # Response timeout in seconds
     
     
 
@@ -1492,15 +1605,19 @@ class UserResponseDataType:
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
 
-        # Get node-specific fields with Dict conversion
+        # Get node-specific fields with type conversion
         field_values = {}
         
+        field_value = getattr(node, "prompt", None)
         
-        field_values["prompt"] = getattr(node, "prompt", None)
+        # Direct assignment for other types
+        field_values["prompt"] = field_value
         
         
+        field_value = getattr(node, "timeout", None)
         
-        field_values["timeout"] = getattr(node, "timeout", None)
+        # Direct assignment for other types
+        field_values["timeout"] = field_value
         
         
 
@@ -1536,6 +1653,8 @@ NodeDataUnion = strawberry.union(
 
         IntegratedApiDataType,
 
+        IrBuilderDataType,
+
         JsonSchemaValidatorDataType,
 
         PersonJobDataType,
@@ -1559,82 +1678,34 @@ NodeDataUnion = strawberry.union(
 __all__ = [
     'NodeDataUnion',
 
-    'DataType',
+    'ApiJobDataType',
 
-    'DataType',
+    'CodeJobDataType',
 
-    'DataType',
+    'ConditionDataType',
 
-    'DataType',
+    'DbDataType',
 
-    'DataType',
+    'EndpointDataType',
 
-    'DataType',
+    'HookDataType',
 
-    'DataType',
+    'IntegratedApiDataType',
 
-    'DataType',
+    'IrBuilderDataType',
 
-    'DataType',
+    'JsonSchemaValidatorDataType',
 
-    'DataType',
+    'PersonJobDataType',
 
-    'DataType',
+    'StartDataType',
 
-    'DataType',
+    'SubDiagramDataType',
 
-    'DataType',
+    'TemplateJobDataType',
 
-    'DataType',
+    'TypescriptAstDataType',
 
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
-
-    'DataType',
+    'UserResponseDataType',
 
 ]

@@ -75,9 +75,6 @@ out/
 *.log
 execution_runner.cjs
 notion.md
-CLAUDE.md
-web/CLAUDE.md
-server/CLAUDE.md
 server.log
 dipeo_events.db
 dipeo/models/dist/
@@ -183,3 +180,5 @@ yarn.lock
 /projects/frontend_auto/generated/
 /projects/frontend_enhance/generated/
 /.playwright-mcp/*
+/projects/frontend_auto/base_configs/ui/
+/projects/codegen/ir/

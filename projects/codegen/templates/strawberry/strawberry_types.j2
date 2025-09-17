@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: {{ generated_at | default('N/A') }}
+Generated at: {{ generated_at }}
 """
 
 import strawberry
@@ -15,27 +15,7 @@ from .domain_types import Vec2Type
 # Import Pydantic models
 
 from ..domain_models import *
-from ..unified_nodes.api_job_node import ApiJobNode
-from ..unified_nodes.code_job_node import CodeJobNode
-from ..unified_nodes.condition_node import ConditionNode
-from ..unified_nodes.db_node import DbNode
-from ..unified_nodes.endpoint_node import EndpointNode
-from ..unified_nodes.hook_node import HookNode
-from ..unified_nodes.integrated_api_node import IntegratedApiNode
-from ..unified_nodes.json_schema_validator_node import JsonSchemaValidatorNode
-from ..unified_nodes.person_job_node import PersonJobNode
-from ..unified_nodes.start_node import StartNode
-from ..unified_nodes.sub_diagram_node import SubDiagramNode
-from ..unified_nodes.template_job_node import TemplateJobNode
-from ..unified_nodes.typescript_ast_node import TypescriptAstNode
-from ..unified_nodes.user_response_node import UserResponseNode
-
-# Import Pydantic models
-{% if types %}
-from ..domain_models import *
-{% else %}
-# No node types found - this file will be populated after initial node spec generation
-{% endif %}
+from ..unified_nodes import *
 
 # Import generated scalars
 from dipeo.diagram_generated.graphql.scalars import *
@@ -44,8 +24,8 @@ from dipeo.diagram_generated.graphql.scalars import *
 # Generate Strawberry types for node data
 {% for type_info in node_specs %}
 @strawberry.type
-class {{ type_info.class_name | default(type_info.display_name | pascal_case) }}DataType:
-    """{{ type_info.description }} - Data fields only"""
+class {{ type_info['name'] | pascal_case }}DataType:
+    """{{ type_info.get('spec', {}).get('description', '') }} - Data fields only"""
     # Base fields (all nodes have these)
     id: NodeIDScalar
     position: Vec2Type
@@ -55,31 +35,39 @@ class {{ type_info.class_name | default(type_info.display_name | pascal_case) }}
     metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
 
     # Node-specific fields from specification
-    {% for field in type_info.fields %}
-    {% if field.is_dict_type %}
-    {{ field.name }}: Optional[JSONScalar] = None  # {{ field.description }}
+    {% for field in type_info.get('spec', {}).get('fields', []) %}
+    {% if field.get('is_object_type') or field.get('is_dict_type') %}
+    {{ field['name'] }}: {{ 'JSONScalar' if field.get('required') else 'Optional[JSONScalar]' }}{{ ' = None' if not field.get('required') }}  # {{ field.get('description', '') }}
+    {% elif field.get('is_enum') %}
+    # Enum field: {{ field.get('description', '') }} (Values: {{ field.get('enum_values', []) | join(', ') }})
+    {{ field['name'] }}: {{ 'str' if field.get('required') else 'Optional[str]' }}{{ ' = None' if not field.get('required') }}
+    {% elif field.get('graphql_type') == 'Int' or field.get('python_type') == 'int' %}
+    {{ field['name'] }}: {{ 'int' if field.get('required') else 'Optional[int]' }}{{ ' = None' if not field.get('required') }}  # {{ field.get('description', '') }}
+    {% elif field.get('graphql_type') == 'Boolean' or field.get('python_type') == 'bool' %}
+    {{ field['name'] }}: {{ 'bool' if field.get('required') else 'Optional[bool]' }}{{ ' = None' if not field.get('required') }}  # {{ field.get('description', '') }}
+    {% elif field.get('graphql_type') == '[JSON]' or field.get('python_type', '').startswith('List[') %}
+    {{ field['name'] }}: {{ 'List[JSONScalar]' if field.get('required') else 'Optional[List[JSONScalar]]' }}{{ ' = None' if not field.get('required') }}  # {{ field.get('description', '') }}
     {% else %}
-    {% if field.required %}
-    {{ field.name }}: str  # {{ field.description }}
-    {% else %}
-    {{ field.name }}: Optional[str] = None  # {{ field.description }}
-    {% endif %}
+    {{ field['name'] }}: {{ 'str' if field.get('required') else 'Optional[str]' }}{{ ' = None' if not field.get('required') }}  # {{ field.get('description', '') }}
     {% endif %}
     {% endfor %}
 
     @classmethod
-    def from_pydantic(cls, node: {{ type_info.pydantic_model }}Node) -> "{{ type_info.class_name | default(type_info.display_name | pascal_case) }}DataType":
+    def from_pydantic(cls, node: {{ type_info['name'] | pascal_case }}Node) -> "{{ type_info['name'] | pascal_case }}DataType":
         """Convert from Pydantic model to Strawberry type."""
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
 
-        # Get node-specific fields with Dict conversion
+        # Get node-specific fields with type conversion
         field_values = {}
-        {% for field in type_info.fields %}
-        {% if field.is_dict_type %}
-        field_values["{{ field.name }}"] = getattr(node, "{{ field.name }}", None)
+        {% for field in type_info.get('spec', {}).get('fields', []) %}
+        field_value = getattr(node, "{{ field['name'] }}", None)
+        {% if field.get('is_object_type') or field.get('is_dict_type') %}
+        # Convert dict/object fields to JSONScalar
+        field_values["{{ field['name'] }}"] = field_value
         {% else %}
-        field_values["{{ field.name }}"] = getattr(node, "{{ field.name }}", None)
+        # Direct assignment for other types
+        field_values["{{ field['name'] }}"] = field_value
         {% endif %}
         {% endfor %}
 
@@ -101,7 +89,7 @@ NodeDataUnion = strawberry.union(
     "NodeDataUnion",
     (
 {% for type_info in node_specs %}
-        {{ type_info.class_name | default(type_info.display_name | pascal_case) }}DataType,
+        {{ type_info.name | pascal_case }}DataType,
 {% endfor %}
     )
 )
@@ -120,7 +108,7 @@ NodeDataUnion = PlaceholderNodeData
 # Export all types
 __all__ = [
     'NodeDataUnion',
-{% for type_info in types %}
-    '{{ type_info.class_name | default(type_info.display_name | pascal_case) }}DataType',
+{% for type_info in node_specs %}
+    '{{ type_info.name | pascal_case }}DataType',
 {% endfor %}
 ]

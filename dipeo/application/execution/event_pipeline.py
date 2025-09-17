@@ -65,6 +65,7 @@ class EventPipeline:
         self.state_manager = state_manager
         self._event_count = 0
         self._start_time = time.time()
+        self._sequence_counter = 0  # For idempotency tracking
 
     async def emit(self, event_type: str, **kwargs) -> None:
         """Generic event emission with automatic routing.
@@ -93,13 +94,18 @@ class EventPipeline:
         self._event_count += 1
 
     async def _publish(self, event: DomainEvent) -> None:
-        """Publish event through the event bus with metadata."""
+        """Publish event through the event bus with metadata and sequence number."""
+        # Increment sequence counter for idempotency
+        self._sequence_counter += 1
+
         # Add standard metadata by creating a new event (DomainEvent is frozen)
         meta = event.meta or {}
         meta["pipeline_event_count"] = self._event_count
         meta["pipeline_uptime_ms"] = int((time.time() - self._start_time) * 1000)
+        # Add sequence number in metadata for idempotency
+        meta["seq"] = self._sequence_counter
 
-        # Create new event with updated metadata
+        # Create new event with updated metadata and sequence number
         enriched_event = DomainEvent(
             type=event.type,
             scope=event.scope,

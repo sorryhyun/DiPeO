@@ -106,11 +106,11 @@ class TypedExecutionEngine:
                 variables=execution_state.variables or {},
             )
 
-            from dipeo.application.registry import ServiceKey
+            from dipeo.application.registry.keys import DIAGRAM, EXECUTION_CONTEXT
 
-            self.service_registry.register(ServiceKey("diagram"), diagram)
+            self.service_registry.register(DIAGRAM, diagram)
             self.service_registry.register(
-                ServiceKey("execution_context"), {"interactive_handler": interactive_handler}
+                EXECUTION_CONTEXT, {"interactive_handler": interactive_handler}
             )
 
             step_count = 0

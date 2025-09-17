@@ -5,24 +5,25 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from dipeo.application.registry.enhanced_service_registry import (
+    EnhancedServiceRegistry as ServiceRegistry,
+)
 from dipeo.application.registry.keys import (
     COMPILE_DIAGRAM_USE_CASE,
     DIAGRAM_COMPILER,
     DIAGRAM_PORT,
+    DIAGRAM_RESOLVER,
     DIAGRAM_SERIALIZER,
     LOAD_DIAGRAM_USE_CASE,
     SERIALIZE_DIAGRAM_USE_CASE,
     TRANSFORMATION_ENGINE,
     VALIDATE_DIAGRAM_USE_CASE,
 )
-from dipeo.application.registry.service_registry import ServiceKey, ServiceRegistry
 
 if TYPE_CHECKING:
     pass
 
 logger = logging.getLogger(__name__)
-
-DIAGRAM_RESOLVER_KEY = ServiceKey["DiagramResolver"]("diagram.resolver")
 
 
 def wire_diagram(registry: ServiceRegistry) -> None:
@@ -84,7 +85,7 @@ def wire_diagram_resolvers(registry: ServiceRegistry) -> None:
     def create_diagram_resolver() -> DiagramResolver:
         return DiagramResolver(registry)
 
-    registry.register(DIAGRAM_RESOLVER_KEY, create_diagram_resolver)
+    registry.register(DIAGRAM_RESOLVER, create_diagram_resolver)
 
 
 def wire_diagram_compiler(registry: ServiceRegistry) -> None:
@@ -155,12 +156,20 @@ def wire_diagram_port(registry: ServiceRegistry) -> None:
     from dipeo.config import get_settings
     from dipeo.infrastructure.diagram.drivers.diagram_service import DiagramService
 
+    # Ensure dependencies are wired first
+    if not registry.has(DIAGRAM_COMPILER):
+        wire_diagram_compiler(registry)
+
+    if not registry.has(DIAGRAM_SERIALIZER):
+        wire_diagram_serializer(registry)
+
     # Determine base path using unified config - ensure it's absolute
     settings = get_settings()
     base_path = (Path(settings.storage.base_dir) / settings.storage.data_dir).resolve()
 
-    filesystem = registry.resolve(FILESYSTEM_ADAPTER)
-    if not filesystem:
+    if registry.has(FILESYSTEM_ADAPTER):
+        filesystem = registry.resolve(FILESYSTEM_ADAPTER)
+    else:
         from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
 
         filesystem = LocalFileSystemAdapter(base_path=Path(settings.storage.base_dir).resolve())

@@ -10,15 +10,11 @@ class FilterRegistry:
     """Registry for managing collections of template filters.
 
     Filters are functions that transform values in templates.
-    The registry allows organizing filters into collections and
-    composing them for different use cases.
     """
 
     def __init__(self):
         """Initialize the filter registry."""
         self._filter_collections: dict[str, dict[str, Callable]] = {}
-        self._profiles: dict[str, list[str]] = {}
-        self._initialize_default_profiles()
 
     def register_collection(self, name: str, filters: dict[str, Callable]) -> None:
         """Register a collection of filters.
@@ -40,46 +36,16 @@ class FilterRegistry:
         """
         return self._filter_collections.get(name)
 
-    def compose_filters(self, *collection_names: str) -> dict[str, Callable]:
-        """Compose multiple filter collections into one.
-
-        Later collections override earlier ones for duplicate filter names.
-
-        Args:
-            collection_names: Names of collections to compose
+    def get_all_filters(self) -> dict[str, Callable]:
+        """Get all registered filters from all collections.
 
         Returns:
-            Combined dictionary of filters
+            Combined dictionary of all filters
         """
-        composed = {}
-        for name in collection_names:
-            collection = self._filter_collections.get(name)
-            if collection:
-                composed.update(collection)
-            else:
-                logger.warning(f"Filter collection '{name}' not found")
-        return composed
-
-    def create_profile(self, profile_name: str, collection_names: list[str]) -> None:
-        """Create a named profile of filter collections.
-
-        Args:
-            profile_name: Name of the profile
-            collection_names: List of collection names to include
-        """
-        self._profiles[profile_name] = collection_names
-
-    def get_profile_filters(self, profile_name: str) -> dict[str, Callable]:
-        """Get all filters for a named profile.
-
-        Args:
-            profile_name: Name of the profile
-
-        Returns:
-            Combined dictionary of filters for the profile
-        """
-        collection_names = self._profiles.get(profile_name, [])
-        return self.compose_filters(*collection_names)
+        all_filters = {}
+        for collection in self._filter_collections.values():
+            all_filters.update(collection)
+        return all_filters
 
     def list_collections(self) -> list[str]:
         """List all registered filter collections.
@@ -88,14 +54,6 @@ class FilterRegistry:
             List of collection names
         """
         return list(self._filter_collections.keys())
-
-    def list_profiles(self) -> list[str]:
-        """List all defined profiles.
-
-        Returns:
-            List of profile names
-        """
-        return list(self._profiles.keys())
 
     def get_filter_names(self, collection_name: str | None = None) -> set[str]:
         """Get all filter names, optionally from a specific collection.
@@ -115,20 +73,6 @@ class FilterRegistry:
                 all_names.update(collection.keys())
             return all_names
 
-    def _initialize_default_profiles(self) -> None:
-        """Initialize default filter profiles."""
-        self.create_profile("full", ["base", "backend", "graphql", "typescript"])
-
-        self.create_profile("codegen", ["base", "backend", "graphql", "typescript"])
-
-        self.create_profile("minimal", ["base"])
-
-        self.create_profile("backend", ["base", "backend"])
-
-        self.create_profile("frontend", ["base", "typescript"])
-
-        self.create_profile("api", ["base", "graphql"])
-
 
 def create_filter_registry() -> FilterRegistry:
     """Create a filter registry with standard filter collections loaded.
@@ -137,17 +81,39 @@ def create_filter_registry() -> FilterRegistry:
         Configured FilterRegistry instance
     """
     from ..filters import (
-        BackendFilters,
-        BaseFilters,
-        TypeScriptToGraphQLFilters,
-        TypeScriptToPythonFilters,
+        CaseFilters,
+        FrontendFilters,
+        GraphQLFilters,
+        PythonFilters,
+        StringUtilityFilters,
+        TypeConversionFilters,
     )
 
     registry = FilterRegistry()
 
-    registry.register_collection("base", BaseFilters.get_all_filters())
-    registry.register_collection("backend", BackendFilters.get_all_filters())
-    registry.register_collection("graphql", TypeScriptToGraphQLFilters.get_all_filters())
-    registry.register_collection("typescript", TypeScriptToPythonFilters.get_all_filters())
+    # Register focused filter collections
+    registry.register_collection("case", CaseFilters.get_all_filters())
+    registry.register_collection("string", StringUtilityFilters.get_all_filters())
+    registry.register_collection("type_conversion", TypeConversionFilters.get_all_filters())
+    registry.register_collection("python", PythonFilters.get_all_filters())
+    registry.register_collection("graphql", GraphQLFilters.get_all_filters())
+    registry.register_collection("frontend", FrontendFilters.get_all_filters())
+
+    # Register composite collections for backward compatibility
+    base_filters = {}
+    base_filters.update(CaseFilters.get_all_filters())
+    base_filters.update(StringUtilityFilters.get_all_filters())
+    registry.register_collection("base", base_filters)
+
+    backend_filters = {}
+    backend_filters.update(PythonFilters.get_all_filters())
+    backend_filters.update(TypeConversionFilters.get_all_filters())
+    registry.register_collection("backend", backend_filters)
+
+    # TypeScript collection combines type conversion and frontend filters
+    typescript_filters = {}
+    typescript_filters.update(TypeConversionFilters.get_all_filters())
+    typescript_filters.update(FrontendFilters.get_all_filters())
+    registry.register_collection("typescript", typescript_filters)
 
     return registry

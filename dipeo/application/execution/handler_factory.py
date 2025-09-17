@@ -24,6 +24,7 @@ def _get_node_handlers() -> dict[str, type[TypedNodeHandler]]:
     from .handlers.endpoint import EndpointNodeHandler
     from .handlers.hook import HookNodeHandler
     from .handlers.integrated_api import IntegratedApiNodeHandler
+    from .handlers.ir_builder import IrBuilderNodeHandler
     from .handlers.json_schema_validator import JsonSchemaValidatorNodeHandler
     from .handlers.person_job import PersonJobNodeHandler
     from .handlers.start import StartNodeHandler
@@ -47,6 +48,7 @@ def _get_node_handlers() -> dict[str, type[TypedNodeHandler]]:
         NodeType.TYPESCRIPT_AST: TypescriptAstNodeHandler,
         NodeType.SUB_DIAGRAM: SubDiagramNodeHandler,
         NodeType.INTEGRATED_API: IntegratedApiNodeHandler,
+        NodeType.IR_BUILDER: IrBuilderNodeHandler,
     }
 
 

@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
+from dipeo.application.execution.decorators import requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
 
 
 @register_handler
+@requires_services(state_store=STATE_STORE)
 class StartNodeHandler(TypedNodeHandler[StartNode]):
     """Handler for start nodes with envelope support."""
 
@@ -25,7 +27,6 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         self._current_trigger_mode = None
         self._current_hook_event = None
         self._current_hook_filters = None
-        self._current_state_store = None
         self._current_input_variables = None
 
     @property
@@ -39,10 +40,6 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
     @property
     def description(self) -> str:
         return "Kick-off node: can start manually or via hook trigger"
-
-    @property
-    def requires_services(self) -> list[str]:
-        return ["state_store"]
 
     def validate(self, request: ExecutionRequest[StartNode]) -> str | None:
         node = request.node
@@ -59,8 +56,6 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         self._current_hook_event = node.hook_event
         self._current_hook_filters = node.hook_filters
 
-        self._current_state_store = request.services.resolve(STATE_STORE)
-
         self._current_input_variables = {}
         execution_id = None
         if request.execution_id:
@@ -68,8 +63,10 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         elif request.runtime and hasattr(request.runtime, "execution_id"):
             execution_id = request.runtime.execution_id
 
-        if execution_id and self._current_state_store:
-            execution_state = await self._current_state_store.get_state(execution_id)
+        # Get state_store service directly from request
+        state_store = request.get_optional_service(STATE_STORE)
+        if execution_id and state_store:
+            execution_state = await state_store.get_state(execution_id)
             if execution_state and execution_state.variables:
                 self._current_input_variables = execution_state.variables
 

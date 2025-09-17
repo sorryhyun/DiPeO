@@ -139,7 +139,9 @@ class UnifiedAnthropicClient:
 
         return api_tools
 
-    def _parse_response(self, response: Any) -> LLMResponse:
+    def _parse_response(
+        self, response: Any, execution_phase: ExecutionPhase | None = None
+    ) -> LLMResponse:
         """Parse API response to LLMResponse."""
         # Extract content from response
         if hasattr(response, "content"):
@@ -161,8 +163,50 @@ class UnifiedAnthropicClient:
         else:
             content = str(response)
 
+        # Try to parse structured output for specific phases
+        structured_output = None
+        if execution_phase == ExecutionPhase.MEMORY_SELECTION:
+            import json
+            import re
+
+            try:
+                # Try direct JSON parsing
+                data = json.loads(content)
+                if isinstance(data, list):
+                    from dipeo.infrastructure.llm.drivers.types import MemorySelectionOutput
+
+                    structured_output = MemorySelectionOutput(message_ids=data)
+                elif isinstance(data, dict) and "message_ids" in data:
+                    from dipeo.infrastructure.llm.drivers.types import MemorySelectionOutput
+
+                    structured_output = MemorySelectionOutput(**data)
+            except (json.JSONDecodeError, ValueError):
+                # Try to extract JSON array from text
+                match = re.search(r"\[.*?\]", content, re.DOTALL)
+                if match:
+                    try:
+                        message_ids = json.loads(match.group(0))
+                        from dipeo.infrastructure.llm.drivers.types import MemorySelectionOutput
+
+                        structured_output = MemorySelectionOutput(message_ids=message_ids)
+                    except (json.JSONDecodeError, ValueError):
+                        pass
+
+        elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
+            # Simple YES/NO parsing
+            content_lower = content.lower().strip()
+            if content_lower.startswith("yes"):
+                from dipeo.infrastructure.llm.drivers.types import DecisionOutput
+
+                structured_output = DecisionOutput(decision=True)
+            elif content_lower.startswith("no"):
+                from dipeo.infrastructure.llm.drivers.types import DecisionOutput
+
+                structured_output = DecisionOutput(decision=False)
+
         return LLMResponse(
             content=content,
+            structured_output=structured_output,
             raw_response=response,
             usage=self._extract_usage(response),
             provider="anthropic",
@@ -240,7 +284,7 @@ class UnifiedAnthropicClient:
         ):
             with attempt:
                 response = await self.async_client.messages.create(**params)
-                return self._parse_response(response)
+                return self._parse_response(response, execution_phase)
 
     async def stream(
         self,

@@ -6,6 +6,7 @@ import strawberry
 
 from dipeo.application.execution.use_cases import CliSessionService
 from dipeo.application.registry import CLI_SESSION_SERVICE, ServiceRegistry
+from dipeo.diagram_generated.graphql.enums import convert_diagramformat_from_graphql
 from dipeo.diagram_generated.graphql.inputs import (
     RegisterCliSessionInput,
     UnregisterCliSessionInput,
@@ -100,11 +101,15 @@ async def register_cli_session(
             except Exception as e:
                 logger.warning(f"Could not load diagram from file: {e}", exc_info=True)
 
+        # Convert GraphQL enum to Python enum, then get its string value
+        format_python = convert_diagramformat_from_graphql(input.diagram_format)
+        diagram_format_str = format_python.value if format_python else "native"
+
         # Register the session
         await cli_session_service.start_cli_session(
             execution_id=input.execution_id,
             diagram_name=input.diagram_name,
-            diagram_format=input.diagram_format,
+            diagram_format=diagram_format_str,
             diagram_data=diagram_data,
         )
 
@@ -239,11 +244,15 @@ def create_cli_session_mutations(registry: ServiceRegistry) -> type:
                     except Exception as e:
                         logger.warning(f"Could not load diagram from file: {e}", exc_info=True)
 
+                # Convert GraphQL enum to Python enum, then get its string value
+                format_python = convert_diagramformat_from_graphql(input.diagram_format)
+                diagram_format_str = format_python.value if format_python else "native"
+
                 # Register the session
                 await cli_session_service.start_cli_session(
                     execution_id=input.execution_id,
                     diagram_name=input.diagram_name,
-                    diagram_format=input.diagram_format,
+                    diagram_format=diagram_format_str,
                     diagram_data=diagram_data,
                 )
 

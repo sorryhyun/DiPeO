@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 import aiohttp
 from pydantic import BaseModel
 
+from dipeo.application.execution.decorators import Optional, requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handler_base import TypedNodeHandler
 from dipeo.application.execution.handler_factory import register_handler
@@ -23,6 +24,7 @@ if TYPE_CHECKING:
 
 
 @register_handler
+@requires_services(filesystem_adapter=(FILESYSTEM_ADAPTER, Optional))
 class HookNodeHandler(TypedNodeHandler[HookNode]):
     """Execute external hooks (shell commands, webhooks, Python scripts, or file operations)."""
 
@@ -30,7 +32,6 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
 
     def __init__(self):
         super().__init__()
-        self._current_filesystem_adapter = None
         self._current_timeout = None
 
     @property
@@ -50,10 +51,6 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         return (
             "Execute external hooks (shell commands, webhooks, Python scripts, or file operations)"
         )
-
-    @property
-    def requires_services(self) -> list[str]:
-        return ["filesystem_adapter"]
 
     async def pre_execute(self, request: ExecutionRequest[HookNode]) -> Envelope | None:
         node = request.node
@@ -94,7 +91,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                     },
                     produced_by=str(node.id),
                 )
-            filesystem_adapter = request.services.resolve(FILESYSTEM_ADAPTER)
+            filesystem_adapter = request.get_optional_service(FILESYSTEM_ADAPTER)
             if not filesystem_adapter:
                 return EnvelopeFactory.create(
                     body={
@@ -103,9 +100,6 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                     },
                     produced_by=str(node.id),
                 )
-            self._current_filesystem_adapter = filesystem_adapter
-        else:
-            self._current_filesystem_adapter = None
 
         self._current_timeout = node.timeout or 30
 
@@ -124,7 +118,8 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                 prepared_inputs[key] = envelope.as_text()
 
         if request.node.hook_type == HookType.FILE:
-            self._temp_filesystem_adapter = self._current_filesystem_adapter
+            filesystem_adapter = request.get_optional_service(FILESYSTEM_ADAPTER)
+            self._temp_filesystem_adapter = filesystem_adapter
 
         return prepared_inputs
 

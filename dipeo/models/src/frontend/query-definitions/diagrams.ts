@@ -131,9 +131,7 @@ export const diagramQueries: EntityQueryDefinitions = {
             {
               name: 'metadata',
               fields: METADATA_COMPACT_FIELDS
-            },
-            { name: 'nodeCount' },
-            { name: 'arrowCount' }
+            }
           ]
         }
       ]

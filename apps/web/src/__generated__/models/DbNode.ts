@@ -1,25 +1,26 @@
 // Auto-generated TypeScript model for db node
 import { z } from 'zod';
+import { DBBlockSubType } from '@dipeo/models';
 
 export interface DbNodeData {
-  file?: any;
-  collection?: string;
-  sub_type: 'fixed_prompt' | 'file' | 'code' | 'api_tool';
+  file?: any | undefined;
+  collection?: string | undefined;
+  sub_type: DBBlockSubType;
   operation: string;
-  query?: string;
-  data?: Record<string, any>;
-  serialize_json?: boolean;
-  format?: string;
+  query?: string | undefined;
+  data?: Record<string, any> | undefined;
+  serialize_json?: boolean | undefined;
+  format?: string | undefined;
 }
 
 // Zod schema for validation
 export const DbNodeDataSchema = z.object({
-  file: z.any().optional(),
-  collection: z.string().optional(),
-  sub_type: z.enum(["fixed_prompt", "file", "code", "api_tool"]),
-  operation: z.string(),
-  query: z.string().optional(),
-  data: z.record(z.any()).optional(),
-  serialize_json: z.boolean().optional(),
-  format: z.string().optional(),
+  file: z.any().optional().describe("File path or array of file paths"),
+  collection: z.string().optional().describe("Database collection name"),
+  sub_type: z.any().describe("Database operation type"),
+  operation: z.string().describe("Operation configuration"),
+  query: z.string().optional().describe("Query configuration"),
+  data: z.record(z.any()).optional().describe("Data configuration"),
+  serialize_json: z.boolean().optional().describe("Serialize structured data to JSON string (for backward compatibility)"),
+  format: z.string().optional().describe("Data format (json, yaml, csv, text, etc.)"),
 });

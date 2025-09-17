@@ -25,6 +25,7 @@ from dipeo.infrastructure.llm.drivers.types import (
     ProviderCapabilities,
 )
 
+from ...drivers.types import ProviderType
 from .prompts import DIRECT_EXECUTION_PROMPT, LLM_DECISION_PROMPT, MEMORY_SELECTION_PROMPT
 from .transport.session_wrapper import SessionQueryWrapper
 
@@ -63,16 +64,28 @@ class UnifiedClaudeCodeClient:
         )
 
     def _get_system_prompt(
-        self, execution_phase: ExecutionPhase | None = None, **kwargs
+        self, execution_phase: ExecutionPhase | None = None, use_tools: bool = False, **kwargs
     ) -> str | None:
         """Get system prompt based on execution phase."""
         if execution_phase == ExecutionPhase.MEMORY_SELECTION:
             # Get person name from kwargs if available
-            person_name = kwargs.get("person_name", "Assistant")
-            # Replace the placeholder in the prompt
-            return MEMORY_SELECTION_PROMPT.format(assistant_name=person_name)
+            person_name = kwargs.get("person_name")
+            # Replace the placeholder in the prompt if person_name is provided
+            if person_name:
+                base_prompt = MEMORY_SELECTION_PROMPT.format(assistant_name=person_name)
+            else:
+                # If no person_name, use the prompt without formatting (will show placeholder)
+                base_prompt = MEMORY_SELECTION_PROMPT.replace("{assistant_name}", "Assistant")
+            if use_tools:
+                # Add tool usage instruction
+                base_prompt += "\n\nIMPORTANT: Use the select_memory_messages tool to return your selection. Pass the list of message IDs as the message_ids parameter."
+            return base_prompt
         elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
-            return LLM_DECISION_PROMPT
+            base_prompt = LLM_DECISION_PROMPT
+            if use_tools:
+                # Add tool usage instruction
+                base_prompt += "\n\nIMPORTANT: Use the make_decision tool to return your decision. Pass true for YES or false for NO as the decision parameter."
+            return base_prompt
         elif execution_phase == ExecutionPhase.DIRECT_EXECUTION:
             return DIRECT_EXECUTION_PROMPT
         return None
@@ -118,7 +131,48 @@ class UnifiedClaudeCodeClient:
 
         return None
 
-    def _parse_response(self, response: str) -> LLMResponse:
+    def _extract_tool_result(self, response_text: str) -> dict | None:
+        """Extract tool result from Claude Code response."""
+        import json
+
+        logger.debug(
+            f"[ClaudeCode] Attempting to extract tool result from response: "
+            f"{response_text[:500]}{'...' if len(response_text) > 500 else ''}"
+        )
+
+        # Try to parse the entire response as JSON first
+        try:
+            data = json.loads(response_text)
+            if isinstance(data, dict):
+                # Check for 'data' field from our tool responses
+                if "data" in data:
+                    logger.debug(f"[ClaudeCode] Found tool result in 'data' field: {data['data']}")
+                    return data["data"]
+                # Check for direct structured output
+                if "message_ids" in data or "decision" in data:
+                    logger.debug(f"[ClaudeCode] Found direct structured output: {data}")
+                    return data
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.debug(f"[ClaudeCode] Response is not valid JSON: {e}")
+
+        # Fallback: Look for JSON objects in the text
+        json_pattern = r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}"
+        matches = re.finditer(json_pattern, response_text)
+        for match in matches:
+            try:
+                data = json.loads(match.group(0))
+                if "message_ids" in data or "decision" in data:
+                    logger.debug(f"[ClaudeCode] Found tool result in embedded JSON: {data}")
+                    return data
+            except (json.JSONDecodeError, ValueError):
+                continue
+
+        logger.debug("[ClaudeCode] No tool result found in response")
+        return None
+
+    def _parse_response(
+        self, response: str, execution_phase: ExecutionPhase | None = None
+    ) -> LLMResponse:
         """Parse Claude Code response to unified format."""
         # Extract usage if present in response
         usage = self._extract_usage_from_response(response)
@@ -128,13 +182,108 @@ class UnifiedClaudeCodeClient:
             r"Tokens:\s*input=\d+,\s*output=\d+,\s*total=\d+", "", response
         ).strip()
 
+        # Check if response contains tool usage
+        structured_output = None
+        tool_result = self._extract_tool_result(response)
+
+        if tool_result:
+            # Tool was used, create structured output from tool result
+            logger.debug(
+                f"[ClaudeCode] Tool result extracted successfully for {execution_phase}: "
+                f"{tool_result}"
+            )
+            if execution_phase == ExecutionPhase.MEMORY_SELECTION:
+                from dipeo.infrastructure.llm.drivers.types import MemorySelectionOutput
+
+                structured_output = MemorySelectionOutput(
+                    message_ids=tool_result.get("message_ids", [])
+                )
+                logger.debug(
+                    f"[ClaudeCode] Created MemorySelectionOutput from tool: "
+                    f"selected {len(tool_result.get('message_ids', []))} messages"
+                )
+            elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
+                from dipeo.infrastructure.llm.drivers.types import DecisionOutput
+
+                structured_output = DecisionOutput(decision=tool_result.get("decision", False))
+                logger.debug(
+                    f"[ClaudeCode] Created DecisionOutput from tool: "
+                    f"decision={tool_result.get('decision', False)}"
+                )
+        else:
+            # Simplified fallback parsing
+            logger.warning(
+                f"[ClaudeCode] No tool result found for {execution_phase}, "
+                f"falling back to text parsing. Response preview: {clean_response[:200]}..."
+            )
+            if execution_phase == ExecutionPhase.MEMORY_SELECTION:
+                structured_output = self._parse_memory_selection(clean_response)
+                logger.debug(
+                    f"[ClaudeCode] Text parsing result: "
+                    f"selected {len(structured_output.message_ids) if structured_output else 0} messages"
+                )
+            elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
+                structured_output = self._parse_decision(clean_response)
+                logger.debug(
+                    f"[ClaudeCode] Text parsing result: "
+                    f"decision={structured_output.decision if structured_output else None}"
+                )
+
         return LLMResponse(
             content=clean_response,
             raw_response=response,
             usage=usage,
             model="claude-code",
             provider=self.provider_type,
+            structured_output=structured_output,
         )
+
+    def _parse_memory_selection(self, response: str) -> Any:
+        """Parse memory selection from response text."""
+        import json
+
+        from dipeo.infrastructure.llm.drivers.types import MemorySelectionOutput
+
+        # Try to parse as JSON array directly
+        try:
+            data = json.loads(response)
+            if isinstance(data, list):
+                return MemorySelectionOutput(message_ids=data)
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+        # Look for JSON array in text
+        match = re.search(r"\[.*?\]", response, re.DOTALL)
+        if match:
+            try:
+                message_ids = json.loads(match.group(0))
+                return MemorySelectionOutput(message_ids=message_ids)
+            except (json.JSONDecodeError, ValueError):
+                pass
+
+        # Default to empty selection
+        return MemorySelectionOutput(message_ids=[])
+
+    def _parse_decision(self, response: str) -> Any:
+        """Parse decision from response text."""
+        from dipeo.infrastructure.llm.drivers.types import DecisionOutput
+
+        response_upper = response.strip().upper()
+
+        # Check for YES/NO at the start
+        if response_upper.startswith("YES"):
+            return DecisionOutput(decision=True)
+        elif response_upper.startswith("NO"):
+            return DecisionOutput(decision=False)
+
+        # Check anywhere in response (more lenient)
+        if "YES" in response_upper and "NO" not in response_upper:
+            return DecisionOutput(decision=True)
+        elif "NO" in response_upper and "YES" not in response_upper:
+            return DecisionOutput(decision=False)
+
+        # Default to NO for safety
+        return DecisionOutput(decision=False)
 
     async def async_chat(
         self,
@@ -151,18 +300,35 @@ class UnifiedClaudeCodeClient:
         # Prepare message
         system_message, message_text = self._prepare_message(messages)
 
+        # Configure MCP server based on execution phase
+        mcp_server = None
+        use_tools = False
+
+        # Enable tools for structured output phases
+        if execution_phase in (ExecutionPhase.MEMORY_SELECTION, ExecutionPhase.DECISION_EVALUATION):
+            from .tools import create_dipeo_mcp_server
+
+            mcp_server = create_dipeo_mcp_server()
+            use_tools = True
+            logger.debug(
+                f"[ClaudeCode] MCP server configured for {execution_phase}: "
+                f"tools={'select_memory_messages, make_decision' if execution_phase == ExecutionPhase.MEMORY_SELECTION else 'make_decision'}"
+            )
+
         # Get system prompt based on execution phase
-        # Extract person_name from system message if it contains "YOUR NAME:"
-        person_name = None
-        if system_message and "YOUR NAME:" in system_message:
-            # Extract person name from system message
+        # Check if person_name is already in system message (from memory_selection adapter)
+        person_name = kwargs.get("person_name")
+        if not person_name and system_message and "YOUR NAME:" in system_message:
+            # Extract person name from system message if not provided in kwargs
             match = re.search(r"YOUR NAME:\s*([^\n]+)", system_message)
             if match:
                 person_name = match.group(1).strip()
-                # Remove the YOUR NAME line from system message
+                # Remove the YOUR NAME line from system message to avoid duplication
                 system_message = re.sub(r"YOUR NAME:\s*[^\n]+\n*", "", system_message)
 
-        system_prompt = self._get_system_prompt(execution_phase, person_name=person_name)
+        system_prompt = self._get_system_prompt(
+            execution_phase, use_tools=use_tools, person_name=person_name
+        )
         if system_prompt:
             system_prompt = system_prompt + ("\n\n" + system_message if system_message else "")
         else:
@@ -184,13 +350,28 @@ class UnifiedClaudeCodeClient:
             # Remove trace_id if present since we're not using it
             kwargs.pop("trace_id", None)
 
-        # Create Claude Code options
-        options = ClaudeCodeOptions(
-            system_prompt=system_prompt,
-            # Claude Code SDK doesn't support these parameters directly
-            # but we can include them in kwargs for future compatibility
-            **kwargs,
-        )
+        # Create Claude Code options with MCP server if configured
+        options_dict = {
+            "system_prompt": system_prompt,
+        }
+
+        # Add MCP server and allowed tools if configured
+        if mcp_server:
+            options_dict["mcp_servers"] = {"dipeo_structured_output": mcp_server}
+            # Add allowed tools with proper MCP naming convention
+            options_dict["allowed_tools"] = [
+                "mcp__dipeo_structured_output__select_memory_messages",
+                "mcp__dipeo_structured_output__make_decision",
+            ]
+            logger.debug(f"[ClaudeCode] MCP tools enabled: {options_dict['allowed_tools']}")
+
+        # Add other kwargs (but remove text_format and person_name if present)
+        kwargs.pop("text_format", None)  # Remove text_format as we don't use it
+        kwargs.pop("person_name", None)  # Remove person_name as it's already used in system prompt
+        options_dict.update(kwargs)
+
+        # Create options
+        options = ClaudeCodeOptions(**options_dict)
 
         # Set up retry logic
         retry = AsyncRetrying(
@@ -219,7 +400,7 @@ class UnifiedClaudeCodeClient:
                         # This is the final, authoritative response
                         result_text = str(message.result)
                         break  # We have the result, no need to process further messages
-                return self._parse_response(result_text)
+                return self._parse_response(result_text, execution_phase)
 
         async for attempt in retry:
             with attempt:
@@ -243,18 +424,35 @@ class UnifiedClaudeCodeClient:
         # Prepare message
         system_message, message_text = self._prepare_message(messages)
 
+        # Configure MCP server based on execution phase
+        mcp_server = None
+        use_tools = False
+
+        # Enable tools for structured output phases
+        if execution_phase in (ExecutionPhase.MEMORY_SELECTION, ExecutionPhase.DECISION_EVALUATION):
+            from .tools import create_dipeo_mcp_server
+
+            mcp_server = create_dipeo_mcp_server()
+            use_tools = True
+            logger.debug(
+                f"[ClaudeCode] MCP server configured for {execution_phase}: "
+                f"tools={'select_memory_messages, make_decision' if execution_phase == ExecutionPhase.MEMORY_SELECTION else 'make_decision'}"
+            )
+
         # Get system prompt based on execution phase
-        # Extract person_name from system message if it contains "YOUR NAME:"
-        person_name = None
-        if system_message and "YOUR NAME:" in system_message:
-            # Extract person name from system message
+        # Check if person_name is already in system message (from memory_selection adapter)
+        person_name = kwargs.get("person_name")
+        if not person_name and system_message and "YOUR NAME:" in system_message:
+            # Extract person name from system message if not provided in kwargs
             match = re.search(r"YOUR NAME:\s*([^\n]+)", system_message)
             if match:
                 person_name = match.group(1).strip()
-                # Remove the YOUR NAME line from system message
+                # Remove the YOUR NAME line from system message to avoid duplication
                 system_message = re.sub(r"YOUR NAME:\s*[^\n]+\n*", "", system_message)
 
-        system_prompt = self._get_system_prompt(execution_phase, person_name=person_name)
+        system_prompt = self._get_system_prompt(
+            execution_phase, use_tools=use_tools, person_name=person_name
+        )
         if system_prompt:
             system_prompt = system_prompt + ("\n\n" + system_message if system_message else "")
         else:
@@ -277,11 +475,28 @@ class UnifiedClaudeCodeClient:
             kwargs.pop("trace_id", None)
 
         # Create Claude Code options with streaming enabled
-        options = ClaudeCodeOptions(
-            system_prompt=system_prompt,
-            stream=True,  # Enable streaming if supported
-            **kwargs,
-        )
+        options_dict = {
+            "system_prompt": system_prompt,
+            "stream": True,  # Enable streaming if supported
+        }
+
+        # Add MCP server and allowed tools if configured
+        if mcp_server:
+            options_dict["mcp_servers"] = {"dipeo_structured_output": mcp_server}
+            # Add allowed tools with proper MCP naming convention
+            options_dict["allowed_tools"] = [
+                "mcp__dipeo_structured_output__select_memory_messages",
+                "mcp__dipeo_structured_output__make_decision",
+            ]
+            logger.debug(f"[ClaudeCode] MCP tools enabled: {options_dict['allowed_tools']}")
+
+        # Add other kwargs (but remove text_format and person_name if present)
+        kwargs.pop("text_format", None)  # Remove text_format as we don't use it
+        kwargs.pop("person_name", None)  # Remove person_name as it's already used in system prompt
+        options_dict.update(kwargs)
+
+        # Create options
+        options = ClaudeCodeOptions(**options_dict)
 
         # Use QueryClientWrapper with context manager
         async with SessionQueryWrapper(

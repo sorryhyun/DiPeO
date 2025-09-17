@@ -34,12 +34,12 @@ export const personFields: TypedPanelFieldConfig<ExtendedPersonData>[] = [
         });
         // Filter to only show LLM service API keys
         return data.api_keys
-          .filter((key) => {
+          .filter((key: any) => {
             // Convert uppercase enum name to lowercase for comparison
             const serviceLowercase = key.service.toLowerCase();
             return isLLMService(serviceLowercase as any);
           })
-          .map((key) => ({
+          .map((key: any) => ({
             value: key.id,
             label: `${key.label} (${key.service})`
           }));
@@ -70,7 +70,7 @@ export const personFields: TypedPanelFieldConfig<ExtendedPersonData>[] = [
           query: GetApiKeysDocument,
           fetchPolicy: 'network-only'  // Always fetch fresh data to avoid stale API keys
         });
-        const selectedKey = apiKeysData.api_keys.find((k) => k.id === apiKeyId);
+        const selectedKey = apiKeysData.api_keys.find((k: any) => k.id === apiKeyId);
         if (!selectedKey) {
           return [];
         }

@@ -1,0 +1,282 @@
+# Type Annotations Configuration for Strawberry GraphQL Generation
+#
+# This configuration file defines how different types and fields should be
+# handled during Strawberry GraphQL code generation. It replaces hardcoded
+# logic in templates with declarative configuration.
+
+type_annotations:
+  # Types that need manual from_pydantic conversion
+  DomainNode:
+    conversion: manual
+    fields:
+      id: scalar  # Maps to NodeIDScalar
+      type: enum_value  # Convert enum to string value
+      position: nested_type  # Vec2Type conversion
+      data: json_scalar  # JSONScalar field
+
+  DomainArrow:
+    conversion: manual
+    fields:
+      id: scalar  # Maps to ArrowIDScalar
+      source: direct  # String, no conversion
+      target: direct  # String, no conversion
+      content_type: enum_value  # Optional enum
+      label: direct
+      execution_priority: direct
+      data: json_scalar
+
+  DomainPerson:
+    conversion: manual
+    fields:
+      id: scalar  # Maps to PersonIDScalar
+      label: direct
+      llm_config: nested_type  # PersonLLMConfigType
+      type: literal  # Literal["person"]
+
+  DomainDiagram:
+    conversion: manual
+    fields:
+      nodes: nested_list  # List[DomainNodeType]
+      handles: nested_list  # List[DomainHandleType]
+      arrows: nested_list  # List[DomainArrowType]
+      persons: nested_list  # List[DomainPersonType]
+      metadata: optional_nested  # Optional[DiagramMetadataType]
+
+  ExecutionState:
+    conversion: manual
+    fields:
+      id: scalar  # ExecutionIDScalar
+      status: enum_value
+      diagram_id: scalar  # DiagramIDScalar
+      started_at: direct
+      ended_at: direct
+      node_states: dict_to_json  # Convert to JSON-serializable
+      node_outputs: dict_to_json  # Convert to JSON-serializable
+      llm_usage: nested_type
+      error: direct
+      variables: json_scalar
+      metadata: json_scalar
+      is_active: direct
+      exec_counts: dict_to_json
+      executed_nodes: direct
+      metrics: optional_nested
+
+  ExecutionMetrics:
+    conversion: manual
+    fields:
+      execution_id: scalar
+      start_time: direct
+      end_time: direct
+      total_duration_ms: direct
+      node_metrics: dict_to_json
+      critical_path: direct
+      parallelizable_groups: direct
+      bottlenecks: nested_list
+      total_llm_tokens: direct
+      total_llm_calls: direct
+
+  Conversation:
+    conversion: manual
+    fields:
+      messages: nested_list  # List[MessageType]
+      metadata: optional_nested  # Optional[ConversationMetadataType]
+
+  Message:
+    conversion: manual
+    fields:
+      role: literal  # Literal value
+      content: direct
+      timestamp: direct
+      metadata: json_scalar
+      tool_calls: json_scalar
+      tool_results: json_scalar
+
+  CliSession:
+    conversion: manual
+    fields:
+      id: scalar  # CliSessionIDScalar
+      session_id: direct
+      user_id: direct
+      started_at: direct
+      status: literal
+      metadata: json_scalar
+      environment: json_scalar
+
+  ExecutionOptions:
+    conversion: manual
+    fields:
+      mode: literal
+      variables: json_scalar
+      timeout: direct
+      max_iterations: direct
+      debug: direct
+      trace: direct
+      allow_parallel: direct
+
+  ExecutionUpdate:
+    conversion: manual
+    fields:
+      execution_id: direct
+      event_type: enum_value
+      data: json_scalar
+      timestamp: direct
+
+  ExecutionLogEntry:
+    conversion: manual
+    fields:
+      timestamp: direct
+      level: literal
+      message: direct
+      node_id: scalar
+      data: json_scalar
+
+  KeepalivePayload:
+    conversion: manual
+    fields:
+      type: literal
+      timestamp: direct
+
+  # Types that can use the pydantic decorator directly
+  Vec2:
+    conversion: auto
+    use_all_fields: true
+
+  DomainHandle:
+    conversion: auto
+    use_all_fields: true
+
+  PersonLLMConfig:
+    conversion: auto
+    use_all_fields: true
+
+  DiagramMetadata:
+    conversion: auto
+    use_all_fields: true
+
+  LLMUsage:
+    conversion: auto
+    use_all_fields: true
+
+  NodeState:
+    conversion: auto
+    use_all_fields: true
+
+  NodeMetrics:
+    conversion: auto
+    use_all_fields: true
+
+  Bottleneck:
+    conversion: auto
+    use_all_fields: true
+
+  EnvelopeMeta:
+    conversion: auto
+    use_all_fields: true
+
+  SerializedEnvelope:
+    conversion: auto
+    use_all_fields: true
+
+  InteractivePromptData:
+    conversion: auto
+    use_all_fields: true
+
+  NodeDefinition:
+    conversion: auto
+    use_all_fields: true
+
+  File:
+    conversion: auto
+    use_all_fields: true
+
+  ToolConfig:
+    conversion: auto
+    use_all_fields: true
+
+  WebSearchResult:
+    conversion: auto
+    use_all_fields: true
+
+  ImageGenerationResult:
+    conversion: auto
+    use_all_fields: true
+
+  ToolOutput:
+    conversion: auto
+    use_all_fields: true
+
+  NodeUpdate:
+    conversion: auto
+    use_all_fields: true
+
+  InteractivePrompt:
+    conversion: auto
+    use_all_fields: true
+
+  ConversationMetadata:
+    conversion: auto
+    use_all_fields: true
+
+  DomainApiKey:
+    conversion: auto
+    use_all_fields: true
+
+# Field type mappings
+field_mappings:
+  # Common field patterns
+  patterns:
+    "*_id": scalar  # Any field ending with _id is a scalar
+    "*_at": timestamp  # Timestamp fields
+    "*_data": json_scalar  # JSON data fields
+    "*_config": json_scalar  # Configuration objects
+    "*_metadata": json_scalar  # Metadata objects
+    "*_states": dict_to_json  # State dictionaries
+    "*_outputs": dict_to_json  # Output dictionaries
+
+  # Specific field overrides
+  overrides:
+    type: enum_value  # Always treat 'type' as enum
+    status: enum_value  # Always treat 'status' as enum
+    role: literal  # Message role
+    mode: literal  # Execution mode
+
+# Scalar type registry
+scalars:
+  - CliSessionID
+  - NodeID
+  - ArrowID
+  - HandleID
+  - PersonID
+  - ApiKeyID
+  - DiagramID
+  - ExecutionID
+  - FileID
+  - HookID
+  - TaskID
+  - MessageID
+  - ConversationID
+  - AgentID
+  - ToolID
+
+# Enum types that should be converted to string
+enums:
+  - NodeType
+  - ContentType
+  - EventType
+  - Status
+  - LLMService
+  - DiagramFormat
+  - ExecutionStatus
+  - NodeExecutionStatus
+
+# Types that should always be JSON scalars
+json_types:
+  - JsonDict
+  - JsonValue
+  - JSONScalar
+  - "Dict[str, Any]"
+  - "dict[str, Any]"
+  - "Dict[str, str]"
+  - "dict[str, str]"
+  - "Dict[str, JSONScalar]"
+  - "dict[str, JSONScalar]"

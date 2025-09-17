@@ -45,7 +45,7 @@ def run_variant(config_file):
         input_data,
     ]
 
-    print(f"Command: {' '.join(cmd)}")
+    print(f"Command : {' '.join(cmd)}")
 
     try:
         # Run the command (without capturing output so it streams to console)
