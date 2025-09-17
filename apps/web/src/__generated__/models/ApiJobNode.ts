@@ -1,14 +1,15 @@
 // Auto-generated TypeScript model for api_job node
 import { z } from 'zod';
+import { AuthType, HttpMethod } from '@dipeo/models';
 
 export interface ApiJobNodeData {
   url: string;
-  method: enum;
+  method: HttpMethod;
   headers?: Record<string, any> | undefined;
   params?: Record<string, any> | undefined;
   body?: Record<string, any> | undefined;
   timeout?: number | undefined;
-  auth_type?: enum | undefined;
+  auth_type?: AuthType | undefined;
   auth_config?: Record<string, any> | undefined;
 }
 

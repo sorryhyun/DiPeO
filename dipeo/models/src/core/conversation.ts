@@ -18,10 +18,8 @@ export interface Message {
 
 export interface ConversationMetadata {
   started_at: string;
-  last_message_at: string;
   total_tokens: number;
   message_count: number;
-  context_resets: number;
 }
 
 export interface Conversation {

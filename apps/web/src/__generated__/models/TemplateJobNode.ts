@@ -6,7 +6,7 @@ export interface TemplateJobNodeData {
   template_content?: string | undefined;
   output_path?: string | undefined;
   variables?: Record<string, any> | undefined;
-  engine?: enum | undefined;
+  engine?: string | undefined;
   preprocessor?: string | undefined;
 }
 

@@ -419,6 +419,9 @@ DiPeO는 커스텀 필터가 포함된 Jinja2 템플릿을 사용합니다.
 - **IR 빌더**: `*_ir_builder.py` 파일이 추출 로직을 중앙에서 관리합니다.
 - **템플릿**: IR 데이터를 소비해 일관된 출력을 생성합니다.
 - **패턴**: `AST 파싱 → IR 빌드 → 템플릿 렌더링 → 출력` 흐름을 따릅니다.
+- **단위 테스트 지원**: 추출/생성 로직을 개별적으로 검증할 수 있습니다.
+- **코드 재사용**: 다이어그램 간 로직 재사용이 용이합니다.
+- **IR 검토**: `projects/codegen/ir/`의 JSON을 확인해 디버깅할 수 있습니다.
 
 ## 모범 사례
 
@@ -438,28 +441,38 @@ DiPeO는 커스텀 필터가 포함된 Jinja2 템플릿을 사용합니다.
 **노드 추가 후 타입 누락**:
 
 ```bash
-dipeo run codegen/diagrams/generate_all --light --debug  # 전체 재생성
-make apply-syntax-only                                   # 스테이징 적용
-make graphql-schema                                      # 스키마 업데이트
+make codegen           # IR 재생성과 전체 코드 생성
+make apply-syntax-only # 스테이징 적용
+make graphql-schema    # 스키마 업데이트
+make dev-all           # 서버 재시작
+```
+
+**IR 디버깅**:
+
+```bash
+# 생성 중인 내용을 이해하기 위해 IR 파일을 살펴봅니다.
+cat projects/codegen/ir/backend_ir.json | jq '.node_specs[0]'
+cat projects/codegen/ir/frontend_ir.json | jq '.components[0]'
+cat projects/codegen/ir/strawberry_ir.json | jq '.operations[0]'
 ```
 
 **GraphQL 쿼리 미발견**:
 
-1. `/apps/web/src/__generated__/queries/`에 쿼리 파일이 생성되었는지 확인
-2. `/apps/web/`에서 `pnpm codegen` 실행 여부 확인
-3. 컴포넌트 내 쿼리 이름 일치 여부 확인
+1. `/apps/web/src/__generated__/queries/`에 쿼리 파일이 생성되었는지 확인합니다.
+2. `/apps/web/`에서 `pnpm codegen`을 실행했는지 확인합니다.
+3. 컴포넌트에서 사용하는 쿼리 이름이 일치하는지 검증합니다.
 
 **타입 불일치 오류**:
 
-* 스키마와 쿼리가 동기화되지 않았을 수 있음
-* 전체 워크플로우 실행:
+- 스키마와 쿼리가 동기화되지 않았거나 IR이 오래됐을 수 있습니다.
+- 전체 워크플로우를 다시 실행합니다.
 
   ```bash
-  dipeo run codegen/diagrams/generate_all --light --debug
+  make codegen          # IR 재생성과 전체 코드 생성
   make apply-syntax-only
   make graphql-schema
   ```
 
 ## 결론
 
-DiPeO의 코드 생성 시스템은 도그푸딩 접근을 통해 플랫폼의 성숙도를 입증합니다. DiPeO 다이어그램으로 DiPeO의 코드를 오케스트레이션함으로써, TypeScript 명세에서 Python 모델과 GraphQL 오퍼레이션까지 타입 안전성을 유지한 채 복잡한 메타 프로그래밍 과제를 시각적 프로그래밍으로 처리할 수 있음을 보여줍니다. 스테이징 디렉터리, 외부 코드 구성, 병렬 배치 처리로 구성된 v2 아키텍처는 견고함과 유연성을 동시에 제공합니다.
+DiPeO의 IR 기반 코드 생성 시스템은 도그푸딩 접근으로 플랫폼의 성숙도를 증명합니다. DiPeO 다이어그램이 중간 표현을 거쳐 DiPeO의 코드를 생성함으로써, 복잡한 메타 프로그래밍 과제를 시각적 프로그래밍으로 해결하면서도 TypeScript 명세에서 IR, Python 모델, GraphQL 오퍼레이션까지 일관된 타입 안전성을 유지합니다. 스테이징 디렉터리와 병렬 배치 처리, 중앙 집중형 IR 설계가 중복을 제거하고 추출 로직을 하나의 진실 원천으로 묶어주어, 강력하면서도 유지보수 가능한 생성 파이프라인을 제공합니다.

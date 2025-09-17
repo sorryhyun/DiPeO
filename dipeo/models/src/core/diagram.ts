@@ -49,7 +49,6 @@ export interface DomainArrow {
   target: HandleID;
   content_type?: ContentType | null;
   label?: string | null;
-  packing?: 'pack' | 'spread' | null;
   execution_priority?: number | null;
   data?: Record<string, any> | null;
 }

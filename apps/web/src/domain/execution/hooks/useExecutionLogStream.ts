@@ -32,8 +32,8 @@ export function useExecutionLogStream(executionIdParam: ReturnType<typeof execut
     if (data?.execution_updates) {
       const update = data.execution_updates;
 
-      // Handle batch updates
-      if (update.event_type === 'BATCH_UPDATE' && update.data) {
+      // Handle batch updates (BATCH_UPDATE is sent by backend but not in EventType enum)
+      if ((update.type as string) === 'BATCH_UPDATE' && update.data) {
         const batchData = update.data;
         if (batchData.events && Array.isArray(batchData.events)) {
           // Process each event in the batch
@@ -68,7 +68,7 @@ export function useExecutionLogStream(executionIdParam: ReturnType<typeof execut
         }
       }
       // Also handle individual log events (for backward compatibility)
-      else if (update.event_type === 'EXECUTION_LOG' && update.data) {
+      else if (update.type === 'EXECUTION_LOG' && update.data) {
         const logData = update.data;
         if (typeof logData === 'object' && logData !== null) {
           // Debug log to understand the structure

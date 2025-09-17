@@ -154,11 +154,9 @@ def wire_template_services(registry: ServiceRegistry) -> None:
     # Create the codegen template service for the TEMPLATE_RENDERER port
     template_service = get_template_service(template_dirs=[])
     registry.register(TEMPLATE_RENDERER, template_service)
-    logger.info("Registered CodegenTemplateService as TEMPLATE_RENDERER")
 
     # Register the simple template processor for prompt building
     registry.register(TEMPLATE_PROCESSOR, SimpleTemplateProcessor())
-    logger.info("Registered SimpleTemplateProcessor for prompt building")
 
     # Register the TypeScript AST parser service
     from dipeo.config import get_settings
@@ -171,7 +169,6 @@ def wire_template_services(registry: ServiceRegistry) -> None:
         }
     )
     registry.register(AST_PARSER, ast_parser)
-    logger.info("Registered ParserService for TypeScript AST parsing")
 
 
 def wire_ir_services(registry: ServiceRegistry) -> None:
@@ -182,12 +179,10 @@ def wire_ir_services(registry: ServiceRegistry) -> None:
     # Create and register IR cache
     ir_cache = IRCache()
     registry.register(IR_CACHE, ir_cache)
-    logger.info("Registered IRCache for IR data caching")
 
     # Create and register IR builder registry
     ir_registry = IRBuilderRegistry()
     registry.register(IR_BUILDER_REGISTRY, ir_registry)
-    logger.info("Registered IRBuilderRegistry for managing IR builders")
 
 
 def wire_event_services(registry: ServiceRegistry) -> None:
@@ -333,7 +328,6 @@ async def execute_event_subscriptions(registry: ServiceRegistry) -> None:
             await subscribe_fn
         else:
             await subscribe_fn()
-        logger.info("State store event subscription activated")
 
     # Execute router subscription if registered
     if registry.has(ServiceKey("router_subscription")):
@@ -347,7 +341,6 @@ async def execute_event_subscriptions(registry: ServiceRegistry) -> None:
             await subscribe_fn
         else:
             await subscribe_fn()
-        logger.info("Message router event subscription activated")
 
 
 def wire_feature_flags(registry: ServiceRegistry, features: list[str]) -> None:

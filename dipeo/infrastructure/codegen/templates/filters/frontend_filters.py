@@ -21,6 +21,7 @@ class FrontendFilters:
         Returns:
             TypeScript type string
         """
+        field_name = field.get("name", "")
         ts_type = field.get("type", "any")
         is_required = field.get("required", False)
         is_array = field.get("isArray", False)
@@ -30,30 +31,51 @@ class FrontendFilters:
             base_type = cls.typescript_type({**field, "isArray": False})
             ts_type = f"{base_type}[]"
 
+        # Check for context-aware enum mappings first
+        elif ts_type == "enum":
+            # Map specific field names to their TypeScript enum types
+            enum_mappings = {
+                "method": "HttpMethod",
+                "auth_type": "AuthType",
+                "sub_type": "DBBlockSubType",
+                "language": "SupportedLanguage",
+                "code_type": "SupportedLanguage",
+                "hook_type": "HookType",
+                "trigger_mode": "HookTriggerMode",
+                "service": "LLMService",
+                "diagram_format": "DiagramFormat",
+            }
+
+            if field_name in enum_mappings:
+                ts_type = enum_mappings[field_name]
+            else:
+                # Fall back to literal union type if enum values provided
+                if field.get("enum"):
+                    enum_values = field["enum"]
+                    if isinstance(enum_values, list):
+                        quoted = [f'"{v}"' if isinstance(v, str) else str(v) for v in enum_values]
+                        ts_type = " | ".join(quoted)
+                else:
+                    ts_type = "string"  # Default to string for unknown enums
+
         # Handle special types
-        type_map = {
-            "string": "string",
-            "number": "number",
-            "boolean": "boolean",
-            "object": "Record<string, any>",
-            "dict": "Record<string, any>",
-            "list": "any[]",
-            "array": "any[]",
-            "null": "null",
-            "undefined": "undefined",
-            "any": "any",
-            "void": "void",
-        }
+        else:
+            type_map = {
+                "string": "string",
+                "number": "number",
+                "boolean": "boolean",
+                "object": "Record<string, any>",
+                "dict": "Record<string, any>",
+                "list": "any[]",
+                "array": "any[]",
+                "null": "null",
+                "undefined": "undefined",
+                "any": "any",
+                "void": "void",
+            }
 
-        if ts_type in type_map:
-            ts_type = type_map[ts_type]
-
-        # Handle literal types (enum fields)
-        if field.get("enum"):
-            enum_values = field["enum"]
-            if isinstance(enum_values, list):
-                quoted = [f'"{v}"' if isinstance(v, str) else str(v) for v in enum_values]
-                ts_type = " | ".join(quoted)
+            if ts_type in type_map:
+                ts_type = type_map[ts_type]
 
         # Add optional modifier
         if not is_required:
@@ -248,6 +270,37 @@ class FrontendFilters:
             return str(value)
 
     @classmethod
+    def get_enum_imports(cls, fields: list[dict[str, Any]]) -> list[str]:
+        """Get list of enum types that need to be imported from @dipeo/models.
+
+        Args:
+            fields: List of field specifications
+
+        Returns:
+            List of unique enum type names to import
+        """
+        enum_mappings = {
+            "method": "HttpMethod",
+            "auth_type": "AuthType",
+            "sub_type": "DBBlockSubType",
+            "language": "SupportedLanguage",
+            "code_type": "SupportedLanguage",
+            "hook_type": "HookType",
+            "trigger_mode": "HookTriggerMode",
+            "service": "LLMService",
+            "diagram_format": "DiagramFormat",
+        }
+
+        imports = set()
+        for field in fields:
+            if field.get("type") == "enum":
+                field_name = field.get("name", "")
+                if field_name in enum_mappings:
+                    imports.add(enum_mappings[field_name])
+
+        return sorted(list(imports))
+
+    @classmethod
     def get_all_filters(cls) -> dict:
         """Get all filter methods as a dictionary.
 
@@ -258,4 +311,5 @@ class FrontendFilters:
             "ui_field_type": cls.ui_field_type,
             "zod_schema": cls.zod_schema,
             "escape_js": cls.escape_js,
+            "get_enum_imports": cls.get_enum_imports,
         }

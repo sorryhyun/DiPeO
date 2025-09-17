@@ -1,8 +1,9 @@
 // Auto-generated TypeScript model for hook node
 import { z } from 'zod';
+import { HookType } from '@dipeo/models';
 
 export interface HookNodeData {
-  hook_type: enum;
+  hook_type: HookType;
   command?: string | undefined;
   url?: string | undefined;
   timeout?: number | undefined;

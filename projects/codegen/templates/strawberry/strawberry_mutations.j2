@@ -38,17 +38,45 @@ class Create{{ type_info['name'] | pascal_case }}Input:
     """Input for creating a {{ type_info.get('spec', {}).get('displayName', type_info['name']) }} node"""
     diagram_id: str
     position: Vec2Input
-    # TODO: Add node-specific fields from spec
-    # For now, we accept a generic data dict that will be validated
-    data: strawberry.scalars.JSON
+    label: Optional[str] = None
+
+    # Node-specific fields from specification
+    {% for field in type_info.get('spec', {}).get('fields', []) %}
+    {% if field['is_enum'] %}
+    # Enum field: {{ field['description'] }}
+    {{ field['name'] }}: {{ 'Optional[str]' if not field['required'] else 'str' }}{{ ' = None' if not field['required'] }}  # Values: {{ field['enum_values'] }}
+    {% elif field['is_object_type'] %}
+    {{ field['name'] }}: {{ 'Optional[strawberry.scalars.JSON]' if not field['required'] else 'strawberry.scalars.JSON' }}{{ ' = None' if not field['required'] }}  # {{ field['description'] }}
+    {% elif field['graphql_type'] == 'Int' %}
+    {{ field['name'] }}: {{ 'Optional[int]' if not field['required'] else 'int' }}{{ ' = None' if not field['required'] }}  # {{ field['description'] }}
+    {% elif field['graphql_type'] == 'Boolean' %}
+    {{ field['name'] }}: {{ 'Optional[bool]' if not field['required'] else 'bool' }}{{ ' = None' if not field['required'] }}  # {{ field['description'] }}
+    {% else %}
+    {{ field['name'] }}: {{ 'Optional[str]' if not field['required'] else 'str' }}{{ ' = None' if not field['required'] }}  # {{ field['description'] }}
+    {% endif %}
+    {% endfor %}
 
 @strawberry.input
 class Update{{ type_info['name'] | pascal_case }}Input:
     """Input for updating a {{ type_info.get('spec', {}).get('displayName', type_info['name']) }} node"""
-    # TODO: Add node-specific fields from spec
-    # For now, we accept a generic data dict that will be validated
-    data: Optional[strawberry.scalars.JSON] = None
     position: Optional[Vec2Input] = None
+    label: Optional[str] = None
+
+    # Node-specific fields from specification (all optional for updates)
+    {% for field in type_info.get('spec', {}).get('fields', []) %}
+    {% if field['is_enum'] %}
+    # Enum field: {{ field['description'] }}
+    {{ field['name'] }}: Optional[str] = None  # Values: {{ field['enum_values'] }}
+    {% elif field['is_object_type'] %}
+    {{ field['name'] }}: Optional[strawberry.scalars.JSON] = None  # {{ field['description'] }}
+    {% elif field['graphql_type'] == 'Int' %}
+    {{ field['name'] }}: Optional[int] = None  # {{ field['description'] }}
+    {% elif field['graphql_type'] == 'Boolean' %}
+    {{ field['name'] }}: Optional[bool] = None  # {{ field['description'] }}
+    {% else %}
+    {{ field['name'] }}: Optional[str] = None  # {{ field['description'] }}
+    {% endif %}
+    {% endfor %}
 
 {% endfor %}
 {% endif %}

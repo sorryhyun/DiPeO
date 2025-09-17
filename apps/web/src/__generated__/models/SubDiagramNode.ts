@@ -1,5 +1,6 @@
 // Auto-generated TypeScript model for sub_diagram node
 import { z } from 'zod';
+import { DiagramFormat } from '@dipeo/models';
 
 export interface SubDiagramNodeData {
   diagram_name?: string | undefined;
@@ -10,7 +11,7 @@ export interface SubDiagramNodeData {
   wait_for_completion?: boolean | undefined;
   isolate_conversation?: boolean | undefined;
   ignoreIfSub?: boolean | undefined;
-  diagram_format?: enum | undefined;
+  diagram_format?: DiagramFormat | undefined;
   batch?: boolean | undefined;
   batch_input_key?: string | undefined;
   batch_parallel?: boolean | undefined;

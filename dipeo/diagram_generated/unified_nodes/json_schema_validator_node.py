@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for json_schema_validator.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-17T19:31:24.039284
+Generated at: 2025-09-17T20:38:42.578602
 """
 
 from typing import *

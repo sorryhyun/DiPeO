@@ -45,7 +45,7 @@ import type {
   DomainPersonType,
   DomainApiKeyType,
   DomainDiagramType,
-  ExecutionUpdate as ExecutionUpdateType,
+  ExecutionUpdateType,
   ExecutionStateType,
   Vec2Input
 } from '@/__generated__/graphql';
@@ -448,10 +448,10 @@ export class Converters {
    */
   static graphQLExecutionUpdateToDomain(update: ExecutionUpdateType): ExecutionUpdate {
     return {
-      type: update.event_type as EventType,
+      type: (update as any).type as EventType,  // type field comes from subscription query
       execution_id: this.toExecutionId(update.execution_id),
       data: update.data,
-      timestamp: update.timestamp
+      timestamp: update.timestamp ?? undefined
     };
   }
 

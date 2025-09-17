@@ -88,7 +88,7 @@ codegen: parse-typescript
 	else \
 		python -m dipeo_cli run projects/codegen/diagrams/generate_all --light --debug --timeout=35; \
 	fi
-	@echo "✓ Code generation complete. Next: make diff-staged → make apply-syntax-only → make graphql-schema"
+	@echo "✓ Code generation complete. Next: make apply-test→ make graphql-schema"
 
 # Automatic code generation with auto-apply (DANGEROUS - use with caution!)
 # Runs entire workflow: parse → generate → apply → update GraphQL

@@ -22,7 +22,6 @@ type_annotations:
       target: direct  # String, no conversion
       content_type: enum_value  # Optional enum
       label: direct
-      packing: direct
       execution_priority: direct
       data: json_scalar
 
@@ -57,7 +56,6 @@ type_annotations:
       error: direct
       variables: json_scalar
       metadata: json_scalar
-      duration_seconds: direct
       is_active: direct
       exec_counts: dict_to_json
       executed_nodes: direct
@@ -100,10 +98,8 @@ type_annotations:
       session_id: direct
       user_id: direct
       started_at: direct
-      last_active: direct
       status: literal
       metadata: json_scalar
-      current_directory: direct
       environment: json_scalar
 
   ExecutionOptions:

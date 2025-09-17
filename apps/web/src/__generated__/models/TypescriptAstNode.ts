@@ -5,10 +5,10 @@ export interface TypescriptAstNodeData {
   source: string;
   extractPatterns?: any[] | undefined;
   includeJSDoc?: boolean | undefined;
-  parseMode?: enum | undefined;
+  parseMode?: string | undefined;
   transformEnums?: boolean | undefined;
   flattenOutput?: boolean | undefined;
-  outputFormat?: enum | undefined;
+  outputFormat?: string | undefined;
   batch?: boolean | undefined;
   batchInputKey?: string | undefined;
 }

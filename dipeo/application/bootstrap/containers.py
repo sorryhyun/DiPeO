@@ -147,7 +147,6 @@ class Container:
 
         # Log audit trail and service statistics
         audit_trail = self.registry.get_audit_trail()
-        logger.info(f"Registry initialized with {len(audit_trail)} service registrations")
 
         # Log services by type for monitoring
         by_type = {}
@@ -177,7 +176,6 @@ class Container:
         for service_key in critical_services:
             if not self.registry.has(service_key):
                 raise RuntimeError(f"Critical service missing: {service_key}")
-            logger.debug(f"Critical service verified: {service_key}")
 
         for service_name in self.registry.list_services():
             try:

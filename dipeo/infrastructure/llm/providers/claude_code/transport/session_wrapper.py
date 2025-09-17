@@ -70,6 +70,9 @@ class SessionQueryWrapper:
             # If the session cannot be reused (reached REUSE_LIMIT) or is expired,
             # remove it here so disconnect runs in the same task that used it.
             try:
+                if self._session.is_reserved:
+                    self._session.release_reservation()
+
                 if (not self._session.can_reuse()) or self._session.is_expired():
                     await self._pool.remove_session(self._session)
             finally:

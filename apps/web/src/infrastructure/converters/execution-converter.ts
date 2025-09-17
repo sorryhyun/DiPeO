@@ -19,7 +19,7 @@ import {
 } from '@dipeo/models';
 import type {
   ExecutionStateType,
-  ExecutionUpdate as GraphQLExecutionUpdate
+  ExecutionUpdateType as GraphQLExecutionUpdate
 } from '@/__generated__/graphql';
 import { executionId, diagramId, nodeId } from '@/infrastructure/types/branded';
 
@@ -84,10 +84,10 @@ export class ExecutionConverter {
    */
   static updateToDomain(update: GraphQLExecutionUpdate): ExecutionUpdate {
     return {
-      type: (update as any).event_type as EventType || EventType.EXECUTION_UPDATE,
+      type: (update as any).type as EventType || EventType.EXECUTION_UPDATE,
       execution_id: executionId(update.execution_id),
       data: update.data,
-      timestamp: update.timestamp
+      timestamp: update.timestamp ?? undefined
     };
   }
 

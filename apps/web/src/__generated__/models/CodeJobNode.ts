@@ -1,8 +1,9 @@
 // Auto-generated TypeScript model for code_job node
 import { z } from 'zod';
+import { SupportedLanguage } from '@dipeo/models';
 
 export interface CodeJobNodeData {
-  language: enum;
+  language: SupportedLanguage;
   filePath?: string | undefined;
   code?: string | undefined;
   functionName?: string | undefined;

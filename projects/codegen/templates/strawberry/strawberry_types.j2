@@ -36,14 +36,19 @@ class {{ type_info['name'] | pascal_case }}DataType:
 
     # Node-specific fields from specification
     {% for field in type_info.get('spec', {}).get('fields', []) %}
-    {% if field.get('is_dict_type') %}
-    {{ field['name'] }}: Optional[JSONScalar] = None  # {{ field.get('description', '') }}
+    {% if field.get('is_object_type') or field.get('is_dict_type') %}
+    {{ field['name'] }}: {{ 'JSONScalar' if field.get('required') else 'Optional[JSONScalar]' }}{{ ' = None' if not field.get('required') }}  # {{ field.get('description', '') }}
+    {% elif field.get('is_enum') %}
+    # Enum field: {{ field.get('description', '') }} (Values: {{ field.get('enum_values', []) | join(', ') }})
+    {{ field['name'] }}: {{ 'str' if field.get('required') else 'Optional[str]' }}{{ ' = None' if not field.get('required') }}
+    {% elif field.get('graphql_type') == 'Int' or field.get('python_type') == 'int' %}
+    {{ field['name'] }}: {{ 'int' if field.get('required') else 'Optional[int]' }}{{ ' = None' if not field.get('required') }}  # {{ field.get('description', '') }}
+    {% elif field.get('graphql_type') == 'Boolean' or field.get('python_type') == 'bool' %}
+    {{ field['name'] }}: {{ 'bool' if field.get('required') else 'Optional[bool]' }}{{ ' = None' if not field.get('required') }}  # {{ field.get('description', '') }}
+    {% elif field.get('graphql_type') == '[JSON]' or field.get('python_type', '').startswith('List[') %}
+    {{ field['name'] }}: {{ 'List[JSONScalar]' if field.get('required') else 'Optional[List[JSONScalar]]' }}{{ ' = None' if not field.get('required') }}  # {{ field.get('description', '') }}
     {% else %}
-    {% if field.get('required') %}
-    {{ field['name'] }}: str  # {{ field.get('description', '') }}
-    {% else %}
-    {{ field['name'] }}: Optional[str] = None  # {{ field.get('description', '') }}
-    {% endif %}
+    {{ field['name'] }}: {{ 'str' if field.get('required') else 'Optional[str]' }}{{ ' = None' if not field.get('required') }}  # {{ field.get('description', '') }}
     {% endif %}
     {% endfor %}
 
@@ -53,13 +58,16 @@ class {{ type_info['name'] | pascal_case }}DataType:
         # Convert Dict fields to JSONScalar
         metadata = node.metadata if node.metadata else None
 
-        # Get node-specific fields with Dict conversion
+        # Get node-specific fields with type conversion
         field_values = {}
         {% for field in type_info.get('spec', {}).get('fields', []) %}
-        {% if field.get('is_dict_type') %}
-        field_values["{{ field['name'] }}"] = getattr(node, "{{ field['name'] }}", None)
+        field_value = getattr(node, "{{ field['name'] }}", None)
+        {% if field.get('is_object_type') or field.get('is_dict_type') %}
+        # Convert dict/object fields to JSONScalar
+        field_values["{{ field['name'] }}"] = field_value
         {% else %}
-        field_values["{{ field['name'] }}"] = getattr(node, "{{ field['name'] }}", None)
+        # Direct assignment for other types
+        field_values["{{ field['name'] }}"] = field_value
         {% endif %}
         {% endfor %}
 

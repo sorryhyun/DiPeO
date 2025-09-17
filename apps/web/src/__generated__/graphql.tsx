@@ -29,41 +29,38 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
-  /** Scalar type for ApiKeyID */
+  /** Branded scalar type for ApiKeyID */
   ApiKeyID: { input: ApiKeyID; output: ApiKeyID; }
-  /** Scalar type for ArrowID */
+  /** Branded scalar type for ArrowID */
   ArrowID: { input: ArrowID; output: ArrowID; }
   /** Date with time (isoformat) */
   DateTime: { input: any; output: any; }
-  /** Scalar type for DiagramID */
+  /** Branded scalar type for DiagramID */
   DiagramID: { input: DiagramID; output: DiagramID; }
-  /** Scalar type for ExecutionID */
+  /** Branded scalar type for ExecutionID */
   ExecutionID: { input: ExecutionID; output: ExecutionID; }
-  /** Scalar type for HandleID */
+  /** Branded scalar type for HandleID */
   HandleID: { input: HandleID; output: HandleID; }
-  /** Scalar type for HookID */
+  /** Branded scalar type for HookID */
   HookID: { input: any; output: any; }
   /** The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf). */
   JSON: { input: any; output: any; }
-  /** Scalar type for NodeID */
+  /** Branded scalar type for NodeID */
   NodeID: { input: NodeID; output: NodeID; }
-  /** Scalar type for PersonID */
+  /** Branded scalar type for PersonID */
   PersonID: { input: PersonID; output: PersonID; }
-  /** Scalar type for TaskID */
+  /** Branded scalar type for TaskID */
   TaskID: { input: any; output: any; }
   Upload: { input: any; output: any; }
 };
 
 export enum APIServiceType {
   ANTHROPIC = 'ANTHROPIC',
-  BEDROCK = 'BEDROCK',
   CLAUDE_CODE = 'CLAUDE_CODE',
-  DEEPSEEK = 'DEEPSEEK',
   GEMINI = 'GEMINI',
   GOOGLE = 'GOOGLE',
   OLLAMA = 'OLLAMA',
-  OPENAI = 'OPENAI',
-  VERTEX = 'VERTEX'
+  OPENAI = 'OPENAI'
 }
 
 export type ApiKeyResult = {
@@ -76,6 +73,14 @@ export type ApiKeyResult = {
   error_type?: Maybe<Scalars['String']['output']>;
   message?: Maybe<Scalars['String']['output']>;
   success: Scalars['Boolean']['output'];
+};
+
+export type BottleneckType = {
+  __typename?: 'BottleneckType';
+  duration_ms: Scalars['Float']['output'];
+  node_id: Scalars['String']['output'];
+  node_type: Scalars['String']['output'];
+  percentage: Scalars['Float']['output'];
 };
 
 export type CliSessionResult = {
@@ -186,19 +191,18 @@ export type DomainArrowType = {
   __typename?: 'DomainArrowType';
   content_type?: Maybe<ContentType>;
   data?: Maybe<Scalars['JSON']['output']>;
-  id: Scalars['String']['output'];
+  execution_priority?: Maybe<Scalars['Float']['output']>;
+  id: Scalars['ID']['output'];
   label?: Maybe<Scalars['String']['output']>;
-  source: Scalars['String']['output'];
-  target: Scalars['String']['output'];
+  source: Scalars['ID']['output'];
+  target: Scalars['ID']['output'];
 };
 
 export type DomainDiagramType = {
   __typename?: 'DomainDiagramType';
-  arrowCount: Scalars['Int']['output'];
   arrows: Array<DomainArrowType>;
   handles: Array<DomainHandleType>;
   metadata?: Maybe<DiagramMetadataType>;
-  nodeCount: Scalars['Int']['output'];
   nodes: Array<DomainNodeType>;
   persons: Array<DomainPersonType>;
 };
@@ -216,23 +220,44 @@ export type DomainHandleType = {
 export type DomainNodeType = {
   __typename?: 'DomainNodeType';
   data: Scalars['JSON']['output'];
-  id: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
   position: Vec2Type;
-  type: Scalars['String']['output'];
+  type: NodeType;
 };
 
 export type DomainPersonType = {
   __typename?: 'DomainPersonType';
-  id: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
   label: Scalars['String']['output'];
   llm_config: PersonLLMConfigType;
   type: Scalars['String']['output'];
 };
 
+export enum EventType {
+  EXECUTION_COMPLETED = 'EXECUTION_COMPLETED',
+  EXECUTION_ERROR = 'EXECUTION_ERROR',
+  EXECUTION_LOG = 'EXECUTION_LOG',
+  EXECUTION_STARTED = 'EXECUTION_STARTED',
+  EXECUTION_STATUS_CHANGED = 'EXECUTION_STATUS_CHANGED',
+  EXECUTION_UPDATE = 'EXECUTION_UPDATE',
+  INTERACTIVE_PROMPT = 'INTERACTIVE_PROMPT',
+  INTERACTIVE_RESPONSE = 'INTERACTIVE_RESPONSE',
+  KEEPALIVE = 'KEEPALIVE',
+  METRICS_COLLECTED = 'METRICS_COLLECTED',
+  NODE_COMPLETED = 'NODE_COMPLETED',
+  NODE_ERROR = 'NODE_ERROR',
+  NODE_OUTPUT = 'NODE_OUTPUT',
+  NODE_PROGRESS = 'NODE_PROGRESS',
+  NODE_STARTED = 'NODE_STARTED',
+  NODE_STATUS_CHANGED = 'NODE_STATUS_CHANGED',
+  OPTIMIZATION_SUGGESTED = 'OPTIMIZATION_SUGGESTED',
+  WEBHOOK_RECEIVED = 'WEBHOOK_RECEIVED'
+}
+
 export type ExecuteDiagramInput = {
   debug_mode?: InputMaybe<Scalars['Boolean']['input']>;
   diagram_data?: InputMaybe<Scalars['JSON']['input']>;
-  diagram_id?: InputMaybe<Scalars['String']['input']>;
+  diagram_id?: InputMaybe<Scalars['ID']['input']>;
   max_iterations?: InputMaybe<Scalars['Int']['input']>;
   timeout_seconds?: InputMaybe<Scalars['Int']['input']>;
   use_unified_monitoring?: InputMaybe<Scalars['Boolean']['input']>;
@@ -241,15 +266,27 @@ export type ExecuteDiagramInput = {
 
 export type ExecutionControlInput = {
   action: Scalars['String']['input'];
-  execution_id: Scalars['String']['input'];
+  execution_id: Scalars['ID']['input'];
   reason?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type ExecutionFilterInput = {
-  diagram_id?: InputMaybe<Scalars['String']['input']>;
+  diagram_id?: InputMaybe<Scalars['ID']['input']>;
   started_after?: InputMaybe<Scalars['DateTime']['input']>;
   started_before?: InputMaybe<Scalars['DateTime']['input']>;
   status?: InputMaybe<Status>;
+};
+
+export type ExecutionMetricsType = {
+  __typename?: 'ExecutionMetricsType';
+  bottlenecks?: Maybe<Array<BottleneckType>>;
+  critical_path?: Maybe<Array<Scalars['String']['output']>>;
+  end_time?: Maybe<Scalars['Float']['output']>;
+  execution_id: Scalars['ID']['output'];
+  node_metrics: Scalars['JSON']['output'];
+  parallelizable_groups?: Maybe<Array<Array<Scalars['String']['output']>>>;
+  start_time: Scalars['Float']['output'];
+  total_duration_ms?: Maybe<Scalars['Float']['output']>;
 };
 
 export type ExecutionResult = {
@@ -266,8 +303,7 @@ export type ExecutionResult = {
 
 export type ExecutionStateType = {
   __typename?: 'ExecutionStateType';
-  diagram_id?: Maybe<Scalars['String']['output']>;
-  duration_seconds?: Maybe<Scalars['Float']['output']>;
+  diagram_id?: Maybe<Scalars['ID']['output']>;
   ended_at?: Maybe<Scalars['String']['output']>;
   error?: Maybe<Scalars['String']['output']>;
   exec_counts: Scalars['JSON']['output'];
@@ -275,7 +311,8 @@ export type ExecutionStateType = {
   id: Scalars['String']['output'];
   is_active?: Maybe<Scalars['Boolean']['output']>;
   llm_usage: LLMUsageType;
-  metrics?: Maybe<Scalars['JSON']['output']>;
+  metadata?: Maybe<Scalars['JSON']['output']>;
+  metrics?: Maybe<ExecutionMetricsType>;
   node_outputs: Scalars['JSON']['output'];
   node_states: Scalars['JSON']['output'];
   started_at: Scalars['String']['output'];
@@ -283,12 +320,19 @@ export type ExecutionStateType = {
   variables?: Maybe<Scalars['JSON']['output']>;
 };
 
-export type ExecutionUpdate = {
-  __typename?: 'ExecutionUpdate';
-  data: Scalars['JSON']['output'];
-  event_type: Scalars['String']['output'];
-  execution_id: Scalars['String']['output'];
-  timestamp: Scalars['String']['output'];
+export type ExecutionUpdateType = {
+  __typename?: 'ExecutionUpdateType';
+  data?: Maybe<Scalars['JSON']['output']>;
+  error?: Maybe<Scalars['String']['output']>;
+  execution_id: Scalars['ID']['output'];
+  node_id?: Maybe<Scalars['ID']['output']>;
+  node_type?: Maybe<Scalars['String']['output']>;
+  result?: Maybe<Scalars['JSON']['output']>;
+  status?: Maybe<Status>;
+  timestamp?: Maybe<Scalars['String']['output']>;
+  tokens?: Maybe<Scalars['Float']['output']>;
+  total_tokens?: Maybe<Scalars['Float']['output']>;
+  type: EventType;
 };
 
 export type FormatConversionResult = {
@@ -308,9 +352,9 @@ export { HandleDirection };
 export { HandleLabel };
 
 export type InteractiveResponseInput = {
-  execution_id: Scalars['String']['input'];
+  execution_id: Scalars['ID']['input'];
   metadata?: InputMaybe<Scalars['JSON']['input']>;
-  node_id: Scalars['String']['input'];
+  node_id: Scalars['ID']['input'];
   response: Scalars['String']['input'];
 };
 
@@ -479,7 +523,7 @@ export type NodeResult = {
 export { NodeType };
 
 export type PersonLLMConfigInput = {
-  api_key_id: Scalars['String']['input'];
+  api_key_id: Scalars['ID']['input'];
   model: Scalars['String']['input'];
   service: LLMService;
   system_prompt?: InputMaybe<Scalars['String']['input']>;
@@ -631,14 +675,14 @@ export type RegisterCliSessionInput = {
   diagram_data?: InputMaybe<Scalars['JSON']['input']>;
   diagram_format: DiagramFormatGraphQL;
   diagram_name: Scalars['String']['input'];
-  execution_id: Scalars['String']['input'];
+  execution_id: Scalars['ID']['input'];
 };
 
 export { Status };
 
 export type Subscription = {
   __typename?: 'Subscription';
-  execution_updates: ExecutionUpdate;
+  execution_updates: ExecutionUpdateType;
 };
 
 
@@ -647,7 +691,7 @@ export type Subscriptionexecution_updatesArgs = {
 };
 
 export type UnregisterCliSessionInput = {
-  execution_id: Scalars['String']['input'];
+  execution_id: Scalars['ID']['input'];
 };
 
 export type UpdateNodeInput = {
@@ -657,8 +701,8 @@ export type UpdateNodeInput = {
 
 export type UpdateNodeStateInput = {
   error?: InputMaybe<Scalars['String']['input']>;
-  execution_id: Scalars['String']['input'];
-  node_id: Scalars['String']['input'];
+  execution_id: Scalars['ID']['input'];
+  node_id: Scalars['ID']['input'];
   output?: InputMaybe<Scalars['JSON']['input']>;
   status: Status;
 };
@@ -719,7 +763,7 @@ export type GetDiagramQueryVariables = Exact<{
 }>;
 
 
-export type GetDiagramQuery = { __typename?: 'Query', diagram: { __typename?: 'DomainDiagramType', nodes: Array<{ __typename?: 'DomainNodeType', id: string, type: string, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } }>, handles: Array<{ __typename?: 'DomainHandleType', id: string, node_id: string, label: HandleLabel, direction: HandleDirection, data_type: DataType, position?: string | null }>, arrows: Array<{ __typename?: 'DomainArrowType', id: string, source: string, target: string, content_type?: ContentType | null, label?: string | null, data?: any | null }>, persons: Array<{ __typename?: 'DomainPersonType', id: string, label: string, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id: string, system_prompt?: string | null } }>, metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, version: string, created: string, modified: string, author?: string | null, tags?: Array<string> | null } | null } };
+export type GetDiagramQuery = { __typename?: 'Query', diagram: { __typename?: 'DomainDiagramType', nodes: Array<{ __typename?: 'DomainNodeType', id: string, type: NodeType, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } }>, handles: Array<{ __typename?: 'DomainHandleType', id: string, node_id: string, label: HandleLabel, direction: HandleDirection, data_type: DataType, position?: string | null }>, arrows: Array<{ __typename?: 'DomainArrowType', id: string, source: string, target: string, content_type?: ContentType | null, label?: string | null, data?: any | null }>, persons: Array<{ __typename?: 'DomainPersonType', id: string, label: string, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id: string, system_prompt?: string | null } }>, metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, version: string, created: string, modified: string, author?: string | null, tags?: Array<string> | null } | null } };
 
 export type ListDiagramsQueryVariables = Exact<{
   filter?: InputMaybe<DiagramFilterInput>;
@@ -728,14 +772,14 @@ export type ListDiagramsQueryVariables = Exact<{
 }>;
 
 
-export type ListDiagramsQuery = { __typename?: 'Query', diagrams: Array<{ __typename?: 'DomainDiagramType', nodeCount: number, arrowCount: number, metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, author?: string | null, created: string, modified: string, tags?: Array<string> | null } | null }> };
+export type ListDiagramsQuery = { __typename?: 'Query', diagrams: Array<{ __typename?: 'DomainDiagramType', metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, author?: string | null, created: string, modified: string, tags?: Array<string> | null } | null }> };
 
 export type GetExecutionQueryVariables = Exact<{
   execution_id: Scalars['String']['input'];
 }>;
 
 
-export type GetExecutionQuery = { __typename?: 'Query', execution: { __typename?: 'ExecutionStateType', id: string, status: Status, diagram_id?: string | null, started_at: string, ended_at?: string | null, error?: string | null, node_states: any, node_outputs: any, variables?: any | null, metrics?: any | null, llm_usage: { __typename?: 'LLMUsageType', input: number, output: number, cached?: number | null, total?: number | null } } };
+export type GetExecutionQuery = { __typename?: 'Query', execution: { __typename?: 'ExecutionStateType', id: string, status: Status, diagram_id?: string | null, started_at: string, ended_at?: string | null, error?: string | null, node_states: any, node_outputs: any, variables?: any | null, metrics?: { __typename?: 'ExecutionMetricsType', execution_id: string, start_time: number, end_time?: number | null, total_duration_ms?: number | null, node_metrics: any, critical_path?: Array<string> | null, parallelizable_groups?: Array<Array<string>> | null, bottlenecks?: Array<{ __typename?: 'BottleneckType', node_id: string, node_type: string, duration_ms: number, percentage: number }> | null } | null, llm_usage: { __typename?: 'LLMUsageType', input: number, output: number, cached?: number | null, total?: number | null } } };
 
 export type ListExecutionsQueryVariables = Exact<{
   filter?: InputMaybe<ExecutionFilterInput>;
@@ -956,7 +1000,7 @@ export type CreateNodeMutationVariables = Exact<{
 }>;
 
 
-export type CreateNodeMutation = { __typename?: 'Mutation', create_node: { __typename?: 'NodeResult', success: boolean, message?: string | null, error?: string | null, node?: { __typename?: 'DomainNodeType', id: string, type: string, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } } | null } };
+export type CreateNodeMutation = { __typename?: 'Mutation', create_node: { __typename?: 'NodeResult', success: boolean, message?: string | null, error?: string | null, node?: { __typename?: 'DomainNodeType', id: string, type: NodeType, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } } | null } };
 
 export type UpdateNodeMutationVariables = Exact<{
   diagram_id: Scalars['String']['input'];
@@ -1002,7 +1046,7 @@ export type ExecutionUpdatesSubscriptionVariables = Exact<{
 }>;
 
 
-export type ExecutionUpdatesSubscription = { __typename?: 'Subscription', execution_updates: { __typename?: 'ExecutionUpdate', execution_id: string, event_type: string, data: any, timestamp: string } };
+export type ExecutionUpdatesSubscription = { __typename?: 'Subscription', execution_updates: { __typename?: 'ExecutionUpdateType', execution_id: string, type: EventType, data?: any | null, timestamp?: string | null } };
 
 
 export const GetApiKeysDocument = gql`
@@ -1273,8 +1317,6 @@ export const ListDiagramsDocument = gql`
       modified
       tags
     }
-    nodeCount
-    arrowCount
   }
 }
     `;
@@ -1325,7 +1367,21 @@ export const GetExecutionDocument = gql`
     node_states
     node_outputs
     variables
-    metrics
+    metrics {
+      execution_id
+      start_time
+      end_time
+      total_duration_ms
+      node_metrics
+      critical_path
+      parallelizable_groups
+      bottlenecks {
+        node_id
+        node_type
+        duration_ms
+        percentage
+      }
+    }
     llm_usage {
       input
       output
@@ -2785,7 +2841,7 @@ export const ExecutionUpdatesDocument = gql`
     subscription ExecutionUpdates($execution_id: String!) {
   execution_updates(execution_id: $execution_id) {
     execution_id
-    event_type
+    type
     data
     timestamp
   }

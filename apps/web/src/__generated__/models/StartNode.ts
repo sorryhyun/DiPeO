@@ -1,8 +1,9 @@
 // Auto-generated TypeScript model for start node
 import { z } from 'zod';
+import { HookTriggerMode } from '@dipeo/models';
 
 export interface StartNodeData {
-  trigger_mode?: enum | undefined;
+  trigger_mode?: HookTriggerMode | undefined;
   custom_data?: any | undefined;
   output_data_structure?: Record<string, any> | undefined;
   hook_event?: string | undefined;

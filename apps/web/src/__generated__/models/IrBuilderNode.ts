@@ -2,10 +2,10 @@
 import { z } from 'zod';
 
 export interface IrBuilderNodeData {
-  builder_type: enum;
-  source_type?: enum | undefined;
+  builder_type: string;
+  source_type?: string | undefined;
   config_path?: string | undefined;
-  output_format?: enum | undefined;
+  output_format?: string | undefined;
   cache_enabled?: boolean | undefined;
   validate_output?: boolean | undefined;
 }

@@ -62,7 +62,7 @@ make codegen
 make diff-staged
 
 # 5. Apply
-make apply-syntax-only
+make apply-test
 
 # 6. Update GraphQL
 make graphql-schema

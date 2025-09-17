@@ -109,21 +109,48 @@ class StrawberryTypeResolver:
         "dict[str, JSONScalar]",
     }
 
-    # Types that need manual conversion
+    # Types that need manual conversion due to complex logic or nested structures
     MANUAL_CONVERSION_TYPES = {
-        "DomainNode",
-        "DomainArrow",
-        "DomainPerson",
-        "DomainDiagram",
-        "ExecutionState",
-        "ExecutionMetrics",
-        "Conversation",
-        "Message",
-        "CliSession",
-        "ExecutionOptions",
-        "ExecutionUpdate",
-        "ExecutionLogEntry",
+        "DomainDiagram",  # Complex nested conversion of nodes, handles, arrows, persons lists
+        "ExecutionMetrics",  # Complex nested structure with metrics aggregation
+        "ExecutionState",  # Complex state management with multiple nested types
+        "ExecutionOptions",  # Complex options with nested configurations
+        "ExecutionUpdate",  # Complex update structure with discriminated unions
+        "ExecutionLogEntry",  # Complex log structure with nested fields
+        "DomainNode",  # Has JsonDict field that needs JSONScalar conversion
+        "DomainArrow",  # Has JsonDict field that needs JSONScalar conversion
+        "DomainPerson",  # Has nested complex types
+        "CliSession",  # Has dict fields that need JSONScalar conversion
+        "Message",  # Has union types and complex fields
+        "Conversation",  # Has nested message lists
+    }
+
+    # Types that can use @strawberry.experimental.pydantic.type decorator
+    # These have simple field mappings or basic type conversions
+    PYDANTIC_DECORATOR_TYPES = {
         "KeepalivePayload",
+        "ConversationMetadata",
+        "Vec2",
+        "DomainHandle",
+        "PersonLLMConfig",
+        "DomainApiKey",
+        "DiagramMetadata",
+        "LLMUsage",
+        "NodeState",
+        "NodeMetrics",
+        "Bottleneck",
+        "EnvelopeMeta",
+        "SerializedEnvelope",
+        "InteractivePromptData",
+        "NodeDefinition",
+        "File",
+        "ToolConfig",
+        "WebSearchResult",
+        "ImageGenerationResult",
+        "ToolOutput",
+        "LLMRequestOptions",
+        "NodeUpdate",
+        "InteractivePrompt",
     }
 
     def __init__(self, config_path: Optional[Path] = None):

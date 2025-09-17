@@ -30,21 +30,21 @@ from dipeo.diagram_generated.enums import (
     ToolType,
 )
 
-# Import scalar types
-from .scalars import (
-{%- for scalar in scalars %}
-    {{ scalar.name }}Scalar,
-{%- endfor %}
+# Import scalar types from shared file
+from .scalar_aliases import (
+    CliSessionIDScalar,
+    NodeIDScalar,
+    ArrowIDScalar,
+    HandleIDScalar,
+    PersonIDScalar,
+    ApiKeyIDScalar,
+    DiagramIDScalar,
+    ExecutionIDScalar,
+    FileIDScalar,
+    HookIDScalar,
+    TaskIDScalar,
+    SerializedNodeOutput,
 )
-
-# Note: HookIDScalar and TaskIDScalar are not branded types yet
-# TODO: Add these as branded types in TypeScript models
-from strawberry.scalars import ID
-HookIDScalar = ID  # Temporary fallback
-TaskIDScalar = ID  # Temporary fallback
-
-# Define undefined types
-SerializedNodeOutput = JSONScalar  # Temporary - this type is not defined in TypeScript
 
 # Import generated types that already exist
 from dipeo.diagram_generated.graphql.strawberry_domain import (
@@ -54,6 +54,12 @@ from dipeo.diagram_generated.graphql.strawberry_domain import (
 # Create Strawberry types from Pydantic models
 # Order matters - define types that are referenced by others first
 {% for type in types %}
+{%- if type.can_use_pydantic_decorator %}
+@strawberry.experimental.pydantic.type(model={{ type.name }}, all_fields=True)
+class {{ type.name }}Type:
+    """{{ type.description or 'Auto-generated from Pydantic model' }}"""
+    pass
+{%- else %}
 @strawberry.type
 class {{ type.name }}Type:
 {%- if type.description %}
@@ -99,6 +105,7 @@ class {{ type.name }}Type:
             {%- endif %}
         {%- endfor %}
         )
+{%- endif %}
 {%- endif %}
 
 {% endfor %}

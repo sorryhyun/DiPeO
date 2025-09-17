@@ -360,8 +360,8 @@ class BackendIRBuilder(BaseIRBuilder):
                 merged_ast[file_path] = ast_content
 
         # Debug logging
-        logger.info(f"BackendIRBuilder: Processing {len(merged_ast)} AST files")
-        logger.info(f"BackendIRBuilder: Keys in source_data: {list(source_data.keys())[:5]}")
+        # logger.info(f"BackendIRBuilder: Processing {len(merged_ast)} AST files")
+        # logger.info(f"BackendIRBuilder: Keys in source_data: {list(source_data.keys())[:5]}")
 
         # Create type converter
         type_converter = TypeConverter()
@@ -414,13 +414,6 @@ class BackendIRBuilder(BaseIRBuilder):
         ir_output_path.parent.mkdir(parents=True, exist_ok=True)
         ir_output_path.write_text(json.dumps(ir_dict, indent=2))
         logger.info(f"Wrote backend IR to {ir_output_path}")
-
-        # Print summary
-        logger.info("Generated backend IR with:")
-        logger.info(f"  - {ir_dict['metadata']['node_count']} node specifications")
-        logger.info(f"  - {ir_dict['metadata']['enum_count']} enums")
-        logger.info(f"  - {ir_dict['metadata']['integration_model_count']} integration models")
-        logger.info(f"  - {len(ir_dict['metadata']['categories'])} categories")
 
         # Create metadata
         metadata = self.create_metadata(source_data, "backend")

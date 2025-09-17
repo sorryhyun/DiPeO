@@ -10,10 +10,8 @@ export interface CliSession {
   session_id: string;
   user_id?: string;
   started_at: string;
-  last_active?: string;
   status: 'active' | 'inactive' | 'terminated';
   metadata?: Record<string, any>;
-  current_directory?: string;
   environment?: Record<string, string>;
 }
 

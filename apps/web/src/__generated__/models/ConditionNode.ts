@@ -2,7 +2,7 @@
 import { z } from 'zod';
 
 export interface ConditionNodeData {
-  condition_type?: enum | undefined;
+  condition_type?: string | undefined;
   expression?: string | undefined;
   node_indices?: any[] | undefined;
   person?: string | undefined;

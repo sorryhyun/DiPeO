@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces using simplified type resolver.
 
-Generated at: 2025-09-17T19:31:22.449458
+Generated at: 2025-09-17T20:38:41.210630
 """
 
 import strawberry
@@ -62,8 +62,8 @@ from dipeo.diagram_generated.enums import (
     ToolType,
 )
 
-# Import scalar types
-from .scalars import (
+# Import scalar types from shared file
+from .scalar_aliases import (
     CliSessionIDScalar,
     NodeIDScalar,
     ArrowIDScalar,
@@ -71,20 +71,12 @@ from .scalars import (
     PersonIDScalar,
     ApiKeyIDScalar,
     DiagramIDScalar,
-    HookIDScalar,
-    TaskIDScalar,
     ExecutionIDScalar,
     FileIDScalar,
+    HookIDScalar,
+    TaskIDScalar,
+    SerializedNodeOutput,
 )
-
-# Note: HookIDScalar and TaskIDScalar are not branded types yet
-# TODO: Add these as branded types in TypeScript models
-from strawberry.scalars import ID
-HookIDScalar = ID  # Temporary fallback
-TaskIDScalar = ID  # Temporary fallback
-
-# Define undefined types
-SerializedNodeOutput = JSONScalar  # Temporary - this type is not defined in TypeScript
 
 # Import generated types that already exist
 from dipeo.diagram_generated.graphql.strawberry_domain import (
@@ -100,10 +92,8 @@ class CliSessionType:
     session_id: str
     user_id: Optional[str] = None
     started_at: str
-    last_active: Optional[str] = None
     status: str
     metadata: Optional[JSONScalar] = None
-    current_directory: Optional[str] = None
     environment: Optional[JSONScalar] = None
 
     @staticmethod
@@ -114,10 +104,8 @@ class CliSessionType:
             session_id=obj.session_id,
             user_id=obj.user_id,
             started_at=obj.started_at,
-            last_active=obj.last_active,
             status=str(obj.status.value) if hasattr(obj.status, 'value') else str(obj.status),
             metadata=obj.metadata,
-            current_directory=obj.current_directory,
             environment=obj.environment,
         )
 
@@ -148,13 +136,10 @@ class MessageType:
         )
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=ConversationMetadata, all_fields=True)
 class ConversationMetadataType:
-    started_at: str
-    last_message_at: str
-    total_tokens: float
-    message_count: float
-    context_resets: float
+    """Auto-generated from Pydantic model"""
+    pass
 
 
 @strawberry.type
@@ -171,20 +156,16 @@ class ConversationType:
         )
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=Vec2, all_fields=True)
 class Vec2Type:
-    x: float
-    y: float
+    """Auto-generated from Pydantic model"""
+    pass
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=DomainHandle, all_fields=True)
 class DomainHandleType:
-    id: HandleIDScalar
-    node_id: NodeIDScalar
-    label: HandleLabel
-    direction: HandleDirection
-    data_type: DataType
-    position: Optional[str] = None
+    """Auto-generated from Pydantic model"""
+    pass
 
 
 @strawberry.type
@@ -214,7 +195,6 @@ class DomainArrowType:
     target: HandleIDScalar
     content_type: Optional[ContentType] = None
     label: Optional[str] = None
-    packing: Optional[str] = None
     execution_priority: Optional[float] = None
     data: Optional[JSONScalar] = None
 
@@ -227,19 +207,15 @@ class DomainArrowType:
             target=obj.target,
             content_type=str(obj.content_type.value) if hasattr(obj.content_type, 'value') else str(obj.content_type),
             label=obj.label,
-            packing=obj.packing,
             execution_priority=obj.execution_priority,
             data=obj.data,
         )
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=PersonLLMConfig, all_fields=True)
 class PersonLLMConfigType:
-    service: LLMService
-    model: str
-    api_key_id: ApiKeyIDScalar
-    system_prompt: Optional[str] = None
-    prompt_file: Optional[str] = None
+    """Auto-generated from Pydantic model"""
+    pass
 
 
 @strawberry.type
@@ -260,25 +236,16 @@ class DomainPersonType:
         )
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=DomainApiKey, all_fields=True)
 class DomainApiKeyType:
-    id: ApiKeyIDScalar
-    label: str
-    service: APIServiceType
-    key: Optional[str] = None
+    """Auto-generated from Pydantic model"""
+    pass
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=DiagramMetadata, all_fields=True)
 class DiagramMetadataType:
-    id: Optional[str] = None
-    name: Optional[str] = None
-    description: Optional[str] = None
-    version: str
-    created: str
-    modified: str
-    author: Optional[str] = None
-    tags: Optional[list[str]] = None
-    format: Optional[str] = None
+    """Auto-generated from Pydantic model"""
+    pass
 
 
 @strawberry.type
@@ -301,43 +268,28 @@ class DomainDiagramType:
         )
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=LLMUsage, all_fields=True)
 class LLMUsageType:
-    input: float
-    output: float
-    cached: Optional[float] = None
-    total: Optional[float] = None
+    """Auto-generated from Pydantic model"""
+    pass
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=NodeState, all_fields=True)
 class NodeStateType:
-    status: Status
-    started_at: Optional[str] = None
-    ended_at: Optional[str] = None
-    error: Optional[str] = None
-    llm_usage: Optional[LLMUsageType] = None
-    output: Optional[JSONScalar] = None
+    """Auto-generated from Pydantic model"""
+    pass
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=NodeMetrics, all_fields=True)
 class NodeMetricsType:
-    node_id: str
-    node_type: str
-    start_time: float
-    end_time: Optional[float] = None
-    duration_ms: Optional[float] = None
-    memory_usage: Optional[float] = None
-    llm_usage: Optional[LLMUsageType] = None
-    error: Optional[str] = None
-    dependencies: Optional[list[str]] = None
+    """Auto-generated from Pydantic model"""
+    pass
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=Bottleneck, all_fields=True)
 class BottleneckType:
-    node_id: str
-    node_type: str
-    duration_ms: float
-    percentage: float
+    """Auto-generated from Pydantic model"""
+    pass
 
 
 @strawberry.type
@@ -367,29 +319,16 @@ class ExecutionMetricsType:
         )
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=EnvelopeMeta, all_fields=True)
 class EnvelopeMetaType:
-    node_id: Optional[str] = None
-    llm_usage: Optional[LLMUsageType] = None
-    execution_time: Optional[float] = None
-    retry_count: Optional[float] = None
-    error: Optional[str] = None
-    error_type: Optional[str] = None
-    timestamp: Optional[JSONScalar] = None
+    """Auto-generated from Pydantic model"""
+    pass
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=SerializedEnvelope, all_fields=True)
 class SerializedEnvelopeType:
-    envelope_format: bool = True
-    id: str
-    trace_id: str
-    produced_by: str
-    content_type: str
-    schema_id: Optional[str] = None
-    serialization_format: Optional[str] = None
-    body: JSONScalar
-    meta: EnvelopeMetaType
-    representations: Optional[JSONScalar] = None
+    """Auto-generated from Pydantic model"""
+    pass
 
 
 @strawberry.type
@@ -405,7 +344,6 @@ class ExecutionStateType:
     error: Optional[str] = None
     variables: Optional[JSONScalar] = None
     metadata: Optional[JSONScalar] = None
-    duration_seconds: Optional[float] = None
     is_active: Optional[bool] = None
     exec_counts: JSONScalar
     executed_nodes: list[str]
@@ -431,7 +369,6 @@ class ExecutionStateType:
             error=obj.error,
             variables=obj.variables,
             metadata=obj.metadata,
-            duration_seconds=obj.duration_seconds,
             is_active=obj.is_active,
             exec_counts={k: v.model_dump() if hasattr(v, 'model_dump') else v
                         for k, v in obj.exec_counts.items()} if obj.exec_counts else {},
@@ -458,12 +395,10 @@ class ExecutionOptionsType:
         )
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=InteractivePromptData, all_fields=True)
 class InteractivePromptDataType:
-    node_id: NodeIDScalar
-    prompt: str
-    timeout: Optional[float] = None
-    default_value: Optional[str] = None
+    """Auto-generated from Pydantic model"""
+    pass
 
 
 @strawberry.type
@@ -498,90 +433,58 @@ class ExecutionUpdateType:
         )
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=NodeDefinition, all_fields=True)
 class NodeDefinitionType:
-    type: str
-    node_schema: JSONScalar
-    handler: JSONScalar
-    requires_services: Optional[list[str]] = None
-    description: Optional[str] = None
+    """Auto-generated from Pydantic model"""
+    pass
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=File, all_fields=True)
 class FileType:
-    id: FileIDScalar
-    name: str
-    path: str
-    content: Optional[str] = None
-    size: Optional[float] = None
-    mime_type: Optional[str] = None
-    created_at: Optional[str] = None
-    modified_at: Optional[str] = None
-    metadata: Optional[JSONScalar] = None
+    """Auto-generated from Pydantic model"""
+    pass
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=ToolConfig, all_fields=True)
 class ToolConfigType:
-    type: ToolType
-    enabled: Optional[bool] = None
-    config: Optional[JSONScalar] = None
+    """Auto-generated from Pydantic model"""
+    pass
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=WebSearchResult, all_fields=True)
 class WebSearchResultType:
-    url: str
-    title: str
-    snippet: str
-    score: Optional[float] = None
+    """Auto-generated from Pydantic model"""
+    pass
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=ImageGenerationResult, all_fields=True)
 class ImageGenerationResultType:
-    image_data: str
-    format: str
-    width: Optional[float] = None
-    height: Optional[float] = None
+    """Auto-generated from Pydantic model"""
+    pass
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=ToolOutput, all_fields=True)
 class ToolOutputType:
-    type: ToolType
-    result: JSONScalar
-    raw_response: Optional[JSONScalar] = None
+    """Auto-generated from Pydantic model"""
+    pass
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=LLMRequestOptions, all_fields=True)
 class LLMRequestOptionsType:
-    temperature: Optional[float] = None
-    max_tokens: Optional[float] = None
-    top_p: Optional[float] = None
-    n: Optional[float] = None
-    tools: Optional[list[ToolConfig]] = None
-    response_format: Optional[JSONScalar] = None
+    """Auto-generated from Pydantic model"""
+    pass
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=NodeUpdate, all_fields=True)
 class NodeUpdateType:
-    execution_id: ExecutionIDScalar
-    node_id: NodeIDScalar
-    status: Status
-    progress: Optional[float] = None
-    output: Optional[JSONScalar] = None
-    error: Optional[str] = None
-    metrics: Optional[JSONScalar] = None
-    timestamp: str
+    """Auto-generated from Pydantic model"""
+    pass
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=InteractivePrompt, all_fields=True)
 class InteractivePromptType:
-    execution_id: ExecutionIDScalar
-    node_id: NodeIDScalar
-    prompt_id: str
-    prompt: str
-    timeout: Optional[float] = None
-    default_value: Optional[str] = None
-    options: Optional[list[str]] = None
-    timestamp: str
+    """Auto-generated from Pydantic model"""
+    pass
 
 
 @strawberry.type
@@ -606,17 +509,9 @@ class ExecutionLogEntryType:
         )
 
 
-@strawberry.type
+@strawberry.experimental.pydantic.type(model=KeepalivePayload, all_fields=True)
 class KeepalivePayloadType:
-    type: str
-    timestamp: str
-
-    @staticmethod
-    def from_pydantic(obj: KeepalivePayload) -> "KeepalivePayloadType":
-        """Convert from Pydantic model"""
-        return KeepalivePayloadType(
-            type=str(obj.type.value) if hasattr(obj.type, 'value') else str(obj.type),
-            timestamp=obj.timestamp,
-        )
+    """Auto-generated from Pydantic model"""
+    pass
 
 

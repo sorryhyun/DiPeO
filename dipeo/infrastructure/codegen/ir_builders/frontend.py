@@ -352,15 +352,6 @@ class FrontendIRBuilder(BaseIRBuilder):
         ir_output_path.write_text(json.dumps(ir_dict, indent=2))
         logger.info(f"Wrote frontend IR to {ir_output_path}")
 
-        # Print summary
-        logger.info("Generated frontend IR with:")
-        logger.info(f"  - {ir_dict['metadata']['node_count']} node configurations")
-        logger.info(f"  - {ir_dict['metadata']['field_type_count']} field types")
-        logger.info(f"  - {ir_dict['metadata']['query_count']} queries")
-        logger.info(f"  - {ir_dict['metadata']['mutation_count']} mutations")
-        logger.info(f"  - {ir_dict['metadata']['subscription_count']} subscriptions")
-        logger.info(f"  - {len(ir_dict['metadata']['categories'])} categories")
-
         # Create metadata
         metadata = self.create_metadata(source_data, "frontend")
 

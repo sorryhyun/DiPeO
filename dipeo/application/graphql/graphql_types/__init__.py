@@ -25,7 +25,6 @@ from dipeo.diagram_generated.graphql.domain_types import (
     NodeStateType,
     PersonLLMConfigType,
     SerializedEnvelopeType,
-    SerializedNodeOutputType,
     ToolConfigType,
     Vec2Type,
 )
@@ -56,36 +55,21 @@ from dipeo.diagram_generated.graphql.scalars import *
 # from dipeo.diagram_generated.models.user_response_model import UserResponseNodeData
 
 __all__ = [
-    "ApiJobNodeData",
-    "CodeJobNodeData",
-    "ConditionNodeData",
-    # "DbNodeData",
+    # Domain types from generated code
     "DiagramMetadataType",
     "DomainApiKeyType",
     "DomainArrowType",
-    # Domain types
     "DomainDiagramType",
     "DomainHandleType",
     "DomainNodeType",
     "DomainPersonType",
-    "EndpointNodeData",
     "EnvelopeMetaType",
     "ExecutionOptionsType",
     "ExecutionStateType",
-    "HookNodeData",
-    "JsonSchemaValidatorNodeData",
     "LLMUsageType",
     "NodeStateType",
-    "PersonJobNodeData",
     "PersonLLMConfigType",
     "SerializedEnvelopeType",
-    "SerializedNodeOutputType",
-    # Node data types
-    "StartNodeData",
-    "SubDiagramNodeData",
-    "TemplateJobNodeData",
     "ToolConfigType",
-    "TypescriptAstNodeData",
-    "UserResponseNodeData",
     "Vec2Type",
 ]

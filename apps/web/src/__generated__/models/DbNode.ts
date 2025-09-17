@@ -1,10 +1,11 @@
 // Auto-generated TypeScript model for db node
 import { z } from 'zod';
+import { DBBlockSubType } from '@dipeo/models';
 
 export interface DbNodeData {
   file?: any | undefined;
   collection?: string | undefined;
-  sub_type: enum;
+  sub_type: DBBlockSubType;
   operation: string;
   query?: string | undefined;
   data?: Record<string, any> | undefined;

@@ -103,7 +103,6 @@ export interface ExecutionState {
   error?: string | null;
   variables?: JsonDict;
   metadata?: JsonDict;
-  duration_seconds?: number | null;
   is_active?: boolean;
   exec_counts: Record<string, number>;
   executed_nodes: string[];
@@ -151,7 +150,6 @@ export interface ExecutionUpdate {
 
 export interface NodeDefinition {
   type: string;
-  node_schema: any;
   handler: any;
   requires_services?: string[];
   description?: string;

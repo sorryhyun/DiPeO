@@ -17,7 +17,44 @@ from strawberry.file_uploads import Upload
 {% if imports is defined and imports.domain %}
 from .inputs import {{ imports.domain | sort | join(', ') }}
 {% endif %}
-from .enums import DiagramFormatGraphQL
+
+# Helper functions for Strawberry object conversion
+def _to_dict_if_strawberry(value: Any) -> Any:
+    """Convert Strawberry input object to dict if needed."""
+    if hasattr(value, '__strawberry_definition__'):
+        return strawberry.asdict(value)
+    return value
+
+
+# Base class for all GraphQL operations
+class BaseGraphQLOperation:
+    """Base class providing common functionality for all GraphQL operations."""
+
+    query: str
+    operation_type: str
+    operation_name: str
+
+    @classmethod
+    def get_query(cls) -> str:
+        """Get the GraphQL query string."""
+        return cls.query
+
+    @classmethod
+    def _build_variables(cls, **kwargs) -> dict[str, Any]:
+        """
+        Build variables dictionary, converting Strawberry objects as needed.
+
+        Args:
+            **kwargs: Variable name-value pairs
+
+        Returns:
+            Dictionary of variables for GraphQL execution
+        """
+        variables = {}
+        for key, value in kwargs.items():
+            if value is not None:
+                variables[key] = _to_dict_if_strawberry(value)
+        return variables
 
 # GraphQL query strings as constants
 {% for operation in operations %}
@@ -29,7 +66,7 @@ from .enums import DiagramFormatGraphQL
 # Typed operation classes
 {% for operation in operations %}
 
-class {{ operation['name'] | pascal_case }}Operation:
+class {{ operation['name'] | pascal_case }}Operation(BaseGraphQLOperation):
     """
     {{ operation['type'] | capitalize }} operation for {{ operation.get('entity', '') }}.
     GraphQL {{ operation['type'] }}: {{ operation['name'] }}
@@ -52,11 +89,6 @@ class {{ operation['name'] | pascal_case }}Operation:
     {% endif %}
 
     @classmethod
-    def get_query(cls) -> str:
-        """Get the GraphQL query string."""
-        return cls.query
-
-    @classmethod
     def get_variables_dict(cls, {% for var in operation.get('variables', []) %}{{ var['name'] }}: {{ var.get('union_type') if var.get('union_type') else (var['python_type'] | graphql_to_python(var.get('required', false))) }}{% if not var.get('required') %} = None{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}) -> dict[str, Any]:
         """
         Build variables dictionary for the operation.
@@ -69,24 +101,15 @@ class {{ operation['name'] | pascal_case }}Operation:
         Returns:
             Dictionary of variables for GraphQL execution
         """
-        variables = {}
-        {%- for var in operation.get('variables', []) %}
-        {%- if var.get('required') %}
-        # Convert Strawberry input object to dict if needed
-        if hasattr({{ var['name'] }}, '__strawberry_definition__'):
-            variables["{{ var['name'] }}"] = strawberry.asdict({{ var['name'] }})
-        else:
-            variables["{{ var['name'] }}"] = {{ var['name'] }}
+        {%- if operation.get('variables', []) %}
+        return cls._build_variables(
+            {%- for var in operation.get('variables', []) %}
+            {{ var['name'] }}={{ var['name'] }}{% if not loop.last %},{% endif %}
+            {%- endfor %}
+        )
         {%- else %}
-        if {{ var['name'] }} is not None:
-            # Convert Strawberry input object to dict if needed
-            if hasattr({{ var['name'] }}, '__strawberry_definition__'):
-                variables["{{ var['name'] }}"] = strawberry.asdict({{ var['name'] }})
-            else:
-                variables["{{ var['name'] }}"] = {{ var['name'] }}
+        return {}
         {%- endif %}
-        {%- endfor %}
-        return variables
 {% endfor %}
 
 # Operation registries for runtime lookup
@@ -128,6 +151,9 @@ def get_query_string(operation_name: str) -> Optional[str]:
 
 # Export all operation classes
 __all__ = [
+    # Base classes and helpers
+    "BaseGraphQLOperation",
+    "_to_dict_if_strawberry",
     # Query strings
     {% for operation in operations %}
     "{{ operation['name'] | snake_case | upper }}_{{ operation['type'] | upper }}",

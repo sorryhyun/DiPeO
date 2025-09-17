@@ -139,19 +139,18 @@ type DiagramResult {
 }
 
 type DomainApiKeyType {
-  id: ApiKeyID!
+  id: String!
   label: String!
   service: APIServiceType!
   key: String
 }
 
 type DomainArrowType {
-  id: ArrowID!
-  source: HandleID!
-  target: HandleID!
+  id: ID!
+  source: ID!
+  target: ID!
   content_type: ContentType
   label: String
-  packing: String
   execution_priority: Float
   data: JSON
 }
@@ -165,8 +164,8 @@ type DomainDiagramType {
 }
 
 type DomainHandleType {
-  id: HandleID!
-  node_id: NodeID!
+  id: String!
+  node_id: String!
   label: HandleLabel!
   direction: HandleDirection!
   data_type: DataType!
@@ -174,14 +173,14 @@ type DomainHandleType {
 }
 
 type DomainNodeType {
-  id: NodeID!
+  id: ID!
   type: NodeType!
   position: Vec2Type!
   data: JSON!
 }
 
 type DomainPersonType {
-  id: PersonID!
+  id: ID!
   label: String!
   llm_config: PersonLLMConfigType!
   type: String!
@@ -235,7 +234,7 @@ input ExecutionFilterInput {
 scalar ExecutionID
 
 type ExecutionMetricsType {
-  execution_id: ExecutionID!
+  execution_id: ID!
   start_time: Float!
   end_time: Float
   total_duration_ms: Float
@@ -258,7 +257,7 @@ type ExecutionResult {
 type ExecutionStateType {
   id: String!
   status: Status!
-  diagram_id: DiagramID
+  diagram_id: ID
   started_at: String!
   ended_at: String
   node_states: JSON!
@@ -267,7 +266,6 @@ type ExecutionStateType {
   error: String
   variables: JSON
   metadata: JSON
-  duration_seconds: Float
   is_active: Boolean
   exec_counts: JSON!
   executed_nodes: [String!]!
@@ -276,8 +274,8 @@ type ExecutionStateType {
 
 type ExecutionUpdateType {
   type: EventType!
-  execution_id: ExecutionID!
-  node_id: NodeID
+  execution_id: ID!
+  node_id: ID
   status: Status
   result: JSON
   error: String
@@ -342,10 +340,10 @@ enum LLMService {
 }
 
 type LLMUsageType {
-  input: Float!
-  output: Float!
-  cached: Float
-  total: Float
+  input: Int!
+  output: Int!
+  cached: Int
+  total: Int
 }
 
 type Mutation {
@@ -416,7 +414,7 @@ input PersonLLMConfigInput {
 type PersonLLMConfigType {
   service: LLMService!
   model: String!
-  api_key_id: ApiKeyID!
+  api_key_id: String!
   system_prompt: String
   prompt_file: String
 }
@@ -512,6 +510,6 @@ input Vec2Input {
 }
 
 type Vec2Type {
-  x: Float!
-  y: Float!
+  x: Int!
+  y: Int!
 }

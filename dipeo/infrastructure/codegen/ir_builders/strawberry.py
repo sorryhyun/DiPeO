@@ -637,7 +637,81 @@ class UnifiedIRBuilder:
                 spec_value = const.get("value", {})
                 if isinstance(spec_value, dict) and spec_value.get("fields"):
                     node_type = const_name.replace("Specification", "").replace("Spec", "")
-                    ir["node_specs"].append({"name": node_type, "spec": spec_value})
+
+                    # Process fields with proper type metadata
+                    processed_fields = []
+                    for field in spec_value.get("fields", []):
+                        field_name = field.get("name", "")
+                        field_type = field.get("type", "string")
+
+                        # Map TypeScript field types to Python/GraphQL types
+                        python_type = "str"
+                        graphql_type = "String"
+                        is_enum = False
+                        enum_values = []
+                        is_object_type = False
+
+                        if field_type == "string":
+                            python_type = "str"
+                            graphql_type = "String"
+                        elif field_type == "number":
+                            python_type = "int"
+                            graphql_type = "Int"
+                        elif field_type == "boolean":
+                            python_type = "bool"
+                            graphql_type = "Boolean"
+                        elif field_type == "object":
+                            python_type = "Dict[str, Any]"
+                            graphql_type = "JSON"
+                            is_object_type = True
+                        elif field_type == "array":
+                            python_type = "List[Any]"
+                            graphql_type = "[JSON]"
+                        elif field_type == "enum":
+                            # Extract enum values from validation
+                            validation = field.get("validation", {})
+                            if "allowedValues" in validation:
+                                enum_values = validation["allowedValues"]
+                                is_enum = True
+                                # For enums, use the field name as the type
+                                enum_type_name = f"{node_type}{field_name.title()}Enum"
+                                python_type = enum_type_name
+                                graphql_type = enum_type_name
+
+                        processed_field = {
+                            "name": field_name,
+                            "type": field_type,  # Original TypeScript type
+                            "python_type": python_type,
+                            "graphql_type": graphql_type,
+                            "required": field.get("required", False),
+                            "description": field.get("description", ""),
+                            "is_object_type": is_object_type,
+                            "is_dict_type": is_object_type,  # For backward compatibility
+                            "is_enum": is_enum,
+                            "enum_values": enum_values,
+                            "validation": field.get("validation", {}),
+                            "uiConfig": field.get("uiConfig", {}),
+                        }
+                        processed_fields.append(processed_field)
+
+                    # Build the complete spec with processed fields
+                    node_spec = {
+                        "name": node_type,
+                        "spec": {
+                            "nodeType": spec_value.get("nodeType"),
+                            "displayName": spec_value.get("displayName", node_type),
+                            "category": spec_value.get("category", ""),
+                            "description": spec_value.get("description", ""),
+                            "icon": spec_value.get("icon", ""),
+                            "color": spec_value.get("color", ""),
+                            "fields": processed_fields,
+                            "handles": spec_value.get("handles", {}),
+                            "outputs": spec_value.get("outputs", {}),
+                            "execution": spec_value.get("execution", {}),
+                            "primaryDisplayField": spec_value.get("primaryDisplayField", ""),
+                        },
+                    }
+                    ir["node_specs"].append(node_spec)
 
         return ir
 
@@ -695,6 +769,9 @@ class UnifiedIRBuilder:
             # Generate conversion method if needed
             conversion_method = resolver.generate_conversion_method(interface_name, resolved_fields)
 
+            # Determine if this type can use the pydantic decorator
+            can_use_pydantic_decorator = interface_name in resolver.PYDANTIC_DECORATOR_TYPES
+
             # Build the type structure for templates
             strawberry_type = {
                 "name": interface_name,
@@ -717,6 +794,7 @@ class UnifiedIRBuilder:
                 "description": interface.get("description", ""),
                 "needs_manual_conversion": conversion_method.needs_method,
                 "conversion_method": conversion_method.method_code,
+                "can_use_pydantic_decorator": can_use_pydantic_decorator,
                 "has_json_dict": any(f.is_json for f in resolved_fields),
                 "has_literal": any(f.is_literal for f in resolved_fields),
                 "has_custom_lists": any(f.is_custom_list for f in resolved_fields),
@@ -931,8 +1009,6 @@ class StrawberryIRBuilder(BaseIRBuilder):
         imports = collect_required_imports(operations)
 
         domain_ir = builder.build_domain_ir(merged_ast)
-        logger.info(f"Domain IR has {len(domain_ir['enums'])} enums after build")
-        logger.info(f"Domain IR has {len(domain_ir.get('node_specs', []))} node specs after build")
 
         # 6. Build operations IR
         ops_ir = builder.build_operations_ir(operations_metadata)

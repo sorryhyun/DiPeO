@@ -26,7 +26,6 @@ export interface NodeUpdate {
 export interface InteractivePrompt {
   execution_id: ExecutionID;
   node_id: NodeID;
-  prompt_id: string;
   prompt: string;
   timeout?: number;
   default_value?: string | null;

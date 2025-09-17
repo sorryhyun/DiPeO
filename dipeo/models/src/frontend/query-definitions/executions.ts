@@ -55,7 +55,7 @@ const EXECUTION_FIELDS_DETAILED = [
 
 const SUBSCRIPTION_UPDATE_FIELDS = [
   { name: 'execution_id' },
-  { name: 'event_type' },
+  { name: 'type' },
   { name: 'data' },
   { name: 'timestamp' }
 ];
