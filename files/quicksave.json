@@ -1,97 +1,241 @@
 {
   "nodes": [
     {
-      "id": "node_xx434wf0",
+      "id": "node_0",
       "type": "start",
       "position": {
-        "x": 400,
-        "y": 870
+        "x": 330,
+        "y": 200
       },
       "data": {
-        "trigger_mode": "none",
         "label": "start",
+        "trigger_mode": "manual",
         "custom_data": {},
         "output_data_structure": {}
       }
     },
     {
-      "id": "node_69dxgli3",
+      "id": "node_1",
       "type": "person_job",
       "position": {
-        "x": 480,
-        "y": 920
+        "x": 632,
+        "y": 231
       },
       "data": {
-        "first_only_prompt": "",
-        "max_iteration": 100,
-        "tools": [
-          {
-            "type": "none",
-            "enabled": true
-          }
-        ],
-        "label": "person_job"
+        "label": "printer",
+        "default_prompt": "say hi",
+        "max_iteration": 3,
+        "memory_profile": "FULL",
+        "person": "person_person_1",
+        "memory_settings": {
+          "view": "all_involved",
+          "max_messages": null,
+          "preserve_system": true
+        }
       }
     },
     {
-      "id": "node_mt8hv927",
-      "type": "code_job",
+      "id": "node_2",
+      "type": "condition",
       "position": {
-        "x": 480,
-        "y": 920
+        "x": 620,
+        "y": 425
       },
       "data": {
-        "language": null,
-        "label": "code_job"
+        "label": "condition",
+        "condition_type": "detect_max_iterations",
+        "flipped": [
+          true,
+          true
+        ]
+      }
+    },
+    {
+      "id": "node_3",
+      "type": "endpoint",
+      "position": {
+        "x": 0,
+        "y": 437
+      },
+      "data": {
+        "label": "endpoint",
+        "file_format": "txt",
+        "save_to_file": true,
+        "file_name": "files/results/total.txt",
+        "flipped": [
+          true,
+          false
+        ]
+      }
+    },
+    {
+      "id": "node_4",
+      "type": "person_job",
+      "position": {
+        "x": 311,
+        "y": 443
+      },
+      "data": {
+        "label": "ask",
+        "default_prompt": "How many times did you respond?",
+        "flipped": [
+          true,
+          false
+        ],
+        "max_iteration": 1,
+        "memory_profile": "FULL",
+        "person": "person_person_1",
+        "memory_settings": {
+          "view": "all_involved",
+          "max_messages": null,
+          "preserve_system": true
+        }
       }
     }
   ],
-  "arrows": [],
-  "persons": [],
+  "arrows": [
+    {
+      "id": "arrow_0",
+      "source": "node_0_default_output",
+      "target": "node_1_default_input",
+      "content_type": "raw_text",
+      "label": null,
+      "data": null
+    },
+    {
+      "id": "arrow_1",
+      "source": "node_1_default_output",
+      "target": "node_2_default_input",
+      "content_type": "conversation_state",
+      "label": null,
+      "data": null
+    },
+    {
+      "id": "arrow_2",
+      "source": "node_2_condfalse_output",
+      "target": "node_1_default_input",
+      "content_type": "conversation_state",
+      "label": null,
+      "data": {
+        "branch": "false"
+      }
+    },
+    {
+      "id": "arrow_3",
+      "source": "node_2_condtrue_output",
+      "target": "node_4_default_input",
+      "content_type": "conversation_state",
+      "label": null,
+      "data": {
+        "branch": "true"
+      }
+    },
+    {
+      "id": "arrow_4",
+      "source": "node_4_default_output",
+      "target": "node_3_default_input",
+      "content_type": "raw_text",
+      "label": null,
+      "data": null
+    }
+  ],
+  "persons": [
+    {
+      "id": "person_person_1",
+      "label": "person 1",
+      "llm_config": {
+        "service": "openai",
+        "model": "gpt-4.1-nano-2025-04-14",
+        "api_key_id": "APIKEY_52609F",
+        "system_prompt": null
+      },
+      "type": "person"
+    }
+  ],
   "handles": [
     {
-      "id": "node_xx434wf0_default_output",
-      "node_id": "node_xx434wf0",
+      "id": "node_0_default_output",
+      "node_id": "node_0",
       "label": "default",
       "direction": "output",
       "data_type": "any",
       "position": "right"
     },
     {
-      "id": "node_69dxgli3_default_input",
-      "node_id": "node_69dxgli3",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_69dxgli3_first_input",
-      "node_id": "node_69dxgli3",
+      "id": "node_1_first_input",
+      "node_id": "node_1",
       "label": "first",
       "direction": "input",
       "data_type": "any",
       "position": "left"
     },
     {
-      "id": "node_69dxgli3_default_output",
-      "node_id": "node_69dxgli3",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_mt8hv927_default_input",
-      "node_id": "node_mt8hv927",
+      "id": "node_1_default_input",
+      "node_id": "node_1",
       "label": "default",
       "direction": "input",
       "data_type": "any",
       "position": "left"
     },
     {
-      "id": "node_mt8hv927_default_output",
-      "node_id": "node_mt8hv927",
+      "id": "node_1_default_output",
+      "node_id": "node_1",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_2_default_input",
+      "node_id": "node_2",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_2_condtrue_output",
+      "node_id": "node_2",
+      "label": "condtrue",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_2_condfalse_output",
+      "node_id": "node_2",
+      "label": "condfalse",
+      "direction": "output",
+      "data_type": "boolean",
+      "position": "right"
+    },
+    {
+      "id": "node_3_default_input",
+      "node_id": "node_3",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_4_first_input",
+      "node_id": "node_4",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_4_default_input",
+      "node_id": "node_4",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_4_default_output",
+      "node_id": "node_4",
       "label": "default",
       "direction": "output",
       "data_type": "any",
@@ -99,13 +243,13 @@
     }
   ],
   "metadata": {
-    "name": "test_workflow.light.yaml",
+    "name": "diagrams/examples/simple_iter.light.yaml",
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-09-06T08:21:12.599Z",
-    "modified": "2025-09-06T08:21:12.599Z",
+    "created": "2025-09-18T05:21:47.568Z",
+    "modified": "2025-09-18T05:21:47.568Z",
     "version": "1.0.0",
-    "id": null
+    "id": "examples/native_diagrams/simple_iter.native.json"
   }
 }

@@ -52,10 +52,10 @@ The `dipeocc` command:
 
 ```bash
 # Show recent sessions with summary
-dipeo dipeocc list
+dipeocc list
 
 # Show more sessions
-dipeo dipeocc list --limit 100
+dipeocc list --limit 100
 ```
 
 Output:
@@ -75,33 +75,33 @@ Output:
 
 ```bash
 # Convert the latest session
-dipeo dipeocc convert --latest
+dipeocc convert --latest
 
 # Convert specific session
-dipeo dipeocc convert 03070ee3-c2d8-488b-a11e-ce8d5ac1f1ec
+dipeocc convert 03070ee3-c2d8-488b-a11e-ce8d5ac1f1ec
 
 # Convert and execute immediately
-dipeo dipeocc convert --latest --auto-execute
+dipeocc convert --latest --auto-execute
 
 # Convert with optimizations
-dipeo dipeocc convert --latest --merge-reads --simplify
+dipeocc convert --latest --merge-reads --simplify
 ```
 
 ### Monitor for New Sessions
 
 ```bash
 # Watch for new sessions and convert automatically
-dipeo dipeocc watch
+dipeocc watch
 
 # Watch with custom interval and auto-execution
-dipeo dipeocc watch --interval 60 --auto-execute
+dipeocc watch --interval 60 --auto-execute
 ```
 
 ### Analyze Session Statistics
 
 ```bash
 # Show detailed session statistics
-dipeo dipeocc stats 03070ee3-c2d8-488b-a11e-ce8d5ac1f1ec
+dipeocc stats 03070ee3-c2d8-488b-a11e-ce8d5ac1f1ec
 ```
 
 Output includes:
@@ -133,7 +133,7 @@ projects/claude_code/
 
 ```bash
 # Save to specific location
-dipeo dipeocc convert --latest \
+dipeocc convert --latest \
   --output-dir projects/my_workflows \
   --format light
 ```
@@ -142,26 +142,26 @@ dipeo dipeocc convert --latest \
 
 ```bash
 # Merge consecutive file reads for cleaner diagrams
-dipeo dipeocc convert session-id --merge-reads
+dipeocc convert session-id --merge-reads
 
 # Simplify by removing intermediate results
-dipeo dipeocc convert session-id --simplify
+dipeocc convert session-id --simplify
 
 # Combine optimizations
-dipeo dipeocc convert --latest --merge-reads --simplify
+dipeocc convert --latest --merge-reads --simplify
 ```
 
 ### Different Output Formats
 
 ```bash
 # Light format (default) - human-readable YAML
-dipeo dipeocc convert --latest --format light
+dipeocc convert --latest --format light
 
 # Native format - standard JSON
-dipeo dipeocc convert --latest --format native
+dipeocc convert --latest --format native
 
 # Readable format - verbose YAML
-dipeo dipeocc convert --latest --format readable
+dipeocc convert --latest --format readable
 ```
 
 ## Executing Generated Diagrams
@@ -180,10 +180,10 @@ dipeo run projects/claude_code/latest.light.yaml --debug
 
 ```bash
 # Convert and execute in one command
-dipeo dipeocc convert --latest --auto-execute
+dipeocc convert --latest --auto-execute
 
 # Watch and auto-execute new sessions
-dipeo dipeocc watch --auto-execute
+dipeocc watch --auto-execute
 ```
 
 ## Example Workflow
@@ -195,7 +195,7 @@ dipeo dipeocc watch --auto-execute
 # ... interact with Claude Code ...
 
 # After the session, convert it to a diagram
-dipeo dipeocc convert --latest
+dipeocc convert --latest
 
 # Review the generated diagram
 cat projects/claude_code/latest.light.yaml
@@ -208,7 +208,7 @@ dipeo run projects/claude_code/latest.light.yaml --debug
 
 ```bash
 # In one terminal, watch for new sessions
-dipeo dipeocc watch --interval 30
+dipeocc watch --interval 30
 
 # In another terminal, work with Claude Code
 # Each session automatically converts to a diagram
@@ -218,11 +218,11 @@ dipeo dipeocc watch --interval 30
 
 ```bash
 # List all sessions
-dipeo dipeocc list --limit 100 > sessions.txt
+dipeocc list --limit 100 > sessions.txt
 
 # Convert multiple sessions (example script)
 for session_id in $(grep "Session:" sessions.txt | awk '{print $3}'); do
-  dipeo dipeocc convert $session_id
+  dipeocc convert $session_id
 done
 ```
 
@@ -317,14 +317,14 @@ After conversion, you can:
 ls -la ~/.claude/projects/-home-*/
 
 # Verify session ID format
-dipeo dipeocc list | grep "your-session-id"
+dipeocc list | grep "your-session-id"
 ```
 
 ### Conversion Errors
 
 ```bash
 # Enable debug mode
-dipeo dipeocc convert --latest --debug
+dipeocc convert --latest --debug
 
 # Check logs
 cat .logs/server.log

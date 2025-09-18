@@ -218,6 +218,31 @@ dipeo ask --to "build data pipeline" --and-run --timeout=120
 
 **Note**: The `dipeo ask` command uses AI to generate DiPeO diagrams from your natural language description. Generation typically takes 150-250 seconds due to multiple LLM calls.
 
+#### Convert Claude Code Sessions to Diagrams
+```bash
+# List your recent Claude Code sessions
+dipeocc list --limit 50
+
+# Convert the latest session to a DiPeO diagram
+dipeocc convert --latest
+
+# Convert a specific session by ID
+dipeocc convert <session_id> --output-dir projects/claude_code/
+
+# Watch for new sessions and auto-convert them
+dipeocc watch --interval 30 --auto-execute
+
+# View session statistics
+dipeocc stats <session_id>
+```
+
+**Options:**
+- `--format`: Output format (light/native/readable, default: light)
+- `--merge-reads`: Combine consecutive file reads into single nodes
+- `--simplify`: Remove intermediate results for cleaner diagrams
+
+This feature enables you to automatically transform your Claude Code interactions into reusable DiPeO diagrams, making your AI workflows reproducible and shareable.
+
 ## Requirements
 - **Python 3.13+** (required for uv support)
 - **Node.js 22+** with **pnpm 10+** (not npm/yarn)

@@ -22,6 +22,12 @@ Pure business logic following DDD and hexagonal architecture.
 - **Compilation**: DomainCompiler, NodeFactory, ConnectionResolver, CompileTimeResolver
 - **Strategies**: Native, Readable, Light, Executable formats
 - **Models**: ExecutableDiagram, ExecutableNode/Edge
+- **Claude Code Translation** (`cc_translate/`): Converts Claude Code sessions to DiPeO diagrams
+  - `translator.py`: Main orchestration logic
+  - `node_builders.py`: Node creation for different tool types
+  - `text_utils.py`: Text extraction and unescaping
+  - `diff_utils.py`: Unified diff generation for Edit operations
+- **Services**: DiagramFormatDetector, DiagramStatisticsService
 
 ### 3. Execution (`execution/`)
 - **Resolution**: RuntimeInputResolver, TransformationEngine, NodeStrategies
@@ -93,6 +99,18 @@ class MemorySelectionPort(Protocol):
 3. Write pure unit tests
 4. Define ports for I/O
 
+### Module Organization for Large Services
+When a domain service grows beyond ~400 lines, consider refactoring into a module:
+```
+domain/context/service_module/
+├── __init__.py         # Export main service class
+├── service.py          # Main orchestration logic (~150-200 lines)
+├── builders.py         # Factory/builder methods
+├── utils.py            # Utility functions
+└── specialized.py      # Specialized logic
+```
+Example: `cc_translate/` module for Claude Code translation
+
 ### Extending Validators
 ```python
 class MyValidator(BaseValidator):
@@ -124,6 +142,7 @@ def test_connection_rules():
 ```python
 # Current imports (v1.0 unified)
 from dipeo.domain.diagram.compilation import CompileTimeResolver, Connection, TransformRules
+from dipeo.domain.diagram.cc_translate import ClaudeCodeTranslator  # Claude Code session translation
 from dipeo.domain.execution.resolution import RuntimeInputResolver, TransformationEngine
 from dipeo.domain.execution.envelope import EnvelopeFactory  # Unified output pattern
 from dipeo.domain.events import EventBus  # Unified event protocol

@@ -460,16 +460,16 @@ Use the `dipeocc` command to convert sessions:
 
 ```bash
 # List available sessions
-dipeo dipeocc list
+dipeocc list
 
 # Convert the latest session
-dipeo dipeocc convert --latest
+dipeocc convert --latest
 
 # Convert and execute immediately
-dipeo dipeocc convert --latest --auto-execute
+dipeocc convert --latest --auto-execute
 
 # Watch for new sessions
-dipeo dipeocc watch --interval 30
+dipeocc watch --interval 30
 ```
 
 ### Tool Mapping
@@ -546,21 +546,21 @@ connections:
 
 ```bash
 # Merge consecutive file reads
-dipeo dipeocc convert --latest --merge-reads
+dipeocc convert --latest --merge-reads
 
 # Simplify by removing intermediate results
-dipeo dipeocc convert --latest --simplify
+dipeocc convert --latest --simplify
 
 # Custom output directory
-dipeo dipeocc convert --latest --output-dir projects/my_workflows
+dipeocc convert --latest --output-dir projects/my_workflows
 ```
 
 #### Batch Processing
 
 ```bash
 # Convert multiple sessions
-for session in $(dipeo dipeocc list | grep Session | awk '{print $3}'); do
-  dipeo dipeocc convert $session
+for session in $(dipeocc list | grep Session | awk '{print $3}'); do
+  dipeocc convert $session
 done
 ```
 
@@ -568,7 +568,7 @@ done
 
 ```bash
 # Watch and auto-convert new sessions
-dipeo dipeocc watch --auto-execute --interval 60
+dipeocc watch --auto-execute --interval 60
 ```
 
 ### Output Structure

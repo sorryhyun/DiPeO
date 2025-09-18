@@ -246,29 +246,29 @@ dipeo integrations claude-code --sync-mode auto --watch-todos
   - `--debounce N`: Debounce time in seconds (default: 2.0)
   - `--timeout N`: Timeout for monitoring
 
-### dipeo dipeocc
+### dipeocc
 
 Convert Claude Code sessions to DiPeO diagrams:
 
 ```bash
 # List recent Claude Code sessions
-dipeo dipeocc list
-dipeo dipeocc list --limit 100
+dipeocc list
+dipeocc list --limit 100
 
 # Convert the latest session to a diagram
-dipeo dipeocc convert --latest
-dipeo dipeocc convert --latest --auto-execute
+dipeocc convert --latest
+dipeocc convert --latest --auto-execute
 
 # Convert a specific session by ID
-dipeo dipeocc convert 7869d79f-e6ab-43f3-9919-2fe3b86f327b
-dipeo dipeocc convert session-id --output-dir projects/my_sessions
+dipeocc convert 7869d79f-e6ab-43f3-9919-2fe3b86f327b
+dipeocc convert session-id --output-dir projects/my_sessions
 
 # Watch for new sessions and convert automatically
-dipeo dipeocc watch
-dipeo dipeocc watch --interval 60 --auto-execute
+dipeocc watch
+dipeocc watch --interval 60 --auto-execute
 
 # Show detailed session statistics
-dipeo dipeocc stats 7869d79f-e6ab-43f3-9919-2fe3b86f327b
+dipeocc stats 7869d79f-e6ab-43f3-9919-2fe3b86f327b
 ```
 
 **Subcommands:**

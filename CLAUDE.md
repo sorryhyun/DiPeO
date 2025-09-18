@@ -77,11 +77,11 @@ dipeo ask --to "create a workflow that fetches weather and sends email" --and-ru
 
 ### Converting Claude Code Sessions
 ```bash
-dipeo dipeocc list                    # List recent Claude Code sessions
-dipeo dipeocc convert --latest        # Convert latest session to diagram
-dipeo dipeocc convert session-id      # Convert specific session
-dipeo dipeocc watch --auto-execute    # Watch and auto-execute new sessions
-dipeo dipeocc stats session-id        # Show session statistics
+dipeocc list                    # List recent Claude Code sessions
+dipeocc convert --latest        # Convert latest session to diagram
+dipeocc convert session-id      # Convert specific session
+dipeocc watch --auto-execute    # Watch and auto-execute new sessions
+dipeocc stats session-id        # Show session statistics
 ```
 - **Session location**: `~/.claude/projects/-home-soryhyun-DiPeO/`
 - **Output**: `projects/claude_code/sessions/{session_id}/`
@@ -435,7 +435,7 @@ history = registry.get_audit_trail()
 | OpenAI temperature error | Temperature not supported in new API, remove parameter | |
 | OpenAI max_tokens error | Use `max_output_tokens` instead of `max_tokens` | |
 | TokenUsage missing 'total' | Use `total_tokens` property instead | |
-| Claude Code sessions | Use `dipeo dipeocc` to convert sessions | [DiPeOCC Guide](docs/projects/dipeocc-guide.md) |
+| Claude Code sessions | Use `dipeocc` to convert sessions | [DiPeOCC Guide](docs/projects/dipeocc-guide.md) |
 
 ## Testing & Debugging
 

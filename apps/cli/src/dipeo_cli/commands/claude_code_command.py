@@ -1,6 +1,7 @@
 """Claude Code session command for converting JSONL sessions to DiPeO diagrams."""
 
 import json
+import shutil
 import sys
 import time
 from datetime import datetime
@@ -9,7 +10,7 @@ from typing import Any, Optional
 
 import yaml
 
-from dipeo.domain.diagram.services.claude_code_translator import ClaudeCodeTranslator
+from dipeo.domain.diagram.cc_translate import ClaudeCodeTranslator
 from dipeo.infrastructure.claude_code.session_parser import (
     ClaudeCodeSession,
     find_session_files,
@@ -165,11 +166,16 @@ class ClaudeCodeCommand:
             if format_type == "light":
                 output_file = output_dir / "diagram.light.yaml"
 
+                # Create a custom YAML dumper with better formatting
+                class CustomYAMLDumper(yaml.SafeDumper):
+                    pass
+
                 # Custom representer for multi-line strings using literal style
                 def str_representer(dumper, data):
                     if "\n" in data:
-                        # Use literal style for multi-line strings
+                        # Use literal style for multi-line strings (especially diffs)
                         return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+                    # Use default style for single-line strings
                     return dumper.represent_scalar("tag:yaml.org,2002:str", data)
 
                 # Custom representer for compact position dicts
@@ -185,14 +191,15 @@ class ClaudeCodeCommand:
                     # Use default block style for other dicts
                     return dumper.represent_mapping("tag:yaml.org,2002:map", data)
 
-                # Configure YAML dumper for better formatting
-                yaml.add_representer(str, str_representer)
-                yaml.add_representer(dict, dict_representer)
+                # Register representers with our custom dumper
+                CustomYAMLDumper.add_representer(str, str_representer)
+                CustomYAMLDumper.add_representer(dict, dict_representer)
 
                 with open(output_file, "w", encoding="utf-8") as f:
                     yaml.dump(
                         diagram_data,
                         f,
+                        Dumper=CustomYAMLDumper,
                         default_flow_style=False,
                         sort_keys=False,
                         allow_unicode=True,
@@ -207,6 +214,11 @@ class ClaudeCodeCommand:
                 return False
 
             print(f"✅ Diagram saved to: {output_file}")
+
+            # Copy original session JSONL file to the session folder
+            session_jsonl_dest = output_dir / "session.jsonl"
+            shutil.copy2(session_file, session_jsonl_dest)
+            print(f"📄 Session JSONL saved to: {session_jsonl_dest}")
 
             # Save metadata
             metadata_file = output_dir / "metadata.json"

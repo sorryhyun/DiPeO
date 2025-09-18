@@ -101,6 +101,24 @@ nodes:
       output_path: dipeo/diagram_generated_staged/node_factory.py
 
 
+  # Domain models generation
+  - label: Generate Domain Models
+    type: template_job
+    position: {x: 800, y: 440}
+    props:
+      engine: jinja2
+      template_path: projects/codegen/templates/backend/domain_models.j2
+      output_path: dipeo/diagram_generated_staged/domain_models.py
+
+  # Generated nodes (factory) generation
+  - label: Generate Generated Nodes
+    type: template_job
+    position: {x: 800, y: 480}
+    props:
+      engine: jinja2
+      template_path: projects/codegen/templates/backend/generated_nodes.j2
+      output_path: dipeo/diagram_generated_staged/generated_nodes.py
+
   # Enums
   - label: Generate Enums
     type: template_job
@@ -144,6 +162,8 @@ nodes:
                 "Backend models (batch)",
                 "Models __init__.py",
                 "Node factory",
+                "Domain models",
+                "Generated nodes (factory)",
                 "Enums",
                 "Integrations",
                 "Conversions"
@@ -186,6 +206,8 @@ connections:
   # Generate templates from IR
   - {from: Build Backend IR, to: Generate Models Init, content_type: object}
   - {from: Build Backend IR, to: Generate Node Factory, content_type: object}
+  - {from: Build Backend IR, to: Generate Domain Models, content_type: object}
+  - {from: Build Backend IR, to: Generate Generated Nodes, content_type: object}
   - {from: Build Backend IR, to: Generate Enums, content_type: object}
   - {from: Build Backend IR, to: Generate Integrations, content_type: object}
   - {from: Build Backend IR, to: Generate Conversions, content_type: object}
@@ -194,6 +216,8 @@ connections:
   - {from: Batch Generate Backend Models, to: Summary}
   - {from: Generate Models Init, to: Summary}
   - {from: Generate Node Factory, to: Summary}
+  - {from: Generate Domain Models, to: Summary}
+  - {from: Generate Generated Nodes, to: Summary}
   - {from: Generate Enums, to: Summary}
   - {from: Generate Integrations, to: Summary}
   - {from: Generate Conversions, to: Summary}

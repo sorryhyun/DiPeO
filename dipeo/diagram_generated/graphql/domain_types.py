@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces using simplified type resolver.
 
-Generated at: 2025-09-18T13:14:39.011793
+Generated at: 2025-09-18T15:13:42.043092
 """
 
 import strawberry
@@ -16,7 +16,6 @@ from dipeo.diagram_generated.domain_models import (
     ClaudeCodeMessage,
     SessionMetadata,
     ToolUse,
-    ToolResult,
     ConversationTurn,
     ClaudeCodeDiagramMetadata,
     SessionStatistics,
@@ -98,6 +97,24 @@ from dipeo.diagram_generated.graphql.strawberry_domain import (
 # Order matters - define types that are referenced by others first
 
 @strawberry.type
+class ClaudeCodeSessionType:
+    sessionId: str
+    events: list[SessionEvent]
+    metadata: SessionMetadata
+
+
+@strawberry.type
+class SessionEventType:
+    type: str
+    uuid: str
+    parentUuid: Optional[str] = None
+    timestamp: str
+    message: ClaudeCodeMessage
+    toolUse: Optional[ToolUse] = None
+    toolResult: Optional[ToolResult] = None
+
+
+@strawberry.type
 class ClaudeCodeMessageType:
     role: str
     content: str
@@ -119,35 +136,10 @@ class ToolUseType:
 
 
 @strawberry.type
-class ToolResultType:
-    success: bool
-    output: Optional[str] = None
-    error: Optional[str] = None
-
-
-@strawberry.type
-class SessionEventType:
-    type: str
-    uuid: str
-    parentUuid: Optional[str] = None
-    timestamp: str
-    message: ClaudeCodeMessageType
-    toolUse: Optional[ToolUseType] = None
-    toolResult: Optional[ToolResultType] = None
-
-
-@strawberry.type
-class ClaudeCodeSessionType:
-    sessionId: str
-    events: list[SessionEventType]
-    metadata: SessionMetadataType
-
-
-@strawberry.type
 class ConversationTurnType:
-    userEvent: SessionEventType
-    assistantEvent: SessionEventType
-    toolEvents: list[SessionEventType]
+    userEvent: SessionEvent
+    assistantEvent: SessionEvent
+    toolEvents: list[SessionEvent]
 
 
 @strawberry.type
