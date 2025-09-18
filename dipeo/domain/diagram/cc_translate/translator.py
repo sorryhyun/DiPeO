@@ -32,6 +32,9 @@ class ClaudeCodeTranslator:
         # Reset state
         self._reset_state()
 
+        # Collect all meta/system messages for Claude's system prompt
+        self.system_messages = []
+
         # Create start node
         start_node_label = self._create_start_node(session)
 
@@ -40,6 +43,14 @@ class ClaudeCodeTranslator:
         prev_node_label = start_node_label
 
         for turn in conversation_flow:
+            # Collect meta events for system context
+            for meta_event in turn.meta_events:
+                meta_content = self.text_processor.extract_text_content(
+                    meta_event.message.get("content", "")
+                )
+                if meta_content and meta_content.strip():
+                    self.system_messages.append(meta_content)
+
             # Create nodes for this conversation turn
             turn_node_labels = self._process_conversation_turn(turn)
 
@@ -67,6 +78,7 @@ class ClaudeCodeTranslator:
         self.nodes = []
         self.connections = []
         self.node_map = {}
+        self.system_messages = []
 
     def _create_start_node(self, session: ClaudeCodeSession) -> str:
         """Create the start node for the diagram."""
@@ -101,6 +113,7 @@ class ClaudeCodeTranslator:
 
         # Process assistant response and tool events
         if turn.assistant_event:
+            # Pass system messages to the assistant node creation
             # Check if there are tool events in this turn
             if turn.tool_events:
                 # Create tool nodes for each tool use
@@ -109,7 +122,9 @@ class ClaudeCodeTranslator:
                     node_labels.extend(tool_node_labels)
             else:
                 # Create person job node for AI response
-                assistant_node_label = self._create_assistant_node(turn.assistant_event)
+                assistant_node_label = self._create_assistant_node(
+                    turn.assistant_event, self.system_messages
+                )
                 node_labels.append(assistant_node_label)
 
         return node_labels
@@ -129,15 +144,17 @@ class ClaudeCodeTranslator:
             return node["label"]
         return None
 
-    def _create_assistant_node(self, event: SessionEvent) -> str:
+    def _create_assistant_node(
+        self, event: SessionEvent, system_messages: list[str] | None = None
+    ) -> str:
         """Create a node for AI assistant response."""
         # Skip Read tool results in assistant responses - they flow through db node connections
         content = self.text_processor.extract_text_content(
             event.message.get("content", ""), skip_read_results=True
         )
 
-        # Create assistant node
-        node = self.node_builder.create_assistant_node(content)
+        # Create assistant node with system messages
+        node = self.node_builder.create_assistant_node(content, system_messages or [])
         self.nodes.append(node)
         self.node_map[event.uuid] = node["label"]
         return node["label"]
@@ -149,8 +166,8 @@ class ClaudeCodeTranslator:
         tool_name = event.tool_name
         tool_input = event.tool_input or {}
 
-        # Create appropriate node for the tool
-        node = self.node_builder.create_tool_node(tool_name, tool_input)
+        # Create appropriate node for the tool, passing the full event for access to tool_use_result
+        node = self.node_builder.create_tool_node(tool_name, tool_input, event.tool_use_result)
 
         if node:
             self.nodes.append(node)

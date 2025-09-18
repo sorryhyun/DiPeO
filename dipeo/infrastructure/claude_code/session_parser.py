@@ -20,6 +20,11 @@ class SessionEvent:
     tool_name: Optional[str] = None
     tool_input: Optional[dict[str, Any]] = None
     tool_results: list[dict[str, Any]] = field(default_factory=list)
+    # New fields for richer event context
+    role: Optional[str] = None  # Role from message (user/assistant/system)
+    user_type: Optional[str] = None  # Type of user (external/internal)
+    is_meta: bool = False  # Whether this is a meta/system event
+    tool_use_result: Optional[dict[str, Any]] = None  # Full tool result payload
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> "SessionEvent":
@@ -30,6 +35,7 @@ class SessionEvent:
         tool_name = None
         tool_input = None
         tool_results = []
+        tool_use_result = None
 
         if data["type"] == "assistant" and "message" in data:
             message = data["message"]
@@ -42,6 +48,15 @@ class SessionEvent:
                         elif content_item.get("type") == "tool_result":
                             tool_results.append(content_item)
 
+        # Extract tool use result payload if present
+        if "toolUseResult" in data:
+            tool_use_result = data["toolUseResult"]
+
+        # Extract role from message if present
+        role = None
+        if "message" in data and isinstance(data["message"], dict):
+            role = data["message"].get("role")
+
         return cls(
             type=data["type"],
             uuid=data.get("uuid", ""),
@@ -51,6 +66,11 @@ class SessionEvent:
             tool_name=tool_name,
             tool_input=tool_input,
             tool_results=tool_results,
+            # New fields
+            role=role,
+            user_type=data.get("userType"),
+            is_meta=data.get("isMeta", False),
+            tool_use_result=tool_use_result,
         )
 
 
@@ -61,6 +81,7 @@ class ConversationTurn:
     user_event: SessionEvent
     assistant_event: Optional[SessionEvent] = None
     tool_events: list[SessionEvent] = field(default_factory=list)
+    meta_events: list[SessionEvent] = field(default_factory=list)  # System/meta events
 
 
 @dataclass
@@ -105,7 +126,51 @@ class ClaudeCodeSession:
                 except Exception as e:
                     print(f"Warning: Error processing line {line_num}: {e}")
 
+        self._associate_tool_results()
         self._update_metadata()
+
+    def _associate_tool_results(self) -> None:
+        """Associate tool result payloads with their originating tool events.
+
+        Claude Code sessions emit tool results as separate user events that
+        reference the originating assistant/tool event via ``parentUuid``.
+        This method links those payloads back to the tool event so downstream
+        translators can access rich ``tool_use_result`` data (original file
+        contents, structured patches, etc.).
+        """
+
+        if not self.events:
+            return
+
+        events_by_uuid = {event.uuid: event for event in self.events if event.uuid}
+
+        for event in self.events:
+            if not event.tool_use_result or not event.parent_uuid:
+                continue
+
+            parent_event = events_by_uuid.get(event.parent_uuid)
+            if not parent_event or not parent_event.tool_name:
+                continue
+
+            result_payload = event.tool_use_result
+
+            # Prefer structured payloads when multiple results are emitted.
+            if isinstance(result_payload, dict):
+                parent_event.tool_use_result = result_payload
+            elif isinstance(result_payload, list):
+                # Use the last structured payload if available.
+                for item in reversed(result_payload):
+                    if isinstance(item, dict):
+                        parent_event.tool_use_result = item
+                        break
+                else:
+                    if parent_event.tool_use_result is None:
+                        parent_event.tool_use_result = result_payload
+            else:
+                # Only attach plain strings if we do not already have
+                # structured information (avoids clobbering rich payloads).
+                if parent_event.tool_use_result is None:
+                    parent_event.tool_use_result = result_payload
 
     def parse_events(self) -> list[SessionEvent]:
         """Parse and return all session events."""
@@ -122,16 +187,27 @@ class ClaudeCodeSession:
         return dict(tool_counts)
 
     def get_conversation_flow(self) -> list[ConversationTurn]:
-        """Extract conversation flow as user-assistant pairs."""
+        """Extract conversation flow as user-assistant pairs with meta events."""
         turns = []
         current_turn = None
+        pending_meta_events = []  # Collect meta events before each turn
 
         for event in self.events:
+            # Collect meta/system events
+            if event.is_meta:
+                pending_meta_events.append(event)
+                continue
+
             if event.type == "user":
                 # Start a new turn
                 if current_turn:
                     turns.append(current_turn)
                 current_turn = ConversationTurn(user_event=event)
+
+                # Attach any pending meta events to this turn
+                if pending_meta_events:
+                    current_turn.meta_events.extend(pending_meta_events)
+                    pending_meta_events = []
 
             elif event.type == "assistant" and current_turn:
                 # Add assistant response to current turn
@@ -144,6 +220,9 @@ class ClaudeCodeSession:
 
         # Add the last turn if exists
         if current_turn:
+            # Attach any remaining meta events
+            if pending_meta_events:
+                current_turn.meta_events.extend(pending_meta_events)
             turns.append(current_turn)
 
         return turns

@@ -78,17 +78,30 @@ class NodeBuilder:
             },
         }
 
-    def create_assistant_node(self, content: str) -> dict[str, Any]:
+    def create_assistant_node(
+        self, content: str, system_messages: list[str] | None = None
+    ) -> dict[str, Any]:
         """Create a node for AI assistant response."""
         label = f"Claude Response {self.increment_counter()}"
 
         # Register Claude person if not exists
         if "claude_code" not in self.persons:
+            # Build system prompt with meta/system messages if provided
+            base_prompt = "You are Claude Code, an AI assistant helping with software development."
+            if system_messages:
+                # Add meta/system messages to provide context
+                system_context = "\n\nAdditional context:\n" + "\n".join(
+                    system_messages[:5]
+                )  # Limit to first 5
+                full_system_prompt = base_prompt + system_context
+            else:
+                full_system_prompt = base_prompt
+
             self.persons["claude_code"] = {
                 "service": "anthropic",
                 "model": "claude-code",
                 "api_key_id": "APIKEY_CLAUDE",
-                "system_prompt": "You are Claude Code, an AI assistant helping with software development.",
+                "system_prompt": full_system_prompt,
             }
 
         return {
@@ -132,29 +145,65 @@ class NodeBuilder:
             },
         }
 
-    def create_edit_node(self, tool_name: str, tool_input: dict[str, Any]) -> dict[str, Any]:
+    def create_edit_node(
+        self, tool_name: str, tool_input: dict[str, Any], original_content: Optional[str] = None
+    ) -> dict[str, Any]:
         """Create a diff_patch node for file edit operation."""
         label = f"{tool_name} File {self.increment_counter()}"
         file_path = tool_input.get("file_path", "unknown")
 
         # Generate unified diff from old_string and new_string
         if tool_name == "Edit":
-            # Unescape strings that may have been escaped in the Claude Code session
-            old_string = self.text_processor.unescape_string(tool_input.get("old_string", ""))
-            new_string = self.text_processor.unescape_string(tool_input.get("new_string", ""))
-            diff_content = self.diff_generator.generate_unified_diff(
-                file_path, old_string, new_string
-            )
+            old_string_raw = tool_input.get("old_string", "")
+            new_string_raw = tool_input.get("new_string", "")
+
+            if original_content:
+                old_string = old_string_raw
+                new_string = new_string_raw
+            else:
+                # When we only have snippets, unescape so difflib sees true newlines
+                old_string = self.text_processor.unescape_string(old_string_raw)
+                new_string = self.text_processor.unescape_string(new_string_raw)
+
+            # If we have original content, use it for better diff generation
+            if original_content:
+                modified_content = original_content.replace(old_string, new_string, 1)
+                diff_content = self.diff_generator.generate_unified_diff(
+                    file_path, original_content, modified_content
+                )
+            else:
+                diff_content = self.diff_generator.generate_unified_diff(
+                    file_path, old_string, new_string
+                )
         elif tool_name == "MultiEdit":
             # For MultiEdit, combine all edits into a single diff
             edits = tool_input.get("edits", [])
-            # Unescape strings in each edit
-            for edit in edits:
-                if "old_string" in edit:
-                    edit["old_string"] = self.text_processor.unescape_string(edit["old_string"])
-                if "new_string" in edit:
-                    edit["new_string"] = self.text_processor.unescape_string(edit["new_string"])
-            diff_content = self.diff_generator.generate_multiedit_diff(file_path, edits)
+            if not original_content:
+                processed_edits: list[dict[str, Any]] = []
+                for edit in edits:
+                    if not isinstance(edit, dict):
+                        continue
+                    processed_edit = edit.copy()
+                    if "old_string" in processed_edit and isinstance(
+                        processed_edit["old_string"], str
+                    ):
+                        processed_edit["old_string"] = self.text_processor.unescape_string(
+                            processed_edit["old_string"]
+                        )
+                    if "new_string" in processed_edit and isinstance(
+                        processed_edit["new_string"], str
+                    ):
+                        processed_edit["new_string"] = self.text_processor.unescape_string(
+                            processed_edit["new_string"]
+                        )
+                    processed_edits.append(processed_edit)
+                edits_for_diff = processed_edits
+            else:
+                edits_for_diff = edits
+
+            diff_content = self.diff_generator.generate_multiedit_diff(
+                file_path, edits_for_diff, original_content
+            )
         else:
             # Fallback for unknown edit types
             diff_content = "# Unable to generate diff"
@@ -171,6 +220,121 @@ class NodeBuilder:
                 "validate": True,
             },
         }
+
+    def create_edit_node_with_result(
+        self,
+        tool_name: str,
+        tool_input: dict[str, Any],
+        tool_use_result: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        """Create a diff_patch node using tool_use_result for better diff generation.
+
+        When Claude Code sessions include toolUseResult payloads (newer sessions),
+        this method leverages the original file content to generate high-fidelity
+        unified diffs that apply cleanly without manual fixes.
+
+        Expected toolUseResult fields:
+        - originalFile or originalFileContents: Complete original file content
+        - oldString: The text being replaced (for validation)
+        - newString: The replacement text
+
+        Falls back to snippet-based diffs when full context is unavailable.
+        """
+        label = f"{tool_name} File {self.increment_counter()}"
+        file_path = tool_input.get("file_path", "unknown")
+
+        # Extract original file content from tool_use_result if available
+        original_content = None
+        tool_result_payload = self._extract_tool_result_payload(tool_use_result)
+
+        if tool_result_payload:
+            original_content = tool_result_payload.get("originalFile") or tool_result_payload.get(
+                "originalFileContents"
+            )
+
+            # Use provider supplied patch first
+            direct_patch = (
+                tool_result_payload.get("structuredPatch")
+                or tool_result_payload.get("patch")
+                or tool_result_payload.get("diff")
+            )
+            if direct_patch:
+                return {
+                    "label": label,
+                    "type": "diff_patch",
+                    "position": self.get_position(),
+                    "props": {
+                        "target_path": file_path,
+                        "diff": self.diff_generator.normalize_diff_for_yaml(str(direct_patch)),
+                        "format": "unified",
+                        "backup": True,
+                        "validate": True,
+                    },
+                }
+
+            # For Edit operations, try using the direct diff generation from payload
+            if tool_name == "Edit":
+                diff_content = self.diff_generator.generate_diff_from_tool_result(
+                    file_path, tool_result_payload
+                )
+                if diff_content:
+                    return {
+                        "label": label,
+                        "type": "diff_patch",
+                        "position": self.get_position(),
+                        "props": {
+                            "target_path": file_path,
+                            "diff": diff_content,
+                            "format": "unified",
+                            "backup": True,
+                            "validate": True,
+                        },
+                    }
+
+        # Fall back to standard edit node creation with original content if available
+        return self.create_edit_node(tool_name, tool_input, original_content)
+
+    def _extract_tool_result_payload(
+        self, tool_use_result: Optional[dict[str, Any] | list[Any] | str]
+    ) -> Optional[dict[str, Any]]:
+        """Select the most useful tool result payload for diff generation."""
+
+        if not tool_use_result:
+            return None
+
+        candidates: list[Any]
+        if isinstance(tool_use_result, dict):
+            candidates = [tool_use_result]
+        elif isinstance(tool_use_result, list):
+            candidates = [item for item in reversed(tool_use_result)]  # Prefer latest
+        else:
+            # Strings or other primitives are not useful for diff reconstruction
+            return None
+
+        for candidate in candidates:
+            if not isinstance(candidate, dict):
+                continue
+
+            # Ignore explicit errors or empty payloads
+            if candidate.get("error") or candidate.get("status") == "error":
+                continue
+
+            has_content = any(
+                key in candidate
+                for key in (
+                    "structuredPatch",
+                    "patch",
+                    "diff",
+                    "originalFile",
+                    "originalFileContents",
+                )
+            )
+            if not has_content:
+                continue
+
+            return candidate
+
+        return None
 
     def create_bash_node(self, tool_input: dict[str, Any]) -> dict[str, Any]:
         """Create a code_job node for bash command execution."""
@@ -316,24 +480,44 @@ class NodeBuilder:
         }
 
     def create_tool_node(
-        self, tool_name: str, tool_input: dict[str, Any]
+        self,
+        tool_name: str,
+        tool_input: dict[str, Any],
+        tool_use_result: Optional[dict[str, Any]] = None,
     ) -> Optional[dict[str, Any]]:
-        """Create appropriate node based on tool name."""
+        """Create appropriate node based on tool name with defensive handling."""
+        # Defensive handling for None or missing tool_name
+        if not tool_name:
+            print("Warning: Missing tool name, skipping node creation")
+            return None
+
         # Track the tool being used
         self.text_processor.set_last_tool(tool_name)
 
-        if tool_name == "Read":
-            return self.create_read_node(tool_input)
-        elif tool_name == "Write":
-            return self.create_write_node(tool_input)
-        elif tool_name in ["Edit", "MultiEdit"]:
-            return self.create_edit_node(tool_name, tool_input)
-        elif tool_name == "Bash":
-            return self.create_bash_node(tool_input)
-        elif tool_name == "TodoWrite":
-            return self.create_todo_node(tool_input)
-        elif tool_name in ["Glob", "Grep"]:
-            return self.create_search_node(tool_name, tool_input)
-        else:
-            # Generic API node for other tools
+        # Ensure tool_input is a dict
+        if tool_input is None:
+            tool_input = {}
+        elif not isinstance(tool_input, dict):
+            print(f"Warning: Invalid tool_input type for {tool_name}, using empty dict")
+            tool_input = {}
+
+        try:
+            if tool_name == "Read":
+                return self.create_read_node(tool_input)
+            elif tool_name == "Write":
+                return self.create_write_node(tool_input)
+            elif tool_name in ["Edit", "MultiEdit"]:
+                return self.create_edit_node_with_result(tool_name, tool_input, tool_use_result)
+            elif tool_name == "Bash":
+                return self.create_bash_node(tool_input)
+            elif tool_name == "TodoWrite":
+                return self.create_todo_node(tool_input)
+            elif tool_name in ["Glob", "Grep"]:
+                return self.create_search_node(tool_name, tool_input)
+            else:
+                # Generic API node for other tools
+                return self.create_generic_tool_node(tool_name, tool_input)
+        except Exception as e:
+            print(f"Warning: Error creating {tool_name} node: {e}")
+            # Fallback to generic node on error
             return self.create_generic_tool_node(tool_name, tool_input)

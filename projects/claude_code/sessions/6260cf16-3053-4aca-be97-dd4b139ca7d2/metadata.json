@@ -1,0 +1,28 @@
+{
+  "session_id": "6260cf16-3053-4aca-be97-dd4b139ca7d2",
+  "converted_at": "2025-09-18T19:55:37.051219",
+  "source_file": "/home/soryhyun/.claude/projects/-home-soryhyun-DiPeO/6260cf16-3053-4aca-be97-dd4b139ca7d2.jsonl",
+  "stats": {
+    "session_id": "6260cf16-3053-4aca-be97-dd4b139ca7d2",
+    "total_events": 184,
+    "user_messages": 64,
+    "assistant_messages": 120,
+    "tool_usage": {
+      "Grep": 9,
+      "Bash": 26,
+      "Read": 9,
+      "TodoWrite": 8,
+      "ExitPlanMode": 1,
+      "Edit": 6
+    },
+    "unique_files_accessed": 8,
+    "bash_commands_executed": 26,
+    "duration_seconds": 603.985,
+    "duration_human": "0:10:03.985000"
+  },
+  "format": "light",
+  "optimizations": {
+    "merge_reads": false,
+    "simplify": false
+  }
+}

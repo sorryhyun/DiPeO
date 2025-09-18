@@ -347,8 +347,23 @@ dipeo run projects/claude_code/latest.light.yaml --debug
 - **Functionality**: Parses JSONL files and extracts structured events
 
 ### Session Translator
-- **Location**: `dipeo/domain/diagram/services/claude_code_translator.py`
+- **Location**: `dipeo/domain/diagram/cc_translate/`
 - **Functionality**: Maps Claude Code events to DiPeO nodes and connections
+- **Components**:
+  - `translator.py`: Main orchestration logic
+  - `node_builders.py`: Node creation for different tool types
+  - `diff_utils.py`: Enhanced diff generation with full-context support
+  - `text_utils.py`: Text extraction and unescaping
+
+### Enhanced Diff Generation
+- **High-Fidelity Diffs**: When available, uses complete original file content from `toolUseResult` payloads to generate accurate unified diffs
+- **Fallback Strategy**: Gracefully degrades to snippet-based diffs when full context is unavailable
+- **YAML-Optimized Output**: Normalizes diff strings for clean YAML literal blocks without escaped newlines
+- **Multi-Edit Support**: Combines multiple edits into single unified diff when original content is available
+- **Benefits**:
+  - Accurate context lines in diffs
+  - Clean, readable YAML output
+  - Better end-to-end diff application without manual fixes
 
 ### CLI Command
 - **Location**: `apps/cli/src/dipeo_cli/commands/claude_code_command.py`

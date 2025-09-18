@@ -370,7 +370,12 @@ def main():
     convert_group = convert_parser.add_mutually_exclusive_group(required=True)
     convert_group.add_argument("session_id", nargs="?", help="Session ID to convert")
     convert_group.add_argument(
-        "--latest", action="store_true", help="Convert the most recent session"
+        "--latest",
+        nargs="?",
+        const=1,
+        type=int,
+        metavar="N",
+        help="Convert the N most recent sessions (default: 1 if no value provided)",
     )
     convert_parser.add_argument(
         "--output-dir", type=str, help="Output directory (default: projects/claude_code)"

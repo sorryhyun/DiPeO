@@ -73,6 +73,8 @@ class TextProcessor:
         - \\n becomes newline
         - \\t becomes tab
         - \\\\ becomes \\
+
+        Also handles double-escaped scenarios where newlines might be \\\\n
         """
         if not s:
             return s
@@ -84,12 +86,28 @@ class TextProcessor:
             # We need to wrap it in quotes for json.loads to work
             import json
 
+            # Handle potential double escaping first
+            if "\\\\n" in s or "\\\\t" in s:
+                # Replace double-escaped sequences with single-escaped ones
+                s = s.replace("\\\\n", "\\n")
+                s = s.replace("\\\\t", "\\t")
+                s = s.replace('\\\\"', '\\"')
+
             decoded = json.loads('"' + s + '"')
             return decoded
         except:
             # If that fails, just do basic replacements
+            # Handle both single and double escaping
+            if "\\\\n" in s:
+                s = s.replace("\\\\n", "\n")
+            else:
+                s = s.replace("\\n", "\n")
+
+            if "\\\\t" in s:
+                s = s.replace("\\\\t", "\t")
+            else:
+                s = s.replace("\\t", "\t")
+
             s = s.replace('\\"', '"')
-            s = s.replace("\\n", "\n")
-            s = s.replace("\\t", "\t")
             s = s.replace("\\\\", "\\")
             return s
