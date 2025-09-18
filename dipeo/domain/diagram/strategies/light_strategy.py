@@ -132,7 +132,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
 
             processed_node = {
                 "id": self._create_node_id(index),
-                "type": node.type,
+                "type": node.type.lower() if isinstance(node.type, str) else node.type,
                 "position": node.position or {"x": 0, "y": 0},
                 "data": props,
             }

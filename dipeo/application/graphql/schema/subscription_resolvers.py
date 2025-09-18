@@ -48,7 +48,7 @@ def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdate | None
     exec_id_str = event.get("execution_id") or event.get("executionId", "")
 
     # For node events, restructure the data to match frontend expectations
-    if event_type in ["NODE_STARTED", "NODE_COMPLETED", "NODE_FAILED"]:
+    if event_type in ["node_started", "node_completed", "node_failed", "node_error"]:
         # node_id is at the top level of the event, not in data
         # data field contains the payload (node_type, output, etc.)
         event_data = event.get("data", {})
@@ -72,9 +72,9 @@ def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdate | None
             or event_data.get("node_type"),  # Check meta first, then data
             "status": (
                 "RUNNING"
-                if event_type == "NODE_STARTED"
+                if event_type == "node_started"
                 else "COMPLETED"
-                if event_type == "NODE_COMPLETED"
+                if event_type == "node_completed"
                 else "FAILED"
             ),
             "output": event_data.get("output"),
@@ -85,8 +85,8 @@ def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdate | None
         }
         # Remove None values
         data = {k: v for k, v in data.items() if v is not None}
-    elif event_type == "NODE_STATUS_CHANGED":
-        # Handle NODE_STATUS_CHANGED events
+    elif event_type == "node_status_changed":
+        # Handle NODE_STATUS_CHANGED events (if any still exist)
         # node_id and status are in the data payload
         event_data = event.get("data", {})
         if event_data is None:
@@ -104,17 +104,7 @@ def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdate | None
             "timestamp": event_data.get("timestamp") or event.get("timestamp"),
             **{k: v for k, v in event_data.items() if k not in ["node_id", "status", "timestamp"]},
         }
-    elif event_type == "EXECUTION_STATUS_CHANGED":
-        # Handle EXECUTION_STATUS_CHANGED events for execution start/stop
-        data = event.get("data", {})
-        if data is None:
-            data = {}
-        elif isinstance(data, str):
-            try:
-                data = json.loads(data)
-            except Exception:
-                data = {}
-    elif event_type == "METRICS_COLLECTED":
+    elif event_type == "metrics_collected":
         # Handle METRICS_COLLECTED events for real-time metrics updates
         data = event.get("data", {})
         if data is None:
@@ -225,29 +215,7 @@ async def execution_updates(
             ):
                 if isinstance(event, ExecutionUpdate):
                     yield event
-                elif (
-                    isinstance(event, dict)
-                    and event.get("event_type") == "EXECUTION_STATUS_CHANGED"
-                ):
-                    # Handle final status update from base class
-                    # Map EXECUTION_STATUS_CHANGED to appropriate EventType based on status
-                    from dipeo.diagram_generated.enums import EventType
-
-                    # Determine the appropriate EventType based on the execution status
-                    status = event.get("data", {}).get("status", "").lower()
-                    if status == "completed":
-                        event_type = EventType.EXECUTION_COMPLETED
-                    elif status in ["failed", "error"]:
-                        event_type = EventType.EXECUTION_ERROR
-                    else:
-                        event_type = EventType.EXECUTION_STARTED
-
-                    yield ExecutionUpdate(
-                        execution_id=event["execution_id"],
-                        type=event_type,
-                        data=event["data"],
-                        timestamp=event["timestamp"],
-                    )
+                # No special handling needed for status changes - they come as proper event types
 
         finally:
             # Clean up

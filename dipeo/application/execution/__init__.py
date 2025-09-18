@@ -3,8 +3,8 @@
 from dipeo.diagram_generated import ExecutionOptions
 from dipeo.domain.execution.execution_context import ExecutionContext
 
-from .handler_base import TypedNodeHandler
-from .handler_factory import (
+from .handlers.core.base import TypedNodeHandler
+from .handlers.core.factory import (
     HandlerRegistry,
     get_global_registry,
     register_handler,

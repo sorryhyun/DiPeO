@@ -17,5 +17,6 @@ export enum NodeType {
   TYPESCRIPT_AST = 'typescript_ast',
   SUB_DIAGRAM = 'sub_diagram',
   INTEGRATED_API = 'integrated_api',
-  IR_BUILDER = 'ir_builder'
+  IR_BUILDER = 'ir_builder',
+  DIFF_PATCH = 'diff_patch'
 }

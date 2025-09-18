@@ -399,6 +399,7 @@ This directory contains API integration manifests for DiPeO.
         output_dir: str | None = None,
         auto_execute: bool = False,
         debounce: float = 2.0,
+        timeout: int | None = None,
     ) -> bool:
         """Manage Claude Code TODO synchronization."""
         from pathlib import Path
@@ -449,6 +450,9 @@ This directory contains API integration manifests for DiPeO.
                 print("❌ Failed to start server (required for TODO sync)")
                 return False
 
+            import os
+            import time
+
             from dipeo.application.todo_sync import TodoSyncConfig, TodoSyncMode, TodoSyncService
             from dipeo.domain.diagram.services.todo_translator import TodoTranslator
 
@@ -478,15 +482,58 @@ This directory contains API integration manifests for DiPeO.
             print(f"   Output: {config.persistence_path}")
             print(f"   Auto-execute: {auto_execute}")
             print(f"   Debounce: {debounce}s")
+            if timeout:
+                print(f"   Timeout: {timeout}s")
             print("   ✅ TODO sync enabled")
             print("   📁 Diagrams will be saved to:", config.persistence_path)
 
-            if sync_mode == "watch":
+            if sync_mode == "watch" or timeout:
                 print("\n   👁️  Watching for TODO updates...")
+                if timeout:
+                    print(f"   Will stop after {timeout} seconds")
                 print("   Press Ctrl+C to stop\n")
 
-                # In watch mode, this would set up file watchers
-                # For now, just show configuration
+                # If timeout is specified, implement monitoring loop
+                if timeout:
+                    start_time = time.time()
+                    try:
+                        while True:
+                            elapsed = time.time() - start_time
+                            if elapsed >= timeout:
+                                print(f"\n⏰ Timeout reached after {timeout} seconds")
+                                print("🛑 Stopping TODO sync...")
+                                break
+
+                            # Sleep for a short interval to allow for interruption
+                            time.sleep(1)
+
+                            # Could add periodic status updates here
+                            if int(elapsed) % 30 == 0 and int(elapsed) > 0:
+                                remaining = timeout - int(elapsed)
+                                print(f"   ⏳ Still watching... ({remaining}s remaining)")
+
+                    except KeyboardInterrupt:
+                        print("\n\n🛑 Interrupted by user")
+                        return True
+                    finally:
+                        # Always stop the server when exiting
+                        if self.server:
+                            self.server.stop()
+                            time.sleep(0.1)  # Small delay to ensure cleanup
+
+                    # Use os._exit for clean termination (like run command)
+                    os._exit(0)
+                else:
+                    # No timeout - just wait for Ctrl+C
+                    try:
+                        while True:
+                            time.sleep(1)
+                    except KeyboardInterrupt:
+                        print("\n\n🛑 Interrupted by user")
+                    finally:
+                        if self.server:
+                            self.server.stop()
+                            time.sleep(0.1)
 
             return True
 
@@ -527,6 +574,7 @@ This directory contains API integration manifests for DiPeO.
                 output_dir=kwargs.get("output_dir"),
                 auto_execute=kwargs.get("auto_execute", False),
                 debounce=kwargs.get("debounce", 2.0),
+                timeout=kwargs.get("timeout"),
             )
         else:
             print(f"❌ Unknown action: {action}")

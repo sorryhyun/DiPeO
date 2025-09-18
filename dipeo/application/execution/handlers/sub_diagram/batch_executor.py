@@ -452,18 +452,17 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
                         else:
                             execution_results[node_id] = node_output
 
-            elif update_type == "EXECUTION_STATUS_CHANGED":
+            elif update_type in ["EXECUTION_COMPLETED", "execution_completed"]:
+                break
+            elif update_type in ["EXECUTION_ERROR", "execution_error"]:
                 data = update.get("data", {})
-                if data.get("status") == Status.COMPLETED:
-                    break
-                elif data.get("status") == Status.FAILED:
-                    execution_error = data.get("error")
-                    if not execution_error:
-                        # Try to get more context from the data
-                        execution_error = (
-                            f"Execution failed (node_id: {data.get('node_id', 'unknown')})"
-                        )
-                    break
+                execution_error = data.get("error")
+                if not execution_error:
+                    # Try to get more context from the data
+                    execution_error = (
+                        f"Execution failed (node_id: {data.get('node_id', 'unknown')})"
+                    )
+                break
 
             # Legacy support (minimal)
             elif update_type == "execution_complete":

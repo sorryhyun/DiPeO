@@ -436,3 +436,154 @@ If Claude Code service is not available, check that the ANTHROPIC_API_KEY is con
 
 ### Rate Limiting
 The adapter includes automatic retry logic with exponential backoff for rate limit errors.
+
+## Claude Code Session Conversion
+
+DiPeO can convert Claude Code conversation sessions into executable diagrams using the `dipeocc` command.
+
+### What are Claude Code Sessions?
+
+Claude Code automatically saves all conversations as JSONL files in:
+```
+~/.claude/projects/-home-{username}-DiPeO/
+```
+
+These sessions contain:
+- User prompts and AI responses
+- Tool usage (Read, Write, Edit, Bash, etc.)
+- Timestamps and conversation flow
+- Complete context for replay and analysis
+
+### Converting Sessions to Diagrams
+
+Use the `dipeocc` command to convert sessions:
+
+```bash
+# List available sessions
+dipeo dipeocc list
+
+# Convert the latest session
+dipeo dipeocc convert --latest
+
+# Convert and execute immediately
+dipeo dipeocc convert --latest --auto-execute
+
+# Watch for new sessions
+dipeo dipeocc watch --interval 30
+```
+
+### Tool Mapping
+
+Claude Code tools are automatically mapped to DiPeO nodes:
+
+| Claude Code Tool | DiPeO Node | Purpose |
+|-----------------|------------|---------|
+| User message | Start node | Initial request |
+| Assistant response | Person job (claude_code) | AI reasoning |
+| Read tool | DB node (SELECT) | File reading |
+| Write tool | DB node (INSERT) | File creation |
+| Edit tool | DB node (UPDATE) | File modification |
+| Bash tool | Code job (bash) | Command execution |
+| TodoWrite | DB node | Task tracking |
+| WebFetch | API job | Web content retrieval |
+
+### Example Converted Diagram
+
+A typical Claude Code session converts to:
+
+```yaml
+version: light
+
+persons:
+  Claude Code Agent:
+    service: claude-code
+    model: claude-code-custom
+    max_turns: 10
+
+nodes:
+  - label: User Request
+    type: start
+    position: {x: 100, y: 200}
+    props:
+      trigger_mode: manual
+      custom_data:
+        request: "Help me refactor this code"
+
+  - label: Analyze Code
+    type: person_job
+    position: {x: 300, y: 200}
+    props:
+      person: Claude Code Agent
+      default_prompt: "{{request}}"
+      memory_profile: FOCUSED
+
+  - label: Read Source File
+    type: db
+    position: {x: 500, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      source_details: "src/main.py"
+
+connections:
+  - from: User Request
+    to: Analyze Code
+  - from: Analyze Code
+    to: Read Source File
+```
+
+### Benefits of Session Conversion
+
+1. **Replay Workflows**: Re-execute past Claude Code sessions
+2. **Share Solutions**: Convert successful sessions to shareable diagrams
+3. **Modify and Enhance**: Edit converted diagrams to improve workflows
+4. **Build Libraries**: Create reusable patterns from common tasks
+5. **Analyze Performance**: Review execution patterns and optimize
+
+### Advanced Usage
+
+#### Optimizations
+
+```bash
+# Merge consecutive file reads
+dipeo dipeocc convert --latest --merge-reads
+
+# Simplify by removing intermediate results
+dipeo dipeocc convert --latest --simplify
+
+# Custom output directory
+dipeo dipeocc convert --latest --output-dir projects/my_workflows
+```
+
+#### Batch Processing
+
+```bash
+# Convert multiple sessions
+for session in $(dipeo dipeocc list | grep Session | awk '{print $3}'); do
+  dipeo dipeocc convert $session
+done
+```
+
+#### Continuous Integration
+
+```bash
+# Watch and auto-convert new sessions
+dipeo dipeocc watch --auto-execute --interval 60
+```
+
+### Output Structure
+
+Converted sessions are saved as:
+```
+projects/claude_code/
+├── sessions/
+│   ├── {session-id}/
+│   │   ├── diagram.light.yaml  # Executable diagram
+│   │   └── metadata.json       # Session metadata
+│   └── ...
+└── latest.light.yaml -> sessions/{latest}/diagram.light.yaml
+```
+
+### Full Documentation
+
+For complete details on session conversion, see the [DiPeOCC Guide](../projects/dipeocc-guide.md).

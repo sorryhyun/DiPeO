@@ -257,6 +257,13 @@ class RepositoryAdapter(LoggingMixin, DiagramRepositoryPort):
                 if self.filesystem.exists(path):
                     return True
 
+        examples_path = self.base_path.parent / "examples"
+        if self.filesystem.exists(examples_path):
+            for pattern in patterns:
+                path = examples_path / pattern
+                if self.filesystem.exists(path):
+                    return True
+
         return False
 
     async def list(self, format_type: str | None = None) -> list[DiagramInfo]:
@@ -311,6 +318,11 @@ class RepositoryAdapter(LoggingMixin, DiagramRepositoryPort):
             self.log_debug(f"Scanning projects directory: {projects_path}")
             scan_directory(projects_path, projects_path)
 
+        examples_path = self.base_path.parent / "examples"
+        if self.filesystem.exists(examples_path):
+            self.log_debug(f"Scanning examples directory: {examples_path}")
+            scan_directory(examples_path, examples_path)
+
         self.log_info(f"Found {len(diagrams)} diagrams total")
         diagrams.sort(key=lambda x: x.modified, reverse=True)
         return diagrams
@@ -331,8 +343,15 @@ class RepositoryAdapter(LoggingMixin, DiagramRepositoryPort):
         projects_path = self.base_path.parent / "projects"
         if self.filesystem.exists(projects_path):
             search_dirs.append(projects_path)
+        examples_path = self.base_path.parent / "examples"
+        if self.filesystem.exists(examples_path):
+            search_dirs.append(examples_path)
 
-        if diagram_id.startswith("projects/") or diagram_id.startswith("files/"):
+        if (
+            diagram_id.startswith("projects/")
+            or diagram_id.startswith("files/")
+            or diagram_id.startswith("examples/")
+        ):
             root_base = self.base_path.parent
             full_path = root_base / diagram_id
             if self.filesystem.exists(full_path):

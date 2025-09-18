@@ -404,6 +404,7 @@ enum NodeType {
   SUB_DIAGRAM
   INTEGRATED_API
   IR_BUILDER
+  DIFF_PATCH
 }
 
 """Branded scalar type for PersonID"""

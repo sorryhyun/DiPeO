@@ -35,6 +35,7 @@
 > Specific workflows and feature implementation guides
 
 - [Code Generation Guide](projects/code-generation-guide.md) - Complete codegen pipeline and adding new features
+- [DiPeOCC Guide](projects/dipeocc-guide.md) - Convert Claude Code sessions to executable DiPeO diagrams
 - [DiPeO AI Diagram Generation](projects/dipeodipeo-guide.md) - AI-powered diagram generation from natural language
 - [Frontend Auto Guide](projects/frontend_auto/README.md) - Rapid AI-powered frontend generation for standard web applications
 - [Frontend Enhance Guide](projects/frontend-enhance-guide.md) - Advanced version with intelligent memory selection for complex applications

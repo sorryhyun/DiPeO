@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for person_job.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-17T23:39:56.944164
+Generated at: 2025-09-18T13:14:41.246474
 """
 
 from typing import *

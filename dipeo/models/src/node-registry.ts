@@ -13,6 +13,7 @@ import { codeJobSpec } from './nodes/code-job.spec.js';
 import { apiJobSpec } from './nodes/api-job.spec.js';
 import { endpointSpec } from './nodes/endpoint.spec.js';
 import { dbSpec } from './nodes/db.spec.js';
+import { diffPatchSpec } from './nodes/diff-patch.spec.js';
 import { userResponseSpec } from './nodes/user-response.spec.js';
 import { hookSpec } from './nodes/hook.spec.js';
 import { templateJobSpec } from './nodes/template-job.spec.js';
@@ -31,6 +32,7 @@ export const nodeSpecificationRegistry: NodeSpecificationRegistry = {
   api_job: apiJobSpec,
   endpoint: endpointSpec,
   db: dbSpec,
+  diff_patch: diffPatchSpec,
   user_response: userResponseSpec,
   hook: hookSpec,
   template_job: templateJobSpec,

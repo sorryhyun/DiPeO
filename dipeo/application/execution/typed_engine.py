@@ -406,7 +406,7 @@ class TypedExecutionEngine:
 
     def _get_handler(self, node_type: str):
         from dipeo.application import get_global_registry
-        from dipeo.application.execution.handler_factory import HandlerFactory
+        from dipeo.application.execution.handlers.core.factory import HandlerFactory
 
         registry = get_global_registry()
         if not hasattr(registry, "_service_registry") or registry._service_registry is None:

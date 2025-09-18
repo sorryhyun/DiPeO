@@ -60,13 +60,6 @@ export const todoSyncQueries: EntityQueryDefinitions = {
           name: 'toggle_todo_sync',
           args: [
             { name: 'input', value: 'input', isVariable: true }
-          ],
-          fields: [
-            ...RESULT_FIELDS,
-            {
-              name: 'sync_status',
-              fields: TODO_SYNC_STATUS_FIELDS
-            }
           ]
         }
       ]
@@ -82,13 +75,6 @@ export const todoSyncQueries: EntityQueryDefinitions = {
           name: 'configure_todo_sync',
           args: [
             { name: 'input', value: 'input', isVariable: true }
-          ],
-          fields: [
-            ...RESULT_FIELDS,
-            {
-              name: 'config',
-              fields: TODO_SYNC_CONFIG_FIELDS
-            }
           ]
         }
       ]
@@ -104,10 +90,6 @@ export const todoSyncQueries: EntityQueryDefinitions = {
           name: 'trigger_todo_sync',
           args: [
             { name: 'session_id', value: 'session_id', isVariable: true }
-          ],
-          fields: [
-            ...RESULT_FIELDS,
-            { name: 'diagram_path' }
           ]
         }
       ]
@@ -123,18 +105,6 @@ export const todoSyncQueries: EntityQueryDefinitions = {
           name: 'todo_sync_status',
           args: [
             { name: 'session_id', value: 'session_id', isVariable: true }
-          ],
-          fields: [
-            ...TODO_SYNC_STATUS_FIELDS,
-            {
-              name: 'active_sessions',
-              fields: [
-                { name: 'session_id' },
-                { name: 'started_at' },
-                { name: 'last_update' },
-                { name: 'update_count' }
-              ]
-            }
           ]
         }
       ]
@@ -151,16 +121,13 @@ export const todoSyncQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'list_todo_diagrams',
+          name: 'todo_diagrams',
           args: [
             { name: 'session_id', value: 'session_id', isVariable: true },
             { name: 'originating_document', value: 'originating_document', isVariable: true },
             { name: 'is_active', value: 'is_active', isVariable: true },
             { name: 'limit', value: 'limit', isVariable: true },
             { name: 'offset', value: 'offset', isVariable: true }
-          ],
-          fields: [
-            ...TODO_DIAGRAM_FIELDS
           ]
         }
       ]
@@ -169,26 +136,13 @@ export const todoSyncQueries: EntityQueryDefinitions = {
       name: 'GetTodoDiagram',
       type: QueryOperationType.QUERY,
       variables: [
-        { name: 'id', type: 'ID', required: true }
+        { name: 'id', type: 'String', required: true }
       ],
       fields: [
         {
-          name: 'get_todo_diagram',
+          name: 'todo_diagram',
           args: [
             { name: 'id', value: 'id', isVariable: true }
-          ],
-          fields: [
-            ...TODO_DIAGRAM_FIELDS,
-            {
-              name: 'todos',
-              fields: [
-                { name: 'content' },
-                { name: 'status' },
-                { name: 'active_form' },
-                { name: 'created_at' },
-                { name: 'updated_at' }
-              ]
-            }
           ]
         }
       ]
@@ -201,30 +155,9 @@ export const todoSyncQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'todo_updates',
+          name: 'subscribe_todo_updates',
           args: [
             { name: 'session_id', value: 'session_id', isVariable: true }
-          ],
-          fields: [
-            { name: 'event_type' },
-            { name: 'session_id' },
-            { name: 'timestamp' },
-            {
-              name: 'diagram',
-              fields: TODO_DIAGRAM_FIELDS
-            },
-            {
-              name: 'todo_snapshot',
-              fields: [
-                { name: 'items', fields: [
-                  { name: 'content' },
-                  { name: 'status' },
-                  { name: 'active_form' }
-                ]},
-                { name: 'timestamp' },
-                { name: 'session_id' }
-              ]
-            }
           ]
         }
       ]

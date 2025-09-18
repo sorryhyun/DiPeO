@@ -1,7 +1,7 @@
 """
 Node factory for creating executable nodes from data.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-17T23:39:56.430386
+Generated at: 2025-09-18T13:14:40.395919
 
 """
 
@@ -16,6 +16,7 @@ from dipeo.diagram_generated.unified_nodes.api_job_node import ApiJobNode
 from dipeo.diagram_generated.unified_nodes.code_job_node import CodeJobNode
 from dipeo.diagram_generated.unified_nodes.condition_node import ConditionNode
 from dipeo.diagram_generated.unified_nodes.db_node import DbNode
+from dipeo.diagram_generated.unified_nodes.diff_patch_node import DiffPatchNode
 from dipeo.diagram_generated.unified_nodes.endpoint_node import EndpointNode
 from dipeo.diagram_generated.unified_nodes.hook_node import HookNode
 from dipeo.diagram_generated.unified_nodes.integrated_api_node import IntegratedApiNode
@@ -34,6 +35,7 @@ ExecutableNode = Union[
     CodeJobNode, 
     ConditionNode, 
     DbNode, 
+    DiffPatchNode, 
     EndpointNode, 
     HookNode, 
     IntegratedApiNode, 
@@ -133,6 +135,27 @@ def create_executable_node(
             # Serialize JSON field may have camelCase variants
             serialize_json=data.get('serialize_json', data.get('serializeJson', False)),
             format=data.get('format', "json"),
+        )
+
+    elif node_type == NodeType.DIFF_PATCH:
+        return DiffPatchNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            target_path=data.get('target_path', None),
+            diff=data.get('diff', None),
+            format=data.get('format', "unified"),
+            apply_mode=data.get('apply_mode', "normal"),
+            backup=data.get('backup', True),
+            validate=data.get('validate', True),
+            backup_dir=data.get('backup_dir', None),
+            strip_level=data.get('strip_level', 1),
+            fuzz_factor=data.get('fuzz_factor', 2),
+            reject_file=data.get('reject_file', None),
+            ignore_whitespace=data.get('ignore_whitespace', False),
+            create_missing=data.get('create_missing', False),
         )
 
     elif node_type == NodeType.ENDPOINT:
@@ -323,6 +346,7 @@ __all__ = [
     'CodeJobNode',
     'ConditionNode',
     'DbNode',
+    'DiffPatchNode',
     'EndpointNode',
     'HookNode',
     'IntegratedApiNode',

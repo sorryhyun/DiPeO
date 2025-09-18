@@ -9,10 +9,10 @@ from typing import TYPE_CHECKING, Any
 import yaml
 from pydantic import BaseModel
 
-from dipeo.application.execution.decorators import Optional, requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.application.execution.handler_base import TypedNodeHandler
-from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.execution.handlers.core.base import TypedNodeHandler
+from dipeo.application.execution.handlers.core.decorators import Optional, requires_services
+from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.registry import DB_OPERATIONS_SERVICE
 from dipeo.application.registry.keys import TEMPLATE_PROCESSOR
 from dipeo.diagram_generated.enums import NodeType

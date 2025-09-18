@@ -27,3 +27,6 @@ export * from './codegen/node-interface-map.js';
 
 // Frontend
 export * from './frontend/index.js';
+
+// Claude Code
+export * from './claude-code/session-types.js';

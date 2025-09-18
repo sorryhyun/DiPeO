@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.decorators import requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.application.execution.handler_base import TypedNodeHandler
-from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.execution.handlers.core.base import TypedNodeHandler
+from dipeo.application.execution.handlers.core.decorators import requires_services
+from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER, TEMPLATE_RENDERER
 from dipeo.diagram_generated.unified_nodes.template_job_node import NodeType, TemplateJobNode
 from dipeo.domain.codegen.ports import TemplateRendererPort

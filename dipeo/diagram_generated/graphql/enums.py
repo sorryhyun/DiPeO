@@ -2,7 +2,7 @@
 Generated Strawberry GraphQL enum definitions for DiPeO.
 Avoid editing THIS FILE DIRECTLY.
 
-Generated at: 2025-09-17T23:39:55.144671
+Generated at: 2025-09-18T13:14:39.011793
 """
 
 from enum import Enum
@@ -264,6 +264,7 @@ class NodeTypeGraphQL(Enum):
     SUB_DIAGRAM = "sub_diagram"
     INTEGRATED_API = "integrated_api"
     IR_BUILDER = "ir_builder"
+    DIFF_PATCH = "diff_patch"
 
 
 @strawberry.enum
@@ -930,6 +931,7 @@ def convert_nodetype_to_graphql(python_enum):
         NodeType.SUB_DIAGRAM: NodeTypeGraphQL.SUB_DIAGRAM,
         NodeType.INTEGRATED_API: NodeTypeGraphQL.INTEGRATED_API,
         NodeType.IR_BUILDER: NodeTypeGraphQL.IR_BUILDER,
+        NodeType.DIFF_PATCH: NodeTypeGraphQL.DIFF_PATCH,
     }
     return mapping.get(python_enum)
 
@@ -952,6 +954,7 @@ def convert_nodetype_from_graphql(graphql_enum):
         NodeTypeGraphQL.SUB_DIAGRAM: NodeType.SUB_DIAGRAM,
         NodeTypeGraphQL.INTEGRATED_API: NodeType.INTEGRATED_API,
         NodeTypeGraphQL.IR_BUILDER: NodeType.IR_BUILDER,
+        NodeTypeGraphQL.DIFF_PATCH: NodeType.DIFF_PATCH,
     }
     return mapping.get(graphql_enum)
 

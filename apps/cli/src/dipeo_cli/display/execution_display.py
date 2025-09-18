@@ -104,8 +104,12 @@ class ExecutionDisplay:
                 self._handle_node_failed(data)
             elif event_type == "NODE_STATUS_CHANGED":
                 self._handle_node_status_changed(data)
-            elif event_type == "EXECUTION_STATUS_CHANGED":
-                self._handle_execution_status_changed(data)
+            elif event_type in ["EXECUTION_STARTED", "execution_started"]:
+                self._handle_execution_started(data)
+            elif event_type in ["EXECUTION_COMPLETED", "execution_completed"]:
+                self._handle_execution_completed(data)
+            elif event_type in ["EXECUTION_ERROR", "execution_error"]:
+                self._handle_execution_error(data)
             elif event_type == "METRICS_COLLECTED":
                 self._handle_metrics(data)
 
@@ -248,13 +252,22 @@ class ExecutionDisplay:
             self.display_stats["nodes_skipped"] += 1
             self.layout.update_statistics(self.display_stats)
 
-    def _handle_execution_status_changed(self, data: dict[str, Any]):
-        """Handle execution status change event."""
-        status = data.get("status")
-        if status in ["COMPLETED", "FAILED", "ABORTED", "MAXITER_REACHED"]:
-            # Clear current node display
-            self.current_node_display = None
-            self.layout.update_node(None)
+    def _handle_execution_started(self, data: dict[str, Any]):
+        """Handle execution started event."""
+        # Execution has started, no specific action needed for display
+        pass
+
+    def _handle_execution_completed(self, data: dict[str, Any]):
+        """Handle execution completed event."""
+        # Clear current node display
+        self.current_node_display = None
+        self.layout.update_node(None)
+
+    def _handle_execution_error(self, data: dict[str, Any]):
+        """Handle execution error event."""
+        # Clear current node display
+        self.current_node_display = None
+        self.layout.update_node(None)
 
     def _handle_metrics(self, data: dict[str, Any]):
         """Handle metrics update event."""
@@ -333,11 +346,13 @@ class SimpleDisplay:
             node_id = data.get("node_id", "unknown")
             error = data.get("error", "Unknown error")
             print(f"✗ Failed: {node_id} - {error}")
-        elif event_type == "EXECUTION_STATUS_CHANGED":
-            status = data.get("status")
-            if status != self.last_status:
-                self.last_status = status
-                print(f"📊 Execution status: {status}")
+        elif event_type in ["EXECUTION_STARTED", "execution_started"]:
+            print("📊 Execution started")
+        elif event_type in ["EXECUTION_COMPLETED", "execution_completed"]:
+            print("📊 Execution completed")
+        elif event_type in ["EXECUTION_ERROR", "execution_error"]:
+            error = data.get("error", "Unknown error")
+            print(f"📊 Execution failed: {error}")
 
     def update_from_state(self, execution_state: dict[str, Any]):
         """Update from state in simple mode."""

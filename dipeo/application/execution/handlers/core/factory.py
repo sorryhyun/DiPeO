@@ -3,10 +3,10 @@ from typing import TYPE_CHECKING, TypeVar
 
 from pydantic import BaseModel
 
+from dipeo.application.registry import ServiceRegistry
 from dipeo.diagram_generated.enums import NodeType
 
-from ..registry import ServiceRegistry
-from .handler_base import TypedNodeHandler
+from .base import TypedNodeHandler
 
 if TYPE_CHECKING:
     pass
@@ -17,21 +17,22 @@ log = logging.getLogger(__name__)
 
 
 def _get_node_handlers() -> dict[str, type[TypedNodeHandler]]:
-    from .handlers.api_job import ApiJobNodeHandler
-    from .handlers.code_job import CodeJobNodeHandler
-    from .handlers.condition import ConditionNodeHandler
-    from .handlers.db import DBTypedNodeHandler
-    from .handlers.endpoint import EndpointNodeHandler
-    from .handlers.hook import HookNodeHandler
-    from .handlers.integrated_api import IntegratedApiNodeHandler
-    from .handlers.ir_builder import IrBuilderNodeHandler
-    from .handlers.json_schema_validator import JsonSchemaValidatorNodeHandler
-    from .handlers.person_job import PersonJobNodeHandler
-    from .handlers.start import StartNodeHandler
-    from .handlers.sub_diagram import SubDiagramNodeHandler
-    from .handlers.template_job import TemplateJobNodeHandler
-    from .handlers.typescript_ast import TypescriptAstNodeHandler
-    from .handlers.user_response import UserResponseNodeHandler
+    from ..api_job import ApiJobNodeHandler
+    from ..code_job import CodeJobNodeHandler
+    from ..codegen.ir_builder import IrBuilderNodeHandler
+    from ..codegen.schema_validator import JsonSchemaValidatorNodeHandler
+    from ..codegen.template import TemplateJobNodeHandler
+    from ..codegen.typescript_ast import TypescriptAstNodeHandler
+    from ..condition import ConditionNodeHandler
+    from ..db import DBTypedNodeHandler
+    from ..diff_patch import DiffPatchHandler
+    from ..endpoint import EndpointNodeHandler
+    from ..hook import HookNodeHandler
+    from ..integrated_api import IntegratedApiNodeHandler
+    from ..person_job import PersonJobNodeHandler
+    from ..start import StartNodeHandler
+    from ..sub_diagram import SubDiagramNodeHandler
+    from ..user_response import UserResponseNodeHandler
 
     return {
         NodeType.START: StartNodeHandler,
@@ -41,6 +42,7 @@ def _get_node_handlers() -> dict[str, type[TypedNodeHandler]]:
         NodeType.API_JOB: ApiJobNodeHandler,
         NodeType.ENDPOINT: EndpointNodeHandler,
         NodeType.DB: DBTypedNodeHandler,
+        NodeType.DIFF_PATCH: DiffPatchHandler,
         NodeType.USER_RESPONSE: UserResponseNodeHandler,
         NodeType.HOOK: HookNodeHandler,
         NodeType.TEMPLATE_JOB: TemplateJobNodeHandler,

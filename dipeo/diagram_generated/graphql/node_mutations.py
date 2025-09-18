@@ -2,7 +2,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-17T23:39:55.144671
+Generated at: 2025-09-18T13:14:39.011793
 """
 
 import strawberry
@@ -367,6 +367,126 @@ class UpdateDbInput:
     
     
     format: Optional[str] = None  # Data format (json, yaml, csv, text, etc.)
+    
+    
+
+
+@strawberry.input
+class CreateDiffPatchInput:
+    """Input for creating a Diff/Patch node"""
+    diagram_id: str
+    position: Vec2Input
+    label: Optional[str] = None
+
+    # Node-specific fields from specification
+    
+    
+    target_path: str  # Path to the file to patch
+    
+    
+    
+    diff: str  # Unified diff content to apply
+    
+    
+    
+    # Enum field: Diff format type
+    format: Optional[str] = None  # Values: ['unified', 'git', 'context', 'ed', 'normal']
+    
+    
+    
+    # Enum field: How to apply the patch
+    apply_mode: Optional[str] = None  # Values: ['normal', 'force', 'dry_run', 'reverse']
+    
+    
+    
+    backup: Optional[bool] = None  # Create backup before patching
+    
+    
+    
+    validate: Optional[bool] = None  # Validate patch before applying
+    
+    
+    
+    backup_dir: Optional[str] = None  # Directory for backup files
+    
+    
+    
+    strip_level: Optional[int] = None  # Strip N leading path components (like patch -pN)
+    
+    
+    
+    fuzz_factor: Optional[int] = None  # Number of lines that can be ignored when matching context
+    
+    
+    
+    reject_file: Optional[str] = None  # Path to save rejected hunks
+    
+    
+    
+    ignore_whitespace: Optional[bool] = None  # Ignore whitespace changes when matching
+    
+    
+    
+    create_missing: Optional[bool] = None  # Create target file if it doesn't exist
+    
+    
+
+@strawberry.input
+class UpdateDiffPatchInput:
+    """Input for updating a Diff/Patch node"""
+    position: Optional[Vec2Input] = None
+    label: Optional[str] = None
+
+    # Node-specific fields from specification (all optional for updates)
+    
+    
+    target_path: Optional[str] = None  # Path to the file to patch
+    
+    
+    
+    diff: Optional[str] = None  # Unified diff content to apply
+    
+    
+    
+    # Enum field: Diff format type
+    format: Optional[str] = None  # Values: ['unified', 'git', 'context', 'ed', 'normal']
+    
+    
+    
+    # Enum field: How to apply the patch
+    apply_mode: Optional[str] = None  # Values: ['normal', 'force', 'dry_run', 'reverse']
+    
+    
+    
+    backup: Optional[bool] = None  # Create backup before patching
+    
+    
+    
+    validate: Optional[bool] = None  # Validate patch before applying
+    
+    
+    
+    backup_dir: Optional[str] = None  # Directory for backup files
+    
+    
+    
+    strip_level: Optional[int] = None  # Strip N leading path components (like patch -pN)
+    
+    
+    
+    fuzz_factor: Optional[int] = None  # Number of lines that can be ignored when matching context
+    
+    
+    
+    reject_file: Optional[str] = None  # Path to save rejected hunks
+    
+    
+    
+    ignore_whitespace: Optional[bool] = None  # Ignore whitespace changes when matching
+    
+    
+    
+    create_missing: Optional[bool] = None  # Create target file if it doesn't exist
     
     
 
@@ -2135,6 +2255,9 @@ __all__ = [
 
     'CreateDbInput',
     'UpdateDbInput',
+
+    'CreateDiffPatchInput',
+    'UpdateDiffPatchInput',
 
     'CreateEndpointInput',
     'UpdateEndpointInput',

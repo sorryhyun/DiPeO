@@ -1,7 +1,7 @@
 """
 Generated enum definitions for DiPeO.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-17T23:39:56.434349
+Generated at: 2025-09-18T13:14:40.400144
 """
 
 from enum import Enum
@@ -380,6 +380,8 @@ class NodeType(str, Enum):
     INTEGRATED_API = "integrated_api"
     
     IR_BUILDER = "ir_builder"
+    
+    DIFF_PATCH = "diff_patch"
     
 
 

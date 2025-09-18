@@ -5,10 +5,10 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.decorators import requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.application.execution.handler_base import TypedNodeHandler
-from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.execution.handlers.core.base import TypedNodeHandler
+from dipeo.application.execution.handlers.core.decorators import requires_services
+from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.registry.keys import IR_BUILDER_REGISTRY, IR_CACHE, ServiceKey
 from dipeo.diagram_generated.unified_nodes.ir_builder_node import IrBuilderNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory

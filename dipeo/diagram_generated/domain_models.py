@@ -698,3 +698,128 @@ PROVIDER_OPERATIONS = {
     "\u0027notion\u0027": ["create_page", "update_page", "read_page", "delete_page", "create_database",
                            "query_database", "update_database"],
     "\u0027slack\u0027": ["send_message", "read_channel", "create_channel", "list_channels", "upload_file"]}
+
+
+# Claude Code Session Types
+class ToolUse(BaseModel):
+    """Tool usage in Claude Code session"""
+    model_config = ConfigDict(extra='forbid')
+
+    name: str
+    input: Dict[str, Any]
+
+
+class ToolResult(BaseModel):
+    """Tool result in Claude Code session"""
+    model_config = ConfigDict(extra='forbid')
+
+    success: bool
+    output: Optional[str] = None
+    error: Optional[str] = None
+
+
+class ClaudeCodeMessage(BaseModel):
+    """Message in Claude Code session"""
+    model_config = ConfigDict(extra='forbid')
+
+    role: Literal['user', 'assistant']
+    content: str
+
+
+class SessionMetadata(BaseModel):
+    """Metadata for Claude Code session"""
+    model_config = ConfigDict(extra='forbid')
+
+    startTime: str
+    endTime: Optional[str] = None
+    totalEvents: int
+    toolUsageCount: Dict[str, int]
+    projectPath: Optional[str] = None
+
+
+class SessionEvent(BaseModel):
+    """Event in Claude Code session"""
+    model_config = ConfigDict(extra='forbid')
+
+    type: Literal['user', 'assistant', 'summary']
+    uuid: str
+    parentUuid: Optional[str] = None
+    timestamp: str
+    message: ClaudeCodeMessage
+    toolUse: Optional[ToolUse] = None
+    toolResult: Optional[ToolResult] = None
+
+
+class ClaudeCodeSession(BaseModel):
+    """Claude Code session data"""
+    model_config = ConfigDict(extra='forbid')
+
+    sessionId: str
+    events: List[SessionEvent]
+    metadata: SessionMetadata
+
+
+class ConversationTurn(BaseModel):
+    """Conversation turn in Claude Code session"""
+    model_config = ConfigDict(extra='forbid')
+
+    userEvent: SessionEvent
+    assistantEvent: SessionEvent
+    toolEvents: List[SessionEvent]
+
+
+class DiffPatchInput(BaseModel):
+    """Input for diff patch operations"""
+    model_config = ConfigDict(extra='forbid')
+
+    filePath: str
+    oldContent: Optional[str] = None
+    newContent: Optional[str] = None
+    patch: Optional[str] = None
+
+
+class ClaudeCodeDiagramMetadata(BaseModel):
+    """Metadata for Claude Code diagram generation"""
+    model_config = ConfigDict(extra='forbid')
+
+    sessionId: str
+    createdAt: str
+    eventCount: int
+    nodeCount: int
+    toolUsage: Dict[str, int]
+
+
+class SessionStatistics(BaseModel):
+    """Statistics for Claude Code session"""
+    model_config = ConfigDict(extra='forbid')
+
+    sessionId: str
+    totalEvents: int
+    userPrompts: int
+    assistantResponses: int
+    totalToolCalls: int
+    toolBreakdown: Dict[str, int]
+    duration: Optional[float] = None
+    filesModified: List[str]
+    commandsExecuted: List[str]
+
+
+class SessionConversionOptions(BaseModel):
+    """Options for Claude Code session conversion"""
+    model_config = ConfigDict(extra='forbid')
+
+    outputDir: Optional[str] = None
+    format: Optional[Literal['light', 'native', 'readable']] = None
+    autoExecute: Optional[bool] = None
+    mergeReads: Optional[bool] = None
+    simplify: Optional[bool] = None
+    preserveThinking: Optional[bool] = None
+
+
+class WatchOptions(BaseModel):
+    """Options for watching Claude Code sessions"""
+    model_config = ConfigDict(extra='forbid')
+
+    interval: Optional[int] = None
+    autoConvert: Optional[bool] = None
+    notifyOnNew: Optional[bool] = None

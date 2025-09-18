@@ -267,16 +267,14 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
                         execution_results[node_id] = node_output
                     return {node_id: node_output}, None, False
 
-        elif update_type == "EXECUTION_STATUS_CHANGED":
+        elif update_type in ["EXECUTION_COMPLETED", "execution_completed"]:
+            return None, None, True
+        elif update_type in ["EXECUTION_ERROR", "execution_error"]:
             data = update.get("data", {})
-            if data.get("status") == Status.COMPLETED:
-                return None, None, True
-            elif data.get("status") == Status.FAILED:
-                error = (
-                    data.get("error")
-                    or f"Execution failed (node_id: {data.get('node_id', 'unknown')})"
-                )
-                return None, error, True
+            error = (
+                data.get("error") or f"Execution failed (node_id: {data.get('node_id', 'unknown')})"
+            )
+            return None, error, True
 
         # Legacy support for old update types
         elif update_type == "node_complete":

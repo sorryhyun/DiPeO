@@ -2,7 +2,7 @@
 Unified node models - combining validation and execution.
 Phase 2 of refactoring: One model per node type.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-17T23:39:56.433558
+Generated at: 2025-09-18T13:14:40.399383
 """
 
 
@@ -10,6 +10,7 @@ from .api_job_node import ApiJobNode
 from .code_job_node import CodeJobNode
 from .condition_node import ConditionNode
 from .db_node import DbNode
+from .diff_patch_node import DiffPatchNode
 from .endpoint_node import EndpointNode
 from .hook_node import HookNode
 from .integrated_api_node import IntegratedApiNode
@@ -27,6 +28,7 @@ __all__ = [
     "CodeJobNode",
     "ConditionNode",
     "DbNode",
+    "DiffPatchNode",
     "EndpointNode",
     "HookNode",
     "IntegratedApiNode",

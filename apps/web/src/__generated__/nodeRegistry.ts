@@ -6,6 +6,7 @@ import { apiJobConfig } from '@/__generated__/nodes/ApiJobConfig';
 import { codeJobConfig } from '@/__generated__/nodes/CodeJobConfig';
 import { conditionConfig } from '@/__generated__/nodes/ConditionConfig';
 import { dbConfig } from '@/__generated__/nodes/DbConfig';
+import { diffPatchConfig } from '@/__generated__/nodes/DiffPatchConfig';
 import { endpointConfig } from '@/__generated__/nodes/EndpointConfig';
 import { hookConfig } from '@/__generated__/nodes/HookConfig';
 import { integratedApiConfig } from '@/__generated__/nodes/IntegratedApiConfig';
@@ -23,6 +24,7 @@ export function registerAllNodes() {
   registerNodeConfig(codeJobConfig);
   registerNodeConfig(conditionConfig);
   registerNodeConfig(dbConfig);
+  registerNodeConfig(diffPatchConfig);
   registerNodeConfig(endpointConfig);
   registerNodeConfig(hookConfig);
   registerNodeConfig(integratedApiConfig);

@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-17T23:39:55.144671
+Generated at: 2025-09-18T13:14:39.011793
 """
 
 import strawberry
@@ -464,6 +464,163 @@ class DbDataType:
         
         # Direct assignment for other types
         field_values["format"] = field_value
+        
+        
+
+        return cls(
+            id=node.id,
+            position=Vec2Type(x=node.position.x, y=node.position.y),
+            type=node.type,
+            label=node.label,
+            flipped=node.flipped,
+            metadata=metadata,
+            **field_values
+        )
+
+
+@strawberry.type
+class DiffPatchDataType:
+    """Apply unified diffs to files with safety controls - Data fields only"""
+    # Base fields (all nodes have these)
+    id: NodeIDScalar
+    position: Vec2Type
+    type: strawberry.Private[NodeType]  # Not exposed in GraphQL
+    label: Optional[str] = None
+    flipped: Optional[bool] = False
+    metadata: Optional[JSONScalar] = None  # Use JSONScalar for Dict fields
+
+    # Node-specific fields from specification
+    
+    
+    target_path: str  # Path to the file to patch
+    
+    
+    
+    diff: str  # Unified diff content to apply
+    
+    
+    
+    # Enum field: Diff format type (Values: unified, git, context, ed, normal)
+    format: Optional[str] = None
+    
+    
+    
+    # Enum field: How to apply the patch (Values: normal, force, dry_run, reverse)
+    apply_mode: Optional[str] = None
+    
+    
+    
+    backup: Optional[bool] = None  # Create backup before patching
+    
+    
+    
+    validate: Optional[bool] = None  # Validate patch before applying
+    
+    
+    
+    backup_dir: Optional[str] = None  # Directory for backup files
+    
+    
+    
+    strip_level: Optional[int] = None  # Strip N leading path components (like patch -pN)
+    
+    
+    
+    fuzz_factor: Optional[int] = None  # Number of lines that can be ignored when matching context
+    
+    
+    
+    reject_file: Optional[str] = None  # Path to save rejected hunks
+    
+    
+    
+    ignore_whitespace: Optional[bool] = None  # Ignore whitespace changes when matching
+    
+    
+    
+    create_missing: Optional[bool] = None  # Create target file if it doesn't exist
+    
+    
+
+    @classmethod
+    def from_pydantic(cls, node: DiffPatchNode) -> "DiffPatchDataType":
+        """Convert from Pydantic model to Strawberry type."""
+        # Convert Dict fields to JSONScalar
+        metadata = node.metadata if node.metadata else None
+
+        # Get node-specific fields with type conversion
+        field_values = {}
+        
+        field_value = getattr(node, "target_path", None)
+        
+        # Direct assignment for other types
+        field_values["target_path"] = field_value
+        
+        
+        field_value = getattr(node, "diff", None)
+        
+        # Direct assignment for other types
+        field_values["diff"] = field_value
+        
+        
+        field_value = getattr(node, "format", None)
+        
+        # Direct assignment for other types
+        field_values["format"] = field_value
+        
+        
+        field_value = getattr(node, "apply_mode", None)
+        
+        # Direct assignment for other types
+        field_values["apply_mode"] = field_value
+        
+        
+        field_value = getattr(node, "backup", None)
+        
+        # Direct assignment for other types
+        field_values["backup"] = field_value
+        
+        
+        field_value = getattr(node, "validate", None)
+        
+        # Direct assignment for other types
+        field_values["validate"] = field_value
+        
+        
+        field_value = getattr(node, "backup_dir", None)
+        
+        # Direct assignment for other types
+        field_values["backup_dir"] = field_value
+        
+        
+        field_value = getattr(node, "strip_level", None)
+        
+        # Direct assignment for other types
+        field_values["strip_level"] = field_value
+        
+        
+        field_value = getattr(node, "fuzz_factor", None)
+        
+        # Direct assignment for other types
+        field_values["fuzz_factor"] = field_value
+        
+        
+        field_value = getattr(node, "reject_file", None)
+        
+        # Direct assignment for other types
+        field_values["reject_file"] = field_value
+        
+        
+        field_value = getattr(node, "ignore_whitespace", None)
+        
+        # Direct assignment for other types
+        field_values["ignore_whitespace"] = field_value
+        
+        
+        field_value = getattr(node, "create_missing", None)
+        
+        # Direct assignment for other types
+        field_values["create_missing"] = field_value
         
         
 
@@ -1647,6 +1804,8 @@ NodeDataUnion = strawberry.union(
 
         DbDataType,
 
+        DiffPatchDataType,
+
         EndpointDataType,
 
         HookDataType,
@@ -1685,6 +1844,8 @@ __all__ = [
     'ConditionDataType',
 
     'DbDataType',
+
+    'DiffPatchDataType',
 
     'EndpointDataType',
 

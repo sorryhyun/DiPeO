@@ -11,7 +11,7 @@ from typing import Optional
 import strawberry
 from strawberry.types import Info
 
-from dipeo.application.todo_sync.sync_service import SyncMode, TodoSyncService
+from dipeo.application.todo_sync.sync_service import TodoSyncMode, TodoSyncService
 from dipeo.domain.diagram.services.todo_translator import TodoTranslator
 from dipeo.infrastructure.llm.providers.claude_code.todo_collector import (
     TodoSnapshot,
@@ -190,7 +190,7 @@ class TodoSyncResolvers:
     """GraphQL resolvers for TODO sync operations."""
 
     def __init__(self):
-        self.sync_service = TodoSyncService.get_instance()
+        self.sync_service = TodoSyncService()
         self.translator = TodoTranslator()
 
     async def toggle_todo_sync(
@@ -208,7 +208,7 @@ class TodoSyncResolvers:
                 message = f"TODO sync disabled for session {session_id}"
 
             # Get current status
-            session_info = self.sync_service.get_session_info(session_id)
+            session_info = self.sync_service.get_session_state(session_id)
 
             return TodoSyncResult(
                 success=True,
@@ -247,7 +247,7 @@ class TodoSyncResolvers:
         try:
             # Update configuration
             if mode:
-                self.sync_service.sync_mode = SyncMode[mode.upper()]
+                self.sync_service.sync_mode = TodoSyncMode[mode.upper()]
             if output_dir:
                 self.sync_service.output_dir = Path(output_dir)
             if auto_execute is not None:
@@ -308,7 +308,7 @@ class TodoSyncResolvers:
         try:
             if session_id:
                 # Get status for specific session
-                session_info = self.sync_service.get_session_info(session_id)
+                session_info = self.sync_service.get_session_state(session_id)
                 is_active = session_info is not None
 
                 return TodoSyncStatusResult(
@@ -322,7 +322,7 @@ class TodoSyncResolvers:
             else:
                 # Get all active sessions
                 active_sessions = []
-                for sid, sinfo in self.sync_service._sessions.items():
+                for sid, sinfo in self.sync_service._active_sessions.items():
                     active_sessions.append(
                         TodoSyncActiveSession(
                             session_id=sid,
@@ -450,7 +450,7 @@ class TodoSyncResolvers:
             await asyncio.sleep(5)
 
             # Check for updates
-            session_info = self.sync_service.get_session_info(session_id)
+            session_info = self.sync_service.get_session_state(session_id)
             if session_info:
                 yield TodoUpdateEvent(
                     event_type="sync",

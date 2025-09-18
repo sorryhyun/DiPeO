@@ -63,6 +63,29 @@ pip install -e .
 
 ## Command Reference
 
+### dipeo ask
+
+Generate a diagram from natural language and optionally run it:
+
+```bash
+# Generate diagram from natural language
+dipeo ask --to "create a workflow that analyzes sentiment from CSV data"
+
+# Generate and immediately execute
+dipeo ask --to "fetch weather data and create a summary" --and-run
+
+# With custom timeouts
+dipeo ask --to "complex data pipeline" --timeout 120 --run-timeout 600
+```
+
+**Options:**
+- `--to`: Natural language description of what to create
+- `--and-run`: Automatically run the generated diagram
+- `--debug`: Enable debug output
+- `--timeout N`: Generation timeout in seconds (default: 90)
+- `--run-timeout N`: Execution timeout for generated diagram (default: 300)
+- `--browser`: Open browser when running generated diagram
+
 ### dipeo run
 
 Execute a diagram with real-time monitoring:
@@ -170,6 +193,124 @@ dipeo metrics --optimizations
 # JSON output for processing
 dipeo metrics --json
 ```
+
+### dipeo integrations
+
+Manage API integrations and providers:
+
+```bash
+# Initialize integrations workspace
+dipeo integrations init
+dipeo integrations init --path ./my-integrations
+
+# Validate provider manifests
+dipeo integrations validate
+dipeo integrations validate --provider my-api
+
+# Import OpenAPI specification
+dipeo integrations openapi-import api-spec.yaml --name my-api
+
+# Test integration provider
+dipeo integrations test my-provider --operation get_user
+
+# Claude Code TODO synchronization
+dipeo integrations claude-code --sync-mode auto --watch-todos
+```
+
+**Subcommands:**
+- `init`: Initialize integrations workspace
+  - `--path PATH`: Path to initialize (default: ./integrations)
+
+- `validate`: Validate provider manifests
+  - `--path PATH`: Path to integrations directory
+  - `--provider NAME`: Validate specific provider only
+
+- `openapi-import`: Import OpenAPI specification
+  - `openapi_path`: Path to OpenAPI spec file
+  - `--name`: Provider name (required)
+  - `--output PATH`: Output directory
+  - `--base-url URL`: Override base URL
+
+- `test`: Test integration provider
+  - `provider`: Provider name to test
+  - `--operation NAME`: Specific operation to test
+  - `--config JSON`: Test configuration
+  - `--record`: Record test for replay
+  - `--replay`: Replay recorded test
+
+- `claude-code`: Manage Claude Code TODO synchronization
+  - `--watch-todos`: Enable TODO monitoring
+  - `--sync-mode MODE`: Synchronization mode (off/manual/auto/watch)
+  - `--output-dir PATH`: Output directory for diagrams
+  - `--auto-execute`: Automatically execute generated diagrams
+  - `--debounce N`: Debounce time in seconds (default: 2.0)
+  - `--timeout N`: Timeout for monitoring
+
+### dipeo dipeocc
+
+Convert Claude Code sessions to DiPeO diagrams:
+
+```bash
+# List recent Claude Code sessions
+dipeo dipeocc list
+dipeo dipeocc list --limit 100
+
+# Convert the latest session to a diagram
+dipeo dipeocc convert --latest
+dipeo dipeocc convert --latest --auto-execute
+
+# Convert a specific session by ID
+dipeo dipeocc convert 7869d79f-e6ab-43f3-9919-2fe3b86f327b
+dipeo dipeocc convert session-id --output-dir projects/my_sessions
+
+# Watch for new sessions and convert automatically
+dipeo dipeocc watch
+dipeo dipeocc watch --interval 60 --auto-execute
+
+# Show detailed session statistics
+dipeo dipeocc stats 7869d79f-e6ab-43f3-9919-2fe3b86f327b
+```
+
+**Subcommands:**
+- `list`: List recent Claude Code sessions from `~/.claude/projects/`
+  - `--limit N`: Maximum number of sessions to list (default: 50)
+
+- `convert`: Convert a session to a DiPeO diagram
+  - `session_id`: Session ID to convert (or use `--latest`)
+  - `--latest`: Convert the most recent session
+  - `--output-dir PATH`: Output directory (default: `projects/claude_code`)
+  - `--format TYPE`: Output format - light/native/readable (default: light)
+  - `--auto-execute`: Automatically execute the generated diagram
+  - `--merge-reads`: Merge consecutive file read operations
+  - `--simplify`: Remove intermediate tool results
+
+- `watch`: Monitor for new sessions and convert automatically
+  - `--interval N`: Check interval in seconds (default: 30)
+  - `--auto-execute`: Automatically execute new diagrams
+
+- `stats`: Show detailed session statistics
+  - `session_id`: Session ID to analyze
+
+**Output Structure:**
+```
+projects/claude_code/
+├── sessions/
+│   ├── {session_id}/
+│   │   ├── diagram.light.yaml    # Generated diagram
+│   │   └── metadata.json         # Session metadata
+│   └── ...
+└── latest.light.yaml -> sessions/{latest_id}/diagram.light.yaml
+```
+
+**Node Mapping:**
+Claude Code tools are mapped to DiPeO nodes as follows:
+- User prompts → Start nodes
+- Assistant responses → Person job nodes (claude_code)
+- Read tool → DB nodes (SELECT)
+- Write tool → DB nodes (INSERT)
+- Edit tool → DB nodes (UPDATE)
+- Bash tool → Code job nodes (language=bash)
+- TodoWrite → DB nodes (task tracking)
 
 ## Core Components
 

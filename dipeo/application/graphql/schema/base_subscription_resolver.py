@@ -171,9 +171,21 @@ class BaseSubscriptionResolver:
                 if is_complete:
                     if status:
                         # Send final status update
+                        # Map status to proper EventType
+                        from dipeo.diagram_generated.enums import EventType, Status
+
+                        if status == Status.COMPLETED:
+                            final_event_type = EventType.EXECUTION_COMPLETED
+                        elif status == Status.FAILED:
+                            final_event_type = EventType.EXECUTION_ERROR
+                        else:
+                            # For other statuses (ABORTED, SKIPPED, etc.), treat as error
+                            final_event_type = EventType.EXECUTION_ERROR
+
                         yield {
                             "execution_id": str(execution_id),
-                            "event_type": "EXECUTION_STATUS_CHANGED",
+                            "type": final_event_type.value,
+                            "event_type": final_event_type.value,
                             "data": {"status": status, "is_final": True},
                             "timestamp": datetime.now().isoformat(),
                         }

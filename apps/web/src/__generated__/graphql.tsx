@@ -96,6 +96,14 @@ export type CliSessionResult = {
   success: Scalars['Boolean']['output'];
 };
 
+export type ConfigureTodoSyncInput = {
+  auto_execute?: InputMaybe<Scalars['Boolean']['input']>;
+  debounce_seconds?: InputMaybe<Scalars['Float']['input']>;
+  mode: TodoSyncMode;
+  monitor_enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  output_dir?: InputMaybe<Scalars['String']['input']>;
+};
+
 export enum ContentType {
   BINARY = 'BINARY',
   CONVERSATION_STATE = 'CONVERSATION_STATE',
@@ -363,6 +371,7 @@ export type LLMUsageType = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  configure_todo_sync: Scalars['JSON']['output'];
   control_execution: ExecutionResult;
   convert_diagram_format: FormatConversionResult;
   create_api_key: ApiKeyResult;
@@ -377,6 +386,8 @@ export type Mutation = {
   register_cli_session: CliSessionResult;
   send_interactive_response: ExecutionResult;
   test_api_key: ApiKeyResult;
+  toggle_todo_sync: Scalars['JSON']['output'];
+  trigger_todo_sync: Scalars['JSON']['output'];
   unregister_cli_session: CliSessionResult;
   update_node: NodeResult;
   update_node_state: ExecutionResult;
@@ -384,6 +395,11 @@ export type Mutation = {
   upload_diagram: Scalars['JSON']['output'];
   upload_file: Scalars['JSON']['output'];
   validate_diagram: Scalars['JSON']['output'];
+};
+
+
+export type Mutationconfigure_todo_syncArgs = {
+  input: ConfigureTodoSyncInput;
 };
 
 
@@ -458,6 +474,16 @@ export type Mutationsend_interactive_responseArgs = {
 
 export type Mutationtest_api_keyArgs = {
   api_key_id: Scalars['String']['input'];
+};
+
+
+export type Mutationtoggle_todo_syncArgs = {
+  input: ToggleTodoSyncInput;
+};
+
+
+export type Mutationtrigger_todo_syncArgs = {
+  session_id: Scalars['String']['input'];
 };
 
 
@@ -568,6 +594,9 @@ export type Query = {
   providers: Scalars['JSON']['output'];
   supported_formats: Scalars['JSON']['output'];
   system_info: Scalars['JSON']['output'];
+  todo_diagram: Scalars['JSON']['output'];
+  todo_diagrams: Array<Scalars['JSON']['output']>;
+  todo_sync_status: Scalars['JSON']['output'];
 };
 
 
@@ -664,6 +693,25 @@ export type Queryprovider_operationsArgs = {
   provider: Scalars['String']['input'];
 };
 
+
+export type Querytodo_diagramArgs = {
+  id: Scalars['String']['input'];
+};
+
+
+export type Querytodo_diagramsArgs = {
+  is_active?: InputMaybe<Scalars['Boolean']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+  originating_document?: InputMaybe<Scalars['String']['input']>;
+  session_id?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type Querytodo_sync_statusArgs = {
+  session_id?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type RegisterCliSessionInput = {
   diagram_data?: InputMaybe<Scalars['JSON']['input']>;
   diagram_format: DiagramFormatGraphQL;
@@ -676,11 +724,30 @@ export { Status };
 export type Subscription = {
   __typename?: 'Subscription';
   execution_updates: ExecutionUpdateType;
+  subscribe_todo_updates: Scalars['JSON']['output'];
 };
 
 
 export type Subscriptionexecution_updatesArgs = {
   execution_id: Scalars['String']['input'];
+};
+
+
+export type Subscriptionsubscribe_todo_updatesArgs = {
+  session_id: Scalars['String']['input'];
+};
+
+export enum TodoSyncMode {
+  AUTO = 'AUTO',
+  MANUAL = 'MANUAL',
+  OFF = 'OFF',
+  WATCH = 'WATCH'
+}
+
+export type ToggleTodoSyncInput = {
+  enabled: Scalars['Boolean']['input'];
+  session_id: Scalars['String']['input'];
+  trace_id?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type UnregisterCliSessionInput = {
@@ -877,6 +944,31 @@ export type GetActiveCliSessionQueryVariables = Exact<{ [key: string]: never; }>
 
 export type GetActiveCliSessionQuery = { __typename?: 'Query', active_cli_session: any };
 
+export type GetTodoSyncStatusQueryVariables = Exact<{
+  session_id?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type GetTodoSyncStatusQuery = { __typename?: 'Query', todo_sync_status: any };
+
+export type ListTodoDiagramsQueryVariables = Exact<{
+  session_id?: InputMaybe<Scalars['String']['input']>;
+  originating_document?: InputMaybe<Scalars['String']['input']>;
+  is_active?: InputMaybe<Scalars['Boolean']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  offset?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type ListTodoDiagramsQuery = { __typename?: 'Query', todo_diagrams: Array<any> };
+
+export type GetTodoDiagramQueryVariables = Exact<{
+  id: Scalars['String']['input'];
+}>;
+
+
+export type GetTodoDiagramQuery = { __typename?: 'Query', todo_diagram: any };
+
 export type CreateApiKeyMutationVariables = Exact<{
   input: CreateApiKeyInput;
 }>;
@@ -1034,12 +1126,40 @@ export type DeletePersonMutationVariables = Exact<{
 
 export type DeletePersonMutation = { __typename?: 'Mutation', delete_person: { __typename?: 'DeleteResult', success: boolean, message?: string | null, error?: string | null } };
 
+export type ToggleTodoSyncMutationVariables = Exact<{
+  input: ToggleTodoSyncInput;
+}>;
+
+
+export type ToggleTodoSyncMutation = { __typename?: 'Mutation', toggle_todo_sync: any };
+
+export type ConfigureTodoSyncMutationVariables = Exact<{
+  input: ConfigureTodoSyncInput;
+}>;
+
+
+export type ConfigureTodoSyncMutation = { __typename?: 'Mutation', configure_todo_sync: any };
+
+export type TriggerTodoSyncMutationVariables = Exact<{
+  session_id: Scalars['String']['input'];
+}>;
+
+
+export type TriggerTodoSyncMutation = { __typename?: 'Mutation', trigger_todo_sync: any };
+
 export type ExecutionUpdatesSubscriptionVariables = Exact<{
   execution_id: Scalars['String']['input'];
 }>;
 
 
 export type ExecutionUpdatesSubscription = { __typename?: 'Subscription', execution_updates: { __typename?: 'ExecutionUpdateType', execution_id: string, type: EventType, data?: any | null, timestamp?: string | null } };
+
+export type SubscribeTodoUpdatesSubscriptionVariables = Exact<{
+  session_id: Scalars['String']['input'];
+}>;
+
+
+export type SubscribeTodoUpdatesSubscription = { __typename?: 'Subscription', subscribe_todo_updates: any };
 
 
 export const GetApiKeysDocument = gql`
@@ -2053,6 +2173,130 @@ export type GetActiveCliSessionQueryHookResult = ReturnType<typeof useGetActiveC
 export type GetActiveCliSessionLazyQueryHookResult = ReturnType<typeof useGetActiveCliSessionLazyQuery>;
 export type GetActiveCliSessionSuspenseQueryHookResult = ReturnType<typeof useGetActiveCliSessionSuspenseQuery>;
 export type GetActiveCliSessionQueryResult = Apollo.QueryResult<GetActiveCliSessionQuery, GetActiveCliSessionQueryVariables>;
+export const GetTodoSyncStatusDocument = gql`
+    query GetTodoSyncStatus($session_id: String) {
+  todo_sync_status(session_id: $session_id)
+}
+    `;
+
+/**
+ * __useGetTodoSyncStatusQuery__
+ *
+ * To run a query within a React component, call `useGetTodoSyncStatusQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetTodoSyncStatusQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetTodoSyncStatusQuery({
+ *   variables: {
+ *      session_id: // value for 'session_id'
+ *   },
+ * });
+ */
+export function useGetTodoSyncStatusQuery(baseOptions?: Apollo.QueryHookOptions<GetTodoSyncStatusQuery, GetTodoSyncStatusQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetTodoSyncStatusQuery, GetTodoSyncStatusQueryVariables>(GetTodoSyncStatusDocument, options);
+      }
+export function useGetTodoSyncStatusLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetTodoSyncStatusQuery, GetTodoSyncStatusQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetTodoSyncStatusQuery, GetTodoSyncStatusQueryVariables>(GetTodoSyncStatusDocument, options);
+        }
+export function useGetTodoSyncStatusSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetTodoSyncStatusQuery, GetTodoSyncStatusQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetTodoSyncStatusQuery, GetTodoSyncStatusQueryVariables>(GetTodoSyncStatusDocument, options);
+        }
+export type GetTodoSyncStatusQueryHookResult = ReturnType<typeof useGetTodoSyncStatusQuery>;
+export type GetTodoSyncStatusLazyQueryHookResult = ReturnType<typeof useGetTodoSyncStatusLazyQuery>;
+export type GetTodoSyncStatusSuspenseQueryHookResult = ReturnType<typeof useGetTodoSyncStatusSuspenseQuery>;
+export type GetTodoSyncStatusQueryResult = Apollo.QueryResult<GetTodoSyncStatusQuery, GetTodoSyncStatusQueryVariables>;
+export const ListTodoDiagramsDocument = gql`
+    query ListTodoDiagrams($session_id: String, $originating_document: String, $is_active: Boolean, $limit: Int, $offset: Int) {
+  todo_diagrams(
+    session_id: $session_id
+    originating_document: $originating_document
+    is_active: $is_active
+    limit: $limit
+    offset: $offset
+  )
+}
+    `;
+
+/**
+ * __useListTodoDiagramsQuery__
+ *
+ * To run a query within a React component, call `useListTodoDiagramsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useListTodoDiagramsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useListTodoDiagramsQuery({
+ *   variables: {
+ *      session_id: // value for 'session_id'
+ *      originating_document: // value for 'originating_document'
+ *      is_active: // value for 'is_active'
+ *      limit: // value for 'limit'
+ *      offset: // value for 'offset'
+ *   },
+ * });
+ */
+export function useListTodoDiagramsQuery(baseOptions?: Apollo.QueryHookOptions<ListTodoDiagramsQuery, ListTodoDiagramsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<ListTodoDiagramsQuery, ListTodoDiagramsQueryVariables>(ListTodoDiagramsDocument, options);
+      }
+export function useListTodoDiagramsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ListTodoDiagramsQuery, ListTodoDiagramsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<ListTodoDiagramsQuery, ListTodoDiagramsQueryVariables>(ListTodoDiagramsDocument, options);
+        }
+export function useListTodoDiagramsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ListTodoDiagramsQuery, ListTodoDiagramsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<ListTodoDiagramsQuery, ListTodoDiagramsQueryVariables>(ListTodoDiagramsDocument, options);
+        }
+export type ListTodoDiagramsQueryHookResult = ReturnType<typeof useListTodoDiagramsQuery>;
+export type ListTodoDiagramsLazyQueryHookResult = ReturnType<typeof useListTodoDiagramsLazyQuery>;
+export type ListTodoDiagramsSuspenseQueryHookResult = ReturnType<typeof useListTodoDiagramsSuspenseQuery>;
+export type ListTodoDiagramsQueryResult = Apollo.QueryResult<ListTodoDiagramsQuery, ListTodoDiagramsQueryVariables>;
+export const GetTodoDiagramDocument = gql`
+    query GetTodoDiagram($id: String!) {
+  todo_diagram(id: $id)
+}
+    `;
+
+/**
+ * __useGetTodoDiagramQuery__
+ *
+ * To run a query within a React component, call `useGetTodoDiagramQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetTodoDiagramQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetTodoDiagramQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useGetTodoDiagramQuery(baseOptions: Apollo.QueryHookOptions<GetTodoDiagramQuery, GetTodoDiagramQueryVariables> & ({ variables: GetTodoDiagramQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetTodoDiagramQuery, GetTodoDiagramQueryVariables>(GetTodoDiagramDocument, options);
+      }
+export function useGetTodoDiagramLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetTodoDiagramQuery, GetTodoDiagramQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetTodoDiagramQuery, GetTodoDiagramQueryVariables>(GetTodoDiagramDocument, options);
+        }
+export function useGetTodoDiagramSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetTodoDiagramQuery, GetTodoDiagramQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetTodoDiagramQuery, GetTodoDiagramQueryVariables>(GetTodoDiagramDocument, options);
+        }
+export type GetTodoDiagramQueryHookResult = ReturnType<typeof useGetTodoDiagramQuery>;
+export type GetTodoDiagramLazyQueryHookResult = ReturnType<typeof useGetTodoDiagramLazyQuery>;
+export type GetTodoDiagramSuspenseQueryHookResult = ReturnType<typeof useGetTodoDiagramSuspenseQuery>;
+export type GetTodoDiagramQueryResult = Apollo.QueryResult<GetTodoDiagramQuery, GetTodoDiagramQueryVariables>;
 export const CreateApiKeyDocument = gql`
     mutation CreateApiKey($input: CreateApiKeyInput!) {
   create_api_key(input: $input) {
@@ -2830,6 +3074,99 @@ export function useDeletePersonMutation(baseOptions?: Apollo.MutationHookOptions
 export type DeletePersonMutationHookResult = ReturnType<typeof useDeletePersonMutation>;
 export type DeletePersonMutationResult = Apollo.MutationResult<DeletePersonMutation>;
 export type DeletePersonMutationOptions = Apollo.BaseMutationOptions<DeletePersonMutation, DeletePersonMutationVariables>;
+export const ToggleTodoSyncDocument = gql`
+    mutation ToggleTodoSync($input: ToggleTodoSyncInput!) {
+  toggle_todo_sync(input: $input)
+}
+    `;
+export type ToggleTodoSyncMutationFn = Apollo.MutationFunction<ToggleTodoSyncMutation, ToggleTodoSyncMutationVariables>;
+
+/**
+ * __useToggleTodoSyncMutation__
+ *
+ * To run a mutation, you first call `useToggleTodoSyncMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useToggleTodoSyncMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [toggleTodoSyncMutation, { data, loading, error }] = useToggleTodoSyncMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useToggleTodoSyncMutation(baseOptions?: Apollo.MutationHookOptions<ToggleTodoSyncMutation, ToggleTodoSyncMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ToggleTodoSyncMutation, ToggleTodoSyncMutationVariables>(ToggleTodoSyncDocument, options);
+      }
+export type ToggleTodoSyncMutationHookResult = ReturnType<typeof useToggleTodoSyncMutation>;
+export type ToggleTodoSyncMutationResult = Apollo.MutationResult<ToggleTodoSyncMutation>;
+export type ToggleTodoSyncMutationOptions = Apollo.BaseMutationOptions<ToggleTodoSyncMutation, ToggleTodoSyncMutationVariables>;
+export const ConfigureTodoSyncDocument = gql`
+    mutation ConfigureTodoSync($input: ConfigureTodoSyncInput!) {
+  configure_todo_sync(input: $input)
+}
+    `;
+export type ConfigureTodoSyncMutationFn = Apollo.MutationFunction<ConfigureTodoSyncMutation, ConfigureTodoSyncMutationVariables>;
+
+/**
+ * __useConfigureTodoSyncMutation__
+ *
+ * To run a mutation, you first call `useConfigureTodoSyncMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useConfigureTodoSyncMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [configureTodoSyncMutation, { data, loading, error }] = useConfigureTodoSyncMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useConfigureTodoSyncMutation(baseOptions?: Apollo.MutationHookOptions<ConfigureTodoSyncMutation, ConfigureTodoSyncMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ConfigureTodoSyncMutation, ConfigureTodoSyncMutationVariables>(ConfigureTodoSyncDocument, options);
+      }
+export type ConfigureTodoSyncMutationHookResult = ReturnType<typeof useConfigureTodoSyncMutation>;
+export type ConfigureTodoSyncMutationResult = Apollo.MutationResult<ConfigureTodoSyncMutation>;
+export type ConfigureTodoSyncMutationOptions = Apollo.BaseMutationOptions<ConfigureTodoSyncMutation, ConfigureTodoSyncMutationVariables>;
+export const TriggerTodoSyncDocument = gql`
+    mutation TriggerTodoSync($session_id: String!) {
+  trigger_todo_sync(session_id: $session_id)
+}
+    `;
+export type TriggerTodoSyncMutationFn = Apollo.MutationFunction<TriggerTodoSyncMutation, TriggerTodoSyncMutationVariables>;
+
+/**
+ * __useTriggerTodoSyncMutation__
+ *
+ * To run a mutation, you first call `useTriggerTodoSyncMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useTriggerTodoSyncMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [triggerTodoSyncMutation, { data, loading, error }] = useTriggerTodoSyncMutation({
+ *   variables: {
+ *      session_id: // value for 'session_id'
+ *   },
+ * });
+ */
+export function useTriggerTodoSyncMutation(baseOptions?: Apollo.MutationHookOptions<TriggerTodoSyncMutation, TriggerTodoSyncMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<TriggerTodoSyncMutation, TriggerTodoSyncMutationVariables>(TriggerTodoSyncDocument, options);
+      }
+export type TriggerTodoSyncMutationHookResult = ReturnType<typeof useTriggerTodoSyncMutation>;
+export type TriggerTodoSyncMutationResult = Apollo.MutationResult<TriggerTodoSyncMutation>;
+export type TriggerTodoSyncMutationOptions = Apollo.BaseMutationOptions<TriggerTodoSyncMutation, TriggerTodoSyncMutationVariables>;
 export const ExecutionUpdatesDocument = gql`
     subscription ExecutionUpdates($execution_id: String!) {
   execution_updates(execution_id: $execution_id) {
@@ -2863,3 +3200,31 @@ export function useExecutionUpdatesSubscription(baseOptions: Apollo.Subscription
       }
 export type ExecutionUpdatesSubscriptionHookResult = ReturnType<typeof useExecutionUpdatesSubscription>;
 export type ExecutionUpdatesSubscriptionResult = Apollo.SubscriptionResult<ExecutionUpdatesSubscription>;
+export const SubscribeTodoUpdatesDocument = gql`
+    subscription SubscribeTodoUpdates($session_id: String!) {
+  subscribe_todo_updates(session_id: $session_id)
+}
+    `;
+
+/**
+ * __useSubscribeTodoUpdatesSubscription__
+ *
+ * To run a query within a React component, call `useSubscribeTodoUpdatesSubscription` and pass it any options that fit your needs.
+ * When your component renders, `useSubscribeTodoUpdatesSubscription` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the subscription, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useSubscribeTodoUpdatesSubscription({
+ *   variables: {
+ *      session_id: // value for 'session_id'
+ *   },
+ * });
+ */
+export function useSubscribeTodoUpdatesSubscription(baseOptions: Apollo.SubscriptionHookOptions<SubscribeTodoUpdatesSubscription, SubscribeTodoUpdatesSubscriptionVariables> & ({ variables: SubscribeTodoUpdatesSubscriptionVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useSubscription<SubscribeTodoUpdatesSubscription, SubscribeTodoUpdatesSubscriptionVariables>(SubscribeTodoUpdatesDocument, options);
+      }
+export type SubscribeTodoUpdatesSubscriptionHookResult = ReturnType<typeof useSubscribeTodoUpdatesSubscription>;
+export type SubscribeTodoUpdatesSubscriptionResult = Apollo.SubscriptionResult<SubscribeTodoUpdatesSubscription>;

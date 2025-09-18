@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces using simplified type resolver.
 
-Generated at: 2025-09-17T23:39:55.144671
+Generated at: 2025-09-18T13:14:39.011793
 """
 
 import strawberry
@@ -11,6 +11,17 @@ from strawberry.scalars import JSON as JSONScalar
 
 # Import the Pydantic domain models
 from dipeo.diagram_generated.domain_models import (
+    ClaudeCodeSession,
+    SessionEvent,
+    ClaudeCodeMessage,
+    SessionMetadata,
+    ToolUse,
+    ToolResult,
+    ConversationTurn,
+    ClaudeCodeDiagramMetadata,
+    SessionStatistics,
+    SessionConversionOptions,
+    WatchOptions,
     CliSession,
     Message,
     ConversationMetadata,
@@ -85,6 +96,98 @@ from dipeo.diagram_generated.graphql.strawberry_domain import (
 
 # Create Strawberry types from Pydantic models
 # Order matters - define types that are referenced by others first
+
+@strawberry.type
+class ClaudeCodeMessageType:
+    role: str
+    content: str
+
+
+@strawberry.type
+class SessionMetadataType:
+    startTime: str
+    endTime: Optional[str] = None
+    totalEvents: float
+    toolUsageCount: JSONScalar
+    projectPath: Optional[str] = None
+
+
+@strawberry.type
+class ToolUseType:
+    name: str
+    input: JSONScalar
+
+
+@strawberry.type
+class ToolResultType:
+    success: bool
+    output: Optional[str] = None
+    error: Optional[str] = None
+
+
+@strawberry.type
+class SessionEventType:
+    type: str
+    uuid: str
+    parentUuid: Optional[str] = None
+    timestamp: str
+    message: ClaudeCodeMessageType
+    toolUse: Optional[ToolUseType] = None
+    toolResult: Optional[ToolResultType] = None
+
+
+@strawberry.type
+class ClaudeCodeSessionType:
+    sessionId: str
+    events: list[SessionEventType]
+    metadata: SessionMetadataType
+
+
+@strawberry.type
+class ConversationTurnType:
+    userEvent: SessionEventType
+    assistantEvent: SessionEventType
+    toolEvents: list[SessionEventType]
+
+
+@strawberry.type
+class ClaudeCodeDiagramMetadataType:
+    sessionId: str
+    createdAt: str
+    eventCount: float
+    nodeCount: float
+    toolUsage: JSONScalar
+
+
+@strawberry.type
+class SessionStatisticsType:
+    sessionId: str
+    totalEvents: float
+    userPrompts: float
+    assistantResponses: float
+    totalToolCalls: float
+    toolBreakdown: JSONScalar
+    duration: Optional[float] = None
+    filesModified: list[str]
+    commandsExecuted: list[str]
+
+
+@strawberry.type
+class SessionConversionOptionsType:
+    outputDir: Optional[str] = None
+    format: Optional[str] = None
+    autoExecute: Optional[bool] = None
+    mergeReads: Optional[bool] = None
+    simplify: Optional[bool] = None
+    preserveThinking: Optional[bool] = None
+
+
+@strawberry.type
+class WatchOptionsType:
+    interval: Optional[float] = None
+    autoConvert: Optional[bool] = None
+    notifyOnNew: Optional[bool] = None
+
 
 @strawberry.type
 class CliSessionType:
