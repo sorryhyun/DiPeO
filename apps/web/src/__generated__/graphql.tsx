@@ -363,10 +363,10 @@ export { LLMService };
 
 export type LLMUsageType = {
   __typename?: 'LLMUsageType';
-  cached?: Maybe<Scalars['Int']['output']>;
-  input: Scalars['Int']['output'];
-  output: Scalars['Int']['output'];
-  total?: Maybe<Scalars['Int']['output']>;
+  cached?: Maybe<Scalars['Float']['output']>;
+  input: Scalars['Float']['output'];
+  output: Scalars['Float']['output'];
+  total?: Maybe<Scalars['Float']['output']>;
 };
 
 export type Mutation = {
@@ -779,8 +779,8 @@ export type Vec2Input = {
 
 export type Vec2Type = {
   __typename?: 'Vec2Type';
-  x: Scalars['Int']['output'];
-  y: Scalars['Int']['output'];
+  x: Scalars['Float']['output'];
+  y: Scalars['Float']['output'];
 };
 
 export type GetApiKeysQueryVariables = Exact<{

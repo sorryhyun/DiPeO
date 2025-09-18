@@ -26,7 +26,7 @@ interface TodoNodeData extends Record<string, unknown> {
   statusColor?: string;
 }
 
-const TodoNode = React.memo<NodeProps<TodoNodeData>>(({ id, type, data, selected, dragging }) => {
+const TodoNode = React.memo<NodeProps>(({ id, type, data, selected, dragging }) => {
   const todoData = useMemo(() => {
     // Check if this is a TODO node
     const metadata = data?.metadata as TodoMetadata | undefined;

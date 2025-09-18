@@ -15,7 +15,7 @@ export const diffPatchConfig: UnifiedNodeConfig = {
     ],
     output: [
       { label: HandleLabel.SUCCESS, displayLabel: '', position: 'right' },
-      { label: HandleLabel.FAILURE, displayLabel: '', position: 'right' },
+      { label: HandleLabel.ERROR, displayLabel: '', position: 'right' },
     ],
   },
   defaults: {

@@ -78,6 +78,7 @@ export type { TypescriptAstNodeData } from '../../__generated__/models/Typescrip
 export type { SubDiagramNodeData } from '../../__generated__/models/SubDiagramNode';
 export type { IntegratedApiNodeData } from '../../__generated__/models/IntegratedApiNode';
 export type { IrBuilderNodeData } from '../../__generated__/models/IrBuilderNode';
+export type { DiffPatchNodeData } from '../../__generated__/models/DiffPatchNode';
 
 // Execution Types
 export type {

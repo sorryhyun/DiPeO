@@ -98,8 +98,8 @@ export const createExecutionSlice = (
   // Execution control
   startExecution: (executionId, preserveNodeStates = false) => set((state: UnifiedStore) => {
     // Preserve existing nodeStates if connecting to an already-running execution (e.g., from CLI monitor mode)
-    const existingNodeStates = preserveNodeStates ? new Map(state.execution.nodeStates) : new Map();
-    const existingRunningNodes = preserveNodeStates ? new Set(state.execution.runningNodes) : new Set();
+    const existingNodeStates = preserveNodeStates ? new Map(state.execution.nodeStates) : new Map<NodeID, StoreNodeState>();
+    const existingRunningNodes = preserveNodeStates ? new Set(state.execution.runningNodes) : new Set<NodeID>();
 
     // Clear previous execution state before starting new one (unless preserving)
     if (!preserveNodeStates) {

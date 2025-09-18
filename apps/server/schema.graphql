@@ -342,10 +342,10 @@ enum LLMService {
 }
 
 type LLMUsageType {
-  input: Int!
-  output: Int!
-  cached: Int
-  total: Int
+  input: Float!
+  output: Float!
+  cached: Float
+  total: Float
 }
 
 type Mutation {
@@ -533,6 +533,6 @@ input Vec2Input {
 }
 
 type Vec2Type {
-  x: Int!
-  y: Int!
+  x: Float!
+  y: Float!
 }

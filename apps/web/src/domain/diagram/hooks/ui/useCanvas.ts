@@ -258,21 +258,18 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
           nodeStyle.borderWidth = 2;
         } else if (nodeState) {
           switch (nodeState.status) {
-            case 'COMPLETED':
             case 'completed':
               className = 'node-completed';
               nodeStyle.borderColor = '#10b981';
               nodeStyle.borderWidth = 2;
               nodeStyle.backgroundColor = 'rgba(16, 185, 129, 0.1)';
               break;
-            case 'FAILED':
             case 'failed':
               className = 'node-failed';
               nodeStyle.borderColor = '#ef4444';
               nodeStyle.borderWidth = 2;
               nodeStyle.backgroundColor = 'rgba(239, 68, 68, 0.1)';
               break;
-            case 'SKIPPED':
             case 'skipped':
               className = 'node-skipped';
               nodeStyle.opacity = 0.5;
