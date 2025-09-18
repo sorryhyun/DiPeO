@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for json_schema_validator.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-18T15:21:44.372796
+Generated at: 2025-09-18T17:47:33.983919
 """
 
 from typing import *
@@ -38,7 +38,7 @@ class JsonSchemaValidatorNode(BaseModel):
     
     schema_path: Optional[str] = Field(default=None, description="Path to JSON schema file")
     
-    schema: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Inline JSON schema")
+    json_schema: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Inline JSON schema")
     
     data_path: Optional[str] = Field(default=None, description="Data Path configuration")
     
@@ -70,7 +70,7 @@ class JsonSchemaValidatorNode(BaseModel):
 
         # Add node-specific fields using original names
         data["schema_path"] = self.schema_path
-        data["schema"] = self.schema
+        data["json_schema"] = self.json_schema
         data["data_path"] = self.data_path
         data["strict_mode"] = self.strict_mode
         data["error_on_extra"] = self.error_on_extra

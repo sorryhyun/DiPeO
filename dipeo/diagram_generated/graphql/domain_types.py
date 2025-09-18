@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces using simplified type resolver.
 
-Generated at: 2025-09-18T15:13:42.043092
+Generated at: 2025-09-18T17:47:32.612322
 """
 
 import strawberry
@@ -16,6 +16,7 @@ from dipeo.diagram_generated.domain_models import (
     ClaudeCodeMessage,
     SessionMetadata,
     ToolUse,
+    ToolResult,
     ConversationTurn,
     ClaudeCodeDiagramMetadata,
     SessionStatistics,
@@ -99,7 +100,7 @@ from dipeo.diagram_generated.graphql.strawberry_domain import (
 @strawberry.type
 class ClaudeCodeSessionType:
     sessionId: str
-    events: list[SessionEvent]
+    events: List[SessionEvent]
     metadata: SessionMetadata
 
 
@@ -136,10 +137,17 @@ class ToolUseType:
 
 
 @strawberry.type
+class ToolResultType:
+    success: bool
+    output: Optional[str] = None
+    error: Optional[str] = None
+
+
+@strawberry.type
 class ConversationTurnType:
     userEvent: SessionEvent
     assistantEvent: SessionEvent
-    toolEvents: list[SessionEvent]
+    toolEvents: List[SessionEvent]
 
 
 @strawberry.type
@@ -160,8 +168,8 @@ class SessionStatisticsType:
     totalToolCalls: float
     toolBreakdown: JSONScalar
     duration: Optional[float] = None
-    filesModified: list[str]
-    commandsExecuted: list[str]
+    filesModified: List[str]
+    commandsExecuted: List[str]
 
 
 @strawberry.type
@@ -208,7 +216,7 @@ class CliSessionType:
 @strawberry.type
 class MessageType:
     id: Optional[str] = None
-    from_person_id: JSONScalar
+    from_person_id: str
     to_person_id: PersonIDScalar
     content: str
     timestamp: Optional[str] = None
@@ -345,10 +353,10 @@ class DiagramMetadataType:
 
 @strawberry.type
 class DomainDiagramType:
-    nodes: list[DomainNodeType]
-    handles: list[DomainHandleType]
-    arrows: list[DomainArrowType]
-    persons: list[DomainPersonType]
+    nodes: List[DomainNodeType]
+    handles: List[DomainHandleType]
+    arrows: List[DomainArrowType]
+    persons: List[DomainPersonType]
     metadata: Optional[DiagramMetadataType] = None
 
     @staticmethod
@@ -394,8 +402,8 @@ class ExecutionMetricsType:
     end_time: Optional[float] = None
     total_duration_ms: Optional[float] = None
     node_metrics: JSONScalar
-    critical_path: Optional[list[str]] = None
-    parallelizable_groups: Optional[list[List[str]]] = None
+    critical_path: Optional[List[str]] = None
+    parallelizable_groups: Optional[List[List[str]]] = None
     bottlenecks: Optional[List[BottleneckType]] = None
 
     @staticmethod
@@ -441,7 +449,7 @@ class ExecutionStateType:
     metadata: Optional[JSONScalar] = None
     is_active: Optional[bool] = None
     exec_counts: JSONScalar
-    executed_nodes: list[str]
+    executed_nodes: List[str]
     metrics: Optional[ExecutionMetricsType] = None
 
     @staticmethod

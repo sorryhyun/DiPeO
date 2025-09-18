@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-18T15:13:42.043092
+Generated at: 2025-09-18T17:47:32.612322
 """
 
 import strawberry
@@ -514,7 +514,7 @@ class DiffPatchDataType:
     
     
     
-    validate: Optional[bool] = None  # Validate patch before applying
+    validate_patch: Optional[bool] = None  # Validate patch before applying
     
     
     
@@ -581,10 +581,10 @@ class DiffPatchDataType:
         field_values["backup"] = field_value
         
         
-        field_value = getattr(node, "validate", None)
+        field_value = getattr(node, "validate_patch", None)
         
         # Direct assignment for other types
-        field_values["validate"] = field_value
+        field_values["validate_patch"] = field_value
         
         
         field_value = getattr(node, "backup_dir", None)
@@ -987,7 +987,7 @@ class JsonSchemaValidatorDataType:
     
     
     
-    schema: Optional[JSONScalar] = None  # Inline JSON schema
+    json_schema: Optional[JSONScalar] = None  # Inline JSON schema
     
     
     
@@ -1018,10 +1018,10 @@ class JsonSchemaValidatorDataType:
         field_values["schema_path"] = field_value
         
         
-        field_value = getattr(node, "schema", None)
+        field_value = getattr(node, "json_schema", None)
         
         # Convert dict/object fields to JSONScalar
-        field_values["schema"] = field_value
+        field_values["json_schema"] = field_value
         
         
         field_value = getattr(node, "data_path", None)
@@ -1072,7 +1072,7 @@ class PersonJobDataType:
     
     
     
-    first_only_prompt: str  # Prompt used only on first execution
+    first_only_prompt: Optional[str] = None  # Prompt used only on first execution
     
     
     
@@ -1621,7 +1621,7 @@ class TypescriptAstDataType:
     # Node-specific fields from specification
     
     
-    source: str  # TypeScript source code to parse
+    source: Optional[str] = None  # TypeScript source code to parse
     
     
     

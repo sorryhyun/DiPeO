@@ -63,9 +63,9 @@ export const diffPatchFields: UnifiedFieldDefinition[] = [
     description: '"Create backup before patching"',
   },
   {
-    name: 'validate',
+    name: 'validate_patch',
     type: 'text',
-    label: '"Validate"',
+    label: '"Validate patch"',
     required: false,
     defaultValue: true,
     description: '"Validate patch before applying"',

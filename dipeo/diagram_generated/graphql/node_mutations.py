@@ -2,7 +2,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-18T15:13:42.043092
+Generated at: 2025-09-18T17:47:32.612322
 """
 
 import strawberry
@@ -403,7 +403,7 @@ class CreateDiffPatchInput:
     
     
     
-    validate: Optional[bool] = None  # Validate patch before applying
+    validate_patch: Optional[bool] = None  # Validate patch before applying
     
     
     
@@ -462,7 +462,7 @@ class UpdateDiffPatchInput:
     
     
     
-    validate: Optional[bool] = None  # Validate patch before applying
+    validate_patch: Optional[bool] = None  # Validate patch before applying
     
     
     
@@ -745,7 +745,7 @@ class CreateJsonSchemaValidatorInput:
     
     
     
-    schema: Optional[strawberry.scalars.JSON] = None  # Inline JSON schema
+    json_schema: Optional[strawberry.scalars.JSON] = None  # Inline JSON schema
     
     
     
@@ -774,7 +774,7 @@ class UpdateJsonSchemaValidatorInput:
     
     
     
-    schema: Optional[strawberry.scalars.JSON] = None  # Inline JSON schema
+    json_schema: Optional[strawberry.scalars.JSON] = None  # Inline JSON schema
     
     
     
@@ -805,7 +805,7 @@ class CreatePersonJobInput:
     
     
     
-    first_only_prompt: str  # Prompt used only on first execution
+    first_only_prompt: Optional[str] = None  # Prompt used only on first execution
     
     
     
@@ -1215,7 +1215,7 @@ class CreateTypescriptAstInput:
     # Node-specific fields from specification
     
     
-    source: str  # TypeScript source code to parse
+    source: Optional[str] = None  # TypeScript source code to parse
     
     
     

@@ -187,34 +187,6 @@ envelope = EnvelopeFactory.create(
 )
 ```
 
-### Deprecated Methods (v1.0)
-
-The following methods are deprecated and will be removed. Use `EnvelopeFactory.create()` instead:
-
-```python
-# DEPRECATED - Use EnvelopeFactory.create() instead
-EnvelopeFactory.text("content")           # → EnvelopeFactory.create("content")
-EnvelopeFactory.json(data)               # → EnvelopeFactory.create(data)
-EnvelopeFactory.binary(bytes_data)       # → EnvelopeFactory.create(bytes_data)
-EnvelopeFactory.error("msg", "ErrorType") # → EnvelopeFactory.create("msg", error="ErrorType")
-EnvelopeFactory.conversation(state)     # → EnvelopeFactory.create(state, content_type=ContentType.CONVERSATION_STATE)
-```
-
-## v1.0 Domain Changes (2025-09-05)
-
-### Unified Patterns
-- **EventBus Protocol**: Single unified interface for all event handling (replaces DomainEventBus, EventEmitter, etc.)
-- **Envelope Pattern**: Complete migration from NodeOutput to Envelope for all handler outputs
-  - New `EnvelopeFactory.create()` method with auto-detection and unified interface
-  - Deprecated specific factory methods (`text()`, `json()`, `error()`, etc.)
-  - Consistent error handling through the `error` parameter
-- **Protocol Consistency**: Direct protocol implementation without unnecessary adapter layers
-
-### Naming Conventions
-- **Python Internal**: snake_case for all generated Python code
-- **JSON/GraphQL Compatibility**: Pydantic Field(alias=...) provides camelCase for external APIs
-- **Type Safety**: Maintained across all transformations
-
 ## Dependencies
 
 - Python standard library

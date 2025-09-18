@@ -35,7 +35,7 @@ class DiffPatchHandler(TypedNodeHandler[DiffPatchNode]):
             format_type = node.format or "unified"
             apply_mode = node.apply_mode or "normal"
             create_backup = node.backup if node.backup is not None else True
-            validate_patch = node.validate if node.validate is not None else True
+            validate_patch = node.validate_patch if node.validate_patch is not None else True
             backup_dir = Path(node.backup_dir) if node.backup_dir else None
             strip_level = node.strip_level or 1
             fuzz_factor = node.fuzz_factor or 2

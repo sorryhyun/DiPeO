@@ -52,6 +52,13 @@ def create_executable_node(
     else:
         raise ValueError(f"Unknown node type: {node_type}")
 
+# Union type for all executable node types
+ExecutableNode = Union[
+    {% for import in node_factory.imports %}
+    {{ import.class if not import.alias else import.alias }},
+    {% endfor %}
+]
+
 # Additional exports for backward compatibility
 __all__ = [
     {% for import in node_factory.imports %}
@@ -60,4 +67,5 @@ __all__ = [
     "NodeType",
     "DBBlockSubType",
     "create_executable_node",
+    "ExecutableNode",
 ]

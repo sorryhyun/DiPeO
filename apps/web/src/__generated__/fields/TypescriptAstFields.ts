@@ -6,7 +6,7 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
     name: 'source',
     type: 'text',
     label: '"Source"',
-    required: true,
+    required: false,
     description: '"TypeScript source code to parse"',
     language: 'SupportedLanguage.TYPESCRIPT',
   },

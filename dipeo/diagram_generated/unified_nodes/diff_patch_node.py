@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for diff_patch.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-18T15:21:44.288882
+Generated at: 2025-09-18T17:47:33.979149
 """
 
 from typing import *
@@ -44,7 +44,7 @@ class DiffPatchNode(BaseModel):
     
     backup: Optional[bool] = Field(default=None, description="Create backup before patching")
     
-    validate: Optional[bool] = Field(default=None, description="Validate patch before applying")
+    validate_patch: Optional[bool] = Field(default=None, description="Validate patch before applying")
     
     backup_dir: Optional[str] = Field(default=None, description="Directory for backup files")
     
@@ -86,7 +86,7 @@ class DiffPatchNode(BaseModel):
         data["format"] = self.format
         data["apply_mode"] = self.apply_mode
         data["backup"] = self.backup
-        data["validate"] = self.validate
+        data["validate_patch"] = self.validate_patch
         data["backup_dir"] = self.backup_dir
         data["strip_level"] = self.strip_level
         data["fuzz_factor"] = self.fuzz_factor

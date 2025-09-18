@@ -472,6 +472,10 @@ class UnifiedIRBuilder:
             if interface_name in ["WebSearchResult", "ImageGenerationResult"]:
                 should_skip = False
 
+            # Special case: Don't skip ToolResult (it's a domain type needed for SessionEvent)
+            if interface_name == "ToolResult":
+                should_skip = False
+
             # Special case: Don't skip ExecutionOptions (it's a domain type needed for execution)
             if interface_name == "ExecutionOptions":
                 should_skip = False

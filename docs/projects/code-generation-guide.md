@@ -439,7 +439,7 @@ All generation logic flows through IR builders:
 **Missing types after adding node**:
 ```bash
 make codegen           # Regenerate everything with IR
-make apply-syntax-only # Apply staged changes
+make apply-test # Apply staged changes
 make graphql-schema    # Update schema
 make dev-all          # Restart servers
 ```
@@ -463,7 +463,7 @@ cat projects/codegen/ir/strawberry_ir.json | jq '.operations[0]'
 - Run full generation workflow:
   ```bash
   make codegen          # Rebuild IR and regenerate
-  make apply-syntax-only
+  make apply-test
   make graphql-schema
   ```
 

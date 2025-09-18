@@ -1,7 +1,7 @@
 """
 Node factory for creating executable nodes from data.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-18T15:21:44.212939
+Generated at: 2025-09-18T17:47:33.580609
 
 """
 
@@ -149,7 +149,7 @@ def create_executable_node(
             format=data.get('format', "unified"),
             apply_mode=data.get('apply_mode', "normal"),
             backup=data.get('backup', True),
-            validate=data.get('validate', True),
+            validate_patch=data.get('validate_patch', True),
             backup_dir=data.get('backup_dir', None),
             strip_level=data.get('strip_level', 1),
             fuzz_factor=data.get('fuzz_factor', 2),
@@ -221,7 +221,7 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             schema_path=data.get('schema_path', None),
-            schema=data.get('schema', None),
+            json_schema=data.get('json_schema', None),
             data_path=data.get('data_path', None),
             strict_mode=data.get('strict_mode', None),
             error_on_extra=data.get('error_on_extra', None),

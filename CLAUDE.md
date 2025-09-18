@@ -44,11 +44,6 @@ DiPeO is a monorepo for building and executing AI-powered agent workflows throug
 ### Node Types
 - **[Diff Patch Node](docs/nodes/diff-patch.md)** - File modification via diffs
 
-### Korean Translations 🇰🇷
-- Architecture: [전체 아키텍처](docs/architecture/korean/overall_architecture.md), [메모리 시스템](docs/architecture/korean/memory_system_design.md)
-- Formats: [Light 다이어그램 가이드](docs/formats/korean/comprehensive_light_diagram_guide.md)
-- Projects: [코드 생성](docs/projects/korean/code-generation-guide.md), [프론트엔드 개선](docs/projects/korean/frontend-enhance-guide.md)
-
 ## Essential Commands
 
 ### Setup & Development
@@ -99,38 +94,22 @@ dipeo integrations claude-code --sync-mode auto --watch-todos
 
 **⚠️ WARNING**: Code generation overwrites ALL generated code in `dipeo/diagram_generated/`!
 
-### Workflow
+### Workflow & Staging
 1. **Modify TypeScript specs** in `/dipeo/models/src/`, then: `cd dipeo/models && pnpm build`
 2. **Generate**: `make codegen` (includes parse-typescript automatically)
+   - Outputs to `dipeo/diagram_generated_staged/` for review
 3. **Verify**: `make diff-staged` to review changes
-4. **Apply**: Choose one:
-   - `make apply-syntax-only` - Applies staged → active with syntax validation only (fastest, minimal safety)
-   - `make apply` - Applies staged → active with full type checking (safer but slower)
-   - `make apply-test` - Applies staged → active after full server validation (strongest safety, ensures server can actually run)
+4. **Apply** staged → active (`dipeo/diagram_generated/`), choose validation level:
+   - `make apply-syntax-only` - Syntax validation only (fastest)
+   - `make apply` - Full type checking (recommended)
+   - `make apply-test` - Server startup test (safest, includes health checks)
 5. **Update GraphQL**: `make graphql-schema`
 
-Quick command: `make codegen-auto` (runs all steps - USE WITH CAUTION)
+**Quick command**: `make codegen-auto` (runs all steps - USE WITH CAUTION)
 
-### Staging System
-- **Generated to**: `dipeo/diagram_generated_staged/` (for review - temporary staging area)
-- **Active code**: `dipeo/diagram_generated/` (in use - DO NOT EDIT DIRECTLY)
-- **Apply changes**: Three validation levels available:
-  - `make apply-syntax-only` - Syntax validation only (fastest)
-  - `make apply` - Full type checking (comprehensive validation)
-  - `make apply-test` - Complete server startup test with staged code (includes critical imports, server health, GraphQL endpoint testing)
-- **Why staging**: Safety, validation, easy rollback
-- **Full docs**: [Code Generation Guide](docs/projects/code-generation-guide.md)
+**Full docs**: [Code Generation Guide](docs/projects/code-generation-guide.md)
 
 ## GraphQL Operations System
-
-### 🎉 Implementation Status: COMPLETE
-The GraphQL refactoring is **substantially complete** with a solid, production-ready architecture:
-- ✅ **45 complete operations** with full GraphQL query strings as constants
-- ✅ **Type-safe operation classes** with proper TypedDict for variables
-- ✅ **Well-structured resolvers** following consistent patterns
-- ✅ **Clean 3-tier architecture** separating concerns
-- ✅ **ServiceRegistry integration** for dependency injection
-- ✅ **No major refactoring needed** - architecture is solid and maintainable
 
 ### Architecture Overview (3-Tier System)
 1. **Generated Layer** (`/dipeo/diagram_generated/graphql/`)
@@ -246,21 +225,24 @@ make graphql-schema     # Update GraphQL types
 #### Individual Node Handlers (Direct Files)
 - `api_job.py` - API call handling
 - `db.py` - Database operations
+- `diff_patch.py` - Diff patch operations
 - `endpoint.py` - HTTP endpoint handling
 - `hook.py` - Hook/callback handling
 - `integrated_api.py` - Integrated API operations ([Integration Guide](docs/integrations/claude-code.md))
-- `json_schema_validator.py` - JSON schema validation
 - `start.py` - Start node handling
-- `template_job.py` - Template processing
-- `typescript_ast.py` - TypeScript AST operations
 - `user_response.py` - User response handling
+
+#### Codegen Handlers (`codegen/`)
+- `ir_builder.py` - IR (Intermediate Representation) building
+- `schema_validator.py` - JSON schema validation
+- `template.py` - Template processing
+- `typescript_ast.py` - TypeScript AST operations
 
 #### Complex Node Handlers (Subdirectories)
 - **person_job/** - LLM/AI agent handling
-  - `batch_executor.py` - Batch person execution
   - `conversation_handler.py` - Conversation management
-  - `prompt_resolver.py` - Prompt resolution
   - `text_format_handler.py` - Text formatting
+  - Other executors for batch and prompt resolution
 - **sub_diagram/** - Sub-diagram execution
   - `lightweight_executor.py` - Light diagram execution
   - `single_executor.py` - Single sub-diagram execution
@@ -272,6 +254,15 @@ make graphql-schema     # Update GraphQL types
 - **condition/** - Conditional logic
   - `evaluators/` - Condition evaluators
 
+### IR Builders - Path Reference
+**Base Directory**: `/dipeo/infrastructure/codegen/ir_builders/`
+
+- `backend.py` - Backend IR builder (consolidates models/types)
+- `frontend.py` - Frontend IR builder (extracts components/schemas)
+- `strawberry.py` - GraphQL operations & domain types
+- `base.py` - Base IR builder interface
+- `utils.py` - Shared utilities for IR building
+
 ### Key Directories
 - `/apps/server/` - FastAPI backend
 - `/apps/web/` - React frontend ([Frontend README](apps/web/src/domain/README.md))
@@ -281,13 +272,12 @@ make graphql-schema     # Update GraphQL types
 - `/projects/frontend_auto/` - AI frontend generation ([Frontend Auto](projects/frontend_auto/README.md))
 - `/projects/frontend_enhance/` - Advanced frontend generation ([Frontend Enhance](docs/projects/frontend-enhance-guide.md))
 
-### LLM Infrastructure (Updated 2025)
-- **Unified Client Architecture**: All providers use unified clients directly (no adapter/client separation)
-- **OpenAI API v2 Migration**:
-  - Uses new `responses.create()` and `responses.parse()` APIs
-  - `messages` → `input` parameter
-  - `max_tokens` → `max_output_tokens`
-  - Temperature parameter no longer supported
+### LLM Infrastructure
+- **Unified Client Architecture**: All providers use unified clients directly
+- **OpenAI API v2**:
+  - Uses `responses.create()` and `responses.parse()` APIs
+  - `input` parameter for messages
+  - `max_output_tokens` for token limits
   - Response structure: `response.output[0].content[0].text`
 - **Domain Adapters**:
   - `LLMMemorySelectionAdapter`: Intelligent memory filtering and selection
@@ -420,21 +410,19 @@ history = registry.get_audit_trail()
 - Use **uv** for Python, **pnpm** for JavaScript (not npm/yarn)
 - Default LLM: `gpt-5-nano-2025-08-07`
 - Backend port: 8000, Frontend port: 3000
-- **v1.0 Refactoring Complete**: Services use mixin composition, unified EventBus, complete Envelope migration
+- **Service Architecture**: Services use mixin composition with unified EventBus and Envelope pattern
 - **Enhanced Service Registry**: Production-ready dependency injection with type categorization, audit trails, and safety features
 
 ## Common Issues & Solutions
 
 | Issue | Solution | Documentation |
-|---|---|---|
+|-------|----------|---------------|
 | Import errors | Run `make install` (uv manages activation automatically) | |
 | uv not found | `make install` (auto-installs uv) | |
 | Generated code out of sync | Run codegen workflow (see above) | [Codegen Guide](docs/projects/code-generation-guide.md) |
 | TypeScript errors | `make graphql-schema` | |
 | Need debugging | Add `--debug` flag, check `.logs/` | |
-| OpenAI temperature error | Temperature not supported in new API, remove parameter | |
-| OpenAI max_tokens error | Use `max_output_tokens` instead of `max_tokens` | |
-| TokenUsage missing 'total' | Use `total_tokens` property instead | |
+| OpenAI API usage | Use `input` parameter and `max_output_tokens` | |
 | Claude Code sessions | Use `dipeocc` to convert sessions | [DiPeOCC Guide](docs/projects/dipeocc-guide.md) |
 
 ## Testing & Debugging
@@ -444,23 +432,3 @@ history = registry.get_audit_trail()
 - **GraphQL playground**: `http://localhost:8000/graphql`
 - **Logs**: Check `.logs/server.log` for detailed debugging
 - **Note**: Formal test suite is under development
-
-## Related Documentation
-
-### Essential Guides
-- **[Light Diagram Format](docs/formats/comprehensive_light_diagram_guide.md)** - Must-read for diagram development
-- **[Code Generation](docs/projects/code-generation-guide.md)** - Adding new features
-- **[CLI Reference](apps/cli/README.md)** - Complete CLI documentation
-- **[DiPeOCC Guide](docs/projects/dipeocc-guide.md)** - Claude Code session conversion
-
-### Architecture Deep Dives
-- **[Overall Architecture](docs/architecture/overall_architecture.md)** - System design
-- **[GraphQL Layer](docs/architecture/graphql-layer.md)** - GraphQL implementation
-- **[Memory System](docs/architecture/memory_system_design.md)** - Conversation memory
-- **[Diagram Execution](docs/architecture/diagram-execution.md)** - Execution engine
-
-### AI & Integration
-- **[Claude Code Integration](docs/integrations/claude-code.md)** - Claude Code SDK
-- **[DiPeO AI Generation](docs/projects/dipeodipeo-guide.md)** - Natural language to diagrams
-- **[Frontend Auto](projects/frontend_auto/README.md)** - AI frontend generation
-- **[Frontend Enhance](docs/projects/frontend-enhance-guide.md)** - Advanced AI frontend

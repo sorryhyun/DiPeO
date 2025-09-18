@@ -29,6 +29,7 @@ nodes:
         - "temp/utilities/*.ts.json"
         - "temp/frontend/*.ts.json"
         - "temp/frontend/query-definitions/*.ts.json"
+        - "temp/claude-code/*.ts.json"
 
   # Build unified backend IR
   - label: Build Backend IR

@@ -1,7 +1,7 @@
 """
 Generated enum definitions for DiPeO.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-18T15:21:44.216486
+Generated at: 2025-09-18T17:47:33.584384
 """
 
 from enum import Enum

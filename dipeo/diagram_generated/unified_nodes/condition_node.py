@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for condition.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-18T15:21:44.287719
+Generated at: 2025-09-18T17:47:33.977965
 """
 
 from typing import *

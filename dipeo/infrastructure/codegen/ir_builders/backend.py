@@ -164,6 +164,9 @@ def extract_domain_models(
         "core/conversation.ts",
         "core/cli-session.ts",
         "core/file.ts",
+        "core/subscription-types.ts",
+        "core/integration.ts",
+        "claude-code/session-types.ts",
     ]
 
     for file_path, file_data in ast_data.items():
@@ -223,6 +226,16 @@ def extract_domain_models(
                         python_type = "Literal[True]"
                     elif isinstance(literal_value, str):
                         python_type = f'Literal["{literal_value}"]'
+                elif type_text == "true":
+                    # Handle boolean literal true
+                    is_literal = True
+                    literal_value = True
+                    python_type = "Literal[True]"
+                elif type_text == "false":
+                    # Handle boolean literal false
+                    is_literal = True
+                    literal_value = False
+                    python_type = "Literal[False]"
 
                 fields.append(
                     {
@@ -276,11 +289,13 @@ def build_node_factory_data(node_specs: list[dict[str, Any]]) -> dict[str, Any]:
         # Build import statement
         # Convert node_name from PascalCase to snake_case and add _node suffix
         module_name = f"unified_nodes.{camel_to_snake(node_name)}_node"
+        class_name = f"{node_name}Node"
+        alias = "DBNode" if node_type == "db" else None
         factory_data["imports"].append(
             {
                 "module": module_name,
-                "class": f"{node_name}Node",
-                "alias": "DBNode" if node_type == "db" else None,
+                "class": class_name,
+                "alias": alias,
             }
         )
 
@@ -309,10 +324,11 @@ def build_node_factory_data(node_specs: list[dict[str, Any]]) -> dict[str, Any]:
 
             field_mappings.append({"node_field": field_name, "getter_expression": getter})
 
+        # Use alias in factory_cases if it exists, otherwise use class_name
         factory_data["factory_cases"].append(
             {
                 "node_type": f"NodeType.{node_type.upper()}",
-                "class_name": f"{node_name}Node",
+                "class_name": alias if alias else class_name,
                 "field_mappings": field_mappings,
             }
         )

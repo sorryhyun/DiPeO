@@ -303,7 +303,13 @@ class StrawberryTypeResolver:
                 # If value type is a domain model or complex type, use JSONScalar
                 if (
                     (
-                        value_type in ["NodeState", "SerializedNodeOutput", "NodeMetrics"]
+                        value_type
+                        in [
+                            "NodeState",
+                            "SerializedNodeOutput",
+                            "SerializedEnvelope",
+                            "NodeMetrics",
+                        ]
                         or value_type.startswith("Domain")
                         or value_type in self.MANUAL_CONVERSION_TYPES
                     )
@@ -313,7 +319,7 @@ class StrawberryTypeResolver:
                     base_type = "JSONScalar"
                 else:
                     # Only simple Dict[str, str] can be used directly
-                    base_type = field_type.replace("Dict", "dict")  # Use lowercase dict
+                    base_type = field_type  # Keep Dict with uppercase D
             else:
                 base_type = "JSONScalar"
 
@@ -331,7 +337,7 @@ class StrawberryTypeResolver:
 
             # Handle list of domain types
             if inner_type.startswith("Domain"):
-                base_type = f"list[{inner_type}Type]"
+                base_type = f"List[{inner_type}Type]"
             elif inner_type == "Message":
                 base_type = "List[MessageType]"
             elif inner_type == "ConversationMetadata":
@@ -339,7 +345,7 @@ class StrawberryTypeResolver:
             elif inner_type == "Bottleneck":
                 base_type = "List[BottleneckType]"
             else:
-                base_type = f"list[{inner_type}]"
+                base_type = f"List[{inner_type}]"
 
         # Handle specific domain types
         elif field_type.startswith("Domain"):

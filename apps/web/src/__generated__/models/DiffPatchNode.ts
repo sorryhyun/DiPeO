@@ -7,7 +7,7 @@ export interface DiffPatchNodeData {
   format?: string | undefined;
   apply_mode?: string | undefined;
   backup?: boolean | undefined;
-  validate?: boolean | undefined;
+  validate_patch?: boolean | undefined;
   backup_dir?: string | undefined;
   strip_level?: number | undefined;
   fuzz_factor?: number | undefined;
@@ -23,7 +23,7 @@ export const DiffPatchNodeDataSchema = z.object({
   format: z.any().optional().describe("Diff format type"),
   apply_mode: z.any().optional().describe("How to apply the patch"),
   backup: z.boolean().optional().describe("Create backup before patching"),
-  validate: z.boolean().optional().describe("Validate patch before applying"),
+  validate_patch: z.boolean().optional().describe("Validate patch before applying"),
   backup_dir: z.string().optional().describe("Directory for backup files"),
   strip_level: z.number().min(0).max(10).optional().describe("Strip N leading path components (like patch -pN)"),
   fuzz_factor: z.number().min(0).max(100).optional().describe("Number of lines that can be ignored when matching context"),

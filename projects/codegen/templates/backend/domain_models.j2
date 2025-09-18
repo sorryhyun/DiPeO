@@ -37,3 +37,25 @@ class {{ model.name }}(BaseModel):
 {% for alias in domain_models.aliases %}
 {{ alias.name }} = {{ alias.type }}
 {% endfor %}
+
+# Validation-related models moved from validation/ directory
+# These are used by strawberry_domain.py for GraphQL type registration
+
+class JsonDictValidation(BaseModel):
+    """Empty model used as JSON container for validation"""
+    model_config = ConfigDict(extra='forbid')
+
+
+class RecordStringString(BaseModel):
+    """Empty model for string-to-string mappings"""
+    model_config = ConfigDict(extra='forbid')
+
+
+class TemplatePreprocessor(BaseModel):
+    """Configuration for template preprocessor"""
+    model_config = ConfigDict(extra='forbid')
+
+    function: str = Field(..., description='Function name to call, e.g. "build_context_from_ast"')
+    module: str = Field(..., description='Python module path, e.g. "projects.codegen.code.shared.context_builders"')
+    args: Optional['JsonDictValidation'] = Field(None,
+                                                 description='Optional arguments passed as kwargs to the function')

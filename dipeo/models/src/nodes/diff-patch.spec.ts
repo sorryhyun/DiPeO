@@ -82,7 +82,7 @@ export const diffPatchSpec: NodeSpecification = {
       }
     },
     {
-      name: "validate",
+      name: "validate_patch",
       type: "boolean",
       required: false,
       description: "Validate patch before applying",
@@ -221,7 +221,7 @@ export const diffPatchSpec: NodeSpecification = {
         target_path: "/config/settings.json",
         diff: "...",
         apply_mode: "dry_run",
-        validate: true
+        validate_patch: true
       }
     }
   ]

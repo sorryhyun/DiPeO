@@ -18,7 +18,7 @@ export const typescriptAstSpec: NodeSpecification = {
     {
       name: "source",
       type: "string",
-      required: true,
+      required: false,
       description: "TypeScript source code to parse",
       uiConfig: {
         inputType: "code",
