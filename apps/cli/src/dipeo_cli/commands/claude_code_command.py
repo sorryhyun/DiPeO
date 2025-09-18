@@ -11,6 +11,7 @@ from typing import Any, Optional
 import yaml
 
 from dipeo.domain.diagram.cc_translate import ClaudeCodeTranslator
+from dipeo.domain.diagram.cc_translate.post_processing import PipelineConfig, ProcessingPreset
 from dipeo.infrastructure.claude_code.session_parser import (
     ClaudeCodeSession,
     find_session_files,
@@ -168,13 +169,26 @@ class ClaudeCodeCommand:
 
                 # Translate to diagram
                 print("\n🔄 Translating to DiPeO diagram...")
-                diagram_data = self.translator.translate(session)
 
-                # Apply optimizations if requested
-                if merge_reads:
-                    diagram_data = self._merge_consecutive_reads(diagram_data)
-                if simplify:
-                    diagram_data = self._simplify_diagram(diagram_data)
+                # Configure post-processing based on flags
+                post_process = merge_reads or simplify
+                if post_process:
+                    # Create custom config based on flags
+                    if simplify:
+                        # Use aggressive preset if simplify is requested
+                        config = PipelineConfig.from_preset(ProcessingPreset.AGGRESSIVE)
+                    elif merge_reads:
+                        # Use deduplication only
+                        config = PipelineConfig.from_preset(ProcessingPreset.NONE)
+                        config.read_deduplicator.enabled = True
+                    else:
+                        config = PipelineConfig.from_preset(ProcessingPreset.STANDARD)
+
+                    diagram_data = self.translator.translate(
+                        session, post_process=True, processing_config=config
+                    )
+                else:
+                    diagram_data = self.translator.translate(session)
 
                 # Determine output path
                 output_dir_path = Path(output_dir) if output_dir else self.output_base
@@ -258,8 +272,15 @@ class ClaudeCodeCommand:
                     "optimizations": {
                         "merge_reads": merge_reads,
                         "simplify": simplify,
+                        "post_processed": post_process,
                     },
                 }
+
+                # Add post-processing details if available
+                if "metadata" in diagram_data and "post_processing" in diagram_data["metadata"]:
+                    metadata["post_processing_results"] = diagram_data["metadata"][
+                        "post_processing"
+                    ]
                 with open(metadata_file, "w") as f:
                     json.dump(metadata, f, indent=2)
 
@@ -416,18 +437,6 @@ class ClaudeCodeCommand:
         except Exception as e:
             print(f"Error analyzing session: {e}")
             return False
-
-    def _merge_consecutive_reads(self, diagram: dict[str, Any]) -> dict[str, Any]:
-        """Merge consecutive file read operations into single nodes."""
-        # TODO: Implement merge logic for consecutive read operations
-        # For now, return the diagram as-is
-        return diagram
-
-    def _simplify_diagram(self, diagram: dict[str, Any]) -> dict[str, Any]:
-        """Simplify the diagram by removing intermediate tool results."""
-        # TODO: Implement simplification logic
-        # For now, return the diagram as-is
-        return diagram
 
     def _execute_diagram(self, diagram_path: str) -> bool:
         """Execute the generated diagram using the server."""

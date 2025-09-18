@@ -5,6 +5,7 @@ from typing import Any, Optional
 from dipeo.infrastructure.claude_code import ClaudeCodeSession, ConversationTurn, SessionEvent
 
 from .node_builders import NodeBuilder
+from .post_processing import PipelineConfig, PostProcessingPipeline, ProcessingPreset
 from .text_utils import TextProcessor
 
 
@@ -19,12 +20,19 @@ class ClaudeCodeTranslator:
         self.connections: list[dict[str, Any]] = []
         self.node_map: dict[str, str] = {}  # Maps event UUID to node label
 
-    def translate(self, session: ClaudeCodeSession) -> dict[str, Any]:
+    def translate(
+        self,
+        session: ClaudeCodeSession,
+        post_process: bool = False,
+        processing_config: Optional[PipelineConfig] = None,
+    ) -> dict[str, Any]:
         """
         Translate a Claude Code session into a light format diagram.
 
         Args:
             session: Parsed Claude Code session
+            post_process: Whether to apply post-processing optimizations
+            processing_config: Custom post-processing configuration
 
         Returns:
             Light format diagram dictionary
@@ -68,6 +76,28 @@ class ClaudeCodeTranslator:
 
         # Build light format diagram
         diagram = self._build_light_diagram()
+
+        # Apply post-processing if requested
+        if post_process:
+            pipeline_config = processing_config or PipelineConfig.from_preset(
+                ProcessingPreset.STANDARD
+            )
+            pipeline = PostProcessingPipeline(pipeline_config)
+            diagram, report = pipeline.process(diagram)
+
+            # Add processing report to metadata if it had changes
+            if report.has_changes():
+                if "metadata" not in diagram:
+                    diagram["metadata"] = {}
+                diagram["metadata"]["post_processing"] = {
+                    "applied": True,
+                    "total_changes": report.total_changes,
+                    "nodes_removed": report.total_nodes_removed,
+                    "connections_modified": report.total_connections_modified,
+                }
+                # Print summary if verbose
+                if pipeline_config.verbose_reporting:
+                    print(f"\nPost-processing: {report.get_summary()}\n")
 
         return diagram
 

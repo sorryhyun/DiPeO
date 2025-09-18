@@ -1,6 +1,6 @@
 {
   "session_id": "be128912-a26b-43f2-a3c2-e3623305b8a5",
-  "converted_at": "2025-09-18T19:55:37.160603",
+  "converted_at": "2025-09-19T00:21:35.417602",
   "source_file": "/home/soryhyun/.claude/projects/-home-soryhyun-DiPeO/be128912-a26b-43f2-a3c2-e3623305b8a5.jsonl",
   "stats": {
     "session_id": "be128912-a26b-43f2-a3c2-e3623305b8a5",
@@ -24,6 +24,7 @@
   "format": "light",
   "optimizations": {
     "merge_reads": false,
-    "simplify": false
+    "simplify": false,
+    "post_processed": false
   }
 }

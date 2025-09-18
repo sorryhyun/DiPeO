@@ -116,30 +116,33 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/dipeo/domain/diagram/cc_translate/diff_utils.py
     diff: |
-      [{'oldStart': 122, 'oldLines': 14, 'newStart': 122, 'newLines': 10, 'lines': ['         if not diff_content:', '             return diff_content', ' ', '-        # First, handle any already-escaped newlines (convert them to real newlines)', '-        # This handles cases where the diff content might have been double-escaped', '-        if "\\\\n" in diff_content and "\\n" not in diff_content:', '-            # The content has escaped newlines but no real ones - unescape them', '-            diff_content = diff_content.replace("\\\\n", "\\n")', '-            diff_content = diff_content.replace("\\\\t", "\\t")', '-            diff_content = diff_content.replace(\'\\\\"\', \'"\')', '-            diff_content = diff_content.replace("\\\\\\\\", "\\\\")', "+        # Don't try to unescape content - the diff should already have real newlines", '+        # from the difflib.unified_diff generation. If it has escaped newlines,', "+        # that means it's part of the actual diff content (e.g., showing a string literal)", '+        # and should be preserved as-is.', ' ', '         # Ensure consistent line endings', '         lines = diff_content.splitlines()']}]
+      {'oldStart': 122, 'oldLines': 14, 'newStart': 122, 'newLines': 10, 'lines': ['         if not diff_content:', '             return diff_content', ' ', '-        # First, handle any already-escaped newlines (convert them to real newlines)', '-        # This handles cases where the diff content might have been double-escaped', '-        if "\\\\n" in diff_content and "\\n" not in diff_content:', '-            # The content has escaped newlines but no real ones - unescape them', '-            diff_content = diff_content.replace("\\\\n", "\\n")', '-            diff_content = diff_content.replace("\\\\t", "\\t")', '-            diff_content = diff_content.replace(\'\\\\"\', \'"\')', '-            diff_content = diff_content.replace("\\\\\\\\", "\\\\")', "+        # Don't try to unescape content - the diff should already have real newlines", '+        # from the difflib.unified_diff generation. If it has escaped newlines,', "+        # that means it's part of the actual diff content (e.g., showing a string literal)", '+        # and should be preserved as-is.', ' ', '         # Ensure consistent line endings', '         lines = diff_content.splitlines()']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: 9062182554032774136
 - label: Edit File 14
   type: diff_patch
   position: {x: 1000, y: 250}
   props:
     target_path: /home/soryhyun/DiPeO/dipeo/domain/diagram/cc_translate/node_builders.py
     diff: |
-      [{'oldStart': 176, 'oldLines': 11, 'newStart': 176, 'newLines': 6, 'lines': ['             # Fallback for unknown edit types', '             diff_content = "# Unable to generate diff"', ' ', '-        # Ensure the diff content has real newlines for proper YAML formatting', '-        # This handles cases where the diff might still have escaped newlines', '-        if isinstance(diff_content, str) and "\\\\n" in diff_content and "\\n" not in diff_content:', '-            diff_content = diff_content.replace("\\\\n", "\\n")', '-', '         return {', '             "label": label,', '             "type": "diff_patch",']}]
+      {'oldStart': 176, 'oldLines': 11, 'newStart': 176, 'newLines': 6, 'lines': ['             # Fallback for unknown edit types', '             diff_content = "# Unable to generate diff"', ' ', '-        # Ensure the diff content has real newlines for proper YAML formatting', '-        # This handles cases where the diff might still have escaped newlines', '-        if isinstance(diff_content, str) and "\\\\n" in diff_content and "\\n" not in diff_content:', '-            diff_content = diff_content.replace("\\\\n", "\\n")', '-', '         return {', '             "label": label,', '             "type": "diff_patch",']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: 2721008593434820728
 - label: Edit File 15
   type: diff_patch
   position: {x: 1050, y: 250}
   props:
     target_path: /home/soryhyun/DiPeO/dipeo/domain/diagram/cc_translate/node_builders.py
     diff: |
-      [{'oldStart': 217, 'oldLines': 10, 'newStart': 217, 'newLines': 6, 'lines': ['             if tool_name == "Edit":', '                 diff_content = self.diff_generator.generate_diff_from_tool_result(file_path, tool_use_result)', '                 if diff_content:', '-                    # Ensure the diff content has real newlines for proper YAML formatting', '-                    if isinstance(diff_content, str) and "\\\\n" in diff_content and "\\n" not in diff_content:', '-                        diff_content = diff_content.replace("\\\\n", "\\n")', '-', '                     return {', '                         "label": label,', '                         "type": "diff_patch",']}]
+      {'oldStart': 217, 'oldLines': 10, 'newStart': 217, 'newLines': 6, 'lines': ['             if tool_name == "Edit":', '                 diff_content = self.diff_generator.generate_diff_from_tool_result(file_path, tool_use_result)', '                 if diff_content:', '-                    # Ensure the diff content has real newlines for proper YAML formatting', '-                    if isinstance(diff_content, str) and "\\\\n" in diff_content and "\\n" not in diff_content:', '-                        diff_content = diff_content.replace("\\\\n", "\\n")', '-', '                     return {', '                         "label": label,', '                         "type": "diff_patch",']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: 4907831846065837983
 - label: Update TODO 16
   type: db
   position: {x: 300, y: 250}
@@ -174,20 +177,22 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/dipeo/domain/diagram/cc_translate/node_builders.py
     diff: |
-      [{'oldStart': 148, 'oldLines': 9, 'newStart': 148, 'newLines': 10, 'lines': [' ', '         # Generate unified diff from old_string and new_string', '         if tool_name == "Edit":', '-            # Unescape strings that may have been escaped in the Claude Code session', '-            old_string = self.text_processor.unescape_string(tool_input.get("old_string", ""))', '-            new_string = self.text_processor.unescape_string(tool_input.get("new_string", ""))', "+            # Don't unescape the strings - they should be preserved exactly as in the source code", '+            # If they contain "\\n" as a string literal (like in Python code), it should stay as "\\n"', '+            old_string = tool_input.get("old_string", "")', '+            new_string = tool_input.get("new_string", "")', ' ', '             # If we have original content, use it for better diff generation', '             if original_content:']}]
+      {'oldStart': 148, 'oldLines': 9, 'newStart': 148, 'newLines': 10, 'lines': [' ', '         # Generate unified diff from old_string and new_string', '         if tool_name == "Edit":', '-            # Unescape strings that may have been escaped in the Claude Code session', '-            old_string = self.text_processor.unescape_string(tool_input.get("old_string", ""))', '-            new_string = self.text_processor.unescape_string(tool_input.get("new_string", ""))', "+            # Don't unescape the strings - they should be preserved exactly as in the source code", '+            # If they contain "\\n" as a string literal (like in Python code), it should stay as "\\n"', '+            old_string = tool_input.get("old_string", "")', '+            new_string = tool_input.get("new_string", "")', ' ', '             # If we have original content, use it for better diff generation', '             if original_content:']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: 8875872955271409347
 - label: Edit File 19
   type: diff_patch
   position: {x: 450, y: 250}
   props:
     target_path: /home/soryhyun/DiPeO/dipeo/domain/diagram/cc_translate/node_builders.py
     diff: |
-      [{'oldStart': 166, 'oldLines': 12, 'newStart': 166, 'newLines': 8, 'lines': ['         elif tool_name == "MultiEdit":', '             # For MultiEdit, combine all edits into a single diff', '             edits = tool_input.get("edits", [])', '-            # Unescape strings in each edit', '-            for edit in edits:', '-                if "old_string" in edit:', '-                    edit["old_string"] = self.text_processor.unescape_string(edit["old_string"])', '-                if "new_string" in edit:', '-                    edit["new_string"] = self.text_processor.unescape_string(edit["new_string"])', "+            # Don't unescape strings - preserve them exactly as in source code", '+            # The strings should already be in the correct format from the Claude Code session', '             diff_content = self.diff_generator.generate_multiedit_diff(file_path, edits, original_content)', '         else:', '             # Fallback for unknown edit types']}]
+      {'oldStart': 166, 'oldLines': 12, 'newStart': 166, 'newLines': 8, 'lines': ['         elif tool_name == "MultiEdit":', '             # For MultiEdit, combine all edits into a single diff', '             edits = tool_input.get("edits", [])', '-            # Unescape strings in each edit', '-            for edit in edits:', '-                if "old_string" in edit:', '-                    edit["old_string"] = self.text_processor.unescape_string(edit["old_string"])', '-                if "new_string" in edit:', '-                    edit["new_string"] = self.text_processor.unescape_string(edit["new_string"])', "+            # Don't unescape strings - preserve them exactly as in source code", '+            # The strings should already be in the correct format from the Claude Code session', '             diff_content = self.diff_generator.generate_multiedit_diff(file_path, edits, original_content)', '         else:', '             # Fallback for unknown edit types']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: -6402515625726022776
 - label: Update TODO 20
   type: db
   position: {x: 500, y: 400}
@@ -410,10 +415,11 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/apps/cli/src/dipeo_cli/commands/claude_code_command.py
     diff: |
-      [{'oldStart': 189, 'oldLines': 15, 'newStart': 189, 'newLines': 14, 'lines': [' ', '                     # Custom representer for multi-line strings using literal style', '                     def str_representer(dumper, data):', '-                        # Always use literal style for content that looks like diffs or has multiple lines', '-                        # Check for diff patterns or actual newlines', '-                        if ("\\n" in data or', '-                            "\\\\n" in data or', '-                            data.startswith("---") or', '-                            data.startswith("+++") or', '-                            "@@" in data):', '-                            # Use literal style for multi-line strings (especially diffs)', '+                        # Check if this is a multi-line string (has actual newlines)', '+                        if "\\n" in data:', '+                            # Use literal style for multi-line strings', '                             return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")', '+                        # Check for diff patterns even in single-line strings', '+                        elif data.startswith("---") or data.startswith("+++") or data.startswith("#"):', '+                            # Might be the start of a diff, use literal style', '+                            return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")', '                         # Use default style for single-line strings', '                         return dumper.represent_scalar("tag:yaml.org,2002:str", data)', ' ']}]
+      {'oldStart': 189, 'oldLines': 15, 'newStart': 189, 'newLines': 14, 'lines': [' ', '                     # Custom representer for multi-line strings using literal style', '                     def str_representer(dumper, data):', '-                        # Always use literal style for content that looks like diffs or has multiple lines', '-                        # Check for diff patterns or actual newlines', '-                        if ("\\n" in data or', '-                            "\\\\n" in data or', '-                            data.startswith("---") or', '-                            data.startswith("+++") or', '-                            "@@" in data):', '-                            # Use literal style for multi-line strings (especially diffs)', '+                        # Check if this is a multi-line string (has actual newlines)', '+                        if "\\n" in data:', '+                            # Use literal style for multi-line strings', '                             return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")', '+                        # Check for diff patterns even in single-line strings', '+                        elif data.startswith("---") or data.startswith("+++") or data.startswith("#"):', '+                            # Might be the start of a diff, use literal style', '+                            return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")', '                         # Use default style for single-line strings', '                         return dumper.represent_scalar("tag:yaml.org,2002:str", data)', ' ']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: -4482184133342627156
 - label: Bash Command 43
   type: code_job
   position: {x: 850, y: 700}
@@ -574,20 +580,22 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/dipeo/domain/diagram/cc_translate/diff_utils.py
     diff: |
-      [{'oldStart': 35, 'oldLines': 8, 'newStart': 35, 'newLines': 8, 'lines': [' ', '         # Join the diff lines with newlines', '         if diff_lines:', '-            # Normalize for clean YAML literal blocks', '-            return DiffGenerator.normalize_diff_for_yaml("\\n".join(diff_lines))', '+            # Join with real newlines - no normalization needed here', '+            return "\\n".join(diff_lines)', '         else:', '             # No differences found', '             return f"# No differences found in {file_path}"']}]
+      {'oldStart': 35, 'oldLines': 8, 'newStart': 35, 'newLines': 8, 'lines': [' ', '         # Join the diff lines with newlines', '         if diff_lines:', '-            # Normalize for clean YAML literal blocks', '-            return DiffGenerator.normalize_diff_for_yaml("\\n".join(diff_lines))', '+            # Join with real newlines - no normalization needed here', '+            return "\\n".join(diff_lines)', '         else:', '             # No differences found', '             return f"# No differences found in {file_path}"']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: -4686770574851578946
 - label: Edit File 58
   type: diff_patch
   position: {x: 800, y: 850}
   props:
     target_path: /home/soryhyun/DiPeO/dipeo/domain/diagram/cc_translate/diff_utils.py
     diff: |
-      [{'oldStart': 89, 'oldLines': 7, 'newStart': 89, 'newLines': 7, 'lines': ['             diff_sections.append(edit_diff)', '             diff_sections.append("")  # Add blank line between edits', ' ', '-        return DiffGenerator.normalize_diff_for_yaml("\\n".join(diff_sections))', '+        return "\\n".join(diff_sections)', ' ', '     @staticmethod', '     def generate_diff_from_tool_result(file_path: str, tool_result: dict[str, Any]) -> Optional[str]:']}]
+      {'oldStart': 89, 'oldLines': 7, 'newStart': 89, 'newLines': 7, 'lines': ['             diff_sections.append(edit_diff)', '             diff_sections.append("")  # Add blank line between edits', ' ', '-        return DiffGenerator.normalize_diff_for_yaml("\\n".join(diff_sections))', '+        return "\\n".join(diff_sections)', ' ', '     @staticmethod', '     def generate_diff_from_tool_result(file_path: str, tool_result: dict[str, Any]) -> Optional[str]:']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: -3194744789551915849
 - label: Read File 59
   type: db
   position: {x: 850, y: 850}
@@ -601,10 +609,11 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/dipeo/domain/diagram/cc_translate/diff_utils.py
     diff: |
-      [{'oldStart': 112, 'oldLines': 29, 'newStart': 112, 'newLines': 3, 'lines': ['         # No useful data for diff generation', '         return None', ' ', '-    @staticmethod', '-    def normalize_diff_for_yaml(diff_content: str) -> str:', '-        """Normalize diff strings for clean YAML literal blocks.', '-', '-        Ensures diffs are formatted properly for YAML dumping as literal blocks,', '-        avoiding escaped newlines and maintaining readability.', '-        """', '-        if not diff_content:', '-            return diff_content', '-', "-        # Don't try to unescape content - the diff should already have real newlines", '-        # from the difflib.unified_diff generation. If it has escaped newlines,', "-        # that means it's part of the actual diff content (e.g., showing a string literal)", '-        # and should be preserved as-is.', '-', '-        # Ensure consistent line endings', '-        lines = diff_content.splitlines()', '-', '-        # Rebuild with clean newlines (no \\r\\n)', '-        normalized = "\\n".join(lines)', '-', '-        # Ensure it ends with a newline for clean YAML blocks', '-        if not normalized.endswith("\\n"):', '-            normalized += "\\n"', '-', '-        return normalized']}]
+      {'oldStart': 112, 'oldLines': 29, 'newStart': 112, 'newLines': 3, 'lines': ['         # No useful data for diff generation', '         return None', ' ', '-    @staticmethod', '-    def normalize_diff_for_yaml(diff_content: str) -> str:', '-        """Normalize diff strings for clean YAML literal blocks.', '-', '-        Ensures diffs are formatted properly for YAML dumping as literal blocks,', '-        avoiding escaped newlines and maintaining readability.', '-        """', '-        if not diff_content:', '-            return diff_content', '-', "-        # Don't try to unescape content - the diff should already have real newlines", '-        # from the difflib.unified_diff generation. If it has escaped newlines,', "-        # that means it's part of the actual diff content (e.g., showing a string literal)", '-        # and should be preserved as-is.', '-', '-        # Ensure consistent line endings', '-        lines = diff_content.splitlines()', '-', '-        # Rebuild with clean newlines (no \\r\\n)', '-        normalized = "\\n".join(lines)', '-', '-        # Ensure it ends with a newline for clean YAML blocks', '-        if not normalized.endswith("\\n"):', '-            normalized += "\\n"', '-', '-        return normalized']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: -6316956029979262719
 - label: Bash Command 61
   type: code_job
   position: {x: 950, y: 1000}

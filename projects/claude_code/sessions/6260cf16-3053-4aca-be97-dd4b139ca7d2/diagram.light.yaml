@@ -390,10 +390,11 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/apps/cli/src/dipeo_cli/commands/claude_code_command.py
     diff: |
-      [{'oldStart': 189, 'oldLines': 7, 'newStart': 189, 'newLines': 15, 'lines': [' ', '                     # Custom representer for multi-line strings using literal style', '                     def str_representer(dumper, data):', '-                        if "\\n" in data:', '+                        # Check for both actual newlines and escaped newlines', '+                        if "\\n" in data or "\\\\n" in data:', '+                            # Unescape the string if it contains escaped newlines', '+                            if "\\\\n" in data and "\\n" not in data:', '+                                # Replace escaped newlines with actual newlines', '+                                data = data.replace("\\\\n", "\\n")', '+                                # Also handle other common escapes', '+                                data = data.replace("\\\\t", "\\t")', '+                                data = data.replace(\'\\\\"\', \'"\')', '                             # Use literal style for multi-line strings (especially diffs)', '                             return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")', '                         # Use default style for single-line strings']}]
+      {'oldStart': 189, 'oldLines': 7, 'newStart': 189, 'newLines': 15, 'lines': [' ', '                     # Custom representer for multi-line strings using literal style', '                     def str_representer(dumper, data):', '-                        if "\\n" in data:', '+                        # Check for both actual newlines and escaped newlines', '+                        if "\\n" in data or "\\\\n" in data:', '+                            # Unescape the string if it contains escaped newlines', '+                            if "\\\\n" in data and "\\n" not in data:', '+                                # Replace escaped newlines with actual newlines', '+                                data = data.replace("\\\\n", "\\n")', '+                                # Also handle other common escapes', '+                                data = data.replace("\\\\t", "\\t")', '+                                data = data.replace(\'\\\\"\', \'"\')', '                             # Use literal style for multi-line strings (especially diffs)', '                             return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")', '                         # Use default style for single-line strings']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: 8977607829246643687
 - label: Update TODO 38
   type: db
   position: {x: 600, y: 550}
@@ -424,10 +425,11 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/dipeo/domain/diagram/cc_translate/diff_utils.py
     diff: |
-      [{'oldStart': 122, 'oldLines': 6, 'newStart': 122, 'newLines': 15, 'lines': ['         if not diff_content:', '             return diff_content', ' ', '+        # First, handle any already-escaped newlines (convert them to real newlines)', '+        # This handles cases where the diff content might have been double-escaped', '+        if "\\\\n" in diff_content and "\\n" not in diff_content:', '+            # The content has escaped newlines but no real ones - unescape them', '+            diff_content = diff_content.replace("\\\\n", "\\n")', '+            diff_content = diff_content.replace("\\\\t", "\\t")', '+            diff_content = diff_content.replace(\'\\\\"\', \'"\')', '+            diff_content = diff_content.replace("\\\\\\\\", "\\\\")', '+', '         # Ensure consistent line endings', '         lines = diff_content.splitlines()', ' ']}]
+      {'oldStart': 122, 'oldLines': 6, 'newStart': 122, 'newLines': 15, 'lines': ['         if not diff_content:', '             return diff_content', ' ', '+        # First, handle any already-escaped newlines (convert them to real newlines)', '+        # This handles cases where the diff content might have been double-escaped', '+        if "\\\\n" in diff_content and "\\n" not in diff_content:', '+            # The content has escaped newlines but no real ones - unescape them', '+            diff_content = diff_content.replace("\\\\n", "\\n")', '+            diff_content = diff_content.replace("\\\\t", "\\t")', '+            diff_content = diff_content.replace(\'\\\\"\', \'"\')', '+            diff_content = diff_content.replace("\\\\\\\\", "\\\\")', '+', '         # Ensure consistent line endings', '         lines = diff_content.splitlines()', ' ']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: 651665635494648484
 - label: Update TODO 40
   type: db
   position: {x: 700, y: 700}
@@ -458,10 +460,12 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/dipeo/domain/diagram/cc_translate/text_utils.py
     diff: |
-      [{'oldStart': 73, 'oldLines': 6, 'newStart': 73, 'newLines': 8, 'lines': ['         - \\\\n becomes newline', '         - \\\\t becomes tab', '         - \\\\\\\\ becomes \\\\', '+', '+        Also handles double-escaped scenarios where newlines might be \\\\\\\\n', '         """', '         if not s:', '             return s']}, {'oldStart': 84, 'oldLines': 12, 'newStart': 86, 'newLines': 28, 'lines': ['             # We need to wrap it in quotes for json.loads to work', '             import json', ' ', '+            # Handle potential double escaping first', '+            if "\\\\\\\\n" in s or "\\\\\\\\t" in s:', '+                # Replace double-escaped sequences with single-escaped ones', '+                s = s.replace("\\\\\\\\n", "\\\\n")', '+                s = s.replace("\\\\\\\\t", "\\\\t")', '+                s = s.replace(\'\\\\\\\\"\', \'\\\\"\')', '+', '             decoded = json.loads(\'"\' + s + \'"\')', '             return decoded', '         except:', '             # If that fails, just do basic replacements', '+            # Handle both single and double escaping', '+            if "\\\\\\\\n" in s:', '+                s = s.replace("\\\\\\\\n", "\\n")', '+            else:', '+                s = s.replace("\\\\n", "\\n")', '+', '+            if "\\\\\\\\t" in s:', '+                s = s.replace("\\\\\\\\t", "\\t")', '+            else:', '+                s = s.replace("\\\\t", "\\t")', '+', '             s = s.replace(\'\\\\"\', \'"\')', '-            s = s.replace("\\\\n", "\\n")', '-            s = s.replace("\\\\t", "\\t")', '             s = s.replace("\\\\\\\\", "\\\\")', '             return s']}]
+      {'oldStart': 73, 'oldLines': 6, 'newStart': 73, 'newLines': 8, 'lines': ['         - \\\\n becomes newline', '         - \\\\t becomes tab', '         - \\\\\\\\ becomes \\\\', '+', '+        Also handles double-escaped scenarios where newlines might be \\\\\\\\n', '         """', '         if not s:', '             return s']}
+      {'oldStart': 84, 'oldLines': 12, 'newStart': 86, 'newLines': 28, 'lines': ['             # We need to wrap it in quotes for json.loads to work', '             import json', ' ', '+            # Handle potential double escaping first', '+            if "\\\\\\\\n" in s or "\\\\\\\\t" in s:', '+                # Replace double-escaped sequences with single-escaped ones', '+                s = s.replace("\\\\\\\\n", "\\\\n")', '+                s = s.replace("\\\\\\\\t", "\\\\t")', '+                s = s.replace(\'\\\\\\\\"\', \'\\\\"\')', '+', '             decoded = json.loads(\'"\' + s + \'"\')', '             return decoded', '         except:', '             # If that fails, just do basic replacements', '+            # Handle both single and double escaping', '+            if "\\\\\\\\n" in s:', '+                s = s.replace("\\\\\\\\n", "\\n")', '+            else:', '+                s = s.replace("\\\\n", "\\n")', '+', '+            if "\\\\\\\\t" in s:', '+                s = s.replace("\\\\\\\\t", "\\t")', '+            else:', '+                s = s.replace("\\\\t", "\\t")', '+', '             s = s.replace(\'\\\\"\', \'"\')', '-            s = s.replace("\\\\n", "\\n")', '-            s = s.replace("\\\\t", "\\t")', '             s = s.replace("\\\\\\\\", "\\\\")', '             return s']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: 3012785923173110111
 - label: Update TODO 42
   type: db
   position: {x: 800, y: 700}
@@ -588,10 +592,11 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/apps/cli/src/dipeo_cli/commands/claude_code_command.py
     diff: |
-      [{'oldStart': 189, 'oldLines': 15, 'newStart': 189, 'newLines': 13, 'lines': [' ', '                     # Custom representer for multi-line strings using literal style', '                     def str_representer(dumper, data):', '-                        # Check for both actual newlines and escaped newlines', '-                        if "\\n" in data or "\\\\n" in data:', '-                            # Unescape the string if it contains escaped newlines', '-                            if "\\\\n" in data and "\\n" not in data:', '-                                # Replace escaped newlines with actual newlines', '-                                data = data.replace("\\\\n", "\\n")', '-                                # Also handle other common escapes', '-                                data = data.replace("\\\\t", "\\t")', '-                                data = data.replace(\'\\\\"\', \'"\')', '+                        # Always use literal style for content that looks like diffs or has multiple lines', '+                        # Check for diff patterns or actual newlines', '+                        if ("\\n" in data or', '+                            "\\\\n" in data or', '+                            data.startswith("---") or', '+                            data.startswith("+++") or', '+                            "@@" in data):', '                             # Use literal style for multi-line strings (especially diffs)', '                             return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")', '                         # Use default style for single-line strings']}]
+      {'oldStart': 189, 'oldLines': 15, 'newStart': 189, 'newLines': 13, 'lines': [' ', '                     # Custom representer for multi-line strings using literal style', '                     def str_representer(dumper, data):', '-                        # Check for both actual newlines and escaped newlines', '-                        if "\\n" in data or "\\\\n" in data:', '-                            # Unescape the string if it contains escaped newlines', '-                            if "\\\\n" in data and "\\n" not in data:', '-                                # Replace escaped newlines with actual newlines', '-                                data = data.replace("\\\\n", "\\n")', '-                                # Also handle other common escapes', '-                                data = data.replace("\\\\t", "\\t")', '-                                data = data.replace(\'\\\\"\', \'"\')', '+                        # Always use literal style for content that looks like diffs or has multiple lines', '+                        # Check for diff patterns or actual newlines', '+                        if ("\\n" in data or', '+                            "\\\\n" in data or', '+                            data.startswith("---") or', '+                            data.startswith("+++") or', '+                            "@@" in data):', '                             # Use literal style for multi-line strings (especially diffs)', '                             return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")', '                         # Use default style for single-line strings']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: 93114594765514001
 - label: Bash Command 54
   type: code_job
   position: {x: 600, y: 850}
@@ -622,20 +627,22 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/dipeo/domain/diagram/cc_translate/node_builders.py
     diff: |
-      [{'oldStart': 176, 'oldLines': 6, 'newStart': 176, 'newLines': 11, 'lines': ['             # Fallback for unknown edit types', '             diff_content = "# Unable to generate diff"', ' ', '+        # Ensure the diff content has real newlines for proper YAML formatting', '+        # This handles cases where the diff might still have escaped newlines', '+        if isinstance(diff_content, str) and "\\\\n" in diff_content and "\\n" not in diff_content:', '+            diff_content = diff_content.replace("\\\\n", "\\n")', '+', '         return {', '             "label": label,', '             "type": "diff_patch",']}]
+      {'oldStart': 176, 'oldLines': 6, 'newStart': 176, 'newLines': 11, 'lines': ['             # Fallback for unknown edit types', '             diff_content = "# Unable to generate diff"', ' ', '+        # Ensure the diff content has real newlines for proper YAML formatting', '+        # This handles cases where the diff might still have escaped newlines', '+        if isinstance(diff_content, str) and "\\\\n" in diff_content and "\\n" not in diff_content:', '+            diff_content = diff_content.replace("\\\\n", "\\n")', '+', '         return {', '             "label": label,', '             "type": "diff_patch",']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: 8875872955271409347
 - label: Edit File 58
   type: diff_patch
   position: {x: 800, y: 850}
   props:
     target_path: /home/soryhyun/DiPeO/dipeo/domain/diagram/cc_translate/node_builders.py
     diff: |
-      [{'oldStart': 222, 'oldLines': 6, 'newStart': 222, 'newLines': 10, 'lines': ['             if tool_name == "Edit":', '                 diff_content = self.diff_generator.generate_diff_from_tool_result(file_path, tool_use_result)', '                 if diff_content:', '+                    # Ensure the diff content has real newlines for proper YAML formatting', '+                    if isinstance(diff_content, str) and "\\\\n" in diff_content and "\\n" not in diff_content:', '+                        diff_content = diff_content.replace("\\\\n", "\\n")', '+', '                     return {', '                         "label": label,', '                         "type": "diff_patch",']}]
+      {'oldStart': 222, 'oldLines': 6, 'newStart': 222, 'newLines': 10, 'lines': ['             if tool_name == "Edit":', '                 diff_content = self.diff_generator.generate_diff_from_tool_result(file_path, tool_use_result)', '                 if diff_content:', '+                    # Ensure the diff content has real newlines for proper YAML formatting', '+                    if isinstance(diff_content, str) and "\\\\n" in diff_content and "\\n" not in diff_content:', '+                        diff_content = diff_content.replace("\\\\n", "\\n")', '+', '                     return {', '                         "label": label,', '                         "type": "diff_patch",']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: -8739828581420885854
 - label: Bash Command 59
   type: code_job
   position: {x: 850, y: 850}

@@ -117,10 +117,11 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/apps/web/vite.config.ts
     diff: |
-      [{'oldStart': 76, 'oldLines': 10, 'newStart': 76, 'newLines': 6, 'lines': ['   resolve: {', '     alias: {', "       '@': path.resolve(__dirname, './src'),", "-      '@core': path.resolve(__dirname, './src/core'),", "-      '@shared': path.resolve(__dirname, './src/shared'),", "-      '@features': path.resolve(__dirname, './src/features'),", "-      '@lib': path.resolve(__dirname, './src/lib'),", '     },', '   },', '   server: {']}]
+      {'oldStart': 76, 'oldLines': 10, 'newStart': 76, 'newLines': 6, 'lines': ['   resolve: {', '     alias: {', "       '@': path.resolve(__dirname, './src'),", "-      '@core': path.resolve(__dirname, './src/core'),", "-      '@shared': path.resolve(__dirname, './src/shared'),", "-      '@features': path.resolve(__dirname, './src/features'),", "-      '@lib': path.resolve(__dirname, './src/lib'),", '     },', '   },', '   server: {']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: -5466517547580370704
 - label: Update TODO 11
   type: db
   position: {x: 850, y: 250}
@@ -258,10 +259,11 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/apps/web/CLAUDE.md
     diff: |
-      [{'oldStart': 44, 'oldLines': 6, 'newStart': 44, 'newLines': 10, 'lines': [" import { useGetDiagramQuery } from '@/__generated__/graphql';", ' ```', ' ', '+### Path Aliases', '+- `@` - Resolves to `src/` directory', '+- **Note**: Removed unused aliases (`@core`, `@shared`, `@features`, `@lib`) in Phase 2 cleanup to align with actual directory structure', '+', ' ## Key Concepts', ' ', ' ### State Management (Zustand)']}]
+      {'oldStart': 44, 'oldLines': 6, 'newStart': 44, 'newLines': 10, 'lines': [" import { useGetDiagramQuery } from '@/__generated__/graphql';", ' ```', ' ', '+### Path Aliases', '+- `@` - Resolves to `src/` directory', '+- **Note**: Removed unused aliases (`@core`, `@shared`, `@features`, `@lib`) in Phase 2 cleanup to align with actual directory structure', '+', ' ## Key Concepts', ' ', ' ### State Management (Zustand)']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: 180420935140171915
 - label: Update TODO 22
   type: db
   position: {x: 600, y: 400}
@@ -292,10 +294,11 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/TODO.md
     diff: |
-      [{'oldStart': 8, 'oldLines': 14, 'newStart': 8, 'newLines': 11, 'lines': [' - 31 packages removed from lock file', ' - Bundle analysis saved to `dist/bundle-analysis.html`', ' ', '-## Phase 2 – Build Config Sanity', '-1. Review `apps/web/vite.config.ts` aliases:', '-   - Keep only aliases that resolve to real directories (`@`); remove `@core`, `@shared`, `@features`, `@lib` unless matching folders are introduced.', '-2. Validate dev/build behavior:', '-   - Restart Vite (`pnpm --filter web dev`) and ensure pages load without resolution errors.', '-   - `pnpm --filter web build` to confirm production build succeeds post-alias changes.', '-3. Update documentation:', '-   - Note alias changes in `apps/web/CLAUDE.md` or the relevant README with rationale.', '+## Phase 2 – Build Config Sanity ✅ COMPLETED', '+- Removed 4 unused aliases from `vite.config.ts` (`@core`, `@shared`, `@features`, `@lib`)', '+- Validated dev server runs without errors', '+- Production build succeeds without resolution issues', '+- Updated `apps/web/CLAUDE.md` with alias documentation', ' ', ' ## Phase 3 – UI & Infrastructure Dead Code Cull', ' 1. Delete unused UI/helpers:']}]
+      {'oldStart': 8, 'oldLines': 14, 'newStart': 8, 'newLines': 11, 'lines': [' - 31 packages removed from lock file', ' - Bundle analysis saved to `dist/bundle-analysis.html`', ' ', '-## Phase 2 – Build Config Sanity', '-1. Review `apps/web/vite.config.ts` aliases:', '-   - Keep only aliases that resolve to real directories (`@`); remove `@core`, `@shared`, `@features`, `@lib` unless matching folders are introduced.', '-2. Validate dev/build behavior:', '-   - Restart Vite (`pnpm --filter web dev`) and ensure pages load without resolution errors.', '-   - `pnpm --filter web build` to confirm production build succeeds post-alias changes.', '-3. Update documentation:', '-   - Note alias changes in `apps/web/CLAUDE.md` or the relevant README with rationale.', '+## Phase 2 – Build Config Sanity ✅ COMPLETED', '+- Removed 4 unused aliases from `vite.config.ts` (`@core`, `@shared`, `@features`, `@lib`)', '+- Validated dev server runs without errors', '+- Production build succeeds without resolution issues', '+- Updated `apps/web/CLAUDE.md` with alias documentation', ' ', ' ## Phase 3 – UI & Infrastructure Dead Code Cull', ' 1. Delete unused UI/helpers:']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: -6772639054703262665
 - label: Update TODO 24
   type: db
   position: {x: 700, y: 400}

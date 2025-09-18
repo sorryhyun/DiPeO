@@ -1,0 +1,10 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 100, y: 100}
+  props:
+    trigger_mode: manual
+    custom_data:
+      session_id: ec6fdba3-4d9d-43d0-8b60-f01280900d1a
+      initial_prompt: Claude Code Session

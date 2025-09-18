@@ -194,50 +194,55 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/apps/web/src/infrastructure/types/domain.ts
     diff: |
-      [{'oldStart': 78, 'oldLines': 6, 'newStart': 78, 'newLines': 7, 'lines': [" export type { SubDiagramNodeData } from '../../__generated__/models/SubDiagramNode';", " export type { IntegratedApiNodeData } from '../../__generated__/models/IntegratedApiNode';", " export type { IrBuilderNodeData } from '../../__generated__/models/IrBuilderNode';", "+export type { DiffPatchNodeData } from '../../__generated__/models/DiffPatchNode';", ' ', ' // Execution Types', ' export type {']}]
+      {'oldStart': 78, 'oldLines': 6, 'newStart': 78, 'newLines': 7, 'lines': [" export type { SubDiagramNodeData } from '../../__generated__/models/SubDiagramNode';", " export type { IntegratedApiNodeData } from '../../__generated__/models/IntegratedApiNode';", " export type { IrBuilderNodeData } from '../../__generated__/models/IrBuilderNode';", "+export type { DiffPatchNodeData } from '../../__generated__/models/DiffPatchNode';", ' ', ' // Execution Types', ' export type {']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: 2877291769418146454
 - label: Edit File 20
   type: diff_patch
   position: {x: 500, y: 400}
   props:
     target_path: /home/soryhyun/DiPeO/apps/web/src/infrastructure/types/type-factories.ts
     diff: |
-      [{'oldStart': 16, 'oldLines': 6, 'newStart': 16, 'newLines': 7, 'lines': ['   SubDiagramNodeData,', '   IntegratedApiNodeData,', '   IrBuilderNodeData,', '+  DiffPatchNodeData,', '   WithUI', " } from './domain';", ' ']}]
+      {'oldStart': 16, 'oldLines': 6, 'newStart': 16, 'newLines': 7, 'lines': ['   SubDiagramNodeData,', '   IntegratedApiNodeData,', '   IrBuilderNodeData,', '+  DiffPatchNodeData,', '   WithUI', " } from './domain';", ' ']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: 7140163412191799662
 - label: Edit File 21
   type: diff_patch
   position: {x: 550, y: 400}
   props:
     target_path: /home/soryhyun/DiPeO/apps/web/src/infrastructure/types/type-factories.ts
     diff: |
-      [{'oldStart': 40, 'oldLines': 6, 'newStart': 40, 'newLines': 7, 'lines': ['   sub_diagram: SubDiagramNodeData;', '   integrated_api: IntegratedApiNodeData;', '   ir_builder: IrBuilderNodeData;', '+  diff_patch: DiffPatchNodeData;', ' }', ' ', ' /**']}]
+      {'oldStart': 40, 'oldLines': 6, 'newStart': 40, 'newLines': 7, 'lines': ['   sub_diagram: SubDiagramNodeData;', '   integrated_api: IntegratedApiNodeData;', '   ir_builder: IrBuilderNodeData;', '+  diff_patch: DiffPatchNodeData;', ' }', ' ', ' /**']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: 8438909784261785797
 - label: Edit File 22
   type: diff_patch
   position: {x: 600, y: 400}
   props:
     target_path: /home/soryhyun/DiPeO/apps/web/src/infrastructure/types/type-factories.ts
     diff: |
-      [{'oldStart': 89, 'oldLines': 7, 'newStart': 89, 'newLines': 7, 'lines': ["     'start', 'condition', 'person_job', 'endpoint', 'db',", "     'code_job', 'api_job', 'user_response', 'person_batch_job', 'hook',", "     'template_job', 'json_schema_validator', 'typescript_ast', 'sub_diagram', 'integrated_api',", "-    'ir_builder'", "+    'ir_builder', 'diff_patch'", '   ];', '   return validKeys.includes(key as NodeTypeKey);', ' }']}]
+      {'oldStart': 89, 'oldLines': 7, 'newStart': 89, 'newLines': 7, 'lines': ["     'start', 'condition', 'person_job', 'endpoint', 'db',", "     'code_job', 'api_job', 'user_response', 'person_batch_job', 'hook',", "     'template_job', 'json_schema_validator', 'typescript_ast', 'sub_diagram', 'integrated_api',", "-    'ir_builder'", "+    'ir_builder', 'diff_patch'", '   ];', '   return validKeys.includes(key as NodeTypeKey);', ' }']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: 8236883026656535294
 - label: Edit File 23
   type: diff_patch
   position: {x: 650, y: 400}
   props:
     target_path: /home/soryhyun/DiPeO/apps/web/src/infrastructure/types/type-factories.ts
     diff: |
-      [{'oldStart': 100, 'oldLines': 7, 'newStart': 100, 'newLines': 7, 'lines': ['   DBNodeData, CodeJobNodeData, ApiJobNodeData, UserResponseNodeData,', '   PersonBatchJobNodeData, HookNodeData, TemplateJobNodeData,', '   JsonSchemaValidatorNodeData, TypescriptAstNodeData, SubDiagramNodeData, IntegratedApiNodeData,', "-  IrBuilderNodeData } from './domain';", "+  IrBuilderNodeData, DiffPatchNodeData } from './domain';", ' ', ' /**', '  * Form data type aliases for backward compatibility']}]
+      {'oldStart': 100, 'oldLines': 7, 'newStart': 100, 'newLines': 7, 'lines': ['   DBNodeData, CodeJobNodeData, ApiJobNodeData, UserResponseNodeData,', '   PersonBatchJobNodeData, HookNodeData, TemplateJobNodeData,', '   JsonSchemaValidatorNodeData, TypescriptAstNodeData, SubDiagramNodeData, IntegratedApiNodeData,', "-  IrBuilderNodeData } from './domain';", "+  IrBuilderNodeData, DiffPatchNodeData } from './domain';", ' ', ' /**', '  * Form data type aliases for backward compatibility']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: -2604496745883480924
 - label: Read File 24
   type: db
   position: {x: 700, y: 400}
@@ -251,10 +256,11 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/apps/web/src/infrastructure/types/type-factories.ts
     diff: |
-      [{'oldStart': 120, 'oldLines': 3, 'newStart': 120, 'newLines': 5, 'lines': [" export type TypescriptAstFormData = NodeFormData<'typescript_ast'>;", " export type SubDiagramFormData = NodeFormData<'sub_diagram'>;", " export type IntegratedApiFormData = NodeFormData<'integrated_api'>;", "+export type IrBuilderFormData = NodeFormData<'ir_builder'>;", "+export type DiffPatchFormData = NodeFormData<'diff_patch'>;"]}]
+      {'oldStart': 120, 'oldLines': 3, 'newStart': 120, 'newLines': 5, 'lines': [" export type TypescriptAstFormData = NodeFormData<'typescript_ast'>;", " export type SubDiagramFormData = NodeFormData<'sub_diagram'>;", " export type IntegratedApiFormData = NodeFormData<'integrated_api'>;", "+export type IrBuilderFormData = NodeFormData<'ir_builder'>;", "+export type DiffPatchFormData = NodeFormData<'diff_patch'>;"]}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: -8925081656292990452
 - label: Update TODO 26
   type: db
   position: {x: 800, y: 400}
@@ -291,10 +297,11 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/apps/web/src/__generated__/nodes/DiffPatchConfig.ts
     diff: |
-      [{'oldStart': 15, 'oldLines': 7, 'newStart': 15, 'newLines': 7, 'lines': ['     ],', '     output: [', "       { label: HandleLabel.SUCCESS, displayLabel: '', position: 'right' },", "-      { label: HandleLabel.FAILURE, displayLabel: '', position: 'right' },", "+      { label: HandleLabel.ERROR, displayLabel: '', position: 'right' },", '     ],', '   },', '   defaults: {']}]
+      {'oldStart': 15, 'oldLines': 7, 'newStart': 15, 'newLines': 7, 'lines': ['     ],', '     output: [', "       { label: HandleLabel.SUCCESS, displayLabel: '', position: 'right' },", "-      { label: HandleLabel.FAILURE, displayLabel: '', position: 'right' },", "+      { label: HandleLabel.ERROR, displayLabel: '', position: 'right' },", '     ],', '   },', '   defaults: {']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: 5202377810617755173
 - label: Update TODO 28
   type: db
   position: {x: 900, y: 400}
@@ -353,10 +360,11 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/apps/web/src/domain/diagram/hooks/ui/useCanvas.ts
     diff: |
-      [{'oldStart': 258, 'oldLines': 21, 'newStart': 258, 'newLines': 18, 'lines': ['           nodeStyle.borderWidth = 2;', '         } else if (nodeState) {', '           switch (nodeState.status) {', "-            case 'COMPLETED':", "             case 'completed':", "               className = 'node-completed';", "               nodeStyle.borderColor = '#10b981';", '               nodeStyle.borderWidth = 2;', "               nodeStyle.backgroundColor = 'rgba(16, 185, 129, 0.1)';", '               break;', "-            case 'FAILED':", "             case 'failed':", "               className = 'node-failed';", "               nodeStyle.borderColor = '#ef4444';", '               nodeStyle.borderWidth = 2;', "               nodeStyle.backgroundColor = 'rgba(239, 68, 68, 0.1)';", '               break;', "-            case 'SKIPPED':", "             case 'skipped':", "               className = 'node-skipped';", '               nodeStyle.opacity = 0.5;']}]
+      {'oldStart': 258, 'oldLines': 21, 'newStart': 258, 'newLines': 18, 'lines': ['           nodeStyle.borderWidth = 2;', '         } else if (nodeState) {', '           switch (nodeState.status) {', "-            case 'COMPLETED':", "             case 'completed':", "               className = 'node-completed';", "               nodeStyle.borderColor = '#10b981';", '               nodeStyle.borderWidth = 2;', "               nodeStyle.backgroundColor = 'rgba(16, 185, 129, 0.1)';", '               break;', "-            case 'FAILED':", "             case 'failed':", "               className = 'node-failed';", "               nodeStyle.borderColor = '#ef4444';", '               nodeStyle.borderWidth = 2;', "               nodeStyle.backgroundColor = 'rgba(239, 68, 68, 0.1)';", '               break;', "-            case 'SKIPPED':", "             case 'skipped':", "               className = 'node-skipped';", '               nodeStyle.opacity = 0.5;']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: 4098836548206304235
 - label: Update TODO 33
   type: db
   position: {x: 350, y: 550}
@@ -407,10 +415,11 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/apps/web/src/infrastructure/services/diagram.ts
     diff: |
-      [{'oldStart': 164, 'oldLines': 6, 'newStart': 164, 'newLines': 14, 'lines': ["         config_path: '',", "         output_format: 'json',", '       },', '+      [NodeType.DIFF_PATCH]: {', "+        target_path: '',", "+        diff: '',", "+        format: 'unified',", "+        apply_mode: 'normal',", '+        backup: true,', '+        validate_patch: true,', '+      },', '     } as const;', ' ', '     return defaults[type] || {};']}]
+      {'oldStart': 164, 'oldLines': 6, 'newStart': 164, 'newLines': 14, 'lines': ["         config_path: '',", "         output_format: 'json',", '       },', '+      [NodeType.DIFF_PATCH]: {', "+        target_path: '',", "+        diff: '',", "+        format: 'unified',", "+        apply_mode: 'normal',", '+        backup: true,', '+        validate_patch: true,', '+      },', '     } as const;', ' ', '     return defaults[type] || {};']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: -5299067000230249260
 - label: Update TODO 37
   type: db
   position: {x: 550, y: 550}
@@ -483,10 +492,11 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/apps/web/src/infrastructure/store/slices/execution.ts
     diff: |
-      [{'oldStart': 98, 'oldLines': 8, 'newStart': 98, 'newLines': 8, 'lines': ['   // Execution control', '   startExecution: (executionId, preserveNodeStates = false) => set((state: UnifiedStore) => {', '     // Preserve existing nodeStates if connecting to an already-running execution (e.g., from CLI monitor mode)', '-    const existingNodeStates = preserveNodeStates ? new Map(state.execution.nodeStates) : new Map();', '-    const existingRunningNodes = preserveNodeStates ? new Set(state.execution.runningNodes) : new Set();', '+    const existingNodeStates = preserveNodeStates ? new Map(state.execution.nodeStates) : new Map<NodeID, StoreNodeState>();', '+    const existingRunningNodes = preserveNodeStates ? new Set(state.execution.runningNodes) : new Set<NodeID>();', ' ', '     // Clear previous execution state before starting new one (unless preserving)', '     if (!preserveNodeStates) {']}]
+      {'oldStart': 98, 'oldLines': 8, 'newStart': 98, 'newLines': 8, 'lines': ['   // Execution control', '   startExecution: (executionId, preserveNodeStates = false) => set((state: UnifiedStore) => {', '     // Preserve existing nodeStates if connecting to an already-running execution (e.g., from CLI monitor mode)', '-    const existingNodeStates = preserveNodeStates ? new Map(state.execution.nodeStates) : new Map();', '-    const existingRunningNodes = preserveNodeStates ? new Set(state.execution.runningNodes) : new Set();', '+    const existingNodeStates = preserveNodeStates ? new Map(state.execution.nodeStates) : new Map<NodeID, StoreNodeState>();', '+    const existingRunningNodes = preserveNodeStates ? new Set(state.execution.runningNodes) : new Set<NodeID>();', ' ', '     // Clear previous execution state before starting new one (unless preserving)', '     if (!preserveNodeStates) {']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: 7603990897931614957
 - label: Update TODO 44
   type: db
   position: {x: 900, y: 700}
@@ -566,20 +576,22 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/apps/web/src/ui/components/diagram/nodes/TodoNode.tsx
     diff: |
-      [{'oldStart': 26, 'oldLines': 7, 'newStart': 26, 'newLines': 7, 'lines': ['   statusColor?: string;', ' }', ' ', '-const TodoNode = React.memo<NodeProps<TodoNodeData>>(({ id, type, data, selected, dragging }) => {', '+const TodoNode = React.memo<NodeProps>(({ id, type, data, selected, dragging }) => {', '   const todoData = useMemo(() => {', '     // Check if this is a TODO node', '     const metadata = data?.metadata as TodoMetadata | undefined;']}]
+      {'oldStart': 26, 'oldLines': 7, 'newStart': 26, 'newLines': 7, 'lines': ['   statusColor?: string;', ' }', ' ', '-const TodoNode = React.memo<NodeProps<TodoNodeData>>(({ id, type, data, selected, dragging }) => {', '+const TodoNode = React.memo<NodeProps>(({ id, type, data, selected, dragging }) => {', '   const todoData = useMemo(() => {', '     // Check if this is a TODO node', '     const metadata = data?.metadata as TodoMetadata | undefined;']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: -4212127804437831892
 - label: Edit File 52
   type: diff_patch
   position: {x: 500, y: 850}
   props:
     target_path: /home/soryhyun/DiPeO/apps/web/src/ui/components/diagram/nodes/ConfigurableNode.tsx
     diff: |
-      [{'oldStart': 9, 'oldLines': 7, 'newStart': 9, 'newLines': 7, 'lines': ["   const nodeType = type || 'start';", ' ', '   // Check if this is a TODO-backed note node', "-  const isTodoNode = nodeType === 'note' && data?.metadata?.isTodoItem;", "+  const isTodoNode = nodeType === 'note' && (data as any)?.metadata?.isTodoItem;", ' ', '   if (isTodoNode) {', '     return (']}]
+      {'oldStart': 9, 'oldLines': 7, 'newStart': 9, 'newLines': 7, 'lines': ["   const nodeType = type || 'start';", ' ', '   // Check if this is a TODO-backed note node', "-  const isTodoNode = nodeType === 'note' && data?.metadata?.isTodoItem;", "+  const isTodoNode = nodeType === 'note' && (data as any)?.metadata?.isTodoItem;", ' ', '   if (isTodoNode) {', '     return (']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: -9166163841162081815
 - label: Update TODO 53
   type: db
   position: {x: 550, y: 850}
@@ -631,30 +643,33 @@ nodes:
   props:
     target_path: /home/soryhyun/DiPeO/apps/web/src/ui/components/diagram/nodes/ConfigurableNode.tsx
     diff: |
-      [{'oldStart': 12, 'oldLines': 15, 'newStart': 12, 'newLines': 8, 'lines': ["   const isTodoNode = nodeType === 'note' && (data as any)?.metadata?.isTodoItem;", ' ', '   if (isTodoNode) {', '-    return (', '-      <TodoNode', '-        id={id}', '-        type={nodeType}', '-        data={data || {}}', '-        selected={selected}', '-        dragging={dragging}', '-      />', '-    );', '+    // Pass through all props to TodoNode', '+    return <TodoNode {...{ id, type: nodeType, data, selected, dragging }} />;', '   }', ' ', '   return (']}]
+      {'oldStart': 12, 'oldLines': 15, 'newStart': 12, 'newLines': 8, 'lines': ["   const isTodoNode = nodeType === 'note' && (data as any)?.metadata?.isTodoItem;", ' ', '   if (isTodoNode) {', '-    return (', '-      <TodoNode', '-        id={id}', '-        type={nodeType}', '-        data={data || {}}', '-        selected={selected}', '-        dragging={dragging}', '-      />', '-    );', '+    // Pass through all props to TodoNode', '+    return <TodoNode {...{ id, type: nodeType, data, selected, dragging }} />;', '   }', ' ', '   return (']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: 5409133633949953588
 - label: Edit File 57
   type: diff_patch
   position: {x: 750, y: 850}
   props:
     target_path: /home/soryhyun/DiPeO/apps/web/src/ui/components/diagram/nodes/ConfigurableNode.tsx
     diff: |
-      [{'oldStart': 4, 'oldLines': 16, 'newStart': 4, 'newLines': 16, 'lines': [" import TodoNode from './TodoNode';", ' ', ' // Main component - memoized for performance', '-const ConfigurableNode = React.memo<NodeProps>(({ id, type, data, selected, dragging }) => {', '+const ConfigurableNode = React.memo<NodeProps>((props) => {', '   // Use the type prop from React Flow directly', "-  const nodeType = type || 'start';", "+  const nodeType = props.type || 'start';", ' ', '   // Check if this is a TODO-backed note node', "-  const isTodoNode = nodeType === 'note' && (data as any)?.metadata?.isTodoItem;", "+  const isTodoNode = nodeType === 'note' && (props.data as any)?.metadata?.isTodoItem;", ' ', '   if (isTodoNode) {', '     // Pass through all props to TodoNode', '-    return <TodoNode {...{ id, type: nodeType, data, selected, dragging }} />;', '+    return <TodoNode {...props} />;', '   }', ' ', '   return (']}]
+      {'oldStart': 4, 'oldLines': 16, 'newStart': 4, 'newLines': 16, 'lines': [" import TodoNode from './TodoNode';", ' ', ' // Main component - memoized for performance', '-const ConfigurableNode = React.memo<NodeProps>(({ id, type, data, selected, dragging }) => {', '+const ConfigurableNode = React.memo<NodeProps>((props) => {', '   // Use the type prop from React Flow directly', "-  const nodeType = type || 'start';", "+  const nodeType = props.type || 'start';", ' ', '   // Check if this is a TODO-backed note node', "-  const isTodoNode = nodeType === 'note' && (data as any)?.metadata?.isTodoItem;", "+  const isTodoNode = nodeType === 'note' && (props.data as any)?.metadata?.isTodoItem;", ' ', '   if (isTodoNode) {', '     // Pass through all props to TodoNode', '-    return <TodoNode {...{ id, type: nodeType, data, selected, dragging }} />;', '+    return <TodoNode {...props} />;', '   }', ' ', '   return (']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: -1115660024713359694
 - label: Edit File 58
   type: diff_patch
   position: {x: 800, y: 850}
   props:
     target_path: /home/soryhyun/DiPeO/apps/web/src/ui/components/diagram/nodes/ConfigurableNode.tsx
     diff: |
-      [{'oldStart': 18, 'oldLines': 11, 'newStart': 18, 'newLines': 11, 'lines': [' ', '   return (', '     <BaseNode', '-      id={id}', '+      id={props.id}', '       type={nodeType}', '-      selected={selected}', '-      data={data || {}}', '-      dragging={dragging}', '+      selected={props.selected}', '+      data={props.data || {}}', '+      dragging={props.dragging}', '     />', '   );', ' });']}]
+      {'oldStart': 18, 'oldLines': 11, 'newStart': 18, 'newLines': 11, 'lines': [' ', '   return (', '     <BaseNode', '-      id={id}', '+      id={props.id}', '       type={nodeType}', '-      selected={selected}', '-      data={data || {}}', '-      dragging={dragging}', '+      selected={props.selected}', '+      data={props.data || {}}', '+      dragging={props.dragging}', '     />', '   );', ' });']}
     format: unified
     backup: true
     validate: true
+    _original_file_hash: 240234547692110826
 - label: Bash Command 59
   type: code_job
   position: {x: 850, y: 850}

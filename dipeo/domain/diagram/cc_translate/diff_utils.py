@@ -1,6 +1,8 @@
 """Diff generation utilities for Claude Code translation."""
 
+import ast
 import difflib
+import json
 from typing import Any, Optional
 
 
@@ -128,13 +130,163 @@ class DiffGenerator:
         return None
 
     @staticmethod
+    def parse_structured_patch_string(patch_str: str) -> Optional[list[dict[str, Any]]]:
+        """Parse a string representation of a structured patch.
+
+        Handles cases where structured patch is stored as a string
+        (e.g., "[{'oldStart': 19, 'oldLines': 15, ...}]")
+
+        Args:
+            patch_str: String representation of structured patch
+
+        Returns:
+            Parsed list of hunk dictionaries, or None if not parseable
+        """
+        if not patch_str or not isinstance(patch_str, str):
+            return None
+
+        # Try to detect structured patch pattern
+        if patch_str.strip().startswith("[{") and "oldStart" in patch_str:
+            try:
+                # First try ast.literal_eval (safer)
+                parsed = ast.literal_eval(patch_str)
+                if isinstance(parsed, list):
+                    return parsed
+            except (ValueError, SyntaxError):
+                pass
+
+            try:
+                # Try JSON parsing
+                parsed = json.loads(patch_str.replace("'", '"'))
+                if isinstance(parsed, list):
+                    return parsed
+            except (ValueError, json.JSONDecodeError):
+                pass
+
+        return None
+
+    @staticmethod
+    def structured_to_unified(
+        structured_patch: list[dict[str, Any]], file_path: str = "file"
+    ) -> str:
+        """Convert structured patch format to unified diff format.
+
+        Structured patches from Claude Code contain hunks with:
+        - oldStart: Starting line number in original file
+        - oldLines: Number of lines from original file
+        - newStart: Starting line number in new file
+        - newLines: Number of lines in new file
+        - lines: Array of line content with prefixes (' ', '+', '-')
+
+        Args:
+            structured_patch: List of hunk dictionaries
+            file_path: File path for diff headers
+
+        Returns:
+            Unified diff format string
+        """
+        if not structured_patch:
+            return f"# No changes in {file_path}"
+
+        diff_lines = []
+
+        # Add file headers
+        diff_lines.append(f"--- {file_path}")
+        diff_lines.append(f"+++ {file_path}")
+
+        # Process each hunk
+        for hunk in structured_patch:
+            if not isinstance(hunk, dict):
+                continue
+
+            # Extract hunk metadata
+            old_start = hunk.get("oldStart", 1)
+            old_lines = hunk.get("oldLines", 0)
+            new_start = hunk.get("newStart", 1)
+            new_lines = hunk.get("newLines", 0)
+            lines = hunk.get("lines", [])
+
+            # Add hunk header
+            diff_lines.append(f"@@ -{old_start},{old_lines} +{new_start},{new_lines} @@")
+
+            # Add hunk lines
+            for line in lines:
+                # Lines should already have their prefixes
+                # Just ensure we handle various formats
+                if isinstance(line, str):
+                    diff_lines.append(line)
+                else:
+                    diff_lines.append(str(line))
+
+        return "\n".join(diff_lines)
+
+    @staticmethod
+    def accept_provider_patch_verbatim(patch_data: Any) -> str:
+        """Accept provider patches verbatim with minimal processing.
+
+        This method is designed for high-fidelity preservation of patches
+        directly from Claude Code or other providers. It performs only
+        essential normalization for YAML compatibility.
+
+        Args:
+            patch_data: Raw patch data from provider (string, list, or dict)
+
+        Returns:
+            Normalized patch string ready for YAML inclusion
+        """
+        if patch_data is None:
+            return "# No patch data provided"
+
+        # Convert structured data to string if needed
+        if isinstance(patch_data, list | dict):
+            # For structured patches, preserve the structure in a readable format
+            if isinstance(patch_data, list):
+                # Join list elements (common for multi-line patches)
+                patch_str = "\n".join(str(item) for item in patch_data)
+            else:
+                # For dicts, convert to readable format
+                try:
+                    patch_str = json.dumps(patch_data, indent=2)
+                except (TypeError, ValueError):
+                    patch_str = str(patch_data)
+        else:
+            patch_str = str(patch_data)
+
+        # Apply minimal normalization for YAML
+        return DiffGenerator.normalize_diff_for_yaml(patch_str)
+
+    @staticmethod
     def normalize_diff_for_yaml(diff_content: str) -> str:
-        """Normalize diff strings for clean YAML literal blocks."""
+        """Normalize diff strings for clean YAML literal blocks.
+
+        This method ensures diffs are properly formatted for inclusion
+        in YAML files as literal blocks:
+        - Preserves line structure
+        - Normalizes line endings to Unix-style (\n)
+        - Ensures trailing newline for YAML compliance
+        - Handles both string and structured patch formats
+        """
         if not diff_content:
             return diff_content
 
+        # Handle structured patches (may be JSON-like)
+        if isinstance(diff_content, list | dict):
+            import json
+
+            try:
+                diff_content = json.dumps(diff_content, indent=2)
+            except (TypeError, ValueError):
+                diff_content = str(diff_content)
+
+        # Normalize line endings (CRLF -> LF)
+        diff_content = diff_content.replace("\r\n", "\n").replace("\r", "\n")
+
+        # Split and rejoin to ensure consistent formatting
         lines = diff_content.splitlines()
         normalized = "\n".join(lines)
-        if not normalized.endswith("\n"):
+
+        # Ensure trailing newline for YAML literal blocks
+        if normalized and not normalized.endswith("\n"):
             normalized += "\n"
+
         return normalized

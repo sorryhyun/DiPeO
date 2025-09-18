@@ -137,6 +137,12 @@ class ClaudeCodeSession:
         This method links those payloads back to the tool event so downstream
         translators can access rich ``tool_use_result`` data (original file
         contents, structured patches, etc.).
+
+        Priority order for result payloads:
+        1. Structured dict with patch data (rich diff)
+        2. Structured dict without patch (write/read result)
+        3. List of structured payloads (prefer last)
+        4. Error strings or primitive values (fallback)
         """
 
         if not self.events:
@@ -154,18 +160,48 @@ class ClaudeCodeSession:
 
             result_payload = event.tool_use_result
 
+            # Skip if parent already has a rich payload (don't overwrite with worse data)
+            if parent_event.tool_use_result and isinstance(parent_event.tool_use_result, dict):
+                existing = parent_event.tool_use_result
+                # Check if existing payload has rich diff data
+                has_rich_data = any(
+                    key in existing
+                    for key in [
+                        "structuredPatch",
+                        "patch",
+                        "diff",
+                        "originalFile",
+                        "originalFileContents",
+                    ]
+                )
+                if has_rich_data:
+                    continue  # Keep existing rich payload
+
             # Prefer structured payloads when multiple results are emitted.
             if isinstance(result_payload, dict):
+                # Always prefer dict payloads
                 parent_event.tool_use_result = result_payload
             elif isinstance(result_payload, list):
-                # Use the last structured payload if available.
+                # Use the last structured payload if available, preferring rich diffs
+                best_payload = None
                 for item in reversed(result_payload):
                     if isinstance(item, dict):
-                        parent_event.tool_use_result = item
-                        break
-                else:
-                    if parent_event.tool_use_result is None:
-                        parent_event.tool_use_result = result_payload
+                        # Check if this is a rich diff payload
+                        has_patch = any(key in item for key in ["structuredPatch", "patch", "diff"])
+                        if has_patch:
+                            # Found a rich diff, use it immediately
+                            parent_event.tool_use_result = item
+                            best_payload = None
+                            break
+                        elif best_payload is None:
+                            # Remember first dict we find as fallback
+                            best_payload = item
+
+                # Use best dict found, or list if no dicts
+                if best_payload is not None:
+                    parent_event.tool_use_result = best_payload
+                elif parent_event.tool_use_result is None:
+                    parent_event.tool_use_result = result_payload
             else:
                 # Only attach plain strings if we do not already have
                 # structured information (avoids clobbering rich payloads).

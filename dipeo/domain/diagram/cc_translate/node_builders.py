@@ -3,6 +3,18 @@
 from typing import Any, Optional
 
 from .diff_utils import DiffGenerator
+from .payload_utils import (
+    classify_payload,
+    extract_error_message,
+    extract_original_content,
+    extract_patch_data,
+    extract_write_content,
+    is_error_payload,
+    is_full_write,
+    is_rich_diff,
+    should_create_diff_node,
+    should_create_write_node,
+)
 from .text_utils import TextProcessor
 
 
@@ -127,11 +139,23 @@ class NodeBuilder:
             "props": {"operation": "read", "sub_type": "file", "file": file_path},
         }
 
-    def create_write_node(self, tool_input: dict[str, Any]) -> dict[str, Any]:
+    def create_write_node(
+        self, tool_input: dict[str, Any], tool_use_result: Optional[dict[str, Any]] = None
+    ) -> dict[str, Any]:
         """Create a DB node for file write operation."""
         label = f"Write File {self.increment_counter()}"
         file_path = tool_input.get("file_path", "unknown")
-        content = tool_input.get("content", "")
+
+        # Try to extract content from tool result first (more reliable)
+        content = None
+        if tool_use_result:
+            tool_result_payload = self._extract_tool_result_payload(tool_use_result)
+            if tool_result_payload and is_full_write(tool_result_payload):
+                content = extract_write_content(tool_result_payload)
+
+        # Fall back to tool input if no result content
+        if content is None:
+            content = tool_input.get("content", "")
 
         return {
             "label": label,
@@ -141,7 +165,7 @@ class NodeBuilder:
                 "operation": "write",
                 "sub_type": "file",
                 "file": file_path,
-                "content": content[:1000],  # Store some content for context
+                "content": content,  # Store full content from verified payload
             },
         }
 
@@ -226,54 +250,69 @@ class NodeBuilder:
         tool_name: str,
         tool_input: dict[str, Any],
         tool_use_result: Optional[dict[str, Any]] = None,
-    ) -> dict[str, Any]:
+    ) -> Optional[dict[str, Any]]:
         """Create a diff_patch node using tool_use_result for better diff generation.
 
-        When Claude Code sessions include toolUseResult payloads (newer sessions),
-        this method leverages the original file content to generate high-fidelity
-        unified diffs that apply cleanly without manual fixes.
-
-        Expected toolUseResult fields:
-        - originalFile or originalFileContents: Complete original file content
-        - oldString: The text being replaced (for validation)
-        - newString: The replacement text
-
-        Falls back to snippet-based diffs when full context is unavailable.
+        This method follows the trusted payload approach:
+        - Only creates diff_patch nodes when we have verified rich payloads
+        - Falls back to write nodes for full writes without original content
+        - Skips failed edits (returns None or creates TODO node)
         """
         label = f"{tool_name} File {self.increment_counter()}"
         file_path = tool_input.get("file_path", "unknown")
 
-        # Extract original file content from tool_use_result if available
-        original_content = None
+        # Extract and classify the payload
         tool_result_payload = self._extract_tool_result_payload(tool_use_result)
 
-        if tool_result_payload:
-            original_content = tool_result_payload.get("originalFile") or tool_result_payload.get(
-                "originalFileContents"
+        if not tool_result_payload:
+            # No payload available, fall back to snippet-based diff
+            return self.create_edit_node(tool_name, tool_input, None)
+
+        # Classify the payload to determine action
+        payload_type = classify_payload(tool_result_payload)
+
+        if payload_type == "error":
+            # Failed edit - skip or create TODO node
+            error_msg = extract_error_message(tool_result_payload)
+            print(f"Skipping failed {tool_name} for {file_path}: {error_msg}")
+            # Optionally create a TODO node for visibility
+            return self.create_todo_node(
+                {
+                    "todos": [
+                        {
+                            "content": f"Failed {tool_name}: {error_msg}",
+                            "status": "error",
+                            "file": file_path,
+                        }
+                    ]
+                }
             )
 
-            # Use provider supplied patch first
-            direct_patch = (
-                tool_result_payload.get("structuredPatch")
-                or tool_result_payload.get("patch")
-                or tool_result_payload.get("diff")
-            )
-            if direct_patch:
+        elif payload_type == "rich_diff":
+            # We have a verified rich diff - create diff_patch node
+            patch_data = extract_patch_data(tool_result_payload)
+            if patch_data:
+                # Use provider patch verbatim
                 return {
                     "label": label,
                     "type": "diff_patch",
                     "position": self.get_position(),
                     "props": {
                         "target_path": file_path,
-                        "diff": self.diff_generator.normalize_diff_for_yaml(str(direct_patch)),
+                        "diff": self.diff_generator.accept_provider_patch_verbatim(patch_data),
                         "format": "unified",
                         "backup": True,
                         "validate": True,
+                        # Store original for validation (optional, for debugging)
+                        "_original_file_hash": hash(
+                            extract_original_content(tool_result_payload) or ""
+                        ),
                     },
                 }
 
-            # For Edit operations, try using the direct diff generation from payload
-            if tool_name == "Edit":
+            # No direct patch but has original + strings, generate diff
+            original_content = extract_original_content(tool_result_payload)
+            if original_content:
                 diff_content = self.diff_generator.generate_diff_from_tool_result(
                     file_path, tool_result_payload
                 )
@@ -291,8 +330,30 @@ class NodeBuilder:
                         },
                     }
 
-        # Fall back to standard edit node creation with original content if available
-        return self.create_edit_node(tool_name, tool_input, original_content)
+        elif payload_type == "full_write":
+            # Full write without original - create db write node
+            write_content = extract_write_content(tool_result_payload)
+            if write_content:
+                return {
+                    "label": f"Write {file_path} {self.node_counter}",
+                    "type": "db",
+                    "position": self.get_position(),
+                    "props": {
+                        "operation": "write",
+                        "sub_type": "file",
+                        "file": file_path,
+                        "content": write_content,
+                    },
+                }
+
+        elif payload_type == "partial_diff":
+            # Partial diff - try snippet-based fallback
+            original_content = extract_original_content(tool_result_payload)
+            return self.create_edit_node(tool_name, tool_input, original_content)
+
+        # Unknown or unusable payload type
+        print(f"Unknown payload type '{payload_type}' for {tool_name} on {file_path}")
+        return self.create_edit_node(tool_name, tool_input, None)
 
     def _extract_tool_result_payload(
         self, tool_use_result: Optional[dict[str, Any] | list[Any] | str]
@@ -505,7 +566,7 @@ class NodeBuilder:
             if tool_name == "Read":
                 return self.create_read_node(tool_input)
             elif tool_name == "Write":
-                return self.create_write_node(tool_input)
+                return self.create_write_node(tool_input, tool_use_result)
             elif tool_name in ["Edit", "MultiEdit"]:
                 return self.create_edit_node_with_result(tool_name, tool_input, tool_use_result)
             elif tool_name == "Bash":
