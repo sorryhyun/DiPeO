@@ -44,7 +44,7 @@ export interface ExecutionSlice {
   execution: StoreExecutionState;
 
   // Execution control
-  startExecution: (executionId: string) => void;
+  startExecution: (executionId: string, preserveNodeStates?: boolean) => void;
   stopExecution: () => void;
   pauseExecution: () => void;
   resumeExecution: () => void;
@@ -96,19 +96,25 @@ export const createExecutionSlice = (
   },
 
   // Execution control
-  startExecution: (executionId) => set((state: UnifiedStore) => {
-    // Clear previous execution state before starting new one
-    state.execution.nodeStates.clear();
-    state.execution.runningNodes.clear();
-    state.execution.context = {};
+  startExecution: (executionId, preserveNodeStates = false) => set((state: UnifiedStore) => {
+    // Preserve existing nodeStates if connecting to an already-running execution (e.g., from CLI monitor mode)
+    const existingNodeStates = preserveNodeStates ? new Map(state.execution.nodeStates) : new Map<NodeID, StoreNodeState>();
+    const existingRunningNodes = preserveNodeStates ? new Set(state.execution.runningNodes) : new Set<NodeID>();
+
+    // Clear previous execution state before starting new one (unless preserving)
+    if (!preserveNodeStates) {
+      state.execution.nodeStates.clear();
+      state.execution.runningNodes.clear();
+      state.execution.context = {};
+    }
 
     state.execution = {
       id: executionId,
       isRunning: true,
       isPaused: false,
-      runningNodes: new Set(),
-      nodeStates: new Map(),
-      context: {}
+      runningNodes: existingRunningNodes,
+      nodeStates: existingNodeStates,
+      context: preserveNodeStates ? state.execution.context : {}
     };
     // NOTE: UI state changes should be handled by UI slice listening to execution state changes
     // This maintains proper slice isolation
@@ -217,35 +223,43 @@ export const createExecutionSlice = (
   // Type-safe event handling
   handleExecutionEvent: (event) => set((state: UnifiedStore) => {
     switch (event.type) {
-      case EventType.EXECUTION_STATUS_CHANGED:
-        // Handle execution-level status changes
-        if (event.data?.status === Status.RUNNING) {
-          state.startExecution(event.execution_id);
-        } else if (event.data?.status === Status.COMPLETED ||
-                   event.data?.status === Status.FAILED) {
-          state.stopExecution();
-        } else if (event.data?.status === Status.PAUSED) {
-          state.pauseExecution();
-        }
+      case EventType.EXECUTION_STARTED:
+        // Handle execution start
+        state.startExecution(event.execution_id);
         break;
 
-      case EventType.NODE_STATUS_CHANGED:
-        // Handle node-level status changes
-        if (event.node_id && event.status) {
+      case EventType.EXECUTION_COMPLETED:
+        // Handle execution completion
+        state.stopExecution();
+        break;
+
+      case EventType.NODE_STARTED:
+        // Handle node start
+        if (event.node_id) {
           const nodeState: StoreNodeState = {
-            status: event.status,
-            timestamp: event.timestamp ? new Date(event.timestamp).getTime() : Date.now(),
-            error: event.error
+            status: Status.RUNNING,
+            timestamp: event.timestamp ? new Date(event.timestamp).getTime() : Date.now()
           };
           updateNodeState(state, event.node_id as NodeID, nodeState);
         }
         break;
 
-      case EventType.NODE_PROGRESS:
-        // Handle node progress updates (e.g., streaming responses)
+      case EventType.NODE_COMPLETED:
+        // Handle node completion
+        if (event.node_id) {
+          const nodeState: StoreNodeState = {
+            status: Status.COMPLETED,
+            timestamp: event.timestamp ? new Date(event.timestamp).getTime() : Date.now()
+          };
+          updateNodeState(state, event.node_id as NodeID, nodeState);
+        }
+        break;
+
+      case EventType.NODE_OUTPUT:
+        // Handle node output updates (e.g., streaming responses, progress)
         if (event.node_id && event.data) {
           state.updateExecutionContext({
-            [`${event.node_id}_progress`]: event.data
+            [`${event.node_id}_output`]: event.data
           });
         }
         break;
@@ -254,18 +268,21 @@ export const createExecutionSlice = (
         // Handle execution errors
         if (event.error) {
           console.error('[ExecutionSlice] Execution error:', event.error);
-          if (event.node_id) {
-            state.setNodeFailed(event.node_id as NodeID, event.error);
-          }
+          state.stopExecution();
         }
         break;
 
-      case EventType.EXECUTION_UPDATE:
-        // Handle generic execution updates
-        if (event.result && event.node_id) {
-          state.updateExecutionContext({
-            [event.node_id]: event.result
-          });
+      case EventType.NODE_ERROR:
+        // Handle node errors
+        if (event.node_id && event.error) {
+          state.setNodeFailed(event.node_id as NodeID, event.error);
+        }
+        break;
+
+      case EventType.EXECUTION_LOG:
+        // Handle execution logs
+        if (event.data) {
+          console.log('[ExecutionSlice] Execution log:', event.data);
         }
         break;
 

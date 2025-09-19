@@ -358,6 +358,10 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
             node_id = node_data["id"]
             node_type_str = node_data.get("type", "person_job")
 
+            # Handle 'job' as alias for 'person_job'
+            if node_type_str == "job":
+                node_type_str = "person_job"
+
             try:
                 node_type = node_kind_to_domain_type(node_type_str)
             except ValueError:
@@ -373,7 +377,7 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
 
             nodes_dict[node_id] = {
                 "id": node_id,
-                "type": node_type.value,
+                "type": node_type_str.lower(),
                 "position": position,
                 "data": properties,
             }
@@ -640,10 +644,10 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
         return "nodes:" in content and "flow:" in content and "persons:" in content
 
     def parse(self, content: str) -> dict[str, Any]:
-        return self._parse_yaml(content)
+        return super().parse(content)
 
     def format(self, data: dict[str, Any]) -> str:
-        return self._format_yaml(data)
+        return super().format(data)
 
     def _extract_handles_dict(self, data: dict[str, Any]) -> dict[str, Any]:
         return data.get("handles", {})

@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 from typing import Any
 
+from dipeo.config.paths import BASE_DIR
 from dipeo.diagram_generated import DomainNode, NodeType
 
 logger = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ class PromptFileCompiler:
     """
 
     def __init__(self, base_dir: str | None = None, filesystem_reader: Any | None = None):
-        self._base_dir = base_dir or os.getenv("DIPEO_BASE_DIR", os.getcwd())
+        self._base_dir = base_dir or str(BASE_DIR)
         self._filesystem_reader = filesystem_reader or self._default_file_reader
         self._resolved_cache: dict[str, str] = {}
 

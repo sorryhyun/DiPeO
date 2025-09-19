@@ -16,6 +16,7 @@ export * from './formats';
 export * from './prompts';
 export * from './cli-sessions';
 export * from './providers';
+export * from './todo-sync';
 
 // Re-export as a collection for convenience
 import { diagramQueries } from './diagrams';
@@ -30,6 +31,7 @@ import { formatQueries } from './formats';
 import { promptQueries } from './prompts';
 import { cliSessionQueries } from './cli-sessions';
 import { providerQueries } from './providers';
+import { todoSyncQueries } from './todo-sync';
 
 export const allQueryDefinitions = [
   diagramQueries,
@@ -43,5 +45,6 @@ export const allQueryDefinitions = [
   formatQueries,
   promptQueries,
   cliSessionQueries,
-  providerQueries
+  providerQueries,
+  todoSyncQueries
 ];

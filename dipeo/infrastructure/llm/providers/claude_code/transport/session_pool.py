@@ -7,7 +7,6 @@ and system prompt persistence while avoiding subprocess reuse issues.
 
 import asyncio
 import contextlib
-import hashlib
 import logging
 import os
 import time
@@ -105,21 +104,8 @@ class SessionClient:
             if hasattr(self.client, "_transport") and hasattr(self.client._transport, "_process"):
                 try:
                     self.subprocess_pid = self.client._transport._process.pid
-                    logger.debug(
-                        f"[SessionClient] Tracked subprocess PID {self.subprocess_pid} for session {self.session_id}"
-                    )
                 except Exception as e:
                     logger.debug(f"[SessionClient] Could not get subprocess PID: {e}")
-
-            # Log connection with system prompt info from options
-            system_prompt_preview = None
-            if hasattr(self.options, "system_prompt") and self.options.system_prompt:
-                system_prompt_preview = self.options.system_prompt[:100] + "..."
-
-            logger.debug(
-                f"[SessionClient] Connected session {self.session_id} "
-                f"(system_prompt: {system_prompt_preview or 'None'})"
-            )
 
         except Exception as e:
             logger.error(f"[SessionClient] Failed to connect session {self.session_id}: {e}")
@@ -158,9 +144,6 @@ class SessionClient:
 
                     # Check for completion
                     if hasattr(message, "result"):
-                        logger.debug(
-                            f"[SessionClient] Query {self.query_count} completed for session {self.session_id}"
-                        )
                         break
             except asyncio.CancelledError:
                 logger.warning(
@@ -188,10 +171,6 @@ class SessionClient:
                 await asyncio.wait_for(self.client.disconnect(), timeout=SESSION_DISCONNECT_GRACE)
                 self.is_connected = False
                 self.is_reserved = False
-                logger.debug(
-                    f"[SessionClient] Disconnected session {self.session_id} "
-                    f"after {self.query_count} queries"
-                )
                 return
             except TimeoutError:
                 logger.warning(
@@ -267,8 +246,6 @@ class SessionClient:
                         logger.debug(f"[SessionClient] terminate() raised: {e}; killing")
                         proc.kill()
                         killed = True
-                else:
-                    logger.debug(f"[SessionClient] Subprocess PID {pid} already terminated")
             except psutil.NoSuchProcess:
                 logger.debug(f"[SessionClient] Subprocess PID {pid} no longer exists")
             except psutil.AccessDenied:
@@ -278,12 +255,6 @@ class SessionClient:
 
         self.is_connected = False
         self.is_reserved = False
-        if killed:
-            logger.info(f"[SessionClient] Force disconnected session {self.session_id} (SIGKILL)")
-        else:
-            logger.debug(
-                f"[SessionClient] Force disconnected session {self.session_id} without SIGKILL"
-            )
 
     def can_reuse(self) -> bool:
         """Check if this session can be reused for another query."""
@@ -416,8 +387,10 @@ class SessionPool:
             A new SessionClient instance (unconnected)
         """
         try:
-            # Generate session ID
-            session_id = f"{self.pool_key}_{self._stats.total_created}_{int(time.time())}"
+            # Use pool key directly as session ID for consistency across runs
+            # This ensures memory_selection, decision_evaluation, and direct_execution
+            # always have the same session IDs
+            session_id = self.pool_key
 
             # Create session client (not connected yet)
             session = SessionClient(
@@ -575,22 +548,18 @@ class SessionPoolManager:
         execution_phase: str,
         options: ClaudeCodeOptions,
     ) -> str:
-        """Generate a unique pool key based on execution phase and system prompt.
+        """Generate a pool key based on execution phase.
+
+        Simply use the execution phase name directly for all cases,
+        ensuring consistent session IDs across diagram runs.
 
         Args:
             execution_phase: The execution phase
-            options: Claude Code options containing system prompt
+            options: Claude Code options (unused, kept for compatibility)
 
         Returns:
-            A composite key for the pool
+            The execution phase as the pool key
         """
-        # Extract system prompt from options if present
-        system_prompt = getattr(options, "system_prompt", None)
-
-        if system_prompt:
-            # Include system prompt hash in key
-            prompt_hash = hashlib.sha256(system_prompt.encode()).hexdigest()[:8]
-            return f"{execution_phase}:{prompt_hash}"
         return execution_phase
 
     async def get_or_create_pool(
@@ -628,10 +597,11 @@ class SessionPoolManager:
                 await evicted.shutdown()
 
             # Create new pool
+            # Since we use pool_key as session_id directly, limit to 1 session per pool
             pool = SessionPool(
                 options=options,
                 pool_key=pool_key,
-                max_sessions=2,  # Keep small to avoid resource issues
+                max_sessions=1,  # One session per pool for consistent session IDs
             )
             self._pools[pool_key] = pool
 

@@ -53,6 +53,46 @@ class DiagramResolver:
                         diagrams.append(diagram)
                 except Exception as e:
                     logger.warning(f"Failed to load diagram {info.id}: {e}")
+                    # Create a minimal diagram with metadata from DiagramInfo
+                    # This allows the UI to at least show the file exists
+                    from pathlib import Path
+
+                    from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
+
+                    # Extract name from path if not in metadata
+                    name = None
+                    if info.metadata and "name" in info.metadata:
+                        name = info.metadata["name"]
+                    elif info.path:
+                        name = Path(info.path).stem
+
+                    from datetime import datetime
+
+                    # Get timestamp for created/modified
+                    now_str = datetime.now().isoformat()
+
+                    try:
+                        minimal_diagram = DomainDiagram(
+                            nodes=[],  # Empty nodes list
+                            arrows=[],  # Empty arrows list
+                            handles=[],  # Empty handles list
+                            persons=[],  # Empty persons list - REQUIRED FIELD
+                            metadata=DiagramMetadata(
+                                id=info.id,
+                                name=name or info.id,
+                                description=f"Failed to load: {str(e)[:100]}",  # Include error info
+                                version="1.0",  # Default version
+                                created=str(info.created) if info.created else now_str,
+                                modified=str(info.modified) if info.modified else now_str,
+                            ),
+                        )
+                        diagrams.append(minimal_diagram)
+                    except Exception as fallback_error:
+                        # If we can't even create a minimal diagram, just skip this one entirely
+                        logger.error(
+                            f"Failed to create minimal diagram for {info.id}: {fallback_error}"
+                        )
+                        # Continue to next diagram without adding anything to the list
                     continue
 
             return diagrams

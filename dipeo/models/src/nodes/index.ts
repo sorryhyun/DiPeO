@@ -7,6 +7,7 @@ export { apiJobSpec } from './api-job.spec.js';
 export { codeJobSpec } from './code-job.spec.js';
 export { conditionSpec } from './condition.spec.js';
 export { dbSpec } from './db.spec.js';
+export { diffPatchSpec } from './diff-patch.spec.js';
 export { endpointSpec } from './endpoint.spec.js';
 export { hookSpec } from './hook.spec.js';
 export { integratedApiSpec } from './integrated-api.spec.js';

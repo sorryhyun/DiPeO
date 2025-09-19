@@ -2,7 +2,7 @@
 import { z } from 'zod';
 
 export interface TypescriptAstNodeData {
-  source: string;
+  source?: string | undefined;
   extractPatterns?: any[] | undefined;
   includeJSDoc?: boolean | undefined;
   parseMode?: string | undefined;
@@ -15,7 +15,7 @@ export interface TypescriptAstNodeData {
 
 // Zod schema for validation
 export const TypescriptAstNodeDataSchema = z.object({
-  source: z.string().describe("TypeScript source code to parse"),
+  source: z.string().optional().describe("TypeScript source code to parse"),
   extractPatterns: z.any().optional().describe("Patterns to extract from the AST"),
   includeJSDoc: z.boolean().optional().describe("Include JSDoc comments in the extracted data"),
   parseMode: z.any().optional().describe("TypeScript parsing mode"),

@@ -1,7 +1,7 @@
 """
 Generated enum definitions for DiPeO.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-17T20:38:42.161885
+Generated at: 2025-09-19T17:28:44.365976
 """
 
 from enum import Enum
@@ -151,8 +151,6 @@ class EventType(str, Enum):
     
     EXECUTION_ERROR = "execution_error"
     
-    EXECUTION_STATUS_CHANGED = "execution_status_changed"
-    
     NODE_STARTED = "node_started"
     
     NODE_COMPLETED = "node_completed"
@@ -161,25 +159,11 @@ class EventType(str, Enum):
     
     NODE_OUTPUT = "node_output"
     
-    NODE_STATUS_CHANGED = "node_status_changed"
-    
-    NODE_PROGRESS = "node_progress"
-    
-    METRICS_COLLECTED = "metrics_collected"
-    
-    OPTIMIZATION_SUGGESTED = "optimization_suggested"
-    
-    WEBHOOK_RECEIVED = "webhook_received"
+    EXECUTION_LOG = "execution_log"
     
     INTERACTIVE_PROMPT = "interactive_prompt"
     
     INTERACTIVE_RESPONSE = "interactive_response"
-    
-    EXECUTION_UPDATE = "execution_update"
-    
-    EXECUTION_LOG = "execution_log"
-    
-    KEEPALIVE = "keepalive"
     
 
 
@@ -191,6 +175,8 @@ class LLMService(str, Enum):
     ANTHROPIC = "anthropic"
     
     CLAUDE_CODE = "claude-code"
+    
+    CLAUDE_CODE_CUSTOM = "claude-code-custom"
     
     GOOGLE = "google"
     
@@ -214,6 +200,8 @@ class APIServiceType(str, Enum):
     OLLAMA = "ollama"
     
     CLAUDE_CODE = "claude-code"
+    
+    CLAUDE_CODE_CUSTOM = "claude-code-custom"
     
 
 
@@ -393,6 +381,8 @@ class NodeType(str, Enum):
     
     IR_BUILDER = "ir_builder"
     
+    DIFF_PATCH = "diff_patch"
+    
 
 
 class Severity(str, Enum):
@@ -416,6 +406,19 @@ class EventPriority(str, Enum):
     HIGH = "high"
     
     CRITICAL = "critical"
+    
+
+
+class TodoSyncMode(str, Enum):
+    """"""
+    
+    OFF = "off"
+    
+    MANUAL = "manual"
+    
+    AUTO = "auto"
+    
+    WATCH = "watch"
     
 
 
@@ -474,5 +477,7 @@ __all__ = [
     "Severity",
     
     "EventPriority",
+    
+    "TodoSyncMode",
     
 ]

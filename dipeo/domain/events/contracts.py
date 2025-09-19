@@ -100,26 +100,6 @@ class MetricsCollectedPayload:
 
 
 @dataclass(frozen=True, slots=True)
-class OptimizationSuggestedPayload:
-    """Payload for optimization suggested event."""
-
-    suggestion_type: str
-    affected_nodes: list[str] = field(default_factory=list)
-    expected_improvement: str | None = None
-    description: str = ""
-
-
-@dataclass(frozen=True, slots=True)
-class WebhookReceivedPayload:
-    """Payload for webhook received event."""
-
-    webhook_id: str
-    source: str
-    payload: dict[str, Any] = field(default_factory=dict)
-    headers: dict[str, str] = field(default_factory=dict)
-
-
-@dataclass(frozen=True, slots=True)
 class ExecutionLogPayload:
     """Payload for execution log event."""
 
@@ -137,9 +117,6 @@ EventPayload = (
     | NodeCompletedPayload
     | NodeErrorPayload
     | NodeOutputPayload
-    | MetricsCollectedPayload
-    | OptimizationSuggestedPayload
-    | WebhookReceivedPayload
     | ExecutionLogPayload
 )
 
@@ -151,9 +128,6 @@ PAYLOAD_BY_TYPE: dict[EventType, type[EventPayload]] = {
     EventType.NODE_COMPLETED: NodeCompletedPayload,
     EventType.NODE_ERROR: NodeErrorPayload,
     EventType.NODE_OUTPUT: NodeOutputPayload,
-    EventType.METRICS_COLLECTED: MetricsCollectedPayload,
-    EventType.OPTIMIZATION_SUGGESTED: OptimizationSuggestedPayload,
-    EventType.WEBHOOK_RECEIVED: WebhookReceivedPayload,
     EventType.EXECUTION_LOG: ExecutionLogPayload,
 }
 
@@ -225,10 +199,20 @@ def node_started(execution_id: str, node_id: str, state: NodeState, **kwargs) ->
 
 def node_completed(execution_id: str, node_id: str, state: NodeState, **kwargs) -> DomainEvent:
     """Create a node completed event."""
+    # Extract metadata fields that aren't part of the payload
+    meta = {}
+    if "person_id" in kwargs:
+        meta["person_id"] = kwargs.pop("person_id")
+    if "node_type" in kwargs:
+        meta["node_type"] = kwargs.pop("node_type")
+    if "memory_selection" in kwargs:
+        meta["memory_selection"] = kwargs.pop("memory_selection")
+
     return DomainEvent(
         type=EventType.NODE_COMPLETED,
         scope=EventScope(execution_id=execution_id, node_id=node_id),
         payload=NodeCompletedPayload(state=state, **kwargs),
+        meta=meta,
     )
 
 

@@ -62,6 +62,8 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
     handles: handlesMap,
     dataVersion,
     isMonitorMode,
+    executionNodeStates,
+    executionRunningNodes,
     addArrow,
     deleteArrow,
     updateNode,
@@ -77,6 +79,8 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
     handles: state.handles,
     dataVersion: state.dataVersion,
     isMonitorMode: state.isMonitorMode,
+    executionNodeStates: state.execution.nodeStates,
+    executionRunningNodes: state.execution.runningNodes,
     addArrow: state.addArrow,
     deleteArrow: state.deleteArrow,
     updateNode: state.updateNode,
@@ -225,13 +229,64 @@ export function useCanvas(options: UseCanvasOptions = {}): UseCanvasReturn {
     return lookup;
   }, [handlesArray]);
 
-  // Convert nodes to React Flow format
+  // Convert nodes to React Flow format with execution state
   const nodes = React.useMemo(() => {
     return nodesArray.map(node => {
       const nodeHandles = handlesByNode.get(node.id as NodeID) || [];
-      return DiagramAdapter.nodeToReactFlow(node, nodeHandles);
+      const baseNode = DiagramAdapter.nodeToReactFlow(node, nodeHandles);
+
+      // Apply execution state styling if in execution mode or monitor mode
+      if ((isExecutionMode || isMonitorMode) && executionNodeStates) {
+        const nodeState = executionNodeStates.get(node.id);
+        const isRunning = executionRunningNodes?.has(node.id);
+
+        // Add execution state to node data
+        baseNode.data = {
+          ...baseNode.data,
+          executionState: nodeState,
+          isRunning
+        };
+
+        // Apply visual styling based on state
+        const nodeStyle: React.CSSProperties = {};
+        let className = '';
+
+        if (isRunning) {
+          className = 'node-running';
+          nodeStyle.animation = 'pulse-blue 2s infinite';
+          nodeStyle.borderColor = '#3b82f6';
+          nodeStyle.borderWidth = 2;
+        } else if (nodeState) {
+          switch (nodeState.status) {
+            case 'completed':
+              className = 'node-completed';
+              nodeStyle.borderColor = '#10b981';
+              nodeStyle.borderWidth = 2;
+              nodeStyle.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+              break;
+            case 'failed':
+              className = 'node-failed';
+              nodeStyle.borderColor = '#ef4444';
+              nodeStyle.borderWidth = 2;
+              nodeStyle.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+              break;
+            case 'skipped':
+              className = 'node-skipped';
+              nodeStyle.opacity = 0.5;
+              break;
+          }
+        }
+
+        // Apply the styling to the node
+        baseNode.style = { ...baseNode.style, ...nodeStyle };
+        if (className) {
+          baseNode.className = className;
+        }
+      }
+
+      return baseNode;
     });
-  }, [nodesArray, handlesByNode]);
+  }, [nodesArray, handlesByNode, isExecutionMode, isMonitorMode, executionNodeStates, executionRunningNodes]);
 
   const isConnectable = !readOnly && !isMonitorMode;
 

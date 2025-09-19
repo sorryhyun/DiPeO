@@ -4,10 +4,10 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.decorators import requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.application.execution.handler_base import TypedNodeHandler
-from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.execution.handlers.core.base import TypedNodeHandler
+from dipeo.application.execution.handlers.core.decorators import requires_services
+from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.registry import API_KEY_SERVICE, INTEGRATED_API_SERVICE
 from dipeo.diagram_generated.unified_nodes.integrated_api_node import IntegratedApiNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory

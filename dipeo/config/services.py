@@ -16,6 +16,7 @@ LLM_SERVICE_TYPES: set[APIServiceType] = {
     APIServiceType.GEMINI,
     APIServiceType.OLLAMA,
     APIServiceType.CLAUDE_CODE,
+    APIServiceType.CLAUDE_CODE_CUSTOM,
 }
 
 
@@ -35,6 +36,7 @@ def normalize_service_name(service: str) -> str:
         "claude": LLMService.ANTHROPIC,
         "claude-sdk": LLMService.CLAUDE_CODE,
         "claude-code": LLMService.CLAUDE_CODE,
+        "claude-code-custom": LLMService.CLAUDE_CODE_CUSTOM,
         "chatgpt": LLMService.OPENAI,
         "gpt": LLMService.OPENAI,
         "gpt-4": LLMService.OPENAI,

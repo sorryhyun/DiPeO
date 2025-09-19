@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+# __generated__ by DiPeO
+"""
+Domain models generated from TypeScript interfaces.
+Generated at: {{ generated_at }}
+"""
+from __future__ import annotations
+
+from enum import Enum, auto
+from typing import Any, Dict, List, Literal, NewType, Optional, Union
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from dipeo.domain.type_defs import JsonDict, JsonList, JsonPrimitive, JsonValue
+
+from .enums import *
+from .integrations import *
+
+# NewType declarations
+{% for newtype in domain_models.newtypes %}
+{{ newtype.name }} = NewType('{{ newtype.name }}', {{ newtype.base }})
+{% endfor %}
+
+{% for model in domain_models.models %}
+class {{ model.name }}(BaseModel):
+    """{{ model.description or model.name + ' model' }}"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    {% for field in model.fields %}
+    {{ field.name }}: {{ field.python_type }}{% if field.optional %} | None{% endif %}{% if field.literal %} = Field(default={{ field.literal_value }}){% elif field.optional %} = Field(default=None){% else %}{% endif %}
+    {% endfor %}
+
+
+{% endfor %}
+
+# Type aliases that reference models
+{% for alias in domain_models.aliases %}
+{{ alias.name }} = {{ alias.type }}
+{% endfor %}
+
+# Validation-related models moved from validation/ directory
+# These are used by strawberry_domain.py for GraphQL type registration
+
+class JsonDictValidation(BaseModel):
+    """Empty model used as JSON container for validation"""
+    model_config = ConfigDict(extra='forbid')
+
+
+class RecordStringString(BaseModel):
+    """Empty model for string-to-string mappings"""
+    model_config = ConfigDict(extra='forbid')
+
+
+class TemplatePreprocessor(BaseModel):
+    """Configuration for template preprocessor"""
+    model_config = ConfigDict(extra='forbid')
+
+    function: str = Field(..., description='Function name to call, e.g. "build_context_from_ast"')
+    module: str = Field(..., description='Python module path, e.g. "projects.codegen.code.shared.context_builders"')
+    args: Optional['JsonDictValidation'] = Field(None,
+                                                 description='Optional arguments passed as kwargs to the function')

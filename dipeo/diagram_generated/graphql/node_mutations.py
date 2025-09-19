@@ -2,7 +2,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-17T20:38:41.210630
+Generated at: 2025-09-19T17:28:43.378161
 """
 
 import strawberry
@@ -316,6 +316,10 @@ class CreateDbInput:
     
     
     
+    keys: Optional[str] = None  # Single key or list of dot-separated keys to target within the JSON payload
+    
+    
+    
     data: Optional[strawberry.scalars.JSON] = None  # Data configuration
     
     
@@ -358,6 +362,10 @@ class UpdateDbInput:
     
     
     
+    keys: Optional[str] = None  # Single key or list of dot-separated keys to target within the JSON payload
+    
+    
+    
     data: Optional[strawberry.scalars.JSON] = None  # Data configuration
     
     
@@ -372,6 +380,126 @@ class UpdateDbInput:
 
 
 @strawberry.input
+class CreateDiffPatchInput:
+    """Input for creating a Diff/Patch node"""
+    diagram_id: str
+    position: Vec2Input
+    label: Optional[str] = None
+
+    # Node-specific fields from specification
+    
+    
+    target_path: str  # Path to the file to patch
+    
+    
+    
+    diff: str  # Unified diff content to apply
+    
+    
+    
+    # Enum field: Diff format type
+    format: Optional[str] = None  # Values: ['unified', 'git', 'context', 'ed', 'normal']
+    
+    
+    
+    # Enum field: How to apply the patch
+    apply_mode: Optional[str] = None  # Values: ['normal', 'force', 'dry_run', 'reverse']
+    
+    
+    
+    backup: Optional[bool] = None  # Create backup before patching
+    
+    
+    
+    validate_patch: Optional[bool] = None  # Validate patch before applying
+    
+    
+    
+    backup_dir: Optional[str] = None  # Directory for backup files
+    
+    
+    
+    strip_level: Optional[int] = None  # Strip N leading path components (like patch -pN)
+    
+    
+    
+    fuzz_factor: Optional[int] = None  # Number of lines that can be ignored when matching context
+    
+    
+    
+    reject_file: Optional[str] = None  # Path to save rejected hunks
+    
+    
+    
+    ignore_whitespace: Optional[bool] = None  # Ignore whitespace changes when matching
+    
+    
+    
+    create_missing: Optional[bool] = None  # Create target file if it doesn't exist
+    
+    
+
+@strawberry.input
+class UpdateDiffPatchInput:
+    """Input for updating a Diff/Patch node"""
+    position: Optional[Vec2Input] = None
+    label: Optional[str] = None
+
+    # Node-specific fields from specification (all optional for updates)
+    
+    
+    target_path: Optional[str] = None  # Path to the file to patch
+    
+    
+    
+    diff: Optional[str] = None  # Unified diff content to apply
+    
+    
+    
+    # Enum field: Diff format type
+    format: Optional[str] = None  # Values: ['unified', 'git', 'context', 'ed', 'normal']
+    
+    
+    
+    # Enum field: How to apply the patch
+    apply_mode: Optional[str] = None  # Values: ['normal', 'force', 'dry_run', 'reverse']
+    
+    
+    
+    backup: Optional[bool] = None  # Create backup before patching
+    
+    
+    
+    validate_patch: Optional[bool] = None  # Validate patch before applying
+    
+    
+    
+    backup_dir: Optional[str] = None  # Directory for backup files
+    
+    
+    
+    strip_level: Optional[int] = None  # Strip N leading path components (like patch -pN)
+    
+    
+    
+    fuzz_factor: Optional[int] = None  # Number of lines that can be ignored when matching context
+    
+    
+    
+    reject_file: Optional[str] = None  # Path to save rejected hunks
+    
+    
+    
+    ignore_whitespace: Optional[bool] = None  # Ignore whitespace changes when matching
+    
+    
+    
+    create_missing: Optional[bool] = None  # Create target file if it doesn't exist
+    
+    
+
+
+@strawberry.input
 class CreateEndpointInput:
     """Input for creating a End Node node"""
     diagram_id: str
@@ -381,7 +509,7 @@ class CreateEndpointInput:
     # Node-specific fields from specification
     
     
-    save_to_file: bool  # Save results to file
+    save_to_file: Optional[bool] = None  # Save results to file
     
     
     
@@ -625,7 +753,7 @@ class CreateJsonSchemaValidatorInput:
     
     
     
-    schema: Optional[strawberry.scalars.JSON] = None  # Inline JSON schema
+    json_schema: Optional[strawberry.scalars.JSON] = None  # Inline JSON schema
     
     
     
@@ -654,7 +782,7 @@ class UpdateJsonSchemaValidatorInput:
     
     
     
-    schema: Optional[strawberry.scalars.JSON] = None  # Inline JSON schema
+    json_schema: Optional[strawberry.scalars.JSON] = None  # Inline JSON schema
     
     
     
@@ -685,7 +813,7 @@ class CreatePersonJobInput:
     
     
     
-    first_only_prompt: str  # Prompt used only on first execution
+    first_only_prompt: Optional[str] = None  # Prompt used only on first execution
     
     
     
@@ -1095,7 +1223,7 @@ class CreateTypescriptAstInput:
     # Node-specific fields from specification
     
     
-    source: str  # TypeScript source code to parse
+    source: Optional[str] = None  # TypeScript source code to parse
     
     
     
@@ -2014,6 +2142,108 @@ class NodeMutations:
         return result
 
 
+    @strawberry.mutation
+    async def toggle_todo_sync(
+        self,
+        info: Info,
+        
+        
+        input: ToggleTodoSyncInput
+        
+        
+    ) -> Any:  # Return type will be determined by the resolver
+        """ToggleTodoSync - TodoSync mutation"""
+        registry: ServiceRegistry = info.context["registry"]
+
+        # Build variables dict
+        variables = {
+            
+            
+            "input": input
+            
+            
+        }
+
+        # Determine service and execute mutation based on type
+        mutation_lower = "ToggleTodoSync".lower()
+
+        
+        # Default to DIAGRAM_PORT
+        service = registry.resolve(DIAGRAM_PORT)
+        result = await service.handle_mutation("ToggleTodoSync", variables)
+        
+
+        return result
+
+
+    @strawberry.mutation
+    async def configure_todo_sync(
+        self,
+        info: Info,
+        
+        
+        input: ConfigureTodoSyncInput
+        
+        
+    ) -> Any:  # Return type will be determined by the resolver
+        """ConfigureTodoSync - TodoSync mutation"""
+        registry: ServiceRegistry = info.context["registry"]
+
+        # Build variables dict
+        variables = {
+            
+            
+            "input": input
+            
+            
+        }
+
+        # Determine service and execute mutation based on type
+        mutation_lower = "ConfigureTodoSync".lower()
+
+        
+        # Default to DIAGRAM_PORT
+        service = registry.resolve(DIAGRAM_PORT)
+        result = await service.handle_mutation("ConfigureTodoSync", variables)
+        
+
+        return result
+
+
+    @strawberry.mutation
+    async def trigger_todo_sync(
+        self,
+        info: Info,
+        
+        
+        session_id: str
+        
+        
+    ) -> Any:  # Return type will be determined by the resolver
+        """TriggerTodoSync - TodoSync mutation"""
+        registry: ServiceRegistry = info.context["registry"]
+
+        # Build variables dict
+        variables = {
+            
+            
+            "session_id": session_id
+            
+            
+        }
+
+        # Determine service and execute mutation based on type
+        mutation_lower = "TriggerTodoSync".lower()
+
+        
+        # Default to DIAGRAM_PORT
+        service = registry.resolve(DIAGRAM_PORT)
+        result = await service.handle_mutation("TriggerTodoSync", variables)
+        
+
+        return result
+
+
 
 
 
@@ -2033,6 +2263,9 @@ __all__ = [
 
     'CreateDbInput',
     'UpdateDbInput',
+
+    'CreateDiffPatchInput',
+    'UpdateDiffPatchInput',
 
     'CreateEndpointInput',
     'UpdateEndpointInput',

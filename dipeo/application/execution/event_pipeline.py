@@ -82,7 +82,6 @@ class EventPipeline:
             "node_started": self._emit_node_started,
             "node_completed": self._emit_node_completed,
             "node_error": self._emit_node_error,
-            "node_status_changed": self._emit_node_status_changed,
         }
 
         handler = emission_map.get(event_type)
@@ -219,11 +218,17 @@ class EventPipeline:
         output = None
         output_summary = None
         token_usage = None
+        person_id = None
+        memory_selection = None
 
         if envelope:
             output = envelope.body
             output_summary = self._create_output_summary(output)
             token_usage = self._extract_token_usage(envelope)
+            # Extract person_id and memory_selection from envelope metadata
+            if hasattr(envelope, "meta") and isinstance(envelope.meta, dict):
+                person_id = envelope.meta.get("person_id")
+                memory_selection = envelope.meta.get("memory_selection")
 
         event = node_completed(
             execution_id=self.execution_id,
@@ -233,6 +238,9 @@ class EventPipeline:
             duration_ms=int(duration_ms) if duration_ms else None,
             output_summary=output_summary,
             token_usage=token_usage,
+            person_id=person_id,
+            memory_selection=memory_selection,
+            node_type=str(node.type) if node else None,
         )
 
         await self._publish(event)
@@ -260,23 +268,6 @@ class EventPipeline:
         await self._publish(event)
         logger.debug(f"[EventPipeline] Node error: {node.id}, error: {exc}")
 
-    async def _emit_node_status_changed(
-        self,
-        node_id: NodeID,
-        status: Status,
-    ) -> None:
-        """Emit node status changed event."""
-        # Create a simple status change event
-        event = DomainEvent(
-            type=EventType.NODE_STATUS_CHANGED,
-            scope=EventScope(execution_id=self.execution_id, node_id=str(node_id)),
-            payload={
-                "node_id": str(node_id),
-                "status": status.value if hasattr(status, "value") else str(status),
-            },
-        )
-
-        await self._publish(event)
         # logger.debug(f"[EventPipeline] Node status changed: {node_id} -> {status}")
 
     def _get_node_state(

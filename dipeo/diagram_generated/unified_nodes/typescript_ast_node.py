@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for typescript_ast.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-17T20:38:42.850911
+Generated at: 2025-09-19T17:28:45.062814
 """
 
 from typing import *
@@ -25,7 +25,6 @@ class TypescriptAstNode(BaseModel):
     position: Vec2
 
     # Required node-specific fields
-    source: str = Field(description="TypeScript source code to parse")
 
     # Optional base fields
     label: str = Field(default="", description="Node label for display")
@@ -36,6 +35,8 @@ class TypescriptAstNode(BaseModel):
     type: NodeType = Field(default=NodeType.TYPESCRIPT_AST, frozen=True)
 
     # Optional node-specific fields
+    
+    source: Optional[str] = Field(default=None, description="TypeScript source code to parse")
     
     extract_patterns: Optional[List[Any]] = Field(default_factory=list, alias="extractPatterns", description="Patterns to extract from the AST")
     

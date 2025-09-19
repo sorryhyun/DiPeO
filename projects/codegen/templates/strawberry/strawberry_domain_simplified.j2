@@ -77,7 +77,7 @@ class {{ type.name }}Type:
     {%- elif field.is_literal %}
     {{ field.name }}: {{ 'Optional[str]' if field.optional else 'str' }}{{ ' = None' if field.optional else '' }}
     {%- elif field.type.startswith('List[Domain') %}
-    {{ field.name }}: list[{{ field.type.replace('List[', '').replace(']', '') }}Type]
+    {{ field.name }}: List[{{ field.type.replace('List[', '').replace(']', '') }}Type]
     {%- elif field.type.startswith('Domain') %}
     {{ field.name }}: {{ field.type }}Type
     {%- elif field.type.endswith('ID') %}

@@ -1,30 +1,48 @@
 """
 Compatibility shim for generated_nodes.py
 Re-exports from individual files for backward compatibility.
-This file is part of the Phase 1 refactoring to eliminate monolithic files.
+Generated at: 2025-09-19T17:28:44.362012
 """
 
 # Re-export all node classes from individual files
+
 from .unified_nodes.api_job_node import ApiJobNode
+
 from .unified_nodes.code_job_node import CodeJobNode
+
 from .unified_nodes.condition_node import ConditionNode
-from .unified_nodes.db_node import DbNode as DBNode  # Alias for compatibility
+
+from .unified_nodes.db_node import DbNode as DBNode
+
+from .unified_nodes.diff_patch_node import DiffPatchNode
+
 from .unified_nodes.endpoint_node import EndpointNode
+
 from .unified_nodes.hook_node import HookNode
+
 from .unified_nodes.integrated_api_node import IntegratedApiNode
+
 from .unified_nodes.ir_builder_node import IrBuilderNode
+
 from .unified_nodes.json_schema_validator_node import JsonSchemaValidatorNode
+
 from .unified_nodes.person_job_node import PersonJobNode
+
 from .unified_nodes.start_node import StartNode
+
 from .unified_nodes.sub_diagram_node import SubDiagramNode
+
 from .unified_nodes.template_job_node import TemplateJobNode
+
 from .unified_nodes.typescript_ast_node import TypescriptAstNode
+
 from .unified_nodes.user_response_node import UserResponseNode
 
-# Re-export NodeType and DBBlockSubType enums from enums
+
+# Re-export NodeType and other enums
 from .enums import NodeType, DBBlockSubType
 
-# Re-export base types from domain_models (will be replaced by compatibility shim next)
+# Re-export base types from domain_models
 from .domain_models import (
     NodeID,
     Vec2,
@@ -34,10 +52,8 @@ from .domain_models import (
     DomainHandle,
 )
 
-# Import typing for the function signature
 from typing import Dict, Any, Optional, Union
 
-# Create the create_executable_node function
 def create_executable_node(
     node_type: NodeType,
     node_id: NodeID,
@@ -50,7 +66,7 @@ def create_executable_node(
     """Factory function to create typed executable nodes from diagram data."""
     data = data or {}
 
-    # Create the appropriate node based on type
+    
     if node_type == NodeType.API_JOB:
         return ApiJobNode(
             id=node_id,
@@ -58,16 +74,25 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
+            
             url=data.get('url'),
+            
             method=data.get('method'),
+            
             headers=data.get('headers'),
+            
+            params=data.get('params'),
+            
             body=data.get('body'),
-            api_key_id=data.get('api_key_id'),
-            timeout=data.get('timeout', 30),
-            retry_count=data.get('retry_count', 3),
-            retry_delay=data.get('retry_delay', 1),
+            
+            timeout=data.get('timeout'),
+            
+            auth_type=data.get('auth_type'),
+            
+            auth_config=data.get('auth_config'),
+            
         )
-
+    
     elif node_type == NodeType.CODE_JOB:
         return CodeJobNode(
             id=node_id,
@@ -75,13 +100,19 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
+            
             language=data.get('language'),
-            code=data.get('code', ''),
-            file_path=data.get('filePath', data.get('file_path', '')),
-            function_name=data.get('functionName', data.get('function_name', '')),
-            timeout=data.get('timeout', 0),
+            
+            filePath=data.get('filePath'),
+            
+            code=data.get('code'),
+            
+            functionName=data.get('functionName'),
+            
+            timeout=data.get('timeout'),
+            
         )
-
+    
     elif node_type == NodeType.CONDITION:
         return ConditionNode(
             id=node_id,
@@ -89,48 +120,91 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
+            
             condition_type=data.get('condition_type'),
+            
             expression=data.get('expression', data.get('condition', '')),
-            node_indices=data.get('node_indices', []),
-            person=data.get('person', ''),
-            judge_by=data.get('judge_by', ''),
-            judge_by_file=data.get('judge_by_file', ''),
-            memorize_to=data.get('memorize_to', ''),
-            at_most=data.get('at_most', 0),
-            expose_index_as=data.get('expose_index_as', ''),
+            
+            node_indices=data.get('node_indices'),
+            
+            person=data.get('person'),
+            
+            judge_by=data.get('judge_by'),
+            
+            judge_by_file=data.get('judge_by_file'),
+            
+            memorize_to=data.get('memorize_to', 'GOLDFISH'),
+            
+            at_most=data.get('at_most'),
+            
+            expose_index_as=data.get('expose_index_as'),
+            
             skippable=data.get('skippable', False),
+            
         )
-
+    
     elif node_type == NodeType.DB:
-        # Handle source_details if it exists (backward compatibility)
-        source_details = data.get('source_details', {})
-        if isinstance(source_details, dict):
-            file_val = source_details.get('file', data.get('file', ''))
-            collection_val = source_details.get('collection', data.get('collection', ''))
-            query_val = source_details.get('query', data.get('query', ''))
-            data_val = source_details.get('data', data.get('data', {}))
-        else:
-            file_val = data.get('file', '')
-            collection_val = data.get('collection', '')
-            query_val = data.get('query', '')
-            data_val = data.get('data', {})
-
         return DBNode(
             id=node_id,
             position=position,
             label=label,
             flipped=flipped,
             metadata=metadata,
-            operation=data.get('operation', ''),
-            sub_type=data.get('sub_type', data.get('subType', DBBlockSubType.FILE)),
-            file=file_val,
-            collection=collection_val,
-            query=query_val,
-            data=data_val,
-            serialize_json=data.get('serialize_json', data.get('serializeJson', False)),
-            format=data.get('format', ''),
+            
+            file=data.get('file'),
+            
+            collection=data.get('collection'),
+            
+            sub_type=data.get('sub_type'),
+            
+            operation=data.get('operation'),
+            
+            query=data.get('query'),
+            
+            keys=data.get('keys'),
+            
+            data=data.get('data'),
+            
+            serialize_json=data.get('serialize_json', False),
+            
+            format=data.get('format', 'json'),
+            
         )
-
+    
+    elif node_type == NodeType.DIFF_PATCH:
+        return DiffPatchNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            
+            target_path=data.get('target_path'),
+            
+            diff=data.get('diff'),
+            
+            format=data.get('format', 'unified'),
+            
+            apply_mode=data.get('apply_mode', 'normal'),
+            
+            backup=data.get('backup', True),
+            
+            validate_patch=data.get('validate_patch', True),
+            
+            backup_dir=data.get('backup_dir'),
+            
+            strip_level=data.get('strip_level', 1),
+            
+            fuzz_factor=data.get('fuzz_factor', 2),
+            
+            reject_file=data.get('reject_file'),
+            
+            ignore_whitespace=data.get('ignore_whitespace', False),
+            
+            create_missing=data.get('create_missing', False),
+            
+        )
+    
     elif node_type == NodeType.ENDPOINT:
         return EndpointNode(
             id=node_id,
@@ -138,10 +212,13 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            save_to_file=data.get('save_to_file', False),
-            file_name=data.get('filename', data.get('file_name', '')),
+            
+            save_to_file=data.get('save_to_file'),
+            
+            file_name=data.get('file_name'),
+            
         )
-
+    
     elif node_type == NodeType.HOOK:
         return HookNode(
             id=node_id,
@@ -149,12 +226,19 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            hook_type=data.get('hook_type'),
-            hook_name=data.get('hook_name'),
-            trigger_on=data.get('trigger_on'),
-            condition=data.get('condition'),
+            
+            hook_type=data.get('hook_type', 'shell'),
+            
+            command=data.get('command'),
+            
+            url=data.get('url'),
+            
+            timeout=data.get('timeout', 60),
+            
+            retry_count=data.get('retry_count', 0),
+            
         )
-
+    
     elif node_type == NodeType.INTEGRATED_API:
         return IntegratedApiNode(
             id=node_id,
@@ -162,115 +246,21 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
+            
             provider=data.get('provider'),
-            action=data.get('action'),
+            
+            operation=data.get('operation'),
+            
+            resource_id=data.get('resource_id'),
+            
             config=data.get('config'),
-            use_hooks=data.get('use_hooks', False),
+            
+            timeout=data.get('timeout'),
+            
+            max_retries=data.get('max_retries'),
+            
         )
-
-    elif node_type == NodeType.JSON_SCHEMA_VALIDATOR:
-        return JsonSchemaValidatorNode(
-            id=node_id,
-            position=position,
-            label=label,
-            flipped=flipped,
-            metadata=metadata,
-            schema=data.get('schema'),
-            raise_on_invalid=data.get('raise_on_invalid', False),
-            mode=data.get('mode', 'validate'),
-        )
-
-    elif node_type == NodeType.PERSON_JOB:
-        return PersonJobNode(
-            id=node_id,
-            position=position,
-            label=label,
-            flipped=flipped,
-            metadata=metadata,
-            person=data.get('person', ''),
-            first_only_prompt=data.get('first_only_prompt', data.get('prompt', '')),
-            first_prompt_file=data.get('first_prompt_file', ''),
-            default_prompt=data.get('default_prompt', ''),
-            prompt_file=data.get('prompt_file', ''),
-            max_iteration=data.get('max_iteration', 100),
-            memorize_to=data.get('memorize_to', ''),
-            at_most=data.get('at_most', 0),
-            tools=data.get('tools', None),
-            text_format=data.get('text_format', ''),
-            text_format_file=data.get('text_format_file', ''),
-            resolved_prompt=data.get('resolved_prompt', ''),
-            resolved_first_prompt=data.get('resolved_first_prompt', ''),
-        )
-
-    elif node_type == NodeType.START:
-        return StartNode(
-            id=node_id,
-            position=position,
-            label=label,
-            flipped=flipped,
-            metadata=metadata,
-            trigger_mode=data.get('trigger_mode', 'none'),
-            custom_data=data.get('custom_data'),
-            output_data_structure=data.get('output_data_structure'),
-            hook_event=data.get('hook_event'),
-            hook_filters=data.get('hook_filters'),
-        )
-
-    elif node_type == NodeType.SUB_DIAGRAM:
-        return SubDiagramNode(
-            id=node_id,
-            position=position,
-            label=label,
-            flipped=flipped,
-            metadata=metadata,
-            diagram_name=data.get('diagram_name', ''),
-            diagram_data=data.get('diagram_data', {}),
-            input_mapping=data.get('input_mapping', {}),
-            output_mapping=data.get('output_mapping', {}),
-            timeout=data.get('timeout', 0),
-            wait_for_completion=data.get('wait_for_completion', False),
-            isolate_conversation=data.get('isolate_conversation', False),
-            ignore_if_sub=data.get('ignoreIfSub', data.get('ignore_if_sub', False)),
-            diagram_format=data.get('diagram_format'),
-            batch=data.get('batch', False),
-            batch_input_key=data.get('batch_input_key', ''),
-            batch_parallel=data.get('batch_parallel', False),
-        )
-
-    elif node_type == NodeType.TEMPLATE_JOB:
-        return TemplateJobNode(
-            id=node_id,
-            position=position,
-            label=label,
-            flipped=flipped,
-            metadata=metadata,
-            engine=data.get('engine', 'jinja2'),
-            template_content=data.get('template', data.get('template_content', '')),
-            template_path=data.get('template_path', data.get('templatePath', '')),
-            output_path=data.get('output_path', data.get('outputPath', '')),
-            variables=data.get('variables', {}),
-            # preprocessor field removed - not in generated node class yet
-            # foreach field removed - not in TypeScript spec
-        )
-
-    elif node_type == NodeType.TYPESCRIPT_AST:
-        return TypescriptAstNode(
-            id=node_id,
-            position=position,
-            label=label,
-            flipped=flipped,
-            metadata=metadata,
-            source=data.get('source', data.get('filePath', '')),
-            batch=data.get('batch', False),
-            batch_input_key=data.get('batchInputKey', data.get('batch_input_key', 'sources')),
-            extract_patterns=data.get('extractPatterns', data.get('extract_patterns', [])),
-            include_js_doc=data.get('includeJSDoc', data.get('include_js_doc', False)),
-            parse_mode=data.get('parseMode', data.get('parse_mode', 'module')),
-            transform_enums=data.get('transformEnums', data.get('transform_enums', False)),
-            flatten_output=data.get('flattenOutput', data.get('flatten_output', False)),
-            output_format=data.get('outputFormat', data.get('output_format')),
-        )
-
+    
     elif node_type == NodeType.IR_BUILDER:
         return IrBuilderNode(
             id=node_id,
@@ -278,14 +268,191 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            builder_type=data.get('builder_type', data.get('builderType')),
-            source_type=data.get('source_type', data.get('sourceType')),
-            config_path=data.get('config_path', data.get('configPath')),
-            output_format=data.get('output_format', data.get('outputFormat')),
-            cache_enabled=data.get('cache_enabled', data.get('cacheEnabled')),
-            validate_output=data.get('validate_output', data.get('validateOutput')),
+            
+            builder_type=data.get('builder_type'),
+            
+            source_type=data.get('source_type'),
+            
+            config_path=data.get('config_path'),
+            
+            output_format=data.get('output_format'),
+            
+            cache_enabled=data.get('cache_enabled'),
+            
+            validate_output=data.get('validate_output'),
+            
         )
-
+    
+    elif node_type == NodeType.JSON_SCHEMA_VALIDATOR:
+        return JsonSchemaValidatorNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            
+            schema_path=data.get('schema_path'),
+            
+            json_schema=data.get('json_schema'),
+            
+            data_path=data.get('data_path'),
+            
+            strict_mode=data.get('strict_mode'),
+            
+            error_on_extra=data.get('error_on_extra'),
+            
+        )
+    
+    elif node_type == NodeType.PERSON_JOB:
+        return PersonJobNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            
+            person=data.get('person'),
+            
+            first_only_prompt=data.get('first_only_prompt'),
+            
+            first_prompt_file=data.get('first_prompt_file'),
+            
+            default_prompt=data.get('default_prompt'),
+            
+            prompt_file=data.get('prompt_file'),
+            
+            max_iteration=data.get('max_iteration', 100),
+            
+            memorize_to=data.get('memorize_to'),
+            
+            at_most=data.get('at_most'),
+            
+            ignore_person=data.get('ignore_person'),
+            
+            tools=data.get('tools'),
+            
+            text_format=data.get('text_format'),
+            
+            text_format_file=data.get('text_format_file'),
+            
+            resolved_prompt=data.get('resolved_prompt'),
+            
+            resolved_first_prompt=data.get('resolved_first_prompt'),
+            
+            batch=data.get('batch', False),
+            
+            batch_input_key=data.get('batch_input_key', 'items'),
+            
+            batch_parallel=data.get('batch_parallel', True),
+            
+            max_concurrent=data.get('max_concurrent', 10),
+            
+        )
+    
+    elif node_type == NodeType.START:
+        return StartNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            
+            trigger_mode=data.get('trigger_mode', 'none'),
+            
+            custom_data=data.get('custom_data'),
+            
+            output_data_structure=data.get('output_data_structure'),
+            
+            hook_event=data.get('hook_event'),
+            
+            hook_filters=data.get('hook_filters'),
+            
+        )
+    
+    elif node_type == NodeType.SUB_DIAGRAM:
+        return SubDiagramNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            
+            diagram_name=data.get('diagram_name'),
+            
+            diagram_data=data.get('diagram_data'),
+            
+            input_mapping=data.get('input_mapping'),
+            
+            output_mapping=data.get('output_mapping'),
+            
+            timeout=data.get('timeout'),
+            
+            wait_for_completion=data.get('wait_for_completion', True),
+            
+            isolate_conversation=data.get('isolate_conversation', False),
+            
+            ignoreIfSub=data.get('ignoreIfSub', False),
+            
+            diagram_format=data.get('diagram_format'),
+            
+            batch=data.get('batch', False),
+            
+            batch_input_key=data.get('batch_input_key'),
+            
+            batch_parallel=data.get('batch_parallel', False),
+            
+        )
+    
+    elif node_type == NodeType.TEMPLATE_JOB:
+        return TemplateJobNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            
+            template_path=data.get('template_path'),
+            
+            template_content=data.get('template_content'),
+            
+            output_path=data.get('output_path'),
+            
+            variables=data.get('variables'),
+            
+            engine=data.get('engine', 'jinja2'),
+            
+            preprocessor=data.get('preprocessor'),
+            
+        )
+    
+    elif node_type == NodeType.TYPESCRIPT_AST:
+        return TypescriptAstNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            
+            source=data.get('source'),
+            
+            extractPatterns=data.get('extractPatterns', ['interface', 'type', 'enum']),
+            
+            includeJSDoc=data.get('includeJSDoc', False),
+            
+            parseMode=data.get('parseMode', 'module'),
+            
+            transformEnums=data.get('transformEnums', False),
+            
+            flattenOutput=data.get('flattenOutput', False),
+            
+            outputFormat=data.get('outputFormat', 'standard'),
+            
+            batch=data.get('batch', False),
+            
+            batchInputKey=data.get('batchInputKey', 'sources'),
+            
+        )
+    
     elif node_type == NodeType.USER_RESPONSE:
         return UserResponseNode(
             id=node_id,
@@ -293,62 +460,90 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            join_policy=data.get('join_policy'),
-            join_k=data.get('join_k'),
+            
             prompt=data.get('prompt'),
+            
             timeout=data.get('timeout', 300),
+            
         )
-
+    
     else:
         raise ValueError(f"Unknown node type: {node_type}")
 
 # Union type for all executable node types
 ExecutableNode = Union[
+    
     ApiJobNode,
+    
     CodeJobNode,
+    
     ConditionNode,
+    
     DBNode,
+    
+    DiffPatchNode,
+    
     EndpointNode,
+    
     HookNode,
+    
     IntegratedApiNode,
-    JsonSchemaValidatorNode,
+    
     IrBuilderNode,
+    
+    JsonSchemaValidatorNode,
+    
     PersonJobNode,
+    
     StartNode,
+    
     SubDiagramNode,
+    
     TemplateJobNode,
+    
     TypescriptAstNode,
+    
     UserResponseNode,
+    
 ]
 
-# Re-export all for backward compatibility
+# Additional exports for backward compatibility
 __all__ = [
-    # Node classes
-    'ApiJobNode',
-    'CodeJobNode',
-    'ConditionNode',
-    'DBNode',
-    'EndpointNode',
-    'HookNode',
-    'IntegratedApiNode',
-    'JsonSchemaValidatorNode',
-    'IrBuilderNode',
-    'PersonJobNode',
-    'StartNode',
-    'SubDiagramNode',
-    'TemplateJobNode',
-    'TypescriptAstNode',
-    'UserResponseNode',
-    # Enum and types
-    'NodeType',
-    'NodeID',
-    'Vec2',
-    'HandleID',
-    'DomainNode',
-    'DomainArrow',
-    'DomainHandle',
-    # Factory function
-    'create_executable_node',
-    # Union type
-    'ExecutableNode',
+    
+    "ApiJobNode",
+    
+    "CodeJobNode",
+    
+    "ConditionNode",
+    
+    "DBNode",
+    
+    "DiffPatchNode",
+    
+    "EndpointNode",
+    
+    "HookNode",
+    
+    "IntegratedApiNode",
+    
+    "IrBuilderNode",
+    
+    "JsonSchemaValidatorNode",
+    
+    "PersonJobNode",
+    
+    "StartNode",
+    
+    "SubDiagramNode",
+    
+    "TemplateJobNode",
+    
+    "TypescriptAstNode",
+    
+    "UserResponseNode",
+    
+    "NodeType",
+    "DBBlockSubType",
+    "create_executable_node",
+    "ExecutableNode",
 ]

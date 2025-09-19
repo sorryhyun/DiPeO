@@ -61,6 +61,15 @@ def create_adapter(
         config.provider_type = ProviderType.ANTHROPIC  # Claude Code uses Anthropic provider type
         return UnifiedClaudeCodeClient(config)
 
+    if provider == LLMServiceName.CLAUDE_CODE_CUSTOM.value:
+        # Use unified Claude Code Custom client with full system prompt override
+        from ..providers.claude_code_custom.unified_client import UnifiedClaudeCodeCustomClient
+
+        config.provider_type = (
+            ProviderType.ANTHROPIC
+        )  # Claude Code Custom uses Anthropic provider type
+        return UnifiedClaudeCodeCustomClient(config)
+
     if provider in [LLMServiceName.GOOGLE.value, LLMServiceName.GEMINI.value]:
         # Use unified Google client directly
         from ..providers.google.unified_client import UnifiedGoogleClient

@@ -18,6 +18,7 @@ class ProviderType(str, Enum):
     ANTHROPIC = "anthropic"
     GOOGLE = "google"
     OLLAMA = "ollama"
+    CLAUDE_CODE = "claude_code"
 
 
 class StreamingMode(str, Enum):

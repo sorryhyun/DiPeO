@@ -164,21 +164,22 @@ jobs:
           Write-Host "All code generation completed using DiPeO diagrams!"
 
       - name: Build Python Server
-        working-directory: apps/server
+        working-directory: ${{ github.workspace }}
         run: |
           # Activate venv
-          & ..\..\.venv\Scripts\Activate.ps1
+          & .\.venv\Scripts\Activate.ps1
 
-          # Set environment variables for proper module resolution
+          # Set environment variables for proper module resolution and build type
           $env:PYTHONPATH = "${{ github.workspace }}"
           $env:VIRTUAL_ENV = "${{ github.workspace }}\.venv"
           $env:PATH = "${{ github.workspace }}\.venv\Scripts;$env:PATH"
+          $env:BUILD_TYPE = "SERVER"
 
-          # Build with PyInstaller
-          pyinstaller --clean dipeo-server-correct.spec
+          # Build with PyInstaller using unified spec
+          pyinstaller --clean dipeo/build-windows.spec --distpath apps/server/dist
 
           # Verify build
-          if (!(Test-Path "dist\dipeo-server.exe")) {
+          if (!(Test-Path "apps\server\dist\dipeo-server.exe")) {
             Write-Error "Failed to build dipeo-server.exe"
             exit 1
           }

@@ -12,11 +12,10 @@ from dipeo.domain.events import (
     EventBus,
     EventScope,
     EventType,
-    MetricsCollectedPayload,
+    ExecutionLogPayload,
     NodeCompletedPayload,
     NodeErrorPayload,
     NodeStartedPayload,
-    OptimizationSuggestedPayload,
 )
 
 logger = logging.getLogger(__name__)
@@ -307,27 +306,37 @@ class MetricsObserver(EventBus):
                 "node_breakdown": node_breakdown,
             }
 
+            # Log metrics as an execution log event
             await self.event_bus.publish(
                 DomainEvent(
-                    type=EventType.METRICS_COLLECTED,
+                    type=EventType.EXECUTION_LOG,
                     scope=scope,
-                    payload=MetricsCollectedPayload(metrics=metrics_dict),
+                    payload=ExecutionLogPayload(
+                        level="INFO",
+                        message="Execution metrics collected",
+                        logger_name="metrics_observer",
+                        extra_fields=metrics_dict,
+                    ),
                 )
             )
 
-            # Emit optimization suggestions if there are improvements
+            # Log optimization suggestions if there are improvements
             if metrics.parallelizable_groups:
                 await self.event_bus.publish(
                     DomainEvent(
-                        type=EventType.OPTIMIZATION_SUGGESTED,
+                        type=EventType.EXECUTION_LOG,
                         scope=scope,
-                        payload=OptimizationSuggestedPayload(
-                            suggestion_type="parallelize_nodes",
-                            affected_nodes=[
-                                n for group in metrics.parallelizable_groups for n in group
-                            ],
-                            expected_improvement=f"Could save up to {self._estimate_parallel_savings(metrics)}ms",
-                            description=f"Found {len(metrics.parallelizable_groups)} groups of nodes that could run in parallel",
+                        payload=ExecutionLogPayload(
+                            level="INFO",
+                            message=f"Found {len(metrics.parallelizable_groups)} groups of nodes that could run in parallel. Could save up to {self._estimate_parallel_savings(metrics)}ms",
+                            logger_name="metrics_observer",
+                            extra_fields={
+                                "suggestion_type": "parallelize_nodes",
+                                "affected_nodes": [
+                                    n for group in metrics.parallelizable_groups for n in group
+                                ],
+                                "parallelizable_groups": metrics.parallelizable_groups,
+                            },
                         ),
                     )
                 )

@@ -13,7 +13,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     name: 'first_only_prompt',
     type: 'text',
     label: '"First only prompt"',
-    required: true,
+    required: false,
     placeholder: '"Enter prompt template..."',
     description: '"Prompt used only on first execution"',
     rows: 10,

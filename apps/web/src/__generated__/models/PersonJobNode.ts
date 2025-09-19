@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 export interface PersonJobNodeData {
   person?: string | undefined;
-  first_only_prompt: string;
+  first_only_prompt?: string | undefined;
   first_prompt_file?: string | undefined;
   default_prompt?: string | undefined;
   prompt_file?: string | undefined;
@@ -25,7 +25,7 @@ export interface PersonJobNodeData {
 // Zod schema for validation
 export const PersonJobNodeDataSchema = z.object({
   person: z.string().optional().describe("AI person to use"),
-  first_only_prompt: z.string().describe("Prompt used only on first execution"),
+  first_only_prompt: z.string().optional().describe("Prompt used only on first execution"),
   first_prompt_file: z.string().optional().describe("External prompt file for first iteration only"),
   default_prompt: z.string().optional().describe("Default prompt template"),
   prompt_file: z.string().optional().describe("Path to prompt file in /files/prompts/"),

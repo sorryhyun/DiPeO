@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for person_job.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-17T20:38:42.580850
+Generated at: 2025-09-19T17:28:45.060203
 """
 
 from typing import *
@@ -27,7 +27,6 @@ class PersonJobNode(BaseModel):
     position: Vec2
 
     # Required node-specific fields
-    first_only_prompt: str = Field(description="Prompt used only on first execution")
     max_iteration: int = Field(description="Maximum execution iterations")
 
     # Optional base fields
@@ -41,6 +40,8 @@ class PersonJobNode(BaseModel):
     # Optional node-specific fields
     
     person: Optional[str] = Field(default=None, description="AI person to use")
+    
+    first_only_prompt: Optional[str] = Field(default=None, description="Prompt used only on first execution")
     
     first_prompt_file: Optional[str] = Field(default=None, description="External prompt file for first iteration only")
     

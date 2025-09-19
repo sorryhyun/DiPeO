@@ -6,6 +6,7 @@ export enum LLMService {
   OPENAI = 'openai',
   ANTHROPIC = 'anthropic',
   CLAUDE_CODE = 'claude-code',
+  CLAUDE_CODE_CUSTOM = 'claude-code-custom',
   GOOGLE = 'google',
   GEMINI = 'gemini',
   OLLAMA = 'ollama'
@@ -22,7 +23,8 @@ export enum APIServiceType {
   GOOGLE = 'google',
   GEMINI = 'gemini',
   OLLAMA = 'ollama',
-  CLAUDE_CODE = "claude-code"
+  CLAUDE_CODE = "claude-code",
+  CLAUDE_CODE_CUSTOM = "claude-code-custom"
 }
 
 /**

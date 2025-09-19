@@ -16,6 +16,7 @@ import {
   SubDiagramNodeData,
   IntegratedApiNodeData,
   IrBuilderNodeData,
+  DiffPatchNodeData,
   WithUI
 } from './domain';
 
@@ -39,6 +40,7 @@ export interface NodeTypeRegistry {
   sub_diagram: SubDiagramNodeData;
   integrated_api: IntegratedApiNodeData;
   ir_builder: IrBuilderNodeData;
+  diff_patch: DiffPatchNodeData;
 }
 
 /**
@@ -87,7 +89,7 @@ export function isNodeTypeKey(key: string): key is NodeTypeKey {
     'start', 'condition', 'person_job', 'endpoint', 'db',
     'code_job', 'api_job', 'user_response', 'person_batch_job', 'hook',
     'template_job', 'json_schema_validator', 'typescript_ast', 'sub_diagram', 'integrated_api',
-    'ir_builder'
+    'ir_builder', 'diff_patch'
   ];
   return validKeys.includes(key as NodeTypeKey);
 }
@@ -98,7 +100,7 @@ export type { StartNodeData, ConditionNodeData, PersonJobNodeData, EndpointNodeD
   DBNodeData, CodeJobNodeData, ApiJobNodeData, UserResponseNodeData,
   PersonBatchJobNodeData, HookNodeData, TemplateJobNodeData,
   JsonSchemaValidatorNodeData, TypescriptAstNodeData, SubDiagramNodeData, IntegratedApiNodeData,
-  IrBuilderNodeData } from './domain';
+  IrBuilderNodeData, DiffPatchNodeData } from './domain';
 
 /**
  * Form data type aliases for backward compatibility
@@ -118,3 +120,5 @@ export type JsonSchemaValidatorFormData = NodeFormData<'json_schema_validator'>;
 export type TypescriptAstFormData = NodeFormData<'typescript_ast'>;
 export type SubDiagramFormData = NodeFormData<'sub_diagram'>;
 export type IntegratedApiFormData = NodeFormData<'integrated_api'>;
+export type IrBuilderFormData = NodeFormData<'ir_builder'>;
+export type DiffPatchFormData = NodeFormData<'diff_patch'>;

@@ -6,7 +6,7 @@ export const endpointFields: UnifiedFieldDefinition[] = [
     name: 'save_to_file',
     type: 'checkbox',
     label: '"Save to file"',
-    required: true,
+    required: false,
     description: '"Save results to file"',
   },
   {

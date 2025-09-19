@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces using simplified type resolver.
 
-Generated at: 2025-09-17T20:38:41.210630
+Generated at: 2025-09-19T17:28:43.378161
 """
 
 import strawberry
@@ -11,6 +11,17 @@ from strawberry.scalars import JSON as JSONScalar
 
 # Import the Pydantic domain models
 from dipeo.diagram_generated.domain_models import (
+    ClaudeCodeSession,
+    SessionEvent,
+    ClaudeCodeMessage,
+    SessionMetadata,
+    ToolUse,
+    ToolResult,
+    ConversationTurn,
+    ClaudeCodeDiagramMetadata,
+    SessionStatistics,
+    SessionConversionOptions,
+    WatchOptions,
     CliSession,
     Message,
     ConversationMetadata,
@@ -87,6 +98,98 @@ from dipeo.diagram_generated.graphql.strawberry_domain import (
 # Order matters - define types that are referenced by others first
 
 @strawberry.type
+class ClaudeCodeSessionType:
+    sessionId: str
+    events: List[SessionEvent]
+    metadata: SessionMetadata
+
+
+@strawberry.type
+class SessionEventType:
+    type: str
+    uuid: str
+    parentUuid: Optional[str] = None
+    timestamp: str
+    message: ClaudeCodeMessage
+    toolUse: Optional[ToolUse] = None
+    toolResult: Optional[ToolResult] = None
+
+
+@strawberry.type
+class ClaudeCodeMessageType:
+    role: str
+    content: str
+
+
+@strawberry.type
+class SessionMetadataType:
+    startTime: str
+    endTime: Optional[str] = None
+    totalEvents: float
+    toolUsageCount: JSONScalar
+    projectPath: Optional[str] = None
+
+
+@strawberry.type
+class ToolUseType:
+    name: str
+    input: JSONScalar
+
+
+@strawberry.type
+class ToolResultType:
+    success: bool
+    output: Optional[str] = None
+    error: Optional[str] = None
+
+
+@strawberry.type
+class ConversationTurnType:
+    userEvent: SessionEvent
+    assistantEvent: SessionEvent
+    toolEvents: List[SessionEvent]
+
+
+@strawberry.type
+class ClaudeCodeDiagramMetadataType:
+    sessionId: str
+    createdAt: str
+    eventCount: float
+    nodeCount: float
+    toolUsage: JSONScalar
+
+
+@strawberry.type
+class SessionStatisticsType:
+    sessionId: str
+    totalEvents: float
+    userPrompts: float
+    assistantResponses: float
+    totalToolCalls: float
+    toolBreakdown: JSONScalar
+    duration: Optional[float] = None
+    filesModified: List[str]
+    commandsExecuted: List[str]
+
+
+@strawberry.type
+class SessionConversionOptionsType:
+    outputDir: Optional[str] = None
+    format: Optional[str] = None
+    autoExecute: Optional[bool] = None
+    mergeReads: Optional[bool] = None
+    simplify: Optional[bool] = None
+    preserveThinking: Optional[bool] = None
+
+
+@strawberry.type
+class WatchOptionsType:
+    interval: Optional[float] = None
+    autoConvert: Optional[bool] = None
+    notifyOnNew: Optional[bool] = None
+
+
+@strawberry.type
 class CliSessionType:
     id: CliSessionIDScalar
     session_id: str
@@ -113,7 +216,7 @@ class CliSessionType:
 @strawberry.type
 class MessageType:
     id: Optional[str] = None
-    from_person_id: JSONScalar
+    from_person_id: str
     to_person_id: PersonIDScalar
     content: str
     timestamp: Optional[str] = None
@@ -250,10 +353,10 @@ class DiagramMetadataType:
 
 @strawberry.type
 class DomainDiagramType:
-    nodes: list[DomainNodeType]
-    handles: list[DomainHandleType]
-    arrows: list[DomainArrowType]
-    persons: list[DomainPersonType]
+    nodes: List[DomainNodeType]
+    handles: List[DomainHandleType]
+    arrows: List[DomainArrowType]
+    persons: List[DomainPersonType]
     metadata: Optional[DiagramMetadataType] = None
 
     @staticmethod
@@ -299,8 +402,8 @@ class ExecutionMetricsType:
     end_time: Optional[float] = None
     total_duration_ms: Optional[float] = None
     node_metrics: JSONScalar
-    critical_path: Optional[list[str]] = None
-    parallelizable_groups: Optional[list[List[str]]] = None
+    critical_path: Optional[List[str]] = None
+    parallelizable_groups: Optional[List[List[str]]] = None
     bottlenecks: Optional[List[BottleneckType]] = None
 
     @staticmethod
@@ -346,7 +449,7 @@ class ExecutionStateType:
     metadata: Optional[JSONScalar] = None
     is_active: Optional[bool] = None
     exec_counts: JSONScalar
-    executed_nodes: list[str]
+    executed_nodes: List[str]
     metrics: Optional[ExecutionMetricsType] = None
 
     @staticmethod

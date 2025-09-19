@@ -100,8 +100,10 @@ class BaseSubscriptionResolver:
     def _create_keepalive_payload(self) -> dict[str, Any]:
         """Create a keepalive payload."""
         return {
-            "type": EventType.KEEPALIVE,
+            "type": EventType.EXECUTION_LOG,
             "timestamp": datetime.now().isoformat(),
+            "level": "DEBUG",
+            "message": "keepalive",
         }
 
     async def _check_execution_completion(self, execution_id: ExecutionID) -> tuple[bool, Any]:
@@ -139,8 +141,9 @@ class BaseSubscriptionResolver:
 
         while True:
             try:
-                # Wait for events with timeout
-                event = await asyncio.wait_for(event_queue.get(), timeout=30.0)
+                # Wait for events with shorter timeout to ensure keepalives are sent frequently
+                # Using 5 seconds ensures keepalives are checked often (default keepalive interval is 25s)
+                event = await asyncio.wait_for(event_queue.get(), timeout=5.0)
 
                 # Apply filter if provided
                 if event_filter and not event_filter(event):
@@ -168,9 +171,21 @@ class BaseSubscriptionResolver:
                 if is_complete:
                     if status:
                         # Send final status update
+                        # Map status to proper EventType
+                        from dipeo.diagram_generated.enums import EventType, Status
+
+                        if status == Status.COMPLETED:
+                            final_event_type = EventType.EXECUTION_COMPLETED
+                        elif status == Status.FAILED:
+                            final_event_type = EventType.EXECUTION_ERROR
+                        else:
+                            # For other statuses (ABORTED, SKIPPED, etc.), treat as error
+                            final_event_type = EventType.EXECUTION_ERROR
+
                         yield {
                             "execution_id": str(execution_id),
-                            "event_type": "EXECUTION_STATUS_CHANGED",
+                            "type": final_event_type.value,
+                            "event_type": final_event_type.value,
                             "data": {"status": status, "is_final": True},
                             "timestamp": datetime.now().isoformat(),
                         }

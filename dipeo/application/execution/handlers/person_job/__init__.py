@@ -9,10 +9,14 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.decorators import Optional, Required, requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.application.execution.handler_base import TypedNodeHandler
-from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.execution.handlers.core.base import TypedNodeHandler
+from dipeo.application.execution.handlers.core.decorators import (
+    Optional,
+    Required,
+    requires_services,
+)
+from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.execution.use_cases import PromptLoadingUseCase
 from dipeo.application.registry.keys import (
     DIAGRAM,
@@ -416,6 +420,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             model,
             llm_usage,
             trace_id,
+            selected_messages,
         )
 
         # Add all representations
@@ -498,6 +503,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         model,
         llm_usage,
         trace_id,
+        selected_messages=None,
     ):
         """Create envelope using natural data output pattern."""
         # Determine the natural body content
@@ -512,6 +518,23 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         elif object_repr is not None:
             natural_body = object_repr
 
+        # Prepare memory selection info for metadata
+        memory_selection = None
+        if selected_messages is not None:
+            # Get all messages from conversation to determine the total count
+            all_messages = (
+                self._execution_orchestrator.get_conversation().messages
+                if hasattr(self._execution_orchestrator, "get_conversation")
+                else []
+            )
+            total_available = len(all_messages) if all_messages else 0
+            memory_selection = {
+                "selected_count": len(selected_messages),
+                "total_messages": total_available,
+                "criteria": getattr(node, "memorize_to", None),
+                "at_most": getattr(node, "at_most", None),
+            }
+
         # Use EnvelopeFactory.create() with auto-detection
         envelope = EnvelopeFactory.create(
             body=natural_body,
@@ -522,6 +545,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 "conversation_id": conversation_id,
                 "model": model,
                 "llm_usage": llm_usage.model_dump() if llm_usage else None,
+                "memory_selection": memory_selection,
                 "preview": text_repr[:200] if text_repr else None,
                 "is_structured": object_repr is not None,
             },

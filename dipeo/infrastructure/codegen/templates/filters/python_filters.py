@@ -326,7 +326,7 @@ class PythonFilters:
         """Calculate imports for static node implementation."""
         imports = [
             "from typing import Dict, Any, List, Optional",
-            "from dipeo.application.execution.handler_base import TypedNodeHandler",
+            "from dipeo.application.execution.handlers.core.base import TypedNodeHandler",
             "from dipeo.diagram_generated.generated_nodes import *",
             "from dipeo.application.registry.keys import LLM_SERVICE, CODE_EXECUTOR, HTTP_CLIENT, FILESYSTEM_ADAPTER",
             "from dipeo.domain.base.exceptions import ValidationError, ExecutionError",

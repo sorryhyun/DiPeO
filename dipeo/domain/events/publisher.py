@@ -15,12 +15,10 @@ from .contracts import (
     ExecutionErrorPayload,
     ExecutionLogPayload,
     ExecutionStartedPayload,
-    MetricsCollectedPayload,
     NodeCompletedPayload,
     NodeErrorPayload,
     NodeOutputPayload,
     NodeStartedPayload,
-    WebhookReceivedPayload,
 )
 from .types import EventType
 from .unified_ports import EventBus
@@ -144,9 +142,10 @@ class EventPublisher:
         message: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> None:
+        # Node progress is now sent as NODE_OUTPUT with progress field
         await self.bus.publish(
             DomainEvent(
-                type=EventType.NODE_PROGRESS,
+                type=EventType.NODE_OUTPUT,
                 scope=EventScope(execution_id=str(execution_id), node_id=node_id),
                 payload=NodeOutputPayload(output={"progress": progress, "message": message}),
                 metadata=metadata or {},
@@ -162,43 +161,14 @@ class EventPublisher:
     ) -> None:
         await self.bus.publish(
             DomainEvent(
-                type=EventType.EXECUTION_UPDATE,
+                type=EventType.EXECUTION_LOG,
                 scope=EventScope(execution_id=str(execution_id)),
-                payload=ExecutionLogPayload(message=message, level=level),
-                metadata=metadata or {},
-            )
-        )
-
-    async def metrics_collected(
-        self,
-        execution_id: UUID | str,
-        metrics: dict[str, Any],
-        node_id: str | None = None,
-        metadata: dict[str, Any] | None = None,
-    ) -> None:
-        await self.bus.publish(
-            DomainEvent(
-                type=EventType.METRICS_COLLECTED,
-                scope=EventScope(execution_id=str(execution_id), node_id=node_id),
-                payload=MetricsCollectedPayload(metrics=metrics),
-                metadata=metadata or {},
-            )
-        )
-
-    async def webhook_received(
-        self,
-        execution_id: UUID | str,
-        webhook_id: str,
-        source: str,
-        payload: dict[str, Any],
-        metadata: dict[str, Any] | None = None,
-    ) -> None:
-        await self.bus.publish(
-            DomainEvent(
-                type=EventType.WEBHOOK_RECEIVED,
-                scope=EventScope(execution_id=str(execution_id)),
-                payload=WebhookReceivedPayload(webhook_id=webhook_id, source=source, data=payload),
-                metadata=metadata or {},
+                payload=ExecutionLogPayload(
+                    message=message,
+                    level=level,
+                    logger_name="execution",
+                    extra_fields=metadata or {},
+                ),
             )
         )
 

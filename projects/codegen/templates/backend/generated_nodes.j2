@@ -1,0 +1,71 @@
+"""
+Compatibility shim for generated_nodes.py
+Re-exports from individual files for backward compatibility.
+Generated at: {{ generated_at }}
+"""
+
+# Re-export all node classes from individual files
+{% for import in node_factory.imports %}
+from .{{ import.module }} import {{ import.class }}{% if import.alias %} as {{ import.alias }}{% endif %}
+{% endfor %}
+
+# Re-export NodeType and other enums
+from .enums import NodeType, DBBlockSubType
+
+# Re-export base types from domain_models
+from .domain_models import (
+    NodeID,
+    Vec2,
+    HandleID,
+    DomainNode,
+    DomainArrow,
+    DomainHandle,
+)
+
+from typing import Dict, Any, Optional, Union
+
+def create_executable_node(
+    node_type: NodeType,
+    node_id: NodeID,
+    position: Vec2,
+    label: str = "",
+    data: Optional[Dict[str, Any]] = None,
+    flipped: bool = False,
+    metadata: Optional[Dict[str, Any]] = None
+) -> 'ExecutableNode':
+    """Factory function to create typed executable nodes from diagram data."""
+    data = data or {}
+
+    {% for case in node_factory.factory_cases %}
+    {% if loop.first %}if{% else %}elif{% endif %} node_type == {{ case.node_type }}:
+        return {{ case.class_name }}(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            {% for mapping in case.field_mappings %}
+            {{ mapping.node_field }}={{ mapping.getter_expression }},
+            {% endfor %}
+        )
+    {% endfor %}
+    else:
+        raise ValueError(f"Unknown node type: {node_type}")
+
+# Union type for all executable node types
+ExecutableNode = Union[
+    {% for import in node_factory.imports %}
+    {{ import.class if not import.alias else import.alias }},
+    {% endfor %}
+]
+
+# Additional exports for backward compatibility
+__all__ = [
+    {% for import in node_factory.imports %}
+    "{{ import.class if not import.alias else import.alias }}",
+    {% endfor %}
+    "NodeType",
+    "DBBlockSubType",
+    "create_executable_node",
+    "ExecutableNode",
+]

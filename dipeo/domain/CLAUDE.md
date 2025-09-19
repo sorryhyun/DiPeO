@@ -22,22 +22,31 @@ Pure business logic following DDD and hexagonal architecture.
 - **Compilation**: DomainCompiler, NodeFactory, ConnectionResolver, CompileTimeResolver
 - **Strategies**: Native, Readable, Light, Executable formats
 - **Models**: ExecutableDiagram, ExecutableNode/Edge
+- **Services**: DiagramFormatDetector, DiagramStatisticsService
 
-### 3. Execution (`execution/`)
+### 3. Claude Code Translation (`cc_translate/`)
+- **Session Conversion**: Converts Claude Code sessions to DiPeO diagrams
+  - `translator.py`: Main orchestration logic
+  - `node_builders.py`: Node creation for different tool types
+  - `text_utils.py`: Text extraction and unescaping
+  - `diff_utils.py`: Unified diff generation for Edit operations
+  - `post_processing/`: Session optimization and pruning
+
+### 4. Execution (`execution/`)
 - **Resolution**: RuntimeInputResolver, TransformationEngine, NodeStrategies
-- ConnectionRules, TransformRules  
+- ConnectionRules, TransformRules
 - DynamicOrderCalculator
 
-### 4. Events (`events/`)
+### 5. Events (`events/`)
 - Event contracts and messaging patterns
 
-### 5. Integrations (`integrations/`)
+### 6. Integrations (`integrations/`)
 - **API**: APIBusinessLogic, RetryPolicy
 - **Database**: DBOperationsDomainService
 - **File**: FileExtension, FileSize, Checksum
 - **Validators**: API, Data, File, Notion
 
-### 6. Base (`base/`)
+### 7. Base (`base/`)
 - BaseValidator, exceptions, service base classes
 
 ## Key Patterns
@@ -93,6 +102,18 @@ class MemorySelectionPort(Protocol):
 3. Write pure unit tests
 4. Define ports for I/O
 
+### Module Organization for Large Services
+When a domain service grows beyond ~400 lines, consider refactoring into a module:
+```
+domain/context/service_module/
+├── __init__.py         # Export main service class
+├── service.py          # Main orchestration logic (~150-200 lines)
+├── builders.py         # Factory/builder methods
+├── utils.py            # Utility functions
+└── specialized.py      # Specialized logic
+```
+Example: `cc_translate/` module for Claude Code translation
+
 ### Extending Validators
 ```python
 class MyValidator(BaseValidator):
@@ -124,6 +145,7 @@ def test_connection_rules():
 ```python
 # Current imports (v1.0 unified)
 from dipeo.domain.diagram.compilation import CompileTimeResolver, Connection, TransformRules
+from dipeo.domain.cc_translate import ClaudeCodeTranslator  # Claude Code session translation
 from dipeo.domain.execution.resolution import RuntimeInputResolver, TransformationEngine
 from dipeo.domain.execution.envelope import EnvelopeFactory  # Unified output pattern
 from dipeo.domain.events import EventBus  # Unified event protocol
@@ -167,34 +189,6 @@ envelope = EnvelopeFactory.create(
     meta={"timestamp": time.time(), "custom_field": "value"}
 )
 ```
-
-### Deprecated Methods (v1.0)
-
-The following methods are deprecated and will be removed. Use `EnvelopeFactory.create()` instead:
-
-```python
-# DEPRECATED - Use EnvelopeFactory.create() instead
-EnvelopeFactory.text("content")           # → EnvelopeFactory.create("content")
-EnvelopeFactory.json(data)               # → EnvelopeFactory.create(data)
-EnvelopeFactory.binary(bytes_data)       # → EnvelopeFactory.create(bytes_data)
-EnvelopeFactory.error("msg", "ErrorType") # → EnvelopeFactory.create("msg", error="ErrorType")
-EnvelopeFactory.conversation(state)     # → EnvelopeFactory.create(state, content_type=ContentType.CONVERSATION_STATE)
-```
-
-## v1.0 Domain Changes (2025-09-05)
-
-### Unified Patterns
-- **EventBus Protocol**: Single unified interface for all event handling (replaces DomainEventBus, EventEmitter, etc.)
-- **Envelope Pattern**: Complete migration from NodeOutput to Envelope for all handler outputs
-  - New `EnvelopeFactory.create()` method with auto-detection and unified interface
-  - Deprecated specific factory methods (`text()`, `json()`, `error()`, etc.)
-  - Consistent error handling through the `error` parameter
-- **Protocol Consistency**: Direct protocol implementation without unnecessary adapter layers
-
-### Naming Conventions
-- **Python Internal**: snake_case for all generated Python code
-- **JSON/GraphQL Compatibility**: Pydantic Field(alias=...) provides camelCase for external APIs
-- **Type Safety**: Maintained across all transformations
 
 ## Dependencies
 

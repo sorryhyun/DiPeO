@@ -205,8 +205,6 @@ class RedisMessageRouter(BaseMessageRouter):
         task = asyncio.create_task(self._redis_subscription_handler(execution_id))
         self._subscription_tasks[execution_id] = task
 
-        logger.debug(f"Started Redis subscription for execution {execution_id}")
-
     async def _unsubscribe_from_redis(self, execution_id: str) -> None:
         """Unsubscribe from Redis channel for an execution.
 
@@ -225,8 +223,6 @@ class RedisMessageRouter(BaseMessageRouter):
             with contextlib.suppress(asyncio.CancelledError):
                 await task
 
-        logger.debug(f"Stopped Redis subscription for execution {execution_id}")
-
     async def _redis_subscription_handler(self, execution_id: str) -> None:
         """Handle Redis subscription for a specific execution.
 
@@ -244,7 +240,6 @@ class RedisMessageRouter(BaseMessageRouter):
 
         try:
             await pubsub.subscribe(channel)
-            logger.debug(f"Subscribed to Redis channel {channel}")
 
             async for message in pubsub.listen():
                 if message["type"] == "message":

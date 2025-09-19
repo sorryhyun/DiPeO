@@ -43,7 +43,7 @@ export interface UseExecutionReturn {
 
   // Execution Actions
   execute: (diagram?: DomainDiagram, options?: ExecutionOptions) => Promise<void>;
-  connectToExecution: (executionId: string, totalNodes?: number) => void;
+  connectToExecution: (executionId: string, totalNodes?: number, preserveNodeStates?: boolean) => void;
   abort: () => void;
 
   // Node Actions
@@ -177,7 +177,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
         const totalNodes = diagram ? (diagram.nodes || []).length : 0;
         startExecution(execId, totalNodes, formatDuration);
         executionActions.startExecution(execId);
-        onUpdate?.({ type: EventType.EXECUTION_STATUS_CHANGED, execution_id: executionId(execId), timestamp: new Date().toISOString() });
+        onUpdate?.({ type: EventType.EXECUTION_STARTED, execution_id: executionId(execId), timestamp: new Date().toISOString() });
       } else {
         throw new Error(result.data?.execute_diagram?.error || 'Failed to start execution');
       }
@@ -279,11 +279,11 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   }, [executionActions.runningNodes]);
 
   // Connect to existing execution (for monitor mode with executionId)
-  const connectToExecutionWithStore = useCallback((executionIdStr: string, totalNodes?: number) => {
+  const connectToExecutionWithStore = useCallback((executionIdStr: string, totalNodes?: number, preserveNodeStates: boolean = false) => {
     const nodesArray = Array.from(executionActions.nodes.values());
     connectToExecution(executionIdStr, totalNodes || nodesArray.length);
-    executionActions.startExecution(executionIdStr);
-    onUpdate?.({ type: EventType.EXECUTION_STATUS_CHANGED, execution_id: executionId(executionIdStr), timestamp: new Date().toISOString() });
+    executionActions.startExecution(executionIdStr, preserveNodeStates);
+    onUpdate?.({ type: EventType.EXECUTION_COMPLETED, execution_id: executionId(executionIdStr), timestamp: new Date().toISOString() });
   }, [connectToExecution, executionActions, onUpdate]);
 
   return {

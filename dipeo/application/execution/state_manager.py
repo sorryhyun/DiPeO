@@ -92,7 +92,6 @@ class StateManager:
             EventType.NODE_STARTED: self._handle_node_started,
             EventType.NODE_COMPLETED: self._handle_node_completed,
             EventType.NODE_FAILED: self._handle_node_failed,
-            EventType.NODE_STATUS_CHANGED: self._handle_node_status_changed,
         }
 
     async def apply_event(self, event: DomainEvent) -> None:
@@ -310,52 +309,6 @@ class StateManager:
             error=event.payload.get("error", "Unknown error"),
             metadata={**current_node_state.metadata, **event.payload},
         )
-
-        return StateSnapshot(
-            execution_id=state.execution_id,
-            status=state.status,
-            node_states=new_node_states,
-            start_time=state.start_time,
-            end_time=state.end_time,
-            error=state.error,
-            metadata=state.metadata,
-            version=state.version + 1,
-        )
-
-    def _handle_node_status_changed(
-        self, state: StateSnapshot, event: DomainEvent
-    ) -> StateSnapshot:
-        """Handle node status changed event."""
-        node_id = event.payload.get("node_id")
-        new_status = event.payload.get("status")
-
-        if not node_id or not new_status:
-            return state
-
-        new_node_states = state.node_states.copy()
-
-        if node_id in new_node_states:
-            current_node_state = new_node_states[node_id]
-            new_node_states[node_id] = NodeState(
-                node_id=node_id,
-                status=Status(new_status),
-                start_time=current_node_state.start_time,
-                end_time=current_node_state.end_time,
-                execution_count=current_node_state.execution_count,
-                error=current_node_state.error,
-                metadata={**current_node_state.metadata, **event.payload},
-            )
-        else:
-            # Create new node state if it doesn't exist
-            new_node_states[node_id] = NodeState(
-                node_id=node_id,
-                status=Status(new_status),
-                start_time=datetime.now(),
-                end_time=None,
-                execution_count=1,
-                error=None,
-                metadata=event.payload,
-            )
 
         return StateSnapshot(
             execution_id=state.execution_id,

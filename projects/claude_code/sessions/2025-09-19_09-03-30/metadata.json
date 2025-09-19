@@ -1,0 +1,69 @@
+{
+  "session_id": "09f0ed20-4b26-4af0-92d2-e6b249b82433",
+  "directory_name": "2025-09-19_09-03-30",
+  "converted_at": "2025-09-19T19:17:23.400024",
+  "stats": {
+    "session_id": "09f0ed20-4b26-4af0-92d2-e6b249b82433",
+    "total_events": 156,
+    "user_messages": 55,
+    "assistant_messages": 101,
+    "tool_usage": {
+      "TodoWrite": 12,
+      "ExitPlanMode": 1,
+      "Edit": 15,
+      "Grep": 11,
+      "Read": 6,
+      "Bash": 5
+    },
+    "unique_files_accessed": 2,
+    "bash_commands_executed": 5,
+    "duration_seconds": 648.231,
+    "duration_human": "0:10:48.231000"
+  },
+  "format": "light",
+  "diagrams": {
+    "original": {
+      "file": "diagram.light.yaml",
+      "type": "original",
+      "statistics": {
+        "node_count": 54,
+        "connection_count": 53,
+        "node_types": [
+          "person_job",
+          "start",
+          "db",
+          "api_job",
+          "code_job",
+          "diff_patch"
+        ]
+      }
+    },
+    "optimized": {
+      "file": "optimized.light.yaml",
+      "type": "optimized",
+      "statistics": {
+        "node_count": 49,
+        "connection_count": 51,
+        "node_types": [
+          "person_job",
+          "start",
+          "db",
+          "api_job",
+          "code_job",
+          "diff_patch"
+        ]
+      }
+    }
+  },
+  "file_structure": {
+    "original_session": "original_session.jsonl",
+    "processed_session": "session.jsonl",
+    "original_diagram": "diagram.light.yaml",
+    "optimized_diagram": "optimized.light.yaml",
+    "metadata": "metadata.json"
+  },
+  "options": {
+    "save_original": true,
+    "timestamp_based_naming": true
+  }
+}

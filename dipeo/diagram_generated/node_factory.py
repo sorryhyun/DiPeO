@@ -1,7 +1,7 @@
 """
 Node factory for creating executable nodes from data.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-17T20:38:42.159127
+Generated at: 2025-09-19T17:28:44.362012
 
 """
 
@@ -16,6 +16,7 @@ from dipeo.diagram_generated.unified_nodes.api_job_node import ApiJobNode
 from dipeo.diagram_generated.unified_nodes.code_job_node import CodeJobNode
 from dipeo.diagram_generated.unified_nodes.condition_node import ConditionNode
 from dipeo.diagram_generated.unified_nodes.db_node import DbNode
+from dipeo.diagram_generated.unified_nodes.diff_patch_node import DiffPatchNode
 from dipeo.diagram_generated.unified_nodes.endpoint_node import EndpointNode
 from dipeo.diagram_generated.unified_nodes.hook_node import HookNode
 from dipeo.diagram_generated.unified_nodes.integrated_api_node import IntegratedApiNode
@@ -34,6 +35,7 @@ ExecutableNode = Union[
     CodeJobNode, 
     ConditionNode, 
     DbNode, 
+    DiffPatchNode, 
     EndpointNode, 
     HookNode, 
     IntegratedApiNode, 
@@ -128,11 +130,33 @@ def create_executable_node(
             operation=data.get('operation', None),
             # DB node special handling for backward compatibility
             query=data.get('query', None),
+            keys=data.get('keys', None),
             # DB node special handling for backward compatibility
             data=data.get('data', None),
             # Serialize JSON field may have camelCase variants
             serialize_json=data.get('serialize_json', data.get('serializeJson', False)),
             format=data.get('format', "json"),
+        )
+
+    elif node_type == NodeType.DIFF_PATCH:
+        return DiffPatchNode(
+            id=node_id,
+            position=position,
+            label=label,
+            flipped=flipped,
+            metadata=metadata,
+            target_path=data.get('target_path', None),
+            diff=data.get('diff', None),
+            format=data.get('format', "unified"),
+            apply_mode=data.get('apply_mode', "normal"),
+            backup=data.get('backup', True),
+            validate_patch=data.get('validate_patch', True),
+            backup_dir=data.get('backup_dir', None),
+            strip_level=data.get('strip_level', 1),
+            fuzz_factor=data.get('fuzz_factor', 2),
+            reject_file=data.get('reject_file', None),
+            ignore_whitespace=data.get('ignore_whitespace', False),
+            create_missing=data.get('create_missing', False),
         )
 
     elif node_type == NodeType.ENDPOINT:
@@ -198,7 +222,7 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             schema_path=data.get('schema_path', None),
-            schema=data.get('schema', None),
+            json_schema=data.get('json_schema', None),
             data_path=data.get('data_path', None),
             strict_mode=data.get('strict_mode', None),
             error_on_extra=data.get('error_on_extra', None),
@@ -323,6 +347,7 @@ __all__ = [
     'CodeJobNode',
     'ConditionNode',
     'DbNode',
+    'DiffPatchNode',
     'EndpointNode',
     'HookNode',
     'IntegratedApiNode',

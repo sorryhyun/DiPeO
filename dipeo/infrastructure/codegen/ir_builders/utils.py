@@ -111,9 +111,20 @@ class TypeConverter:
             if ts_type in self.custom_mappings["ts_to_python"]:
                 return self.custom_mappings["ts_to_python"][ts_type]
 
-        # Handle union types (A | B | C)
+        # Handle known type aliases to avoid forward reference issues
+        if ts_type == "SerializedNodeOutput":
+            return "SerializedEnvelope"
+        if ts_type == "PersonMemoryMessage":
+            return "Message"
+
+        # Handle union types (A | B | C) - check this before string literals
+        # to properly handle unions of string literals
         if "|" in ts_type:
             return self._handle_union_type(ts_type, self.ts_to_python)
+
+        # Handle string literals (only after checking for unions)
+        if self._is_string_literal(ts_type):
+            return f"Literal[{ts_type}]"
 
         # Handle array types
         if ts_type.startswith("Array<") and ts_type.endswith(">"):
@@ -200,6 +211,13 @@ class TypeConverter:
         ts_type = self.graphql_to_ts(graphql_type)
         return self.ts_to_python(ts_type)
 
+    def _is_string_literal(self, ts_type: str) -> bool:
+        """Check if a TypeScript type is a string literal."""
+        ts_type = ts_type.strip()
+        return (ts_type.startswith("'") and ts_type.endswith("'")) or (
+            ts_type.startswith('"') and ts_type.endswith('"')
+        )
+
     def _handle_union_type(self, ts_type: str, converter_func) -> str:
         """Handle TypeScript union types (A | B | C)."""
         parts = [part.strip() for part in ts_type.split("|")]
@@ -210,8 +228,24 @@ class TypeConverter:
                 other_type = parts[0] if parts[1] in ["null", "undefined"] else parts[1]
                 return f"Optional[{converter_func(other_type)}]"
 
+        # Check if all parts are string literals
+        all_string_literals = all(self._is_string_literal(part) for part in parts)
+
+        if all_string_literals:
+            # Use Literal for unions of string literals
+            # Keep the quotes for the literal values
+            literal_values = ", ".join(parts)
+            return f"Literal[{literal_values}]"
+
         # General union case
-        converted_parts = [converter_func(part) for part in parts]
+        converted_parts = []
+        for part in parts:
+            if self._is_string_literal(part):
+                # For individual string literals in mixed unions, use Literal
+                converted_parts.append(f"Literal[{part}]")
+            else:
+                converted_parts.append(converter_func(part))
+
         # Filter out None values for cleaner output
         converted_parts = [p for p in converted_parts if p != "None"]
 

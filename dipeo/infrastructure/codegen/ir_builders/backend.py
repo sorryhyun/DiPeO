@@ -141,6 +141,207 @@ def extract_enums(ast_data: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 # ============================================================================
+# DOMAIN MODELS EXTRACTION
+# ============================================================================
+
+
+def extract_domain_models(
+    ast_data: dict[str, Any], type_converter: Optional[TypeConverter] = None
+) -> dict[str, Any]:
+    """Extract domain model definitions from TypeScript AST."""
+    if not type_converter:
+        type_converter = TypeConverter()
+
+    domain_models = {"newtypes": [], "models": [], "aliases": []}
+
+    processed_newtypes = set()
+    processed_models = set()
+
+    # Define which files contain domain models
+    domain_files = [
+        "core/diagram.ts",
+        "core/execution.ts",
+        "core/conversation.ts",
+        "core/cli-session.ts",
+        "core/file.ts",
+        "core/subscription-types.ts",
+        "core/integration.ts",
+        "claude-code/session-types.ts",
+    ]
+
+    for file_path, file_data in ast_data.items():
+        # Check if this is a domain model file
+        is_domain_file = any(file_path.endswith(f"{df}.json") for df in domain_files)
+        if not is_domain_file:
+            continue
+
+        # Extract NewType declarations (branded types)
+        for type_alias in file_data.get("types", []):
+            type_name = type_alias.get("name", "")
+            type_text = type_alias.get("type", "")
+
+            # Check if it's a branded type (NewType pattern)
+            if "readonly __brand:" in type_text and type_name not in processed_newtypes:
+                # Extract base type from "string & { readonly __brand: 'NodeID' }"
+                base_type = type_text.split(" & ")[0].strip()
+                python_base = type_converter.ts_to_python(base_type)
+                domain_models["newtypes"].append({"name": type_name, "base": python_base})
+                processed_newtypes.add(type_name)
+
+        # Extract interfaces as models
+        for interface in file_data.get("interfaces", []):
+            interface_name = interface.get("name", "")
+
+            # Skip if already processed or is a utility interface
+            if interface_name in processed_models:
+                continue
+            if interface_name in {"BaseNodeData", "NodeSpecification"}:
+                continue
+
+            processed_models.add(interface_name)
+
+            # Extract fields
+            fields = []
+            for prop in interface.get("properties", []):
+                field_name = prop.get("name", "")
+                field_type = prop.get("type", {})
+                is_optional = prop.get("optional", False)
+
+                # Convert TypeScript type to Python type
+                if isinstance(field_type, dict):
+                    type_text = field_type.get("text", "any")
+                else:
+                    type_text = str(field_type)
+
+                python_type = type_converter.ts_to_python(type_text)
+
+                # Handle literal types
+                is_literal = False
+                literal_value = None
+                if isinstance(field_type, dict) and field_type.get("kind") == "literal":
+                    is_literal = True
+                    literal_value = field_type.get("value")
+                    if literal_value == "true":
+                        literal_value = True
+                        python_type = "Literal[True]"
+                    elif isinstance(literal_value, str):
+                        python_type = f'Literal["{literal_value}"]'
+                elif type_text == "true":
+                    # Handle boolean literal true
+                    is_literal = True
+                    literal_value = True
+                    python_type = "Literal[True]"
+                elif type_text == "false":
+                    # Handle boolean literal false
+                    is_literal = True
+                    literal_value = False
+                    python_type = "Literal[False]"
+
+                fields.append(
+                    {
+                        "name": camel_to_snake(field_name)
+                        if field_name not in {"id", "type"}
+                        else field_name,
+                        "python_type": python_type,
+                        "optional": is_optional,
+                        "literal": is_literal,
+                        "literal_value": literal_value,
+                        "description": prop.get("description", ""),
+                    }
+                )
+
+            # Add the model
+            description = interface.get("description", "")
+            if not description:
+                description = f"{interface_name} model"
+
+            domain_models["models"].append(
+                {"name": interface_name, "fields": fields, "description": description}
+            )
+
+    # Add type aliases
+    domain_models["aliases"].extend(
+        [
+            {"name": "SerializedNodeOutput", "type": "SerializedEnvelope"},
+            {"name": "PersonMemoryMessage", "type": "Message"},
+        ]
+    )
+
+    return domain_models
+
+
+# ============================================================================
+# NODE FACTORY DATA EXTRACTION
+# ============================================================================
+
+
+def build_node_factory_data(node_specs: list[dict[str, Any]]) -> dict[str, Any]:
+    """Build factory data for node creation from specs."""
+    factory_data = {"imports": [], "factory_cases": [], "categories": []}
+
+    seen_categories = set()
+
+    for spec in node_specs:
+        node_type = spec["node_type"]
+        node_name = spec["node_name"]
+        category = spec.get("category", "")
+
+        # Build import statement
+        # Convert node_name from PascalCase to snake_case and add _node suffix
+        module_name = f"unified_nodes.{camel_to_snake(node_name)}_node"
+        class_name = f"{node_name}Node"
+        alias = "DBNode" if node_type == "db" else None
+        factory_data["imports"].append(
+            {
+                "module": module_name,
+                "class": class_name,
+                "alias": alias,
+            }
+        )
+
+        # Build factory case
+        field_mappings = []
+        for field in spec["fields"]:
+            field_name = field["name"]
+            # Handle special field name mappings
+            if field_name == "file_path":
+                getter = "data.get('filePath', data.get('file_path', ''))"
+            elif field_name == "function_name":
+                getter = "data.get('functionName', data.get('function_name', ''))"
+            elif field_name == "condition_type":
+                getter = "data.get('condition_type')"
+            elif field_name == "expression":
+                getter = "data.get('expression', data.get('condition', ''))"
+            else:
+                default_val = field.get("default")
+                if default_val is not None:
+                    if isinstance(default_val, str):
+                        getter = f"data.get('{field_name}', '{default_val}')"
+                    else:
+                        getter = f"data.get('{field_name}', {default_val})"
+                else:
+                    getter = f"data.get('{field_name}')"
+
+            field_mappings.append({"node_field": field_name, "getter_expression": getter})
+
+        # Use alias in factory_cases if it exists, otherwise use class_name
+        factory_data["factory_cases"].append(
+            {
+                "node_type": f"NodeType.{node_type.upper()}",
+                "class_name": alias if alias else class_name,
+                "field_mappings": field_mappings,
+            }
+        )
+
+        # Track categories
+        if category and category not in seen_categories:
+            seen_categories.add(category)
+            factory_data["categories"].append(category)
+
+    return factory_data
+
+
+# ============================================================================
 # INTEGRATIONS EXTRACTION
 # ============================================================================
 
@@ -263,31 +464,6 @@ def extract_conversions(ast_data: dict[str, Any]) -> dict[str, Any]:
 # ============================================================================
 
 
-def build_factory_data(node_specs: list[dict[str, Any]]) -> dict[str, Any]:
-    """Build factory configuration from node specifications."""
-    factory_data = {
-        "nodes": [],
-        "node_map": {},
-        "categories": set(),
-    }
-
-    for spec in node_specs:
-        node_entry = {
-            "type": spec["node_type"],
-            "name": spec["node_name"],
-            "display_name": spec["display_name"],
-            "category": spec["category"],
-            "fields": [field["name"] for field in spec["fields"]],
-        }
-        factory_data["nodes"].append(node_entry)
-        factory_data["node_map"][spec["node_type"]] = spec["node_name"]
-        if spec["category"]:
-            factory_data["categories"].add(spec["category"])
-
-    factory_data["categories"] = sorted(list(factory_data["categories"]))
-    return factory_data
-
-
 # ============================================================================
 # TYPESCRIPT INDEXES EXTRACTION
 # ============================================================================
@@ -369,9 +545,10 @@ class BackendIRBuilder(BaseIRBuilder):
         # Extract all components
         node_specs = extract_node_specs(merged_ast, type_converter)
         enums = extract_enums(merged_ast)
+        domain_models = extract_domain_models(merged_ast, type_converter)
         integrations = extract_integrations(merged_ast, type_converter)
         conversions = extract_conversions(merged_ast)
-        factory_data = build_factory_data(node_specs)
+        node_factory = build_node_factory_data(node_specs)
         typescript_indexes = extract_typescript_indexes(self.base_dir)
 
         # Build unified models data
@@ -395,17 +572,19 @@ class BackendIRBuilder(BaseIRBuilder):
             # Core data
             "node_specs": node_specs,
             "enums": enums,
+            "domain_models": domain_models,
             "integrations": integrations,
             "conversions": conversions,
             "unified_models": unified_models,
-            "factory_data": factory_data,
+            "node_factory": node_factory,
             "typescript_indexes": typescript_indexes,
             # Metadata
             "metadata": {
                 "node_count": len(node_specs),
                 "enum_count": len(enums),
+                "domain_model_count": len(domain_models["models"]),
                 "integration_model_count": len(integrations["models"]),
-                "categories": factory_data["categories"],
+                "categories": node_factory["categories"],
             },
         }
 

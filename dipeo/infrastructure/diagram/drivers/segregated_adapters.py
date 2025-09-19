@@ -216,8 +216,21 @@ class RepositoryAdapter(LoggingMixin, DiagramRepositoryPort):
 
             return diagram
         except Exception as e:
-            self.log_warning(f"Failed to get diagram {diagram_id}: {e}")
-            return None
+            # Log warning with more detail about what kind of error occurred
+            import pydantic
+
+            if isinstance(e, pydantic.ValidationError):
+                self.log_warning(
+                    f"Failed to validate diagram {diagram_id}: {e.error_count()} validation errors"
+                )
+                for error in e.errors()[:3]:  # Show first 3 errors
+                    self.log_debug(f"  - {error['loc']}: {error['msg']}")
+            else:
+                self.log_warning(f"Failed to get diagram {diagram_id}: {e}")
+
+            # Re-raise the exception so the caller can handle it
+            # This allows the resolver to create a minimal diagram with error info
+            raise
 
     async def update(self, diagram_id: str, diagram: DomainDiagram) -> None:
         if not await self.exists(diagram_id):
@@ -254,6 +267,13 @@ class RepositoryAdapter(LoggingMixin, DiagramRepositoryPort):
         if self.filesystem.exists(projects_path):
             for pattern in patterns:
                 path = projects_path / pattern
+                if self.filesystem.exists(path):
+                    return True
+
+        examples_path = self.base_path.parent / "examples"
+        if self.filesystem.exists(examples_path):
+            for pattern in patterns:
+                path = examples_path / pattern
                 if self.filesystem.exists(path):
                     return True
 
@@ -311,6 +331,11 @@ class RepositoryAdapter(LoggingMixin, DiagramRepositoryPort):
             self.log_debug(f"Scanning projects directory: {projects_path}")
             scan_directory(projects_path, projects_path)
 
+        examples_path = self.base_path.parent / "examples"
+        if self.filesystem.exists(examples_path):
+            self.log_debug(f"Scanning examples directory: {examples_path}")
+            scan_directory(examples_path, examples_path)
+
         self.log_info(f"Found {len(diagrams)} diagrams total")
         diagrams.sort(key=lambda x: x.modified, reverse=True)
         return diagrams
@@ -331,8 +356,15 @@ class RepositoryAdapter(LoggingMixin, DiagramRepositoryPort):
         projects_path = self.base_path.parent / "projects"
         if self.filesystem.exists(projects_path):
             search_dirs.append(projects_path)
+        examples_path = self.base_path.parent / "examples"
+        if self.filesystem.exists(examples_path):
+            search_dirs.append(examples_path)
 
-        if diagram_id.startswith("projects/") or diagram_id.startswith("files/"):
+        if (
+            diagram_id.startswith("projects/")
+            or diagram_id.startswith("files/")
+            or diagram_id.startswith("examples/")
+        ):
             root_base = self.base_path.parent
             full_path = root_base / diagram_id
             if self.filesystem.exists(full_path):

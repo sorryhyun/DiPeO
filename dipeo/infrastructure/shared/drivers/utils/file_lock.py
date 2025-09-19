@@ -10,6 +10,8 @@ from contextlib import asynccontextmanager, contextmanager, suppress
 from pathlib import Path
 from typing import Any
 
+from dipeo.config.paths import BASE_DIR
+
 try:
     import fcntl
 
@@ -316,7 +318,7 @@ def get_cache_lock_manager(cache_dir: Path | None = None) -> CacheFileLock:
     global _cache_lock_manager
     if _cache_lock_manager is None:
         if cache_dir is None:
-            base_dir = Path(os.getenv("DIPEO_BASE_DIR", os.getcwd()))
+            base_dir = BASE_DIR
             cache_dir = base_dir / "temp"
 
         _cache_lock_manager = CacheFileLock(cache_dir)

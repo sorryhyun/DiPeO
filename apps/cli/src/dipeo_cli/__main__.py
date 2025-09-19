@@ -24,6 +24,7 @@ if sys.platform == "win32":
 
 from .commands import (
     AskCommand,
+    ClaudeCodeCommand,
     ConvertCommand,
     IntegrationsCommand,
     MetricsCommand,
@@ -51,6 +52,7 @@ class DiPeOCLI:
         self.metrics_command = MetricsCommand(self.server)
         self.utils_command = UtilsCommand()
         self.integrations_command = IntegrationsCommand(self.server)
+        self.claude_code_command = ClaudeCodeCommand(self.server)
 
     def ask(
         self,
@@ -137,6 +139,10 @@ class DiPeOCLI:
     def integrations(self, action: str, **kwargs):
         """Manage integrations."""
         return self.integrations_command.execute(action, **kwargs)
+
+    def claude_code(self, action: str, **kwargs):
+        """Convert Claude Code sessions to DiPeO diagrams."""
+        return self.claude_code_command.execute(action, **kwargs)
 
     # Compatibility methods for backward compatibility
     def resolve_diagram_path(self, diagram: str, format_type: str | None = None) -> str:
@@ -313,6 +319,89 @@ def main():
     test_parser.add_argument("--record", action="store_true", help="Record test for replay")
     test_parser.add_argument("--replay", action="store_true", help="Replay recorded test")
 
+    # Claude Code subcommand
+    claude_code_parser = integrations_subparsers.add_parser(
+        "claude-code", help="Manage Claude Code TODO synchronization"
+    )
+    claude_code_parser.add_argument(
+        "--watch-todos", action="store_true", help="Enable TODO monitoring"
+    )
+    claude_code_parser.add_argument(
+        "--sync-mode",
+        type=str,
+        default="off",
+        choices=["off", "manual", "auto", "watch"],
+        help="Synchronization mode (default: off)",
+    )
+    claude_code_parser.add_argument(
+        "--output-dir", type=str, help="Output directory for diagrams (default: projects/dipeo_cc)"
+    )
+    claude_code_parser.add_argument(
+        "--auto-execute", action="store_true", help="Automatically execute generated diagrams"
+    )
+    claude_code_parser.add_argument(
+        "--debounce", type=float, default=2.0, help="Debounce time in seconds (default: 2.0)"
+    )
+    claude_code_parser.add_argument(
+        "--timeout",
+        type=int,
+        default=None,
+        help="Timeout in seconds for monitoring (no timeout if not specified)",
+    )
+
+    # DiPeOCC command for Claude Code session conversion
+    dipeocc_parser = subparsers.add_parser(
+        "dipeocc", help="Convert Claude Code sessions to DiPeO diagrams"
+    )
+    dipeocc_subparsers = dipeocc_parser.add_subparsers(
+        dest="dipeocc_action", help="DiPeOCC commands"
+    )
+
+    # List subcommand
+    list_parser = dipeocc_subparsers.add_parser("list", help="List recent Claude Code sessions")
+    list_parser.add_argument(
+        "--limit", type=int, default=50, help="Maximum number of sessions to list (default: 50)"
+    )
+
+    # Convert subcommand
+    convert_parser = dipeocc_subparsers.add_parser(
+        "convert", help="Convert a session to DiPeO diagram"
+    )
+    convert_group = convert_parser.add_mutually_exclusive_group(required=True)
+    convert_group.add_argument("session_id", nargs="?", help="Session ID to convert")
+    convert_group.add_argument(
+        "--latest",
+        nargs="?",
+        const=1,
+        type=int,
+        metavar="N",
+        help="Convert the N most recent sessions (default: 1 if no value provided)",
+    )
+    convert_parser.add_argument(
+        "--output-dir", type=str, help="Output directory (default: projects/claude_code)"
+    )
+    convert_parser.add_argument(
+        "--format",
+        type=str,
+        choices=["light", "native", "readable"],
+        default="light",
+        help="Output format (default: light)",
+    )
+
+    # Watch subcommand
+    watch_parser = dipeocc_subparsers.add_parser(
+        "watch", help="Watch for new sessions and convert automatically"
+    )
+    watch_parser.add_argument(
+        "--interval", type=int, default=30, help="Check interval in seconds (default: 30)"
+    )
+
+    # Stats subcommand
+    stats_cc_parser = dipeocc_subparsers.add_parser(
+        "stats", help="Show detailed session statistics"
+    )
+    stats_cc_parser.add_argument("session_id", help="Session ID to analyze")
+
     args = parser.parse_args()
 
     if not args.command:
@@ -407,6 +496,7 @@ def main():
 
             # Build kwargs based on action
             kwargs = {}
+            print(f"DEBUG: integrations action = {args.integrations_action}")
             if args.integrations_action == "init":
                 kwargs["path"] = getattr(args, "path", None)
             elif args.integrations_action == "validate":
@@ -423,9 +513,40 @@ def main():
                 kwargs["config"] = getattr(args, "config", None)
                 kwargs["record"] = getattr(args, "record", False)
                 kwargs["replay"] = getattr(args, "replay", False)
+            elif args.integrations_action == "claude-code":
+                kwargs["watch_todos"] = getattr(args, "watch_todos", False)
+                kwargs["sync_mode"] = getattr(args, "sync_mode", "off")
+                kwargs["output_dir"] = getattr(args, "output_dir", None)
+                kwargs["auto_execute"] = getattr(args, "auto_execute", False)
+                kwargs["debounce"] = getattr(args, "debounce", 2.0)
+                kwargs["timeout"] = getattr(args, "timeout", None)
 
+            print(
+                f"DEBUG: calling cli.integrations with action={args.integrations_action}, kwargs={kwargs}"
+            )
             success = cli.integrations(args.integrations_action, **kwargs)
             os._exit(0 if success else 1)
+        elif args.command == "dipeocc":
+            if not args.dipeocc_action:
+                dipeocc_parser.print_help()
+                sys.exit(0)
+
+            # Build kwargs based on action
+            kwargs = {}
+            if args.dipeocc_action == "list":
+                kwargs["limit"] = getattr(args, "limit", 50)
+            elif args.dipeocc_action == "convert":
+                kwargs["session_id"] = getattr(args, "session_id", None)
+                kwargs["latest"] = getattr(args, "latest", False)
+                kwargs["output_dir"] = getattr(args, "output_dir", None)
+                kwargs["format"] = getattr(args, "format", "light")
+            elif args.dipeocc_action == "watch":
+                kwargs["interval"] = getattr(args, "interval", 30)
+            elif args.dipeocc_action == "stats":
+                kwargs["session_id"] = args.session_id
+
+            success = cli.claude_code(args.dipeocc_action, **kwargs)
+            sys.exit(0 if success else 1)
 
     except KeyboardInterrupt:
         print("\n\nInterrupted by user")
@@ -435,6 +556,15 @@ def main():
         print(f"Error: {e}")
         cli.server.stop()
         os._exit(1)
+
+
+def dipeocc_main():
+    """Direct entry point for dipeocc command."""
+    import sys
+
+    # Insert 'dipeocc' as the first argument to simulate the subcommand
+    sys.argv = [sys.argv[0], "dipeocc"] + sys.argv[1:]
+    main()
 
 
 if __name__ == "__main__":

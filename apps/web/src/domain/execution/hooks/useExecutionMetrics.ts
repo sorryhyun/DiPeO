@@ -75,8 +75,8 @@ export function useExecutionMetrics(executionId: string, enableSubscription = tr
 
     const update = subscriptionData.execution_updates;
 
-    // Handle METRICS_COLLECTED events
-    if (update.event_type === 'METRICS_COLLECTED') {
+    // Handle metrics in EXECUTION_LOG events
+    if (update.event_type === 'EXECUTION_LOG' && update.data?.type === 'metrics') {
       setIsLive(true);
 
       if (update.data) {
@@ -152,8 +152,8 @@ export function useExecutionMetrics(executionId: string, enableSubscription = tr
       }
     }
 
-    // Handle EXECUTION_STATUS_CHANGED to detect completion
-    if (update.event_type === 'EXECUTION_STATUS_CHANGED' && update.data?.is_final) {
+    // Handle EXECUTION_COMPLETED to detect completion
+    if (update.event_type === 'EXECUTION_COMPLETED') {
       setIsLive(false);
 
       // Refetch final metrics after execution completes

@@ -232,26 +232,6 @@ class EventManager:
         )
         await self._publish(event)
 
-    async def emit_node_status_changed(
-        self,
-        node_id: NodeID,
-        status: Status,
-    ) -> None:
-        if self.event_bus:
-            event = DomainEvent(
-                type=EventType.NODE_STATUS_CHANGED,
-                scope=EventScope(
-                    execution_id=self.execution_id,
-                    node_id=str(node_id),
-                ),
-                meta={
-                    "diagram_id": self.diagram_id,
-                    "node_id": str(node_id),
-                    "status": status.value,
-                },
-            )
-            await self._publish(event)
-
     async def emit_event(self, event_type: EventType, data: dict[str, Any] | None = None) -> None:
         if self.event_bus:
             from dipeo.domain.events import EventScope

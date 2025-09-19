@@ -26,7 +26,7 @@ class ExecutionDisplay:
         self.console = Console(theme=CLI_THEME)
 
         # Create layout
-        self.layout = ExecutionLayout(diagram_name, execution_id)
+        self.layout = ExecutionLayout(diagram_name, execution_id, debug=debug)
 
         # Display-only state (minimal tracking for UI rendering)
         # We only track what's needed for the current display, not the full execution state
@@ -104,8 +104,12 @@ class ExecutionDisplay:
                 self._handle_node_failed(data)
             elif event_type == "NODE_STATUS_CHANGED":
                 self._handle_node_status_changed(data)
-            elif event_type == "EXECUTION_STATUS_CHANGED":
-                self._handle_execution_status_changed(data)
+            elif event_type in ["EXECUTION_STARTED", "execution_started"]:
+                self._handle_execution_started(data)
+            elif event_type in ["EXECUTION_COMPLETED", "execution_completed"]:
+                self._handle_execution_completed(data)
+            elif event_type in ["EXECUTION_ERROR", "execution_error"]:
+                self._handle_execution_error(data)
             elif event_type == "METRICS_COLLECTED":
                 self._handle_metrics(data)
 
@@ -147,13 +151,55 @@ class ExecutionDisplay:
                 "status": "COMPLETED",
             }
 
+            # Add person info if this was a person_job node
+            person_id = data.get("person_id")
+            if person_id:
+                completed_node["person"] = person_id
+
             # Add duration if we were tracking this node
+            duration = None
             if (
                 self.current_node_display
                 and self.current_node_display.get("node_id") == node_id
                 and "start_time" in self.current_node_display
             ):
-                completed_node["duration"] = time.time() - self.current_node_display["start_time"]
+                duration = time.time() - self.current_node_display["start_time"]
+                completed_node["duration"] = duration
+
+            # Extract memory selection info
+            memory_selection = data.get("memory_selection")
+
+            # Accumulate token usage if present
+            token_usage = data.get("token_usage")
+            if token_usage and isinstance(token_usage, dict):
+                input_tokens = token_usage.get("input", 0)
+                output_tokens = token_usage.get("output", 0)
+
+                self.display_stats["token_usage"]["input"] += input_tokens
+                self.display_stats["token_usage"]["output"] += output_tokens
+                # Calculate total from input + output if not provided
+                total = token_usage.get("total", 0)
+                if total == 0 and (input_tokens or output_tokens):
+                    total = input_tokens + output_tokens
+                self.display_stats["token_usage"]["total"] = (
+                    self.display_stats["token_usage"]["input"]
+                    + self.display_stats["token_usage"]["output"]
+                )
+                # Update statistics display with new token counts
+                self.layout.update_statistics(self.display_stats)
+                # Add token info to completed node for display
+                completed_node["tokens"] = f"in:{input_tokens} out:{output_tokens}"
+
+            # Update LLM interactions panel if this was an LLM node
+            if person_id or token_usage:
+                self.layout.update_llm_interaction(
+                    node_id=node_id,
+                    person_id=person_id,
+                    token_usage=token_usage,
+                    memory_selection=memory_selection,
+                    duration=duration,
+                    debug=self.debug,
+                )
 
             self.last_completed_node = completed_node
 
@@ -206,13 +252,22 @@ class ExecutionDisplay:
             self.display_stats["nodes_skipped"] += 1
             self.layout.update_statistics(self.display_stats)
 
-    def _handle_execution_status_changed(self, data: dict[str, Any]):
-        """Handle execution status change event."""
-        status = data.get("status")
-        if status in ["COMPLETED", "FAILED", "ABORTED", "MAXITER_REACHED"]:
-            # Clear current node display
-            self.current_node_display = None
-            self.layout.update_node(None)
+    def _handle_execution_started(self, data: dict[str, Any]):
+        """Handle execution started event."""
+        # Execution has started, no specific action needed for display
+        pass
+
+    def _handle_execution_completed(self, data: dict[str, Any]):
+        """Handle execution completed event."""
+        # Clear current node display
+        self.current_node_display = None
+        self.layout.update_node(None)
+
+    def _handle_execution_error(self, data: dict[str, Any]):
+        """Handle execution error event."""
+        # Clear current node display
+        self.current_node_display = None
+        self.layout.update_node(None)
 
     def _handle_metrics(self, data: dict[str, Any]):
         """Handle metrics update event."""
@@ -291,11 +346,13 @@ class SimpleDisplay:
             node_id = data.get("node_id", "unknown")
             error = data.get("error", "Unknown error")
             print(f"✗ Failed: {node_id} - {error}")
-        elif event_type == "EXECUTION_STATUS_CHANGED":
-            status = data.get("status")
-            if status != self.last_status:
-                self.last_status = status
-                print(f"📊 Execution status: {status}")
+        elif event_type in ["EXECUTION_STARTED", "execution_started"]:
+            print("📊 Execution started")
+        elif event_type in ["EXECUTION_COMPLETED", "execution_completed"]:
+            print("📊 Execution completed")
+        elif event_type in ["EXECUTION_ERROR", "execution_error"]:
+            error = data.get("error", "Unknown error")
+            print(f"📊 Execution failed: {error}")
 
     def update_from_state(self, execution_state: dict[str, Any]):
         """Update from state in simple mode."""

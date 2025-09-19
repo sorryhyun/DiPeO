@@ -99,11 +99,7 @@ async def create_server_container() -> Container:
             EventType.NODE_STARTED,
             EventType.NODE_COMPLETED,
             EventType.NODE_ERROR,
-            EventType.NODE_PROGRESS,
-            EventType.EXECUTION_UPDATE,
             EventType.EXECUTION_LOG,
-            EventType.METRICS_COLLECTED,
-            EventType.WEBHOOK_RECEIVED,
         ]
 
         await domain_event_bus.subscribe(

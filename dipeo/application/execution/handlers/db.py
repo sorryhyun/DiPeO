@@ -9,12 +9,13 @@ from typing import TYPE_CHECKING, Any
 import yaml
 from pydantic import BaseModel
 
-from dipeo.application.execution.decorators import Optional, requires_services
 from dipeo.application.execution.execution_request import ExecutionRequest
-from dipeo.application.execution.handler_base import TypedNodeHandler
-from dipeo.application.execution.handler_factory import register_handler
+from dipeo.application.execution.handlers.core.base import TypedNodeHandler
+from dipeo.application.execution.handlers.core.decorators import Optional, requires_services
+from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.registry import DB_OPERATIONS_SERVICE
 from dipeo.application.registry.keys import TEMPLATE_PROCESSOR
+from dipeo.config.paths import BASE_DIR
 from dipeo.diagram_generated.enums import NodeType
 from dipeo.diagram_generated.unified_nodes.db_node import DbNode
 from dipeo.domain.execution.envelope import Envelope, get_envelope_factory
@@ -56,11 +57,19 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
         node = request.node
 
         # Validate operation type
-        valid_operations = ["read", "write", "append"]
+        valid_operations = ["read", "write", "append", "update"]
         if node.operation not in valid_operations:
             factory = get_envelope_factory()
             return factory.error(
                 f"Invalid operation: {node.operation}. Valid operations: {', '.join(valid_operations)}",
+                error_type="ValueError",
+                produced_by=str(node.id),
+            )
+
+        if node.operation == "update" and not getattr(node, "keys", None):
+            factory = get_envelope_factory()
+            return factory.error(
+                "Update operation requires one or more keys",
                 error_type="ValueError",
                 produced_by=str(node.id),
             )
@@ -76,7 +85,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
             )
 
         # Store configuration in instance variables for execute_request
-        self._current_base_dir = os.getenv("DIPEO_BASE_DIR", os.getcwd())
+        self._current_base_dir = str(BASE_DIR)
 
         # No early return - proceed to execute_request
         return None
@@ -194,7 +203,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
 
         format_type = getattr(node, "format", None)
 
-        if format_type and node.operation == "write":
+        if format_type and node.operation in ("write", "update"):
             adjusted_paths = []
             for path in processed_paths:
                 if format_type == "yaml" and not path.endswith((".yaml", ".yml")):
@@ -209,7 +218,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                 adjusted_paths.append(path)
             processed_paths = adjusted_paths
 
-        if node.operation == "write":
+        if node.operation in ("write", "update"):
             input_val = (
                 inputs.get("generated_code")
                 or inputs.get("content")
@@ -227,11 +236,15 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
 
             # Only serialize for YAML format or text format
             # JSON serialization is handled by db_adapter
-            if node.operation == "write" and format_type == "yaml" and input_val is not None:
+            if (
+                node.operation in ("write", "update")
+                and format_type == "yaml"
+                and input_val is not None
+            ):
                 if isinstance(input_val, dict | list):
                     input_val = self._serialize_data(input_val, "yaml")
             elif (
-                node.operation == "write"
+                node.operation in ("write", "update")
                 and format_type == "text"
                 and input_val is not None
                 and not isinstance(input_val, str)
@@ -241,6 +254,8 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
             input_val = self._first_non_empty(inputs)
 
         try:
+            keys = getattr(node, "keys", None)
+
             if node.operation == "read" and len(processed_paths) > 1:
                 results = {}
                 serialize_json = getattr(node, "serialize_json", False)
@@ -250,6 +265,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                             db_name=file_path,
                             operation=node.operation,
                             value=input_val,
+                            keys=keys,
                         )
                         file_content = result["value"]
 
@@ -282,6 +298,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                     db_name=file_path,
                     operation=node.operation,
                     value=input_val,
+                    keys=keys,
                 )
 
                 if node.operation == "read":

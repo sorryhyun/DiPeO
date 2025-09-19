@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for db.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-17T20:38:42.575285
+Generated at: 2025-09-19T17:28:44.747616
 """
 
 from typing import *
@@ -44,6 +44,8 @@ class DbNode(BaseModel):
     
     query: Optional[str] = Field(default=None, description="Query configuration")
     
+    keys: Optional[Any] = Field(default=None, description="Single key or list of dot-separated keys to target within the JSON payload")
+    
     data: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Data configuration")
     
     serialize_json: Optional[bool] = Field(default=None, description="Serialize structured data to JSON string (for backward compatibility)")
@@ -78,6 +80,7 @@ class DbNode(BaseModel):
         data["sub_type"] = self.sub_type
         data["operation"] = self.operation
         data["query"] = self.query
+        data["keys"] = self.keys
         data["data"] = self.data
         data["serialize_json"] = self.serialize_json
         data["format"] = self.format

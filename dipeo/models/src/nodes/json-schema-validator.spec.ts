@@ -22,7 +22,7 @@ export const jsonSchemaValidatorSpec: NodeSpecification = {
       }
     },
     {
-      name: "schema",
+      name: "json_schema",
       type: "object",
       required: false,
       description: "Inline JSON schema",

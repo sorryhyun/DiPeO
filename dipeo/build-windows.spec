@@ -42,14 +42,13 @@ block_cipher = None
 base_hiddenimports = [
     # Core DiPeO modules
     'dipeo',
-    'dipeo.core',
     'dipeo.domain',
-    'dipeo.diagram',
     'dipeo.application',
-    'dipeo.infra',
+    'dipeo.infrastructure',
     'dipeo.application.bootstrap',
     'dipeo.models',
-    'dipeo.utils',
+    'dipeo.config',
+    'dipeo.diagram_generated',
 
     # Common dependencies
     'yaml',
@@ -144,32 +143,32 @@ cli_hiddenimports = [
     'rich.syntax',
     'prompt_toolkit',
     'dipeo_cli',
-    'dipeo_cli.minimal_cli',
+    'dipeo_cli.__main__',
+    'dipeo_cli.commands',
+    'dipeo_cli.server_manager',
 ]
 
 # Determine which hidden imports to use
 if IS_SERVER_BUILD:
     hiddenimports = base_hiddenimports + server_hiddenimports
-    entry_script = str(ROOT_DIR / 'apps' / 'server' / 'main_bundled.py')
+    entry_script = str(ROOT_DIR / 'apps' / 'server' / 'main.py')
 elif IS_CLI_BUILD:
     hiddenimports = base_hiddenimports + cli_hiddenimports
-    entry_script = str(ROOT_DIR / 'apps' / 'cli' / 'src' / 'dipeo_cli' / 'minimal_cli.py')
+    entry_script = str(ROOT_DIR / 'apps' / 'cli' / 'src' / 'dipeo_cli' / '__main__.py')
 else:
     # Default to server if not specified
     hiddenimports = base_hiddenimports + server_hiddenimports
-    entry_script = str(ROOT_DIR / 'apps' / 'server' / 'main_bundled.py')
+    entry_script = str(ROOT_DIR / 'apps' / 'server' / 'main.py')
 
 # Collect all data files
 datas = [
     # Include dipeo package and its subpackages
-    (str(DIPEO_DIR / 'core'), 'dipeo/core'),
     (str(DIPEO_DIR / 'domain'), 'dipeo/domain'),
-    (str(DIPEO_DIR / 'diagram'), 'dipeo/diagram'),
     (str(DIPEO_DIR / 'application'), 'dipeo/application'),
-    (str(DIPEO_DIR / 'infra'), 'dipeo/infra'),
-    # Container moved to application.bootstrap
+    (str(DIPEO_DIR / 'infrastructure'), 'dipeo/infrastructure'),
     (str(DIPEO_DIR / 'models'), 'dipeo/models'),
-    (str(DIPEO_DIR / 'utils'), 'dipeo/utils'),
+    (str(DIPEO_DIR / 'config'), 'dipeo/config'),
+    (str(DIPEO_DIR / 'diagram_generated'), 'dipeo/diagram_generated'),
 
     # Include __init__.py files
     (str(DIPEO_DIR / '__init__.py'), 'dipeo/'),
@@ -205,11 +204,12 @@ a = Analysis(
     pathex=[
         str(ROOT_DIR),
         str(DIPEO_DIR),
-        str(DIPEO_DIR / 'core'),
         str(DIPEO_DIR / 'domain'),
-        str(DIPEO_DIR / 'diagram'),
         str(DIPEO_DIR / 'application'),
-        str(DIPEO_DIR / 'infra'),
+        str(DIPEO_DIR / 'infrastructure'),
+        str(DIPEO_DIR / 'models'),
+        str(DIPEO_DIR / 'config'),
+        str(DIPEO_DIR / 'diagram_generated'),
         str(DIPEO_DIR / 'application' / 'bootstrap'),
     ],
     binaries=[],

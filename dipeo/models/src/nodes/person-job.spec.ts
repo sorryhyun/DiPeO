@@ -23,7 +23,7 @@ export const personJobSpec: NodeSpecification = {
     {
       name: "first_only_prompt",
       type: "string",
-      required: true,
+      required: false,
       description: "Prompt used only on first execution",
       uiConfig: {
         inputType: "textarea",

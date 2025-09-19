@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for endpoint.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-17T20:38:42.575943
+Generated at: 2025-09-19T17:28:44.748849
 """
 
 from typing import *
@@ -25,7 +25,6 @@ class EndpointNode(BaseModel):
     position: Vec2
 
     # Required node-specific fields
-    save_to_file: bool = Field(description="Save results to file")
 
     # Optional base fields
     label: str = Field(default="", description="Node label for display")
@@ -36,6 +35,8 @@ class EndpointNode(BaseModel):
     type: NodeType = Field(default=NodeType.ENDPOINT, frozen=True)
 
     # Optional node-specific fields
+    
+    save_to_file: Optional[bool] = Field(default=None, description="Save results to file")
     
     file_name: Optional[str] = Field(default=None, description="Output filename")
 

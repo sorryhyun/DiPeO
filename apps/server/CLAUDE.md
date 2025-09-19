@@ -10,8 +10,7 @@ apps/server/
 │   ├── api/           # FastAPI/GraphQL adapters
 │   ├── infra/         # Infrastructure (state storage, caching)
 │   └── app_context.py # Container configuration
-├── main.py            # Server entry point
-├── main_bundled.py    # PyInstaller entry point
+├── main.py            # Server entry point (also PyInstaller entry)
 └── schema.graphql     # GraphQL schema
 ```
 

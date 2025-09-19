@@ -8,7 +8,6 @@ Write-Host ""
 # Step 1: Build Backend (if not already built)
 if (-not (Test-Path "apps\server\dist\dipeo-server.exe")) {
     Write-Host "Step 1: Building Backend Server..." -ForegroundColor Yellow
-    Push-Location apps\server
 
     # Check if PyInstaller is installed
     python -m pip show pyinstaller > $null 2>&1
@@ -17,16 +16,17 @@ if (-not (Test-Path "apps\server\dist\dipeo-server.exe")) {
         python -m pip install pyinstaller
     }
 
-    # Build backend
-    pyinstaller --clean dipeo-server-correct.spec
+    # Set environment variable for server build
+    $env:BUILD_TYPE = "SERVER"
+
+    # Build backend using unified spec
+    pyinstaller --clean dipeo/build-windows.spec --name dipeo-server --distpath apps/server/dist
 
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Backend build failed!" -ForegroundColor Red
-        Pop-Location
         exit 1
     }
 
-    Pop-Location
     Write-Host "Backend built successfully!" -ForegroundColor Green
 } else {
     Write-Host "Step 1: Backend already built, skipping..." -ForegroundColor Gray

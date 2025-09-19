@@ -147,16 +147,17 @@ export const fieldConfigs = {
 
 **Services** (`services/`):
 ```typescript
-class DiagramService {
+// Service pattern example (actual services use domain hooks)
+class DiagramServicePattern {
   // Diagram operations
   async saveDiagram(diagram: DomainDiagram): Promise<void>;
   async loadDiagram(id: string): Promise<DomainDiagram>;
   async exportToFormat(diagram: DomainDiagram, format: DiagramFormat): Promise<string>;
-  
+
   // Validation
   validateStructure(diagram: DomainDiagram): ValidationResult;
   validateConnections(edges: Edge[]): ConnectionError[];
-  
+
   // Transformations
   optimizeDiagram(diagram: DomainDiagram): DomainDiagram;
   convertFormat(diagram: any, from: DiagramFormat, to: DiagramFormat): any;
@@ -339,15 +340,16 @@ export interface ConversationMessage {
 
 **Services** (`services/`):
 ```typescript
-class ExecutionService {
+// Service pattern example (actual implementation uses GraphQL hooks)
+class ExecutionServicePattern {
   // Execution control
   async startExecution(diagram: DomainDiagram, options: ExecutionOptions): Promise<string>;
   async stopExecution(executionId: string): Promise<void>;
-  
+
   // Monitoring
   subscribeToExecution(executionId: string): Observable<ExecutionUpdate>;
   async getExecutionHistory(diagramId: string): Promise<ExecutionRecord[]>;
-  
+
   // Analytics
   async getExecutionMetrics(executionId: string): Promise<ExecutionMetrics>;
   calculateBottlenecks(execution: ExecutionState): BottleneckAnalysis;
@@ -604,7 +606,8 @@ const fieldConfig = {
   person_select: {
     component: PersonSelectField,
     fetchOptions: async () => {
-      const persons = await PersonService.getAll();
+      // Fetch persons from store or GraphQL
+      const persons = await getPersons();
       return persons.map(p => ({
         value: p.id,
         label: p.name
@@ -612,7 +615,8 @@ const fieldConfig = {
     },
     validation: (value) => {
       if (!value) return 'Person is required';
-      if (!PersonService.exists(value)) return 'Invalid person';
+      // Validate against available persons
+      if (!isValidPerson(value)) return 'Invalid person';
       return null;
     }
   }

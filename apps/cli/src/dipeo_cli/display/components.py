@@ -156,13 +156,26 @@ class NodeProgressDisplay:
                 node_type = node.get("node_type", "UNKNOWN")
                 duration = node.get("duration", 0)
                 status = node.get("status", "COMPLETED")
+                person = node.get("person")
+                tokens = node.get("tokens")
 
                 icon = ICONS["success"] if status == "COMPLETED" else ICONS["error"]
                 color = STATUS_COLORS.get(status, "white")
 
-                duration_str = f"({duration:.1f}s)" if duration else ""
+                # Build info string with duration, person, and tokens
+                info_parts = []
+                if duration:
+                    info_parts.append(f"{duration:.1f}s")
+                if person:
+                    info_parts.append(f"{person}")
+                if tokens:
+                    info_parts.append(tokens)
+
+                info_str = f" ({', '.join(info_parts)})" if info_parts else ""
+
                 node_text = Text(f"  {icon} {node_name}", style=color)
-                node_text.append(f" {duration_str}", style="muted")
+                if info_str:
+                    node_text.append(info_str, style="muted")
                 lines.append(node_text)
 
         return Panel(Group(*lines), box=ROUNDED, title="Progress", border_style="info")
@@ -226,15 +239,135 @@ class StatisticsDisplay:
         return Panel(table, box=ROUNDED, title="Statistics", border_style="dim")
 
 
+class LLMInteractionsDisplay:
+    """Display component for LLM interactions including memory selection and token usage."""
+
+    def __init__(self, debug: bool = False):
+        self.recent_interactions = []
+        self.max_recent = 5 if debug else 3
+        self.debug = debug
+
+    def add_interaction(
+        self,
+        node_id: str,
+        person_id: str | None = None,
+        token_usage: dict[str, Any] | None = None,
+        memory_selection: dict[str, Any] | None = None,
+        duration: float | None = None,
+        debug: bool = False,
+    ):
+        """Add a new LLM interaction."""
+        interaction = {
+            "node_id": node_id,
+            "person_id": person_id,
+            "token_usage": token_usage,
+            "memory_selection": memory_selection,
+            "duration": duration,
+            "timestamp": time.time(),
+        }
+        self.recent_interactions.append(interaction)
+        if len(self.recent_interactions) > self.max_recent:
+            self.recent_interactions.pop(0)
+
+    def render(self) -> RenderableType:
+        if not self.recent_interactions:
+            content = Text("No LLM interactions yet", style="muted")
+            title = "LLM Interactions" + (" (Debug)" if self.debug else "")
+            return Panel(content, box=ROUNDED, title=title, border_style="dim")
+
+        lines = []
+        for interaction in reversed(self.recent_interactions):  # Show most recent first
+            node_id = interaction["node_id"]
+            person_id = interaction.get("person_id", "unknown")
+
+            # Node and person info
+            lines.append(Text(f"{ICONS['running']} {node_id}", style="info"))
+            if person_id:
+                lines.append(Text(f"  Person: {person_id}", style="muted"))
+
+            # Token usage
+            if interaction.get("token_usage"):
+                tokens = interaction["token_usage"]
+                input_tokens = tokens.get("input", 0)
+                output_tokens = tokens.get("output", 0)
+                cached_tokens = tokens.get("cached", 0)
+
+                token_text = f"  Tokens: {input_tokens:,} → {output_tokens:,}"
+                if cached_tokens > 0:
+                    token_text += f" (cached: {cached_tokens:,})"
+                lines.append(Text(token_text, style="success"))
+
+            # Memory selection info
+            if interaction.get("memory_selection"):
+                mem_sel = interaction["memory_selection"]
+                total_messages = mem_sel.get("total_messages", 0)
+                selected_count = mem_sel.get("selected_count", 0)
+                selection_criteria = mem_sel.get("criteria", "")
+                at_most = mem_sel.get("at_most", None)
+
+                # Always show memory selection info when it exists
+                if total_messages > 0:
+                    mem_style = "success" if selected_count > 0 else "warning"
+                    lines.append(
+                        Text(
+                            f"  Memory: {selected_count}/{total_messages} messages selected",
+                            style=mem_style,
+                        )
+                    )
+                    if selection_criteria:
+                        lines.append(Text(f"    Criteria: {selection_criteria}", style="dim"))
+                    if at_most:
+                        lines.append(Text(f"    At most: {at_most} messages", style="dim"))
+                elif total_messages == 0:
+                    lines.append(
+                        Text("  Memory: No messages available for selection", style="muted")
+                    )
+
+            # Duration
+            if interaction.get("duration"):
+                lines.append(Text(f"  Duration: {interaction['duration']:.2f}s", style="muted"))
+
+            lines.append(Text())  # Empty line between interactions
+
+        # Remove last empty line
+        if lines and isinstance(lines[-1], Text) and not lines[-1].plain:
+            lines.pop()
+
+        # Add summary if in debug mode
+        if self.debug and self.recent_interactions:
+            total_selected = sum(
+                i.get("memory_selection", {}).get("selected_count", 0)
+                for i in self.recent_interactions
+            )
+            total_available = sum(
+                i.get("memory_selection", {}).get("total_messages", 0)
+                for i in self.recent_interactions
+            )
+            if total_available > 0:
+                lines.insert(
+                    0,
+                    Text(
+                        f"📊 Memory Selection: {total_selected}/{total_available} total messages used",
+                        style="bright_cyan",
+                    ),
+                )
+                lines.insert(1, Text())
+
+        title = "LLM Interactions" + (" (Debug Mode)" if self.debug else "")
+        return Panel(Group(*lines), box=ROUNDED, title=title, border_style="cyan")
+
+
 class ExecutionLayout:
     """Main layout manager for the execution display."""
 
-    def __init__(self, diagram_name: str, execution_id: str):
+    def __init__(self, diagram_name: str, execution_id: str, debug: bool = False):
         self.start_time = time.time()
+        self.debug = debug
         self.header = ExecutionHeader(diagram_name, execution_id, self.start_time)
         self.current_node = CurrentNodeDisplay()
         self.progress = NodeProgressDisplay()
         self.statistics = StatisticsDisplay()
+        self.llm_interactions = LLMInteractionsDisplay(debug=debug)
 
     def update_node(self, node_data: dict[str, Any]):
         """Update node-related displays."""
@@ -250,6 +383,20 @@ class ExecutionLayout:
         """Update statistics display."""
         self.statistics.update(stats)
 
+    def update_llm_interaction(
+        self,
+        node_id: str,
+        person_id: str | None = None,
+        token_usage: dict[str, Any] | None = None,
+        memory_selection: dict[str, Any] | None = None,
+        duration: float | None = None,
+        debug: bool = False,
+    ):
+        """Update LLM interactions display."""
+        self.llm_interactions.add_interaction(
+            node_id, person_id, token_usage, memory_selection, duration, debug=debug
+        )
+
     def render(self) -> RenderableType:
         """Render the complete layout."""
         # Create main layout
@@ -257,13 +404,19 @@ class ExecutionLayout:
         layout.split(
             Layout(self.header.render(), size=4, name="header"),
             Layout(name="body"),
-            Layout(self.statistics.render(), size=8, name="stats"),
+            Layout(name="bottom"),
         )
 
         # Split body into current node and progress
         layout["body"].split_row(
             Layout(self.current_node.render(), name="current"),
             Layout(self.progress.render(), name="progress"),
+        )
+
+        # Split bottom into statistics and LLM interactions
+        layout["bottom"].split_row(
+            Layout(self.statistics.render(), name="stats"),
+            Layout(self.llm_interactions.render(), name="llm"),
         )
 
         return layout

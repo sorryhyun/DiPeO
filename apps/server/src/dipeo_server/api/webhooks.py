@@ -14,7 +14,7 @@ from dipeo.domain.events import (
     DomainEvent,
     EventScope,
     EventType,
-    WebhookReceivedPayload,
+    ExecutionLogPayload,
 )
 from dipeo.infrastructure.events.adapters import InMemoryEventBus
 from dipeo.infrastructure.integrations.drivers.integrated_api.registry import (
@@ -37,13 +37,19 @@ def create_webhook_event(
     exec_id = execution_id or f"webhook-{provider}-{int(time.time())}"
 
     return DomainEvent(
-        type=EventType.WEBHOOK_RECEIVED,
+        type=EventType.EXECUTION_LOG,
         scope=EventScope(execution_id=exec_id),
-        payload=WebhookReceivedPayload(
-            webhook_id=f"{provider}-{event_name}-{int(time.time())}",
-            source=provider,
-            payload={"event_name": event_name, **payload},
-            headers=headers,
+        payload=ExecutionLogPayload(
+            level="INFO",
+            message=f"Webhook received from {provider}: {event_name}",
+            logger_name="webhook_processor",
+            extra_fields={
+                "webhook_id": f"{provider}-{event_name}-{int(time.time())}",
+                "source": provider,
+                "event_name": event_name,
+                "payload": payload,
+                "headers": headers,
+            },
         ),
     )
 
@@ -76,29 +82,21 @@ class WebhookProcessor:
             return True  # Allow unsigned webhooks for providers without config
 
         # Check if provider has webhook signature configuration
-        webhook_config = (
-            manifest.metadata.get("webhook_config", {}) if manifest.metadata else {}
-        )
+        webhook_config = manifest.metadata.get("webhook_config", {}) if manifest.metadata else {}
         if not webhook_config:
             return True  # No signature validation required
 
         signature_header = webhook_config.get("signature_header")
         signature_algorithm = webhook_config.get("signature_algorithm", "hmac_sha256")
-        secret_key = webhook_config.get(
-            "secret"
-        )  # This should come from secure storage
+        secret_key = webhook_config.get("secret")  # This should come from secure storage
 
         if not signature_header or not secret_key:
-            logger.warning(
-                f"Webhook signature validation not configured for {provider_name}"
-            )
+            logger.warning(f"Webhook signature validation not configured for {provider_name}")
             return True
 
         received_signature = headers.get(signature_header.lower())
         if not received_signature:
-            logger.warning(
-                f"Missing signature header {signature_header} for {provider_name}"
-            )
+            logger.warning(f"Missing signature header {signature_header} for {provider_name}")
             return False
 
         # Validate based on algorithm
@@ -161,9 +159,7 @@ class WebhookProcessor:
             # Generic normalization
             normalized.update(
                 {
-                    "event_type": raw_payload.get("event")
-                    or raw_payload.get("type")
-                    or "unknown",
+                    "event_type": raw_payload.get("event") or raw_payload.get("type") or "unknown",
                     "event_data": raw_payload,
                 }
             )
@@ -191,9 +187,7 @@ class WebhookProcessor:
             )
 
         # Normalize payload
-        normalized_payload = await self.normalize_webhook_payload(
-            provider_name, raw_payload
-        )
+        normalized_payload = await self.normalize_webhook_payload(provider_name, raw_payload)
 
         # Determine event name from headers or payload
         event_name = self._extract_event_name(provider_name, headers, raw_payload)
@@ -224,9 +218,7 @@ class WebhookProcessor:
         if provider_name == "github":
             return headers.get("x-github-event", "unknown")
         if provider_name == "slack":
-            return payload.get("type") or payload.get("event", {}).get(
-                "type", "unknown"
-            )
+            return payload.get("type") or payload.get("event", {}).get("type", "unknown")
         if provider_name == "stripe":
             return payload.get("type", "unknown")
 
@@ -241,9 +233,7 @@ class WebhookProcessor:
 
 
 @router.post("/{provider}")
-async def receive_webhook(
-    provider: str, request: Request, response: Response
-) -> JSONResponse:
+async def receive_webhook(provider: str, request: Request, response: Response) -> JSONResponse:
     """Receive and process a webhook from a provider.
 
     This endpoint:
@@ -344,9 +334,7 @@ async def test_webhook_endpoint(provider: str) -> dict[str, Any]:
             }
 
         webhook_events = manifest.webhook_events or []
-        webhook_config = (
-            manifest.metadata.get("webhook_config", {}) if manifest.metadata else {}
-        )
+        webhook_config = manifest.metadata.get("webhook_config", {}) if manifest.metadata else {}
 
         return {
             "provider": provider,

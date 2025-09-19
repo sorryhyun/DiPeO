@@ -64,7 +64,7 @@ filesystem = request.services.get("filesystem_adapter")
 - **InMemoryPersonRepository**: Person entity management
 - **Features**: Message filtering, person-specific views
 
-### LLM Infrastructure (Updated 2025-09-10)
+### LLM Infrastructure
 - **LLMInfraService**: Main LLM orchestrator
 - **Unified Client Architecture**: 
   - Core types in `llm/core/types.py` (AdapterConfig, TokenUsage, LLMResponse)
@@ -111,7 +111,7 @@ DIPEO_EXECUTION_TIMEOUT=3600       # Max execution time
 DIPEO_PARALLEL_EXECUTION=true      # Enable parallel
 ```
 
-## Component Lifecycle (v1.0 Mixin-based)
+## Component Lifecycle
 
 ```python
 # 1. Create via DI container with mixin composition
@@ -164,15 +164,13 @@ except Exception as e:
 3. Update factory in `llm/drivers/factory.py` to return the unified client
 4. Export from `providers/mistral/__init__.py`
 
-#### OpenAI API Migration Notes (2025)
-- The OpenAI SDK migrated from `chat.completions.create()` to `responses.create()`
-- Key changes:
-  - `messages` → `input`
-  - `max_tokens` → `max_output_tokens`
-  - Temperature parameter removed
+#### OpenAI API Usage
+- Uses `responses.create()` for chat completions
+- Parameters:
+  - `input` for messages
+  - `max_output_tokens` for token limits
   - Structured output: `parse()` for Pydantic, `create()` for JSON schema
 - Response structure: `response.output[0].content[0].text`
-- TokenUsage compatibility: Added `total` property mapping to `total_tokens`
 
 ### External API
 1. Create provider: `class JiraProvider(BaseProvider)`
@@ -186,37 +184,7 @@ except Exception as e:
 | Connection timeout | Increase `DIPEO_API_TIMEOUT` |
 | File not found | Check `DIPEO_BASE_DIR` and paths |
 | Rate limit exceeded | Adjust `DIPEO_LLM_MAX_RETRIES` |
-| OpenAI temperature error | Temperature not supported in new `responses` API |
-| OpenAI parameter error | Use `max_output_tokens` not `max_tokens` |
-| TokenUsage missing 'total' | Use `total_tokens` or compatibility property |
-
-## v1.1 Architecture Changes (2025-09-10)
-
-### LLM Provider Simplification (Phase 3B)
-- **Unified Clients**: All providers now use single unified client per provider
-- **Removed Layers**: Eliminated adapter.py, client.py, adapter_wrapper.py files
-- **Direct Factory Returns**: Factory returns unified clients directly, no adapter wrapping
-- **Benefits**:
-  - 50% less code in provider directories
-  - Single source of truth per provider
-  - Easier to add new providers
-  - Clearer separation between domain logic and provider logic
-
-## v1.0 Architecture Changes (2025-09-05)
-
-### Service Architecture
-- **BaseService Removal**: Services now use optional mixin composition instead of base class inheritance
-- **Available Mixins**: LoggingMixin, ValidationMixin, ConfigurationMixin, CachingMixin, InitializationMixin
-- **Flexible Composition**: Services implement only needed capabilities
-
-### Event System
-- **Unified EventBus**: Single protocol replacing DomainEventBus, EventEmitter, EventConsumer, MessageBus
-- **Simplified Flow**: Engine → EventBus → MessageRouter → GraphQL/SSE
-- **No Adapter Layer**: CacheFirstStateStore implements StateRepository protocol directly
-
-### Repository Simplification
-- **StateRepositoryAdapter Removed**: CacheFirstStateStore now implements protocol directly
-- **Cleaner Architecture**: Fewer abstraction layers, direct protocol implementation
+| OpenAI API usage | Use `input` and `max_output_tokens` parameters |
 
 ## Performance & Security
 

@@ -11,9 +11,9 @@ export const jsonSchemaValidatorFields: UnifiedFieldDefinition[] = [
     description: '"Path to JSON schema file"',
   },
   {
-    name: 'schema',
+    name: 'json_schema',
     type: 'textarea',
-    label: '"Schema"',
+    label: '"Json schema"',
     required: false,
     description: '"Inline JSON schema"',
   },
