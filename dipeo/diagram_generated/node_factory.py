@@ -130,6 +130,7 @@ def create_executable_node(
             operation=data.get('operation', None),
             # DB node special handling for backward compatibility
             query=data.get('query', None),
+            keys=data.get('keys', data.get('key', None)),
             # DB node special handling for backward compatibility
             data=data.get('data', None),
             # Serialize JSON field may have camelCase variants

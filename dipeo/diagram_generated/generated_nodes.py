@@ -158,13 +158,15 @@ def create_executable_node(
             sub_type=data.get('sub_type'),
             
             operation=data.get('operation'),
-            
+
             query=data.get('query'),
-            
+
+            keys=data.get('keys', data.get('key')),
+
             data=data.get('data'),
-            
+
             serialize_json=data.get('serialize_json', False),
-            
+
             format=data.get('format', 'json'),
             
         )

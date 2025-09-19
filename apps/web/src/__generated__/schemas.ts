@@ -67,6 +67,7 @@ export const DbSchema = z.object({
   sub_type: z.string(),
   operation: z.string(),
   query: z.string().optional(),
+  keys: z.union([z.string(), z.array(z.string())]).optional(),
   data: z.record(z.any()).optional(),
   serialize_json: z.boolean().optional(),
   format: z.string().optional()

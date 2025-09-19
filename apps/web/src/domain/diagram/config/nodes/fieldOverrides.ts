@@ -158,11 +158,13 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
       },
       operation: {
         type: 'select',
+        defaultValue: 'read',
         options: [
-          { value: 'create', label: 'Create' },
+          { value: 'prompt', label: 'Prompt' },
           { value: 'read', label: 'Read' },
-          { value: 'update', label: 'Update' },
-          { value: 'delete', label: 'Delete' }
+          { value: 'write', label: 'Write' },
+          { value: 'append', label: 'Append' },
+          { value: 'update', label: 'Update' }
         ]
       }
     }

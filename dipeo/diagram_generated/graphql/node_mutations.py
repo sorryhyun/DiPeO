@@ -309,13 +309,17 @@ class CreateDbInput:
     
     
     operation: str  # Operation configuration
-    
-    
-    
+
+
+
     query: Optional[str] = None  # Query configuration
-    
-    
-    
+
+
+
+    keys: Optional[strawberry.scalars.JSON] = None  # Keys or key paths for targeted updates
+
+
+
     data: Optional[strawberry.scalars.JSON] = None  # Data configuration
     
     
@@ -351,13 +355,17 @@ class UpdateDbInput:
     
     
     operation: Optional[str] = None  # Operation configuration
-    
-    
-    
+
+
+
     query: Optional[str] = None  # Query configuration
-    
-    
-    
+
+
+
+    keys: Optional[strawberry.scalars.JSON] = None  # Keys or key paths for targeted updates
+
+
+
     data: Optional[strawberry.scalars.JSON] = None  # Data configuration
     
     

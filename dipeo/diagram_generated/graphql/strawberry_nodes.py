@@ -390,13 +390,17 @@ class DbDataType:
     
     
     operation: str  # Operation configuration
-    
-    
-    
+
+
+
     query: Optional[str] = None  # Query configuration
-    
-    
-    
+
+
+
+    keys: Optional[JSONScalar] = None  # Keys or key paths for targeted updates
+
+
+
     data: Optional[JSONScalar] = None  # Data configuration
     
     
@@ -443,13 +447,19 @@ class DbDataType:
         
         
         field_value = getattr(node, "query", None)
-        
+
         # Direct assignment for other types
         field_values["query"] = field_value
-        
-        
+
+
+        field_value = getattr(node, "keys", None)
+
+        # Convert dict/object fields to JSONScalar
+        field_values["keys"] = field_value
+
+
         field_value = getattr(node, "data", None)
-        
+
         # Convert dict/object fields to JSONScalar
         field_values["data"] = field_value
         
