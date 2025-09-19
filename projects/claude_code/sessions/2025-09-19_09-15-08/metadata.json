@@ -1,24 +1,25 @@
 {
-  "session_id": "18dfbab8-6be5-4aab-b624-6763a991192e",
-  "directory_name": "2025-09-19_09-33-01",
-  "converted_at": "2025-09-19T18:46:54.915960",
+  "session_id": "898bfe31-4e49-4688-9846-674144e8607e",
+  "directory_name": "2025-09-19_09-15-08",
+  "converted_at": "2025-09-19T18:46:55.047338",
   "stats": {
-    "session_id": "18dfbab8-6be5-4aab-b624-6763a991192e",
-    "total_events": 191,
-    "user_messages": 66,
-    "assistant_messages": 125,
+    "session_id": "898bfe31-4e49-4688-9846-674144e8607e",
+    "total_events": 188,
+    "user_messages": 64,
+    "assistant_messages": 124,
     "tool_usage": {
-      "Read": 6,
-      "Bash": 16,
-      "Grep": 7,
+      "Bash": 17,
+      "Read": 14,
       "ExitPlanMode": 1,
       "TodoWrite": 9,
-      "Edit": 16
+      "Write": 8,
+      "Edit": 10,
+      "Grep": 1
     },
-    "unique_files_accessed": 5,
-    "bash_commands_executed": 16,
-    "duration_seconds": 822.772,
-    "duration_human": "0:13:42.772000"
+    "unique_files_accessed": 18,
+    "bash_commands_executed": 17,
+    "duration_seconds": 633.285,
+    "duration_human": "0:10:33.285000"
   },
   "format": "light",
   "diagrams": {
@@ -42,8 +43,8 @@
       "file": "optimized.light.yaml",
       "type": "optimized",
       "statistics": {
-        "node_count": 64,
-        "connection_count": 64,
+        "node_count": 61,
+        "connection_count": 62,
         "node_types": [
           "db",
           "start",

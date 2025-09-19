@@ -1,24 +1,24 @@
 {
-  "session_id": "18dfbab8-6be5-4aab-b624-6763a991192e",
-  "directory_name": "2025-09-19_09-33-01",
-  "converted_at": "2025-09-19T18:46:54.915960",
+  "session_id": "09f0ed20-4b26-4af0-92d2-e6b249b82433",
+  "directory_name": "2025-09-19_09-03-30",
+  "converted_at": "2025-09-19T18:46:55.137878",
   "stats": {
-    "session_id": "18dfbab8-6be5-4aab-b624-6763a991192e",
-    "total_events": 191,
-    "user_messages": 66,
-    "assistant_messages": 125,
+    "session_id": "09f0ed20-4b26-4af0-92d2-e6b249b82433",
+    "total_events": 156,
+    "user_messages": 55,
+    "assistant_messages": 101,
     "tool_usage": {
-      "Read": 6,
-      "Bash": 16,
-      "Grep": 7,
+      "TodoWrite": 12,
       "ExitPlanMode": 1,
-      "TodoWrite": 9,
-      "Edit": 16
+      "Edit": 15,
+      "Grep": 11,
+      "Read": 6,
+      "Bash": 5
     },
-    "unique_files_accessed": 5,
-    "bash_commands_executed": 16,
-    "duration_seconds": 822.772,
-    "duration_human": "0:13:42.772000"
+    "unique_files_accessed": 2,
+    "bash_commands_executed": 5,
+    "duration_seconds": 648.231,
+    "duration_human": "0:10:48.231000"
   },
   "format": "light",
   "diagrams": {
@@ -26,8 +26,8 @@
       "file": "diagram.light.yaml",
       "type": "original",
       "statistics": {
-        "node_count": 65,
-        "connection_count": 64,
+        "node_count": 54,
+        "connection_count": 53,
         "node_types": [
           "db",
           "start",
@@ -42,8 +42,8 @@
       "file": "optimized.light.yaml",
       "type": "optimized",
       "statistics": {
-        "node_count": 64,
-        "connection_count": 64,
+        "node_count": 49,
+        "connection_count": 51,
         "node_types": [
           "db",
           "start",

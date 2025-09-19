@@ -1,24 +1,25 @@
 {
-  "session_id": "18dfbab8-6be5-4aab-b624-6763a991192e",
-  "directory_name": "2025-09-19_09-33-01",
-  "converted_at": "2025-09-19T18:46:54.915960",
+  "session_id": "61f47715-fd53-4e76-9c15-b5d502d4acb3",
+  "directory_name": "2025-09-19_08-11-39",
+  "converted_at": "2025-09-19T18:46:55.413739",
   "stats": {
-    "session_id": "18dfbab8-6be5-4aab-b624-6763a991192e",
-    "total_events": 191,
-    "user_messages": 66,
-    "assistant_messages": 125,
+    "session_id": "61f47715-fd53-4e76-9c15-b5d502d4acb3",
+    "total_events": 99,
+    "user_messages": 35,
+    "assistant_messages": 64,
     "tool_usage": {
-      "Read": 6,
-      "Bash": 16,
-      "Grep": 7,
+      "Grep": 3,
+      "Read": 11,
+      "Glob": 3,
       "ExitPlanMode": 1,
-      "TodoWrite": 9,
-      "Edit": 16
+      "TodoWrite": 4,
+      "Edit": 3,
+      "Bash": 3
     },
-    "unique_files_accessed": 5,
-    "bash_commands_executed": 16,
-    "duration_seconds": 822.772,
-    "duration_human": "0:13:42.772000"
+    "unique_files_accessed": 7,
+    "bash_commands_executed": 3,
+    "duration_seconds": 418.127,
+    "duration_human": "0:06:58.127000"
   },
   "format": "light",
   "diagrams": {
@@ -26,8 +27,8 @@
       "file": "diagram.light.yaml",
       "type": "original",
       "statistics": {
-        "node_count": 65,
-        "connection_count": 64,
+        "node_count": 39,
+        "connection_count": 38,
         "node_types": [
           "db",
           "start",
@@ -42,8 +43,8 @@
       "file": "optimized.light.yaml",
       "type": "optimized",
       "statistics": {
-        "node_count": 64,
-        "connection_count": 64,
+        "node_count": 35,
+        "connection_count": 37,
         "node_types": [
           "db",
           "start",
