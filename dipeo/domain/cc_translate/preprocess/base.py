@@ -6,6 +6,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Optional
 
+from dipeo.domain.cc_translate.models.preprocessed import PreprocessedData
 from dipeo.domain.cc_translate.models.session import DomainSession
 
 
@@ -150,3 +151,23 @@ class BaseSessionProcessor(ABC):
             session_id=getattr(session, "id", "unknown"),
             total_events_before=len(getattr(session, "events", [])),
         )
+
+
+class BasePreprocessor(ABC):
+    """Abstract base class for preprocessing phase with standard interface."""
+
+    @abstractmethod
+    def process(
+        self, session: DomainSession, config: Optional[Any] = None
+    ) -> tuple[PreprocessedData, SessionProcessingReport]:
+        """
+        Standard interface: process a session and return preprocessed data with report.
+
+        Args:
+            session: The session to preprocess
+            config: Optional preprocessing configuration
+
+        Returns:
+            Tuple of (preprocessed_data, processing_report)
+        """
+        pass

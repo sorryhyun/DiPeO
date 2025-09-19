@@ -6,28 +6,73 @@ This module coordinates all three phases of the translation process:
 3. Post-process - Optimize and clean generated diagrams
 """
 
+from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 from typing import Any, Optional
 
-from .convert import DiagramConverter
-from .pipeline import (
-    PhaseResult,
-    PipelineMetrics,
-    PipelinePhase,
-    TranslationPipeline,
-)
+from .convert import Converter
 from .ports import SessionPort
-from .post_processing import PipelineConfig, PostProcessingPipeline, ProcessingPreset
-from .preprocess import SessionOrchestrator
+from .post_processing import PipelineConfig, PostProcessor, ProcessingPreset
+from .preprocess import Preprocessor
 
 
-class PhaseCoordinator(TranslationPipeline):
+class PipelinePhase(Enum):
+    """Enumeration of pipeline phases."""
+
+    PREPROCESS = "preprocess"
+    CONVERT = "convert"
+    POST_PROCESS = "post_process"
+
+
+@dataclass
+class PhaseResult:
+    """Result from a pipeline phase execution."""
+
+    phase: PipelinePhase
+    data: Any
+    success: bool
+    start_time: datetime
+    end_time: datetime
+    error: Optional[str] = None
+    report: Optional[Any] = None
+
+    @property
+    def duration_ms(self) -> float:
+        """Calculate phase duration in milliseconds."""
+        delta = self.end_time - self.start_time
+        return delta.total_seconds() * 1000
+
+
+@dataclass
+class PipelineMetrics:
+    """Metrics for the entire pipeline execution."""
+
+    total_duration_ms: float = 0.0
+    phase_durations: dict[PipelinePhase, float] = field(default_factory=dict)
+    phase_results: list[PhaseResult] = field(default_factory=list)
+    success: bool = True
+    errors: list[str] = field(default_factory=list)
+
+    def add_phase_result(self, result: PhaseResult) -> None:
+        """Add a phase result and update metrics."""
+        self.phase_results.append(result)
+        self.phase_durations[result.phase] = result.duration_ms
+        self.total_duration_ms += result.duration_ms
+
+        if not result.success:
+            self.success = False
+            if result.error:
+                self.errors.append(f"{result.phase.value}: {result.error}")
+
+
+class PhaseCoordinator:
     """Coordinates all phases of Claude Code to DiPeO diagram translation."""
 
     def __init__(self):
         """Initialize the phase coordinator."""
-        self.preprocessor = SessionOrchestrator()
-        self.converter = DiagramConverter()
+        self.preprocessor = Preprocessor()
+        self.converter = Converter()
 
     def translate(
         self, session: SessionPort, skip_phases: Optional[list[PipelinePhase]] = None, **kwargs
@@ -53,28 +98,48 @@ class PhaseCoordinator(TranslationPipeline):
         skip_phases = skip_phases or []
         metrics = PipelineMetrics()
 
+        # Convert SessionPort to DomainSession if needed
+        if hasattr(session, "to_domain_session"):
+            domain_session = session.to_domain_session()
+        else:
+            domain_session = session
+
         # Phase 1: Preprocess
         if PipelinePhase.PREPROCESS not in skip_phases:
-            preprocess_result = self.execute_phase(PipelinePhase.PREPROCESS, session, **kwargs)
-            metrics.add_phase_result(preprocess_result)
+            result = self.with_error_boundary(
+                PipelinePhase.PREPROCESS,
+                self.preprocessor.process,
+                domain_session,
+                kwargs.get("preprocess_config"),
+            )
+            metrics.add_phase_result(result)
 
-            if not preprocess_result.success:
+            if not result.success:
                 return {}, metrics
 
-            preprocessed_data = preprocess_result.data
+            preprocessed_data = result.data
         else:
             # If preprocessing is skipped, assume session is preprocessed data
             preprocessed_data = session
 
         # Phase 2: Convert
         if PipelinePhase.CONVERT not in skip_phases:
-            convert_result = self.execute_phase(PipelinePhase.CONVERT, preprocessed_data, **kwargs)
-            metrics.add_phase_result(convert_result)
+            result = self.with_error_boundary(
+                PipelinePhase.CONVERT,
+                self.converter.process,
+                preprocessed_data,
+                kwargs.get("convert_config"),
+            )
+            metrics.add_phase_result(result)
 
-            if not convert_result.success:
+            if not result.success:
+                print(f"[PHASE DEBUG] Conversion failed: {result.error}")
                 return {}, metrics
 
-            diagram = convert_result.data
+            diagram = result.data
+            print(
+                f"[PHASE DEBUG] Conversion result diagram has {len(diagram.get('nodes', []))} nodes"
+            )
         else:
             # If conversion is skipped, assume preprocessed_data is already a diagram
             diagram = preprocessed_data if isinstance(preprocessed_data, dict) else {}
@@ -85,19 +150,22 @@ class PhaseCoordinator(TranslationPipeline):
             should_post_process = kwargs.get("post_process", False)
 
             if should_post_process:
-                postprocess_result = self.execute_phase(
-                    PipelinePhase.POST_PROCESS, diagram, **kwargs
+                config = kwargs.get("processing_config") or PipelineConfig.from_preset(
+                    ProcessingPreset.STANDARD
                 )
-                metrics.add_phase_result(postprocess_result)
+                pipeline = PostProcessor(config)
 
-                if postprocess_result.success:
-                    diagram = postprocess_result.data
+                result = self.with_error_boundary(
+                    PipelinePhase.POST_PROCESS, pipeline.process, diagram, config
+                )
+                metrics.add_phase_result(result)
+
+                if result.success:
+                    diagram = result.data
 
                     # Add metrics to diagram metadata
-                    if postprocess_result.report and hasattr(
-                        postprocess_result.report, "has_changes"
-                    ):
-                        if postprocess_result.report.has_changes():
+                    if result.report and hasattr(result.report, "has_changes"):
+                        if result.report.has_changes():
                             if "metadata" not in diagram:
                                 diagram["metadata"] = {}
                             if "post_processing" not in diagram["metadata"]:
@@ -105,66 +173,15 @@ class PhaseCoordinator(TranslationPipeline):
 
                             diagram["metadata"]["post_processing"]["optimization"] = {
                                 "applied": True,
-                                "total_changes": postprocess_result.report.total_changes,
-                                "nodes_removed": postprocess_result.report.total_nodes_removed,
-                                "connections_modified": postprocess_result.report.total_connections_modified,
+                                "total_changes": result.report.total_changes,
+                                "nodes_removed": result.report.total_nodes_removed,
+                                "connections_modified": result.report.total_connections_modified,
                             }
 
+        print(
+            f"[PHASE DEBUG] Final diagram has {len(diagram.get('nodes', []))} nodes, {len(diagram.get('connections', []))} connections"
+        )
         return diagram, metrics
-
-    def execute_phase(self, phase: PipelinePhase, input_data: Any, **kwargs) -> PhaseResult:
-        """
-        Execute a single phase of the pipeline.
-
-        Args:
-            phase: The phase to execute
-            input_data: Input data for the phase
-            **kwargs: Phase-specific options
-
-        Returns:
-            PhaseResult containing output and metrics
-        """
-        if phase == PipelinePhase.PREPROCESS:
-            return self.with_error_boundary(
-                phase, self._execute_preprocess, input_data, kwargs.get("processing_config")
-            )
-
-        elif phase == PipelinePhase.CONVERT:
-            return self.with_error_boundary(phase, self._execute_convert, input_data)
-
-        elif phase == PipelinePhase.POST_PROCESS:
-            return self.with_error_boundary(
-                phase, self._execute_post_process, input_data, kwargs.get("processing_config")
-            )
-
-        else:
-            return PhaseResult(
-                phase=phase,
-                data=None,
-                success=False,
-                start_time=datetime.now(),
-                end_time=datetime.now(),
-                error=f"Unknown phase: {phase}",
-            )
-
-    def _execute_preprocess(
-        self, session: SessionPort, processing_config: Optional[PipelineConfig] = None
-    ) -> tuple[Any, Optional[list]]:
-        """Execute the preprocessing phase."""
-        return self.preprocessor.preprocess(session)
-
-    def _execute_convert(self, preprocessed_data: Any) -> tuple[dict, None]:
-        """Execute the conversion phase."""
-        diagram = self.converter.convert(preprocessed_data)
-        return diagram, None
-
-    def _execute_post_process(
-        self, diagram: dict[str, Any], processing_config: Optional[PipelineConfig] = None
-    ) -> tuple[dict, Any]:
-        """Execute the post-processing phase."""
-        pipeline_config = processing_config or PipelineConfig.from_preset(ProcessingPreset.STANDARD)
-        pipeline = PostProcessingPipeline(pipeline_config)
-        return pipeline.process(diagram)
 
     def preprocess_only(
         self, session: SessionPort, processing_config: Optional[PipelineConfig] = None
@@ -181,10 +198,14 @@ class PhaseCoordinator(TranslationPipeline):
         Returns:
             PreprocessedData containing processed data
         """
-        result = self.execute_phase(
-            PipelinePhase.PREPROCESS, session, processing_config=processing_config
-        )
-        return result.data if result.success else None
+        # Convert SessionPort to DomainSession if needed
+        if hasattr(session, "to_domain_session"):
+            domain_session = session.to_domain_session()
+        else:
+            domain_session = session
+
+        preprocessed_data, report = self.preprocessor.process(domain_session, processing_config)
+        return preprocessed_data
 
     def convert_only(self, preprocessed_session) -> dict[str, Any]:
         """
@@ -198,7 +219,8 @@ class PhaseCoordinator(TranslationPipeline):
         Returns:
             Light format diagram dictionary (without post-processing)
         """
-        return self.converter.convert(preprocessed_session)
+        diagram, report = self.converter.process(preprocessed_session)
+        return diagram
 
     def post_process_only(
         self,
@@ -218,5 +240,51 @@ class PhaseCoordinator(TranslationPipeline):
             Tuple of (optimized diagram, processing report)
         """
         pipeline_config = processing_config or PipelineConfig.from_preset(ProcessingPreset.STANDARD)
-        pipeline = PostProcessingPipeline(pipeline_config)
+        pipeline = PostProcessor(pipeline_config)
         return pipeline.process(diagram)
+
+    def with_error_boundary(
+        self, phase: PipelinePhase, func: callable, *args, **kwargs
+    ) -> PhaseResult:
+        """
+        Execute a function within an error boundary.
+
+        Args:
+            phase: The phase being executed
+            func: The function to execute
+            *args: Positional arguments for func
+            **kwargs: Keyword arguments for func
+
+        Returns:
+            PhaseResult with success/failure information
+        """
+        start_time = datetime.now()
+
+        try:
+            result = func(*args, **kwargs)
+
+            # Handle tuple returns (data, report)
+            if isinstance(result, tuple) and len(result) == 2:
+                data, report = result
+            else:
+                data = result
+                report = None
+
+            return PhaseResult(
+                phase=phase,
+                data=data,
+                success=True,
+                start_time=start_time,
+                end_time=datetime.now(),
+                report=report,
+            )
+
+        except Exception as e:
+            return PhaseResult(
+                phase=phase,
+                data=None,
+                success=False,
+                start_time=start_time,
+                end_time=datetime.now(),
+                error=str(e),
+            )

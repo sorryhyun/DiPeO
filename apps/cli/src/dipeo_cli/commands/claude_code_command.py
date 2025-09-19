@@ -11,9 +11,9 @@ import yaml
 
 from dipeo.domain.cc_translate import PhaseCoordinator
 from dipeo.domain.cc_translate.post_processing import PipelineConfig, ProcessingPreset
-from dipeo.domain.cc_translate.preprocess.session_field_pruner import SessionFieldPruner
-from dipeo.infrastructure.cc_translate import SessionAdapter
-from dipeo.infrastructure.claude_code.session_parser import (
+from dipeo.infrastructure.cc_translate import (
+    SessionAdapter,
+    SessionSerializer,
     extract_session_timestamp,
     find_session_files,
     format_timestamp_for_directory,
@@ -30,6 +30,7 @@ class ClaudeCodeCommand:
         self.base_dir = Path.home() / ".claude" / "projects" / "-home-soryhyun-DiPeO"
         self.output_base = Path("projects/claude_code")
         self.coordinator = PhaseCoordinator()
+        self.session_serializer = SessionSerializer()
 
     def execute(self, action: str, **kwargs) -> bool:
         """Execute the Claude Code command based on action."""
@@ -353,18 +354,33 @@ class ClaudeCodeCommand:
 
         # Create pruned version as 'session.jsonl'
         session_jsonl_dest = output_dir_path / "session.jsonl"
-        field_pruner = SessionFieldPruner(aggressive=False)
 
-        # Prune unnecessary fields from the session
-        pruning_stats = field_pruner.prune_session_file(
-            input_path=session_file, output_path=session_jsonl_dest, preserve_original=True
+        # Parse the session for pruning
+        session = parse_session_file(session_file)
+
+        # Create a SessionAdapter to convert to domain model
+        session_adapter = SessionAdapter(session)
+
+        # Preprocess the session to prune unnecessary fields
+        preprocessed_data = self.coordinator.preprocess_only(session_adapter)
+
+        # Use SessionSerializer to convert preprocessed session to JSONL
+        bytes_written = self.session_serializer.to_jsonl_file(
+            preprocessed_data.session, session_jsonl_dest
         )
 
-        print(f"📄 Pruned session JSONL saved to: {session_jsonl_dest}")
-        print(
-            f"   ↳ Size reduction: {pruning_stats['size_reduction_pct']}% "
-            f"({pruning_stats['original_size']:,} → {pruning_stats['pruned_size']:,} bytes)"
+        # Calculate size difference for display
+        original_size = session_file.stat().st_size
+        size_reduction_pct = (
+            ((original_size - bytes_written) / original_size * 100) if original_size > 0 else 0
         )
+
+        print(f"📄 Preprocessed session JSONL saved to: {session_jsonl_dest}")
+        if size_reduction_pct > 0:
+            print(
+                f"   ↳ Size reduction: {size_reduction_pct:.1f}% "
+                f"({original_size:,} → {bytes_written:,} bytes)"
+            )
 
         return output_dir_path
 

@@ -185,3 +185,23 @@ ProcessingChange = DiagramChange
 ProcessingReport = DiagramProcessingReport
 BaseProcessor = BaseDiagramProcessor
 PipelineReport = DiagramPipelineReport
+
+
+class BasePostProcessor(ABC):
+    """Abstract base class for post-processing phase with standard interface."""
+
+    @abstractmethod
+    def process(
+        self, diagram: dict[str, Any], config: Optional[Any] = None
+    ) -> tuple[dict[str, Any], DiagramPipelineReport]:
+        """
+        Standard interface: process a diagram and return optimized diagram with report.
+
+        Args:
+            diagram: The diagram to post-process
+            config: Optional post-processing configuration
+
+        Returns:
+            Tuple of (optimized_diagram, processing_report)
+        """
+        pass

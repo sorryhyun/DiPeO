@@ -6,7 +6,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Optional
 
-from dipeo.diagram_generated import DomainDiagram
+# Removed dependency on generated code - domain should not depend on generated
 from dipeo.domain.cc_translate.models.preprocessed import PreprocessedData
 
 
@@ -94,7 +94,7 @@ class ConversionReport:
     session_id: str
     conversion_id: str
     status: ConversionStatus
-    diagram: Optional[DomainDiagram]
+    diagram: Optional[dict[str, Any]]
     metrics: ConversionMetrics
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -178,3 +178,25 @@ class BaseConverter(ABC):
             session_id=session_id,
             conversion_id=str(uuid.uuid4()),
         )
+
+    def process(
+        self, preprocessed_data: PreprocessedData, config: Optional[Any] = None
+    ) -> tuple[dict, ConversionReport]:
+        """
+        Standard interface: process preprocessed data and return diagram with report.
+
+        This is a wrapper around convert() to provide consistent interface across phases.
+
+        Args:
+            preprocessed_data: The preprocessed session data to convert
+            config: Optional conversion configuration (currently unused)
+
+        Returns:
+            Tuple of (diagram, conversion_report)
+        """
+        report = self.convert(preprocessed_data)
+        diagram = report.diagram if report.diagram else {}
+        print(
+            f"[BASE DEBUG] process() returning diagram with {len(diagram.get('nodes', []))} nodes"
+        )
+        return diagram, report

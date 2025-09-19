@@ -7,8 +7,8 @@ This phase transforms processed sessions into DiPeO diagram structures including
 """
 
 from .connection_builder import ConnectionBuilder
+from .converter import Converter
 from .diagram_assembler import DiagramAssembler
-from .diagram_converter import DiagramConverter
 from .node_builders import NodeBuilder
 
-__all__ = ["ConnectionBuilder", "DiagramAssembler", "DiagramConverter", "NodeBuilder"]
+__all__ = ["ConnectionBuilder", "Converter", "DiagramAssembler", "NodeBuilder"]

@@ -73,22 +73,39 @@ class DiagramAssembler:
             diagram["metadata"] = {}
 
         # Add preprocessing metadata if pruning was applied
-        if preprocessing_report and preprocessing_report.has_changes():
-            diagram["metadata"]["preprocessing"] = {
-                "session_event_pruning": {
-                    "applied": True,
-                    "events_pruned": preprocessing_report.nodes_removed,
-                    "pruning_time_ms": preprocessing_report.processing_time_ms,
-                    "changes": [
-                        {
-                            "type": change.change_type.value,
-                            "description": change.description,
-                            "target": change.target,
+        if preprocessing_report:
+            # Handle both dict and object formats
+            if isinstance(preprocessing_report, dict):
+                # Dictionary format from _extract_preprocessing_report
+                if preprocessing_report.get("changes", 0) > 0:
+                    diagram["metadata"]["preprocessing"] = {
+                        "session_event_pruning": {
+                            "applied": True,
+                            "changes_count": preprocessing_report.get("changes", 0),
+                            "stats": preprocessing_report.get("stats", {}),
+                            "stage": preprocessing_report.get("stage", "unknown"),
+                            "warnings": preprocessing_report.get("warnings", []),
+                            "errors": preprocessing_report.get("errors", []),
                         }
-                        for change in preprocessing_report.changes
-                    ],
-                }
-            }
+                    }
+            elif hasattr(preprocessing_report, "has_changes"):
+                # Object format (for future compatibility)
+                if preprocessing_report.has_changes():
+                    diagram["metadata"]["preprocessing"] = {
+                        "session_event_pruning": {
+                            "applied": True,
+                            "events_pruned": preprocessing_report.nodes_removed,
+                            "pruning_time_ms": preprocessing_report.processing_time_ms,
+                            "changes": [
+                                {
+                                    "type": change.change_type.value,
+                                    "description": change.description,
+                                    "target": change.target,
+                                }
+                                for change in preprocessing_report.changes
+                            ],
+                        }
+                    }
 
         # Add conversion statistics
         if conversion_stats:

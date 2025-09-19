@@ -11,17 +11,17 @@ from typing import Any, Optional
 from dipeo.domain.cc_translate.models.preprocessed import PreprocessedData
 from dipeo.domain.cc_translate.models.session import DomainSession
 
-from .base import SessionProcessingReport
+from .base import BasePreprocessor, SessionProcessingReport
 from .config import PreprocessConfig
 from .session_event_pruner import SessionEventPruner
 from .session_field_pruner import SessionFieldPruner
 
 
-class SessionOrchestrator:
+class Preprocessor(BasePreprocessor):
     """Orchestrates session-level preprocessing for Claude Code translation."""
 
     def __init__(self, config: Optional[PreprocessConfig] = None):
-        """Initialize the session orchestrator.
+        """Initialize the preprocessor.
 
         Args:
             config: Preprocessing configuration
@@ -76,11 +76,11 @@ class SessionOrchestrator:
         # Create preprocessed data container
         preprocessed_data = PreprocessedData(
             session=processed_session,
-            original_session=original_session if self.config.preserve_original else None,
-            metadata=metadata,
-            processing_reports=reports if self.config.verbose_reporting else [],
-            processing_time_ms=(time.time() - start_time) * 1000,
         )
+
+        # Set additional metadata and stats
+        preprocessed_data.conversation_context = metadata
+        preprocessed_data.stats.processing_time_ms = int((time.time() - start_time) * 1000)
 
         return preprocessed_data, reports
 
@@ -99,7 +99,7 @@ class SessionOrchestrator:
         metadata = {}
 
         # Basic session info
-        metadata["session_id"] = session.id
+        metadata["session_id"] = session.session_id
         metadata["total_events"] = len(session.events)
 
         # Processing statistics
@@ -117,7 +117,7 @@ class SessionOrchestrator:
 
             # Add individual processor stats
             for report in reports:
-                processor_name = report.session_id.replace(session.id, "").strip("_")
+                processor_name = report.session_id.replace(session.session_id, "").strip("_")
                 if not processor_name:
                     processor_name = "unknown"
 
@@ -190,14 +190,82 @@ class SessionOrchestrator:
         Returns:
             Tuple of (PreprocessedData with error, reports)
         """
-        metadata = {"error": error_message, "preprocessing_failed": True}
-
         preprocessed_data = PreprocessedData(
             session=session,
-            original_session=session,
-            metadata=metadata,
-            processing_reports=reports,
-            processing_time_ms=0.0,
         )
 
+        # Mark as error
+        preprocessed_data.errors.append(error_message)
+        preprocessed_data.conversation_context = {
+            "error": error_message,
+            "preprocessing_failed": True,
+        }
+
         return preprocessed_data, reports
+
+    def process(
+        self, session: DomainSession, config: Optional[Any] = None
+    ) -> tuple[PreprocessedData, SessionProcessingReport]:
+        """
+        Standard interface: process a session and return preprocessed data with report.
+
+        Args:
+            session: The session to preprocess
+            config: Optional preprocessing configuration
+
+        Returns:
+            Tuple of (preprocessed_data, processing_report)
+        """
+        # Use provided config or fall back to instance config
+        if config and isinstance(config, PreprocessConfig):
+            original_config = self.config
+            self.config = config
+            try:
+                preprocessed_data, reports = self.preprocess(session)
+            finally:
+                self.config = original_config
+        else:
+            preprocessed_data, reports = self.preprocess(session)
+
+        # Consolidate multiple reports into one
+        consolidated_report = self._consolidate_reports(session.session_id, reports)
+
+        return preprocessed_data, consolidated_report
+
+    def _consolidate_reports(
+        self, session_id: str, reports: list[SessionProcessingReport]
+    ) -> SessionProcessingReport:
+        """Consolidate multiple processing reports into one.
+
+        Args:
+            session_id: The session ID
+            reports: List of individual processor reports
+
+        Returns:
+            Consolidated SessionProcessingReport
+        """
+        consolidated = SessionProcessingReport(session_id=session_id)
+
+        for report in reports:
+            # Merge changes
+            consolidated.changes.extend(report.changes)
+
+            # Merge errors and warnings
+            consolidated.errors.extend(report.errors)
+            consolidated.warnings.extend(report.warnings)
+
+            # Update event counts
+            if report.total_events_before > 0:
+                consolidated.total_events_before = max(
+                    consolidated.total_events_before, report.total_events_before
+                )
+            consolidated.total_events_after = report.total_events_after
+
+            # Sum processing times
+            consolidated.processing_time_ms += report.processing_time_ms
+
+            # Merge metadata
+            if report.metadata:
+                consolidated.metadata.update(report.metadata)
+
+        return consolidated

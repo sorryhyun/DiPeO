@@ -18,15 +18,16 @@ from .config import (
     SessionEventPrunerConfig,
     SessionFieldPrunerConfig,
 )
+from .preprocessor import Preprocessor
 from .session_event_pruner import SessionEventPruner
 from .session_field_pruner import SessionFieldPruner
-from .session_orchestrator import SessionOrchestrator
 
 __all__ = [
     # Base classes
     "BaseSessionProcessor",
     # Configuration
     "PreprocessConfig",
+    "Preprocessor",
     "SessionChange",
     "SessionChangeType",
     # Processors
@@ -34,6 +35,5 @@ __all__ = [
     "SessionEventPrunerConfig",
     "SessionFieldPruner",
     "SessionFieldPrunerConfig",
-    "SessionOrchestrator",
     "SessionProcessingReport",
 ]

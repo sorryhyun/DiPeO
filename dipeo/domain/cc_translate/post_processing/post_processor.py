@@ -3,12 +3,17 @@
 import time
 from typing import Any, Optional
 
-from .base import BaseDiagramProcessor, DiagramPipelineReport, DiagramProcessingReport
+from .base import (
+    BaseDiagramProcessor,
+    BasePostProcessor,
+    DiagramPipelineReport,
+    DiagramProcessingReport,
+)
 from .config import PipelineConfig, ProcessingPreset
 from .read_deduplicator import ReadNodeDeduplicator
 
 
-class PostProcessingPipeline:
+class PostProcessor(BasePostProcessor):
     """
     Orchestrates multiple post-processing steps on diagrams.
 
@@ -33,12 +38,15 @@ class PostProcessingPipeline:
         #     self._processors.append(ConsecutiveNodeMerger(self.config.consecutive_merger))
         # etc.
 
-    def process(self, diagram: dict[str, Any]) -> tuple[dict[str, Any], DiagramPipelineReport]:
+    def process(
+        self, diagram: dict[str, Any], config: Optional[Any] = None
+    ) -> tuple[dict[str, Any], DiagramPipelineReport]:
         """
         Process diagram through all configured processors.
 
         Args:
             diagram: The diagram to process
+            config: Optional post-processing configuration
 
         Returns:
             Tuple of (processed diagram, pipeline report)
@@ -46,15 +54,18 @@ class PostProcessingPipeline:
         start_time = time.time()
         report = DiagramPipelineReport()
 
+        # Use provided config or fall back to instance config
+        pipeline_config = config if isinstance(config, PipelineConfig) else self.config
+
         # Store original if configured
-        original_diagram = diagram.copy() if self.config.preserve_original else None
+        original_diagram = diagram.copy() if pipeline_config.preserve_original else None
 
         # Calculate initial statistics
         report.diagram_stats["initial"] = self._calculate_diagram_stats(diagram)
 
         # Process through each processor
         processed_diagram = diagram
-        for iteration in range(self.config.max_iterations):
+        for iteration in range(pipeline_config.max_iterations):
             if iteration > 0 and not report.has_changes():
                 # No changes in last iteration, stop
                 break
@@ -78,7 +89,7 @@ class PostProcessingPipeline:
                         iteration_had_changes = True
 
                     # Check for errors
-                    if processor_report.error and self.config.fail_on_error:
+                    if processor_report.error and pipeline_config.fail_on_error:
                         # Stop pipeline on error
                         break
 
@@ -89,7 +100,7 @@ class PostProcessingPipeline:
                     )
                     report.add_processor_report(error_report)
 
-                    if self.config.fail_on_error:
+                    if pipeline_config.fail_on_error:
                         # Stop pipeline on exception
                         break
 
@@ -152,22 +163,22 @@ class PostProcessingPipeline:
         return stats
 
     @classmethod
-    def create_minimal(cls) -> "PostProcessingPipeline":
+    def create_minimal(cls) -> "PostProcessor":
         """Create pipeline with minimal optimizations."""
         return cls(PipelineConfig.from_preset(ProcessingPreset.MINIMAL))
 
     @classmethod
-    def create_standard(cls) -> "PostProcessingPipeline":
+    def create_standard(cls) -> "PostProcessor":
         """Create pipeline with standard optimizations."""
         return cls(PipelineConfig.from_preset(ProcessingPreset.STANDARD))
 
     @classmethod
-    def create_aggressive(cls) -> "PostProcessingPipeline":
+    def create_aggressive(cls) -> "PostProcessor":
         """Create pipeline with aggressive optimizations."""
         return cls(PipelineConfig.from_preset(ProcessingPreset.AGGRESSIVE))
 
     @classmethod
-    def create_deduplication_only(cls) -> "PostProcessingPipeline":
+    def create_deduplication_only(cls) -> "PostProcessor":
         """Create pipeline with only read deduplication enabled."""
         config = PipelineConfig.from_preset(ProcessingPreset.NONE)
         config.read_deduplicator.enabled = True

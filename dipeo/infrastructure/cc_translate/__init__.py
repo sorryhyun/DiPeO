@@ -6,9 +6,12 @@ from .session_parser import (
     ConversationTurn,
     SessionEvent,
     SessionMetadata,
+    extract_session_timestamp,
     find_session_files,
+    format_timestamp_for_directory,
     parse_session_file,
 )
+from .session_serializer import SessionSerializer
 
 __all__ = [
     "ClaudeCodeSession",
@@ -16,6 +19,9 @@ __all__ = [
     "SessionAdapter",
     "SessionEvent",
     "SessionMetadata",
+    "SessionSerializer",
+    "extract_session_timestamp",
     "find_session_files",
+    "format_timestamp_for_directory",
     "parse_session_file",
 ]
