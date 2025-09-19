@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for api_job.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-19T17:20:54.257806
+Generated at: 2025-09-19T17:28:44.745894
 """
 
 from typing import *

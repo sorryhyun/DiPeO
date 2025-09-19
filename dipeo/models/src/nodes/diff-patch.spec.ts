@@ -172,7 +172,7 @@ export const diffPatchSpec: NodeSpecification = {
 
   handles: {
     inputs: ["default"],
-    outputs: ["success", "failure"]
+    outputs: ["success", "error"]
   },
 
   outputs: {
