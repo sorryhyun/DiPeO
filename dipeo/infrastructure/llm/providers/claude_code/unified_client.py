@@ -149,7 +149,7 @@ class UnifiedClaudeCodeClient:
             # Use QueryClientWrapper with context manager
             async with SessionQueryWrapper(
                 options=options,
-                execution_phase=str(execution_phase) if execution_phase else "default",
+                execution_phase=execution_phase.value if execution_phase else "default",
             ) as wrapper:
                 # Collect messages and detect tool invocations
                 # When MCP tools are used, we need to capture the tool input data
@@ -247,7 +247,7 @@ class UnifiedClaudeCodeClient:
 
         # Use QueryClientWrapper with context manager
         async with SessionQueryWrapper(
-            options=options, execution_phase=str(execution_phase) if execution_phase else "default"
+            options=options, execution_phase=execution_phase.value if execution_phase else "default"
         ) as wrapper:
             # Stream messages from Claude Code SDK
             # For streaming, we need to handle both AssistantMessage (for real-time streaming)

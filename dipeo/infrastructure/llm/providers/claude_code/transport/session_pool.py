@@ -7,7 +7,6 @@ and system prompt persistence while avoiding subprocess reuse issues.
 
 import asyncio
 import contextlib
-import hashlib
 import logging
 import os
 import time
@@ -388,8 +387,10 @@ class SessionPool:
             A new SessionClient instance (unconnected)
         """
         try:
-            # Generate session ID
-            session_id = f"{self.pool_key}_{self._stats.total_created}_{int(time.time())}"
+            # Use pool key directly as session ID for consistency across runs
+            # This ensures memory_selection, decision_evaluation, and direct_execution
+            # always have the same session IDs
+            session_id = self.pool_key
 
             # Create session client (not connected yet)
             session = SessionClient(
@@ -547,22 +548,18 @@ class SessionPoolManager:
         execution_phase: str,
         options: ClaudeCodeOptions,
     ) -> str:
-        """Generate a unique pool key based on execution phase and system prompt.
+        """Generate a pool key based on execution phase.
+
+        Simply use the execution phase name directly for all cases,
+        ensuring consistent session IDs across diagram runs.
 
         Args:
             execution_phase: The execution phase
-            options: Claude Code options containing system prompt
+            options: Claude Code options (unused, kept for compatibility)
 
         Returns:
-            A composite key for the pool
+            The execution phase as the pool key
         """
-        # Extract system prompt from options if present
-        system_prompt = getattr(options, "system_prompt", None)
-
-        if system_prompt:
-            # Include system prompt hash in key
-            prompt_hash = hashlib.sha256(system_prompt.encode()).hexdigest()[:8]
-            return f"{execution_phase}:{prompt_hash}"
         return execution_phase
 
     async def get_or_create_pool(
@@ -600,10 +597,11 @@ class SessionPoolManager:
                 await evicted.shutdown()
 
             # Create new pool
+            # Since we use pool_key as session_id directly, limit to 1 session per pool
             pool = SessionPool(
                 options=options,
                 pool_key=pool_key,
-                max_sessions=2,  # Keep small to avoid resource issues
+                max_sessions=1,  # One session per pool for consistent session IDs
             )
             self._pools[pool_key] = pool
 
