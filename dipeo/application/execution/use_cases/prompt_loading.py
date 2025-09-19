@@ -5,6 +5,8 @@ import os
 from pathlib import Path
 from typing import Any
 
+from dipeo.config.paths import BASE_DIR
+
 logger = logging.getLogger(__name__)
 
 
@@ -24,7 +26,7 @@ class PromptLoadingUseCase:
             filesystem_adapter: Adapter for filesystem operations
         """
         self.filesystem = filesystem_adapter
-        self._base_dir = os.getenv("DIPEO_BASE_DIR", os.getcwd())
+        self._base_dir = str(BASE_DIR)
         self._prompt_cache: dict[str, str] = {}
 
     def load_prompt(

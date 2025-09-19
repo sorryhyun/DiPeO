@@ -14,6 +14,7 @@ from dipeo.config.llm import (
     CLAUDE_MAX_CONTEXT_LENGTH,
     CLAUDE_MAX_OUTPUT_TOKENS,
 )
+from dipeo.config.paths import BASE_DIR
 from dipeo.config.provider_capabilities import get_provider_capabilities_object
 from dipeo.diagram_generated import Message, ToolConfig
 from dipeo.infrastructure.llm.drivers.types import (
@@ -79,9 +80,7 @@ class UnifiedClaudeCodeClient:
             from pathlib import Path
 
             trace_id = kwargs.pop("trace_id", "default")  # Remove trace_id from kwargs
-            root = os.getenv(
-                "DIPEO_CLAUDE_WORKSPACES", os.path.join(os.getcwd(), ".dipeo", "workspaces")
-            )
+            root = os.getenv("DIPEO_CLAUDE_WORKSPACES", str(BASE_DIR / ".dipeo" / "workspaces"))
             workspace_dir = Path(root) / f"exec_{trace_id}"
             workspace_dir.mkdir(parents=True, exist_ok=True)
             kwargs["cwd"] = str(workspace_dir)

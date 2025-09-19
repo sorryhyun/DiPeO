@@ -11,6 +11,7 @@ from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
+from dipeo.config.paths import BASE_DIR
 from dipeo.domain.base.exceptions import ServiceError
 
 from .platform_utils import get_tsx_command, setup_github_actions_env
@@ -30,11 +31,11 @@ class TypeScriptParser:
         """Initialize the TypeScript parser.
 
         Args:
-            project_root: Project root directory. If not provided, uses DIPEO_BASE_DIR or cwd.
+            project_root: Project root directory. If not provided, uses centralized BASE_DIR config.
             parser_script: Path to the parser script. If not provided, uses default location.
             cache_enabled: Whether to enable AST caching (default: True)
         """
-        self.project_root = project_root or Path(os.getenv("DIPEO_BASE_DIR", os.getcwd()))
+        self.project_root = project_root or BASE_DIR
 
         if parser_script:
             self.parser_script = parser_script

@@ -176,7 +176,7 @@ jobs:
           $env:BUILD_TYPE = "SERVER"
 
           # Build with PyInstaller using unified spec
-          pyinstaller --clean dipeo/build-windows.spec --name dipeo-server --distpath apps/server/dist
+          pyinstaller --clean dipeo/build-windows.spec --distpath apps/server/dist
 
           # Verify build
           if (!(Test-Path "apps\server\dist\dipeo-server.exe")) {

@@ -166,9 +166,6 @@ class Container:
                     )
             by_type[service_type] = by_type.get(service_type, 0) + 1
 
-        for stype, count in sorted(by_type.items()):
-            logger.info(f"  {stype}: {count} services")
-
         # Verify critical services are protected
         from dipeo.application.registry.keys import EVENT_BUS, STATE_STORE
 

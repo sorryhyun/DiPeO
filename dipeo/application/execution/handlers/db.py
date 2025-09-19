@@ -15,6 +15,7 @@ from dipeo.application.execution.handlers.core.decorators import Optional, requi
 from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.registry import DB_OPERATIONS_SERVICE
 from dipeo.application.registry.keys import TEMPLATE_PROCESSOR
+from dipeo.config.paths import BASE_DIR
 from dipeo.diagram_generated.enums import NodeType
 from dipeo.diagram_generated.unified_nodes.db_node import DbNode
 from dipeo.domain.execution.envelope import Envelope, get_envelope_factory
@@ -84,7 +85,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
             )
 
         # Store configuration in instance variables for execute_request
-        self._current_base_dir = os.getenv("DIPEO_BASE_DIR", os.getcwd())
+        self._current_base_dir = str(BASE_DIR)
 
         # No early return - proceed to execute_request
         return None
