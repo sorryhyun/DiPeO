@@ -199,11 +199,14 @@ class ClaudeCodeResponseParser:
             )
 
         # Return the response with structured output
+        from dipeo.infrastructure.llm.drivers.types import ProviderType
+
         return LLMResponse(
             content=str(structured_output) if structured_output else str(tool_data),
+            model="claude-code",
+            provider=ProviderType.CLAUDE_CODE,
             structured_output=structured_output,
             usage=None,  # Tool invocations don't provide separate usage metrics
-            model="claude-code",
         )
 
     @staticmethod
@@ -264,9 +267,12 @@ class ClaudeCodeResponseParser:
             elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
                 structured_output = ClaudeCodeResponseParser.parse_decision(clean_response)
 
+        from dipeo.infrastructure.llm.drivers.types import ProviderType
+
         return LLMResponse(
             content=clean_response,
+            model="claude-code",
+            provider=ProviderType.CLAUDE_CODE,
             structured_output=structured_output,
             usage=usage,
-            model="claude-code",
         )

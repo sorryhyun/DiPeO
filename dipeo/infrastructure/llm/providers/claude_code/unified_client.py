@@ -89,41 +89,6 @@ class UnifiedClaudeCodeClient:
             # Remove trace_id if present since we're not using it
             kwargs.pop("trace_id", None)
 
-    def _build_claude_options(
-        self,
-        system_prompt: str | None,
-        tool_options: dict,
-        hooks_config: dict | None,
-        stream: bool = False,
-        **kwargs,
-    ) -> ClaudeCodeOptions:
-        """Build Claude Code options dictionary."""
-        options_dict = {
-            "system_prompt": system_prompt,
-        }
-
-        # Add streaming flag if specified
-        if stream:
-            options_dict["stream"] = True
-
-        # Add MCP server and allowed tools if configured
-        if "mcp_server" in tool_options:
-            options_dict["mcp_servers"] = {"dipeo_structured_output": tool_options["mcp_server"]}
-            options_dict["allowed_tools"] = tool_options.get("allowed_tools", [])
-
-        # Add hook configuration if provided
-        if hooks_config:
-            hooks_dict = self._processor.format_hooks_config(hooks_config)
-            options_dict.update(hooks_dict)
-
-        # Add other kwargs (but remove text_format and person_name if present)
-        kwargs.pop("text_format", None)  # Remove text_format as we don't use it
-        kwargs.pop("person_name", None)  # Remove person_name as it's already used in system prompt
-        options_dict.update(kwargs)
-
-        # Create options
-        return ClaudeCodeOptions(**options_dict)
-
     async def async_chat(
         self,
         messages: list[Message],
@@ -138,6 +103,11 @@ class UnifiedClaudeCodeClient:
     ) -> LLMResponse:
         """Execute async chat completion with retry logic."""
         # Prepare messages for Claude SDK
+        logger.debug(
+            "[ClaudeCode] Preparing %d messages for phase %s",
+            len(messages),
+            execution_phase,
+        )
         system_message, serialized_messages = self._processor.prepare_message(messages)
 
         # Configure MCP server based on execution phase
@@ -159,9 +129,10 @@ class UnifiedClaudeCodeClient:
         self._setup_workspace(kwargs)
 
         # Create Claude Code options
-        options = self._build_claude_options(
+        options_dict = self._processor.build_claude_options(
             system_prompt, tool_options, hooks_config, stream=False, **kwargs
         )
+        options = ClaudeCodeOptions(**options_dict)
 
         # Set up retry logic
         retry = AsyncRetrying(
@@ -269,9 +240,10 @@ class UnifiedClaudeCodeClient:
         self._setup_workspace(kwargs)
 
         # Create Claude Code options with streaming
-        options = self._build_claude_options(
+        options_dict = self._processor.build_claude_options(
             system_prompt, tool_options, hooks_config, stream=True, **kwargs
         )
+        options = ClaudeCodeOptions(**options_dict)
 
         # Use QueryClientWrapper with context manager
         async with SessionQueryWrapper(

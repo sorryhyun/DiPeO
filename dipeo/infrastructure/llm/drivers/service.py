@@ -58,9 +58,9 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
             LLMServiceName.ANTHROPIC.value: ProviderType.ANTHROPIC,
             LLMServiceName.GOOGLE.value: ProviderType.GOOGLE,
             LLMServiceName.OLLAMA.value: ProviderType.OLLAMA,
-            # Claude Code uses Anthropic provider type but special handling
-            LLMServiceName.CLAUDE_CODE.value: ProviderType.ANTHROPIC,
-            LLMServiceName.CLAUDE_CODE_CUSTOM.value: ProviderType.ANTHROPIC,
+            # Claude Code has its own provider type
+            LLMServiceName.CLAUDE_CODE.value: ProviderType.CLAUDE_CODE,
+            LLMServiceName.CLAUDE_CODE_CUSTOM.value: ProviderType.CLAUDE_CODE,
         }
 
         provider_type = provider_type_map.get(provider, ProviderType.OPENAI)
