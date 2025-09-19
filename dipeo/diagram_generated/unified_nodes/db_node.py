@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for db.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-18T17:47:33.978545
+Generated at: 2025-09-19T17:20:54.259625
 """
 
 from typing import *
@@ -44,11 +44,8 @@ class DbNode(BaseModel):
     
     query: Optional[str] = Field(default=None, description="Query configuration")
     
-    keys: Optional[List[str] | str] = Field(
-        default=None,
-        description="Single key or list of dot-separated keys to target within JSON content",
-    )
-
+    keys: Optional[Any] = Field(default=None, description="Single key or list of dot-separated keys to target within the JSON payload")
+    
     data: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Data configuration")
     
     serialize_json: Optional[bool] = Field(default=None, description="Serialize structured data to JSON string (for backward compatibility)")
@@ -89,22 +86,6 @@ class DbNode(BaseModel):
         data["format"] = self.format
 
         return data
-
-    @field_validator("keys", mode="after")
-    @classmethod
-    def _normalize_keys(cls, value: Any) -> Optional[List[str] | str]:
-        if value is None:
-            return None
-
-        if isinstance(value, list):
-            normalized = [item for item in (v.strip() for v in value if isinstance(v, str)) if item]
-            return normalized or None
-
-        if isinstance(value, str):
-            parts = [part.strip() for part in value.split(",") if part.strip()]
-            return parts if len(parts) > 1 else (parts[0] if parts else None)
-
-        return value
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "DbNode":

@@ -14,7 +14,7 @@ export const endpointSpec: NodeSpecification = {
     {
       name: "save_to_file",
       type: "boolean",
-      required: true,
+      required: false,
       description: "Save results to file",
       uiConfig: {
         inputType: "checkbox"

@@ -30,7 +30,7 @@ nodes:
       file: temp/nodes/{node_type}.spec.ts.json
       format: json
 
-  # Load codegen mappings
+  # Load specific mapping constants directly using keys
   - label: Load Codegen Mappings
     type: db
     position: {x: 350, y: 200}
@@ -39,15 +39,7 @@ nodes:
       sub_type: file
       file: temp/codegen/mappings.ts.json
       format: json
-
-  # Extract mappings
-  - label: Extract Mappings
-    type: code_job
-    position: {x: 500, y: 200}
-    props:
-      language: python
-      filePath: projects/codegen/code/shared/extract_mappings.py
-      functionName: main
+      keys: ["constants"]
 
   # Extract specification from AST
   - label: Extract Specification
@@ -67,8 +59,49 @@ nodes:
       code: |
         # Access labeled inputs from the inputs dictionary
         spec_result = inputs.get('spec_data', {})
-        mappings = inputs.get('mappings', {})
+        raw_mappings = inputs.get('mappings', {})
         node_type_str = inputs.get('node_type', 'unknown')
+
+        # Process raw constants into mappings format (like extract_mappings.py would do)
+        mappings = {}
+        if 'constants' in raw_mappings:
+            # Map TypeScript constant names to our mapping keys
+            mapping_name_map = {
+                'NODE_INTERFACE_MAP': 'node_interface_map',
+                'TS_TO_PY_TYPE': 'ts_to_py_type',
+                'TYPE_TO_FIELD': 'type_to_field',
+                'TYPE_TO_ZOD': 'type_to_zod',
+                'BRANDED_TYPES': 'branded_types',
+                'BASE_FIELDS': 'base_fields',
+                'FIELD_SPECIAL_HANDLING': 'field_special_handling'
+            }
+
+            for constant in raw_mappings.get('constants', []):
+                var_name = constant.get('name', '')
+                value = constant.get('value', {})
+
+                if var_name in mapping_name_map:
+                    mapping_key = mapping_name_map[var_name]
+
+                    # Clean up the values - remove extra quotes from keys AND values
+                    if isinstance(value, dict):
+                        cleaned_value = {}
+                        for k, v in value.items():
+                            # Remove surrounding quotes from key
+                            if k.startswith("'") and k.endswith("'"):
+                                clean_key = k[1:-1]
+                            elif k.startswith('"') and k.endswith('"'):
+                                clean_key = k[1:-1]
+                            else:
+                                clean_key = k.strip().strip("'\"")
+                            # Also clean the value if it's a string with quotes
+                            clean_value = v.strip().strip("'\"") if isinstance(v, str) else v
+                            cleaned_value[clean_key] = clean_value
+                        mappings[mapping_key] = cleaned_value
+                    elif isinstance(value, list):
+                        mappings[mapping_key] = value
+                    else:
+                        mappings[mapping_key] = value
 
         # Extract the actual spec data (typescript_spec_parser returns {"spec_data": spec})
         if isinstance(spec_result, dict) and 'spec_data' in spec_result:
@@ -148,12 +181,9 @@ connections:
   - {from: Load Cached AST, to: Extract Specification, label: ast_data, content_type: object}
   - {from: Parse Node Type, to: Extract Specification, label: node_type}
 
-  # Extract mappings
-  - {from: Load Codegen Mappings, to: Extract Mappings, content_type: object}
-
   # Prepare context with all data
   - {from: Extract Specification, to: Prepare Context, label: spec_data, content_type: object}
-  - {from: Extract Mappings, to: Prepare Context, label: mappings, content_type: object}
+  - {from: Load Codegen Mappings, to: Prepare Context, label: mappings, content_type: object}
   - {from: Parse Node Type, to: Prepare Context, label: node_type}
 
   # Pass context to template_job nodes

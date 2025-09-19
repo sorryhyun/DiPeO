@@ -1,7 +1,7 @@
 """
 Node factory for creating executable nodes from data.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-18T17:47:33.580609
+Generated at: 2025-09-19T17:20:53.868197
 
 """
 
@@ -130,7 +130,7 @@ def create_executable_node(
             operation=data.get('operation', None),
             # DB node special handling for backward compatibility
             query=data.get('query', None),
-            keys=data.get('keys', data.get('key', None)),
+            keys=data.get('keys', None),
             # DB node special handling for backward compatibility
             data=data.get('data', None),
             # Serialize JSON field may have camelCase variants

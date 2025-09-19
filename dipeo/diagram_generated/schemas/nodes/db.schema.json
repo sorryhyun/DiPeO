@@ -43,26 +43,12 @@
           "type": "string"
         },
         "operation": {
-          "description": "Operation type: prompt, read, write, append, or update",
+          "description": "Operation type: read or write",
           "type": "string"
         },
         "query": {
           "description": "Database query (for database operations)",
           "type": "string"
-        },
-        "keys": {
-          "description": "Single key or list of dot-separated keys to target within JSON content",
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          ]
         },
         "serialize_json": {
           "description": "Auto-parse JSON files when reading (default: false)",

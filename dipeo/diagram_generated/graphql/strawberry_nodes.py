@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-18T17:47:32.612322
+Generated at: 2025-09-19T17:20:52.858556
 """
 
 import strawberry
@@ -390,17 +390,17 @@ class DbDataType:
     
     
     operation: str  # Operation configuration
-
-
-
+    
+    
+    
     query: Optional[str] = None  # Query configuration
-
-
-
-    keys: Optional[JSONScalar] = None  # Keys or key paths for targeted updates
-
-
-
+    
+    
+    
+    keys: Optional[str] = None  # Single key or list of dot-separated keys to target within the JSON payload
+    
+    
+    
     data: Optional[JSONScalar] = None  # Data configuration
     
     
@@ -447,19 +447,19 @@ class DbDataType:
         
         
         field_value = getattr(node, "query", None)
-
+        
         # Direct assignment for other types
         field_values["query"] = field_value
-
-
+        
+        
         field_value = getattr(node, "keys", None)
-
-        # Convert dict/object fields to JSONScalar
+        
+        # Direct assignment for other types
         field_values["keys"] = field_value
-
-
+        
+        
         field_value = getattr(node, "data", None)
-
+        
         # Convert dict/object fields to JSONScalar
         field_values["data"] = field_value
         
@@ -659,7 +659,7 @@ class EndpointDataType:
     # Node-specific fields from specification
     
     
-    save_to_file: bool  # Save results to file
+    save_to_file: Optional[bool] = None  # Save results to file
     
     
     

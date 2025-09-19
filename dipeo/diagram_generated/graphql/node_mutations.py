@@ -2,7 +2,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-18T17:47:32.612322
+Generated at: 2025-09-19T17:20:52.858556
 """
 
 import strawberry
@@ -309,17 +309,17 @@ class CreateDbInput:
     
     
     operation: str  # Operation configuration
-
-
-
+    
+    
+    
     query: Optional[str] = None  # Query configuration
-
-
-
-    keys: Optional[strawberry.scalars.JSON] = None  # Keys or key paths for targeted updates
-
-
-
+    
+    
+    
+    keys: Optional[str] = None  # Single key or list of dot-separated keys to target within the JSON payload
+    
+    
+    
     data: Optional[strawberry.scalars.JSON] = None  # Data configuration
     
     
@@ -355,17 +355,17 @@ class UpdateDbInput:
     
     
     operation: Optional[str] = None  # Operation configuration
-
-
-
+    
+    
+    
     query: Optional[str] = None  # Query configuration
-
-
-
-    keys: Optional[strawberry.scalars.JSON] = None  # Keys or key paths for targeted updates
-
-
-
+    
+    
+    
+    keys: Optional[str] = None  # Single key or list of dot-separated keys to target within the JSON payload
+    
+    
+    
     data: Optional[strawberry.scalars.JSON] = None  # Data configuration
     
     
@@ -509,7 +509,7 @@ class CreateEndpointInput:
     # Node-specific fields from specification
     
     
-    save_to_file: bool  # Save results to file
+    save_to_file: Optional[bool] = None  # Save results to file
     
     
     

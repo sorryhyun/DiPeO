@@ -38,6 +38,9 @@ export const dbFields: UnifiedFieldDefinition[] = [
     label: '"Operation"',
     required: true,
     description: '"Operation configuration"',
+    validate: (value: unknown) => {
+      return { isValid: true };
+    },
   },
   {
     name: 'query',
@@ -48,10 +51,11 @@ export const dbFields: UnifiedFieldDefinition[] = [
   },
   {
     name: 'keys',
-    type: 'text',
+    type: 'password',
     label: '"Keys"',
     required: false,
-    description: '"Single key or comma-separated list of keys/dot-paths to target"',
+    placeholder: '"e.g., user.profile.name or key1,key2"',
+    description: '"Single key or list of dot-separated keys to target within the JSON payload"',
   },
   {
     name: 'data',
