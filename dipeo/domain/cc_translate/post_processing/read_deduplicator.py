@@ -4,11 +4,11 @@ import time
 from collections import defaultdict
 from typing import Any, Optional
 
-from ..base import BaseProcessor, ChangeType, ProcessingChange, ProcessingReport
-from ..config import ReadDeduplicatorConfig
+from .base import BaseDiagramProcessor, DiagramChange, DiagramChangeType, DiagramProcessingReport
+from .config import ReadDeduplicatorConfig
 
 
-class ReadNodeDeduplicator(BaseProcessor):
+class ReadNodeDeduplicator(BaseDiagramProcessor):
     """
     Removes duplicate read file nodes from the diagram.
 
@@ -29,7 +29,9 @@ class ReadNodeDeduplicator(BaseProcessor):
         """Return processor name."""
         return "ReadNodeDeduplicator"
 
-    def process(self, diagram: dict[str, Any]) -> tuple[dict[str, Any], ProcessingReport]:
+    def process_diagram(
+        self, diagram: dict[str, Any]
+    ) -> tuple[dict[str, Any], DiagramProcessingReport]:
         """
         Process diagram to remove duplicate read nodes.
 
@@ -40,7 +42,7 @@ class ReadNodeDeduplicator(BaseProcessor):
             Tuple of (processed diagram, report)
         """
         start_time = time.time()
-        report = ProcessingReport(processor_name=self.name)
+        report = DiagramProcessingReport(processor_name=self.name)
 
         # Check applicability
         if not self.is_applicable(diagram):
@@ -120,7 +122,7 @@ class ReadNodeDeduplicator(BaseProcessor):
         diagram: dict[str, Any],
         node_to_remove: dict[str, Any],
         target_node: dict[str, Any],
-        report: ProcessingReport,
+        report: DiagramProcessingReport,
     ) -> None:
         """
         Remove a node and reroute its connections to target node.
@@ -139,8 +141,8 @@ class ReadNodeDeduplicator(BaseProcessor):
 
         # Record the removal
         report.add_change(
-            ProcessingChange(
-                change_type=ChangeType.NODE_REMOVED,
+            DiagramChange(
+                change_type=DiagramChangeType.NODE_REMOVED,
                 description=f"Removed duplicate read node for file: {node_to_remove.get('props', {}).get('file')}",
                 target=removed_label,
                 details={
@@ -189,8 +191,8 @@ class ReadNodeDeduplicator(BaseProcessor):
                 if not existing:
                     diagram["connections"].append(new_conn)
                     report.add_change(
-                        ProcessingChange(
-                            change_type=ChangeType.CONNECTION_MODIFIED,
+                        DiagramChange(
+                            change_type=DiagramChangeType.CONNECTION_MODIFIED,
                             description="Rerouted connection through deduplicated node",
                             target=f"{new_conn['from']} -> {new_conn['to']}",
                             details={
@@ -201,8 +203,8 @@ class ReadNodeDeduplicator(BaseProcessor):
                     )
                 else:
                     report.add_change(
-                        ProcessingChange(
-                            change_type=ChangeType.CONNECTION_REMOVED,
+                        DiagramChange(
+                            change_type=DiagramChangeType.CONNECTION_REMOVED,
                             description="Removed redundant connection after deduplication",
                             target=f"{old_conn['from']} -> {old_conn['to']}",
                             details={"reason": "connection already exists after rerouting"},
@@ -214,8 +216,8 @@ class ReadNodeDeduplicator(BaseProcessor):
                 if conn in diagram["connections"]:
                     diagram["connections"].remove(conn)
                     report.add_change(
-                        ProcessingChange(
-                            change_type=ChangeType.CONNECTION_REMOVED,
+                        DiagramChange(
+                            change_type=DiagramChangeType.CONNECTION_REMOVED,
                             description="Removed self-loop connection",
                             target=f"{conn['from']} -> {conn['to']}",
                             details={"reason": "self-loop after deduplication"},
@@ -223,7 +225,7 @@ class ReadNodeDeduplicator(BaseProcessor):
                     )
 
     def _clean_orphaned_connections(
-        self, diagram: dict[str, Any], report: ProcessingReport
+        self, diagram: dict[str, Any], report: DiagramProcessingReport
     ) -> None:
         """
         Remove connections that reference non-existent nodes.
@@ -247,8 +249,8 @@ class ReadNodeDeduplicator(BaseProcessor):
         for conn in orphaned:
             diagram["connections"].remove(conn)
             report.add_change(
-                ProcessingChange(
-                    change_type=ChangeType.CONNECTION_REMOVED,
+                DiagramChange(
+                    change_type=DiagramChangeType.CONNECTION_REMOVED,
                     description="Removed orphaned connection",
                     target=f"{conn.get('from', '?')} -> {conn.get('to', '?')}",
                     details={"reason": "references non-existent node"},
@@ -259,7 +261,7 @@ class ReadNodeDeduplicator(BaseProcessor):
         self,
         diagram: dict[str, Any],
         duplicates: dict[str, list[dict[str, Any]]],
-        report: ProcessingReport,
+        report: DiagramProcessingReport,
     ) -> None:
         """
         Add metadata about deduplication to the diagram.
@@ -299,8 +301,8 @@ class ReadNodeDeduplicator(BaseProcessor):
         diagram["metadata"]["deduplication"] = dedup_info
 
         report.add_change(
-            ProcessingChange(
-                change_type=ChangeType.METADATA_UPDATED,
+            DiagramChange(
+                change_type=DiagramChangeType.METADATA_UPDATED,
                 description="Added deduplication metadata",
                 target="metadata.deduplication",
                 details=dedup_info,

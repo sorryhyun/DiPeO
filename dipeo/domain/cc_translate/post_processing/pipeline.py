@@ -3,9 +3,9 @@
 import time
 from typing import Any, Optional
 
-from .base import BaseProcessor, PipelineReport, ProcessingReport
+from .base import BaseDiagramProcessor, DiagramPipelineReport, DiagramProcessingReport
 from .config import PipelineConfig, ProcessingPreset
-from .processors import ReadNodeDeduplicator
+from .read_deduplicator import ReadNodeDeduplicator
 
 
 class PostProcessingPipeline:
@@ -19,7 +19,7 @@ class PostProcessingPipeline:
     def __init__(self, config: Optional[PipelineConfig] = None):
         """Initialize pipeline with configuration."""
         self.config = config or PipelineConfig.from_preset(ProcessingPreset.STANDARD)
-        self._processors: list[BaseProcessor] = []
+        self._processors: list[BaseDiagramProcessor] = []
         self._setup_processors()
 
     def _setup_processors(self) -> None:
@@ -33,7 +33,7 @@ class PostProcessingPipeline:
         #     self._processors.append(ConsecutiveNodeMerger(self.config.consecutive_merger))
         # etc.
 
-    def process(self, diagram: dict[str, Any]) -> tuple[dict[str, Any], PipelineReport]:
+    def process(self, diagram: dict[str, Any]) -> tuple[dict[str, Any], DiagramPipelineReport]:
         """
         Process diagram through all configured processors.
 
@@ -44,7 +44,7 @@ class PostProcessingPipeline:
             Tuple of (processed diagram, pipeline report)
         """
         start_time = time.time()
-        report = PipelineReport()
+        report = DiagramPipelineReport()
 
         # Store original if configured
         original_diagram = diagram.copy() if self.config.preserve_original else None
@@ -67,7 +67,9 @@ class PostProcessingPipeline:
 
                 try:
                     # Run processor
-                    processed_diagram, processor_report = processor.process(processed_diagram)
+                    processed_diagram, processor_report = processor.process_diagram(
+                        processed_diagram
+                    )
 
                     # Add report
                     report.add_processor_report(processor_report)
@@ -82,7 +84,9 @@ class PostProcessingPipeline:
 
                 except Exception as e:
                     # Create error report
-                    error_report = ProcessingReport(processor_name=processor.name, error=str(e))
+                    error_report = DiagramProcessingReport(
+                        processor_name=processor.name, error=str(e)
+                    )
                     report.add_processor_report(error_report)
 
                     if self.config.fail_on_error:

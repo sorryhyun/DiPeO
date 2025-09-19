@@ -18,6 +18,7 @@ AGENTS.md
 *.db-shm
 *.db-wal
 *.db
+.dipeo
 files/plans
 # Temporary files and cache
 .temp/

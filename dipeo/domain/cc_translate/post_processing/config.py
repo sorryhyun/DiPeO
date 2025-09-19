@@ -60,31 +60,13 @@ class NodeSimplifierConfig:
 
 
 @dataclass
-class SessionEventPrunerConfig:
-    """Configuration for SessionEventPruner processor.
-
-    Note: SessionEventPruner has been moved to preprocess phase but
-    config remains here since it's used by PipelineConfig.
-    """
-
-    enabled: bool = False  # Disabled by default for backward compatibility
-    prune_no_matches: bool = True  # Remove "No matches found" tool results
-    prune_errors: bool = False  # Remove error events (more aggressive)
-    prune_empty_results: bool = True  # Remove tool results with empty content
-    custom_prune_patterns: list[str] = field(
-        default_factory=list
-    )  # Custom content patterns to prune
-    update_metadata: bool = True  # Add metadata about pruned events
-
-
-@dataclass
 class PipelineConfig:
     """Main configuration for post-processing pipeline."""
 
     preset: ProcessingPreset = ProcessingPreset.STANDARD
 
     # Individual processor configs
-    session_event_pruner: SessionEventPrunerConfig = field(default_factory=SessionEventPrunerConfig)
+    # Note: Session-level processors have been moved to preprocess phase
     read_deduplicator: ReadDeduplicatorConfig = field(default_factory=ReadDeduplicatorConfig)
     consecutive_merger: ConsecutiveMergerConfig = field(default_factory=ConsecutiveMergerConfig)
     connection_optimizer: ConnectionOptimizerConfig = field(
@@ -105,7 +87,6 @@ class PipelineConfig:
 
         if preset == ProcessingPreset.NONE:
             # Disable all processors
-            config.session_event_pruner.enabled = False
             config.read_deduplicator.enabled = False
             config.consecutive_merger.enabled = False
             config.connection_optimizer.enabled = False
@@ -113,7 +94,6 @@ class PipelineConfig:
 
         elif preset == ProcessingPreset.MINIMAL:
             # Only essential optimizations
-            config.session_event_pruner.enabled = False  # Preserve existing behavior in minimal
             config.read_deduplicator.enabled = True
             config.consecutive_merger.enabled = False
             config.connection_optimizer.enabled = True
@@ -121,9 +101,6 @@ class PipelineConfig:
 
         elif preset == ProcessingPreset.STANDARD:
             # Recommended optimizations (default)
-            config.session_event_pruner.enabled = True
-            config.session_event_pruner.prune_no_matches = True
-            config.session_event_pruner.prune_errors = False  # Conservative approach
             config.read_deduplicator.enabled = True
             config.consecutive_merger.enabled = True
             config.consecutive_merger.merge_writes = False
@@ -133,9 +110,6 @@ class PipelineConfig:
 
         elif preset == ProcessingPreset.AGGRESSIVE:
             # All optimizations enabled
-            config.session_event_pruner.enabled = True
-            config.session_event_pruner.prune_no_matches = True
-            config.session_event_pruner.prune_errors = True  # Aggressive: also prune errors
             config.read_deduplicator.enabled = True
             config.consecutive_merger.enabled = True
             config.consecutive_merger.merge_writes = True
@@ -152,13 +126,6 @@ class PipelineConfig:
         """Convert configuration to dictionary."""
         return {
             "preset": self.preset.value,
-            "session_event_pruner": {
-                "enabled": self.session_event_pruner.enabled,
-                "prune_no_matches": self.session_event_pruner.prune_no_matches,
-                "prune_errors": self.session_event_pruner.prune_errors,
-                "prune_empty_results": self.session_event_pruner.prune_empty_results,
-                "custom_prune_patterns": self.session_event_pruner.custom_prune_patterns,
-            },
             "read_deduplicator": {
                 "enabled": self.read_deduplicator.enabled,
                 "merge_distance": self.read_deduplicator.merge_distance,

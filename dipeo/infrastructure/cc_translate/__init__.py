@@ -1,5 +1,6 @@
-"""Claude Code integration infrastructure."""
+"""Infrastructure adapters for Claude Code translation."""
 
+from .adapters import SessionAdapter
 from .session_parser import (
     ClaudeCodeSession,
     ConversationTurn,
@@ -12,6 +13,7 @@ from .session_parser import (
 __all__ = [
     "ClaudeCodeSession",
     "ConversationTurn",
+    "SessionAdapter",
     "SessionEvent",
     "SessionMetadata",
     "find_session_files",

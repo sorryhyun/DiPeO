@@ -235,6 +235,10 @@ class ClaudeCodeSession:
                 continue
 
             if event.type == "user":
+                # Skip non-meaningful user events (command wrappers, empty stdout)
+                if self._is_command_wrapper_event(event):
+                    continue
+
                 # Start a new turn
                 if current_turn:
                     turns.append(current_turn)
@@ -285,6 +289,28 @@ class ClaudeCodeSession:
                     commands.append(event.tool_input["command"])
 
         return commands
+
+    def _is_command_wrapper_event(self, event: SessionEvent) -> bool:
+        """Check if a user event is a command wrapper or empty stdout that should be skipped."""
+        if event.type != "user":
+            return False
+
+        message = event.message
+        if not message or "content" not in message:
+            return False
+
+        content = message["content"]
+
+        # Check for command wrapper pattern (e.g., /clear commands)
+        if isinstance(content, str):
+            # Skip command wrappers
+            if content.startswith("<command-name>") and "</command-name>" in content:
+                return True
+            # Skip empty stdout
+            if content.strip() == "<local-command-stdout></local-command-stdout>":
+                return True
+
+        return False
 
     def _update_metadata(self) -> None:
         """Update session metadata based on parsed events."""

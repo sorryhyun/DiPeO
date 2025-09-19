@@ -9,8 +9,10 @@ from typing import Any, Optional
 
 import yaml
 
-from dipeo.domain.cc_translate import ClaudeCodeTranslator
+from dipeo.domain.cc_translate import PhaseCoordinator
 from dipeo.domain.cc_translate.post_processing import PipelineConfig, ProcessingPreset
+from dipeo.domain.cc_translate.preprocess.session_field_pruner import SessionFieldPruner
+from dipeo.infrastructure.cc_translate import SessionAdapter
 from dipeo.infrastructure.claude_code.session_parser import (
     extract_session_timestamp,
     find_session_files,
@@ -27,7 +29,7 @@ class ClaudeCodeCommand:
         self.server_manager = server_manager
         self.base_dir = Path.home() / ".claude" / "projects" / "-home-soryhyun-DiPeO"
         self.output_base = Path("projects/claude_code")
-        self.translator = ClaudeCodeTranslator()
+        self.coordinator = PhaseCoordinator()
 
     def execute(self, action: str, **kwargs) -> bool:
         """Execute the Claude Code command based on action."""
@@ -250,16 +252,26 @@ class ClaudeCodeCommand:
         """Generate optimized diagram using standard post-processing."""
         print("   ⚡ Generating optimized diagram...")
 
+        # Adapt infrastructure session to domain port
+        session_adapter = SessionAdapter(session)
+
         # Use standard preset for optimization
         config = PipelineConfig.from_preset(ProcessingPreset.STANDARD)
-        return self.translator.translate(session, post_process=True, processing_config=config)
+        diagram, _ = self.coordinator.translate(
+            session_adapter, post_process=True, processing_config=config
+        )
+        return diagram
 
     def _generate_original_diagram(self, session: Any) -> dict[str, Any]:
         """Generate original diagram with minimal post-processing."""
         print("   📄 Generating original diagram...")
 
+        # Adapt infrastructure session to domain port
+        session_adapter = SessionAdapter(session)
+
         # Use minimal processing for original
-        return self.translator.translate(session)
+        diagram, _ = self.coordinator.translate(session_adapter)
+        return diagram
 
     def _save_diagram(
         self, diagram_data: dict[str, Any], file_path: Path, format_type: str
@@ -334,15 +346,25 @@ class ClaudeCodeCommand:
         output_dir_path = output_dir_path / "sessions" / dir_name
         output_dir_path.mkdir(parents=True, exist_ok=True)
 
-        # Copy original session JSONL file as 'original_session.jsonl'
+        # Copy original session JSONL file as 'original_session.jsonl' (exact copy)
         original_session_dest = output_dir_path / "original_session.jsonl"
         shutil.copy2(session_file, original_session_dest)
         print(f"📄 Original session JSONL saved to: {original_session_dest}")
 
-        # Copy as 'session.jsonl' for processed version (same content for now)
+        # Create pruned version as 'session.jsonl'
         session_jsonl_dest = output_dir_path / "session.jsonl"
-        shutil.copy2(session_file, session_jsonl_dest)
-        print(f"📄 Session JSONL saved to: {session_jsonl_dest}")
+        field_pruner = SessionFieldPruner(aggressive=False)
+
+        # Prune unnecessary fields from the session
+        pruning_stats = field_pruner.prune_session_file(
+            input_path=session_file, output_path=session_jsonl_dest, preserve_original=True
+        )
+
+        print(f"📄 Pruned session JSONL saved to: {session_jsonl_dest}")
+        print(
+            f"   ↳ Size reduction: {pruning_stats['size_reduction_pct']}% "
+            f"({pruning_stats['original_size']:,} → {pruning_stats['pruned_size']:,} bytes)"
+        )
 
         return output_dir_path
 

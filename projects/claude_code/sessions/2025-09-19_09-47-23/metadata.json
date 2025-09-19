@@ -1,7 +1,7 @@
 {
   "session_id": "24985df4-1b97-474b-96db-2240e4545315",
   "directory_name": "2025-09-19_09-47-23",
-  "converted_at": "2025-09-19T19:17:23.100479",
+  "converted_at": "2025-09-19T19:56:00.499977",
   "stats": {
     "session_id": "24985df4-1b97-474b-96db-2240e4545315",
     "total_events": 77,
@@ -27,15 +27,15 @@
       "file": "diagram.light.yaml",
       "type": "original",
       "statistics": {
-        "node_count": 28,
-        "connection_count": 27,
+        "node_count": 26,
+        "connection_count": 25,
         "node_types": [
-          "person_job",
-          "diff_patch",
-          "start",
           "api_job",
+          "diff_patch",
           "code_job",
-          "db"
+          "db",
+          "start",
+          "person_job"
         ]
       }
     },
@@ -43,15 +43,15 @@
       "file": "optimized.light.yaml",
       "type": "optimized",
       "statistics": {
-        "node_count": 27,
-        "connection_count": 27,
+        "node_count": 25,
+        "connection_count": 25,
         "node_types": [
-          "person_job",
-          "diff_patch",
-          "start",
           "api_job",
+          "diff_patch",
           "code_job",
-          "db"
+          "db",
+          "start",
+          "person_job"
         ]
       }
     }

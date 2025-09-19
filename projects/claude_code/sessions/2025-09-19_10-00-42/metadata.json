@@ -1,7 +1,7 @@
 {
   "session_id": "78b82f29-b6f0-40c1-aff8-f6dba37695ac",
   "directory_name": "2025-09-19_10-00-42",
-  "converted_at": "2025-09-19T19:17:22.881308",
+  "converted_at": "2025-09-19T19:56:00.074243",
   "stats": {
     "session_id": "78b82f29-b6f0-40c1-aff8-f6dba37695ac",
     "total_events": 20,
@@ -23,14 +23,13 @@
       "file": "diagram.light.yaml",
       "type": "original",
       "statistics": {
-        "node_count": 7,
-        "connection_count": 6,
+        "node_count": 5,
+        "connection_count": 4,
         "node_types": [
-          "person_job",
           "start",
-          "db",
           "code_job",
-          "diff_patch"
+          "diff_patch",
+          "db"
         ]
       }
     },
@@ -38,14 +37,13 @@
       "file": "optimized.light.yaml",
       "type": "optimized",
       "statistics": {
-        "node_count": 7,
-        "connection_count": 6,
+        "node_count": 5,
+        "connection_count": 4,
         "node_types": [
-          "person_job",
           "start",
-          "db",
           "code_job",
-          "diff_patch"
+          "diff_patch",
+          "db"
         ]
       }
     }

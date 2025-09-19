@@ -2,7 +2,7 @@
 
 from .config import PipelineConfig, ProcessingPreset, ReadDeduplicatorConfig
 from .pipeline import PostProcessingPipeline
-from .processors import ReadNodeDeduplicator
+from .read_deduplicator import ReadNodeDeduplicator
 
 __all__ = [
     "PipelineConfig",

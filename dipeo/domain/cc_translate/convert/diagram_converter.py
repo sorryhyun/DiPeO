@@ -4,17 +4,19 @@ This module handles the conversion phase: transforming preprocessed session
 data into DiPeO diagram structures with nodes, connections, and persons.
 """
 
-from typing import Any
+import uuid
+from datetime import datetime
+from typing import Any, Optional
 
-from dipeo.infrastructure.claude_code import ConversationTurn, SessionEvent
-
-from ..preprocess import PreprocessedSession
+from ..models.event import DomainEvent, EventType
+from ..models.preprocessed import PreprocessedData
+from .base import BaseConverter, ConversionContext, ConversionReport, ConversionStatus
 from .connection_builder import ConnectionBuilder
 from .diagram_assembler import DiagramAssembler
 from .node_builders import NodeBuilder
 
 
-class DiagramConverter:
+class DiagramConverter(BaseConverter):
     """Converts preprocessed session data into DiPeO diagram structures."""
 
     def __init__(self):
@@ -24,59 +26,119 @@ class DiagramConverter:
         self.assembler = DiagramAssembler()
         self.node_map: dict[str, str] = {}  # Maps event UUID to node label
 
-    def convert(self, preprocessed_session: PreprocessedSession) -> dict[str, Any]:
+    def convert(
+        self,
+        preprocessed_data: PreprocessedData,
+        context: Optional[ConversionContext] = None,
+    ) -> ConversionReport:
         """
-        Convert preprocessed session into a light format diagram.
+        Convert preprocessed data into a diagram.
 
         Args:
-            preprocessed_session: The preprocessed session data
+            preprocessed_data: The preprocessed session data to convert
+            context: Optional conversion context for tracking
 
         Returns:
-            Light format diagram dictionary
+            A ConversionReport containing the result and metrics
         """
-        # Reset state for new conversion
-        self._reset_state()
+        # Create context if not provided
+        if not context:
+            context = self.create_context(preprocessed_data.session.session_id)
 
-        # Create start node
-        start_node_label = self._create_start_node(
-            preprocessed_session.metadata["session_id"],
-            preprocessed_session.metadata["initial_prompt"],
-        )
+        context.start()
 
-        # Process conversation flow
-        prev_node_label = start_node_label
+        try:
+            # Validate input
+            if not self.validate_input(preprocessed_data):
+                context.add_error("Invalid preprocessed data")
+                context.complete(success=False)
+                return self._create_report(context, None)
 
-        for turn in preprocessed_session.conversation_flow:
-            # Create nodes for this conversation turn
-            turn_node_labels = self._process_conversation_turn(
-                turn, preprocessed_session.system_messages
+            # Reset state for new conversion
+            self._reset_state()
+
+            # Extract metadata from session
+            session_id = preprocessed_data.session.session_id
+            initial_prompt = self._extract_initial_prompt(preprocessed_data)
+
+            # Create start node
+            start_node_label = self._create_start_node(session_id, initial_prompt)
+            if not start_node_label:
+                context.add_error("Failed to create start node")
+                context.complete(success=False)
+                return self._create_report(context, None)
+
+            # Group events into conversation turns
+            conversation_turns = self._group_events_into_turns(preprocessed_data.processed_events)
+
+            # Process conversation flow
+            prev_node_label = start_node_label
+            for turn_events in conversation_turns:
+                try:
+                    turn_node_labels = self._process_event_turn(turn_events, preprocessed_data)
+
+                    # Connect to previous node
+                    if turn_node_labels:
+                        self.connection_builder.connect_to_previous(
+                            prev_node_label, turn_node_labels
+                        )
+                        self.connection_builder.connect_sequential_nodes(turn_node_labels)
+                        prev_node_label = turn_node_labels[-1]
+
+                    context.metrics.nodes_processed += len(turn_events)
+                    context.metrics.nodes_created += len(turn_node_labels)
+
+                except Exception as e:
+                    context.add_warning(f"Error processing turn: {e!s}")
+                    continue
+
+            # Assemble the final diagram
+            diagram = self.assembler.assemble_light_diagram(
+                nodes=self.node_builder.nodes,
+                connections=self.connection_builder.get_connections(),
+                persons=self.node_builder.persons,
             )
 
-            # Connect to previous node
-            self.connection_builder.connect_to_previous(prev_node_label, turn_node_labels)
+            # Add processing metadata
+            diagram = self.assembler.add_processing_metadata(
+                diagram=diagram,
+                preprocessing_report=self._extract_preprocessing_report(preprocessed_data),
+                conversion_stats=self._get_conversion_stats(),
+            )
 
-            # Connect nodes within the turn
-            self.connection_builder.connect_sequential_nodes(turn_node_labels)
+            # Update metrics
+            context.metrics.connections_created = len(self.connection_builder.get_connections())
+            context.complete(success=True)
 
-            # Update previous node for next iteration
-            if turn_node_labels:
-                prev_node_label = turn_node_labels[-1]
+            return self._create_report(context, diagram)
 
-        # Assemble the final diagram
-        diagram = self.assembler.assemble_light_diagram(
-            nodes=self.node_builder.nodes,
-            connections=self.connection_builder.get_connections(),
-            persons=self.node_builder.persons,
-        )
+        except Exception as e:
+            context.add_error(f"Conversion failed: {e!s}")
+            context.complete(success=False)
+            return self._create_report(context, None)
 
-        # Add processing metadata
-        diagram = self.assembler.add_processing_metadata(
-            diagram=diagram,
-            preprocessing_report=preprocessed_session.pruning_report,
-            conversion_stats=self._get_conversion_stats(),
-        )
+    def validate_input(self, preprocessed_data: PreprocessedData) -> bool:
+        """
+        Validate that the input data can be converted.
 
-        return diagram
+        Args:
+            preprocessed_data: The preprocessed data to validate
+
+        Returns:
+            True if the data is valid for conversion, False otherwise
+        """
+        if not preprocessed_data:
+            return False
+
+        if not preprocessed_data.session:
+            return False
+
+        # Validate preprocessed data integrity
+        validation_errors = preprocessed_data.validate()
+        if validation_errors:
+            return False
+
+        return True
 
     def _reset_state(self) -> None:
         """Reset converter state for new conversion."""
@@ -89,73 +151,175 @@ class DiagramConverter:
         node = self.node_builder.create_start_node(session_id, initial_prompt)
         return node["label"]
 
-    def _process_conversation_turn(
-        self, turn: ConversationTurn, system_messages: list[str]
+    def _group_events_into_turns(self, events: list[DomainEvent]) -> list[list[DomainEvent]]:
+        """
+        Group events into conversation turns.
+
+        A turn typically consists of:
+        - User event(s)
+        - Assistant event(s)
+        - Tool use event(s) if any
+
+        Args:
+            events: List of domain events
+
+        Returns:
+            List of event groups representing conversation turns
+        """
+        turns = []
+        current_turn = []
+
+        for event in events:
+            # Start a new turn on user events (unless it's a tool result response)
+            if event.is_user_event() and not event.parent_uuid:
+                if current_turn:
+                    turns.append(current_turn)
+                current_turn = [event]
+            else:
+                current_turn.append(event)
+
+        # Don't forget the last turn
+        if current_turn:
+            turns.append(current_turn)
+
+        return turns
+
+    def _process_event_turn(
+        self, turn_events: list[DomainEvent], preprocessed_data: PreprocessedData
     ) -> list[str]:
-        """Process a conversation turn and create corresponding nodes."""
+        """Process a turn of events and create corresponding nodes."""
         node_labels = []
 
-        # Skip user event if this turn has tool events (user event is just showing tool results)
-        if turn.user_event and not turn.tool_events:
-            user_node_label = self._create_user_node(turn.user_event)
-            # Only add the user node if it has meaningful content
-            if user_node_label:
-                node_labels.append(user_node_label)
+        # Extract system messages from preprocessed data
+        system_messages = self._extract_system_messages(preprocessed_data)
 
-        # Process assistant response and tool events
-        if turn.assistant_event:
-            # Check if there are tool events in this turn
-            if turn.tool_events:
-                # Create tool nodes for each tool use
-                for tool_event in turn.tool_events:
-                    tool_node_labels = self._create_tool_nodes(tool_event)
+        for event in turn_events:
+            if event.is_user_event():
+                # Skip user events that are just showing tool results
+                if not event.parent_uuid:
+                    user_node_label = self._create_user_node_from_event(event)
+                    if user_node_label:
+                        node_labels.append(user_node_label)
+
+            elif event.is_assistant_event():
+                # Check if this assistant event has tool usage
+                if event.has_tool_use():
+                    tool_node_labels = self._create_tool_nodes_from_event(event)
                     node_labels.extend(tool_node_labels)
-            else:
-                # Create person job node for AI response
-                assistant_node_label = self._create_assistant_node(
-                    turn.assistant_event, system_messages
-                )
-                node_labels.append(assistant_node_label)
+                else:
+                    assistant_node_label = self._create_assistant_node_from_event(
+                        event, system_messages
+                    )
+                    if assistant_node_label:
+                        node_labels.append(assistant_node_label)
+
+            elif event.type == EventType.TOOL_USE or event.type == EventType.TOOL_RESULT:
+                tool_node_labels = self._create_tool_nodes_from_event(event)
+                node_labels.extend(tool_node_labels)
 
         return node_labels
 
-    def _create_user_node(self, event: SessionEvent) -> str | None:
-        """Create a node for user input, or None if no meaningful input."""
-        node = self.node_builder.create_user_node(
-            self.node_builder.text_processor.extract_text_content(
-                event.message.get("content", ""), skip_read_results=True
-            )
-        )
+    def _create_user_node_from_event(self, event: DomainEvent) -> Optional[str]:
+        """Create a node for user input from domain event."""
+        content = event.content.text or ""
+
+        # Skip empty content
+        if not content.strip():
+            return None
+
+        node = self.node_builder.create_user_node(content)
         if node:
             self.node_map[event.uuid] = node["label"]
             return node["label"]
         return None
 
-    def _create_assistant_node(self, event: SessionEvent, system_messages: list[str]) -> str:
-        """Create a node for AI assistant response."""
-        content = self.node_builder.text_processor.extract_text_content(
-            event.message.get("content", ""), skip_read_results=True
-        )
+    def _create_assistant_node_from_event(
+        self, event: DomainEvent, system_messages: list[str]
+    ) -> Optional[str]:
+        """Create a node for AI assistant response from domain event."""
+        content = event.content.text or ""
+
+        if not content.strip():
+            return None
 
         node = self.node_builder.create_assistant_node(content, system_messages)
-        self.node_map[event.uuid] = node["label"]
-        return node["label"]
+        if node:
+            self.node_map[event.uuid] = node["label"]
+            return node["label"]
+        return None
 
-    def _create_tool_nodes(self, event: SessionEvent) -> list[str]:
-        """Create nodes for tool usage."""
+    def _create_tool_nodes_from_event(self, event: DomainEvent) -> list[str]:
+        """Create nodes for tool usage from domain event."""
         node_labels = []
 
-        tool_name = event.tool_name
-        tool_input = event.tool_input or {}
+        if not event.tool_info:
+            return node_labels
+
+        tool_name = event.tool_info.name
+        tool_input = event.tool_info.input_params
+        tool_results = event.tool_info.results if event.tool_info.results else None
 
         # Create appropriate node for the tool
-        node = self.node_builder.create_tool_node(tool_name, tool_input, event.tool_use_result)
+        node = self.node_builder.create_tool_node(tool_name, tool_input, tool_results)
 
         if node:
             node_labels.append(node["label"])
             self.node_map[event.uuid] = node["label"]
 
         return node_labels
+
+    def _extract_initial_prompt(self, preprocessed_data: PreprocessedData) -> str:
+        """Extract initial prompt from preprocessed data."""
+        # Try to get from metadata first
+        if "initial_prompt" in preprocessed_data.conversation_context:
+            return preprocessed_data.conversation_context["initial_prompt"]
+
+        # Fall back to first user event
+        for event in preprocessed_data.processed_events:
+            if event.is_user_event():
+                return event.content.text or "Claude Code Session"
+
+        return "Claude Code Session"
+
+    def _extract_system_messages(self, preprocessed_data: PreprocessedData) -> list[str]:
+        """Extract system messages from preprocessed data."""
+        system_messages = []
+
+        # Extract from events
+        for event in preprocessed_data.processed_events:
+            if event.is_system_event() and event.content.text:
+                system_messages.append(event.content.text)
+
+        # Also check conversation context
+        if "system_messages" in preprocessed_data.conversation_context:
+            additional_messages = preprocessed_data.conversation_context["system_messages"]
+            if isinstance(additional_messages, list):
+                system_messages.extend(additional_messages)
+
+        return system_messages[:5]  # Limit to first 5 messages
+
+    def _extract_preprocessing_report(self, preprocessed_data: PreprocessedData) -> dict[str, Any]:
+        """Extract preprocessing report from preprocessed data."""
+        return {
+            "changes": len(preprocessed_data.changes),
+            "stats": preprocessed_data.stats.to_dict(),
+            "stage": preprocessed_data.stage.value,
+            "warnings": preprocessed_data.warnings,
+            "errors": preprocessed_data.errors,
+        }
+
+    def _create_report(
+        self, context: ConversionContext, diagram: Optional[dict[str, Any]]
+    ) -> ConversionReport:
+        """Create a conversion report."""
+        return ConversionReport(
+            session_id=context.session_id,
+            conversion_id=context.conversion_id,
+            status=context.status,
+            diagram=diagram,
+            metrics=context.metrics,
+            metadata=context.metadata,
+        )
 
     def _get_conversion_stats(self) -> dict[str, Any]:
         """Get conversion statistics."""
