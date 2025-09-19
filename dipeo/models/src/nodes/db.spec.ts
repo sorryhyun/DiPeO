@@ -52,6 +52,9 @@ export const dbSpec: NodeSpecification = {
       type: "string",
       required: true,
       description: "Operation configuration",
+      validation: {
+        allowedValues: ["prompt", "read", "write", "append", "update"]
+      },
       uiConfig: {
         inputType: "text"
       }
@@ -63,6 +66,16 @@ export const dbSpec: NodeSpecification = {
       description: "Query configuration",
       uiConfig: {
         inputType: "text"
+      }
+    },
+    {
+      name: "keys",
+      type: "any",
+      required: false,
+      description: "Single key or list of dot-separated keys to target within the JSON payload",
+      uiConfig: {
+        inputType: "text",
+        placeholder: "e.g., user.profile.name or key1,key2"
       }
     },
     {
