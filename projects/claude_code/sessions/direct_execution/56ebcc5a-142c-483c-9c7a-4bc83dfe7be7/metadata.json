@@ -1,0 +1,22 @@
+{
+  "session_id": "56ebcc5a-142c-483c-9c7a-4bc83dfe7be7",
+  "converted_at": "2025-09-19T12:17:02.430425",
+  "source_file": "/home/soryhyun/.claude/projects/-home-soryhyun-DiPeO-apps-server--dipeo-workspaces-exec-exec-ca90f1924c5845d3a0a1eb05c7237384/56ebcc5a-142c-483c-9c7a-4bc83dfe7be7.jsonl",
+  "stats": {
+    "session_id": "56ebcc5a-142c-483c-9c7a-4bc83dfe7be7",
+    "total_events": 2,
+    "user_messages": 1,
+    "assistant_messages": 1,
+    "tool_usage": {},
+    "unique_files_accessed": 0,
+    "bash_commands_executed": 0,
+    "duration_seconds": 18.449,
+    "duration_human": "0:00:18.449000"
+  },
+  "format": "light",
+  "optimizations": {
+    "merge_reads": false,
+    "simplify": false,
+    "post_processed": false
+  }
+}

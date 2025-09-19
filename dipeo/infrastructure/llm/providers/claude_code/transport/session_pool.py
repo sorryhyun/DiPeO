@@ -105,21 +105,8 @@ class SessionClient:
             if hasattr(self.client, "_transport") and hasattr(self.client._transport, "_process"):
                 try:
                     self.subprocess_pid = self.client._transport._process.pid
-                    logger.debug(
-                        f"[SessionClient] Tracked subprocess PID {self.subprocess_pid} for session {self.session_id}"
-                    )
                 except Exception as e:
                     logger.debug(f"[SessionClient] Could not get subprocess PID: {e}")
-
-            # Log connection with system prompt info from options
-            system_prompt_preview = None
-            if hasattr(self.options, "system_prompt") and self.options.system_prompt:
-                system_prompt_preview = self.options.system_prompt[:100] + "..."
-
-            logger.debug(
-                f"[SessionClient] Connected session {self.session_id} "
-                f"(system_prompt: {system_prompt_preview or 'None'})"
-            )
 
         except Exception as e:
             logger.error(f"[SessionClient] Failed to connect session {self.session_id}: {e}")
@@ -158,9 +145,6 @@ class SessionClient:
 
                     # Check for completion
                     if hasattr(message, "result"):
-                        logger.debug(
-                            f"[SessionClient] Query {self.query_count} completed for session {self.session_id}"
-                        )
                         break
             except asyncio.CancelledError:
                 logger.warning(
@@ -188,10 +172,6 @@ class SessionClient:
                 await asyncio.wait_for(self.client.disconnect(), timeout=SESSION_DISCONNECT_GRACE)
                 self.is_connected = False
                 self.is_reserved = False
-                logger.debug(
-                    f"[SessionClient] Disconnected session {self.session_id} "
-                    f"after {self.query_count} queries"
-                )
                 return
             except TimeoutError:
                 logger.warning(
@@ -267,8 +247,6 @@ class SessionClient:
                         logger.debug(f"[SessionClient] terminate() raised: {e}; killing")
                         proc.kill()
                         killed = True
-                else:
-                    logger.debug(f"[SessionClient] Subprocess PID {pid} already terminated")
             except psutil.NoSuchProcess:
                 logger.debug(f"[SessionClient] Subprocess PID {pid} no longer exists")
             except psutil.AccessDenied:
@@ -278,12 +256,6 @@ class SessionClient:
 
         self.is_connected = False
         self.is_reserved = False
-        if killed:
-            logger.info(f"[SessionClient] Force disconnected session {self.session_id} (SIGKILL)")
-        else:
-            logger.debug(
-                f"[SessionClient] Force disconnected session {self.session_id} without SIGKILL"
-            )
 
     def can_reuse(self) -> bool:
         """Check if this session can be reused for another query."""

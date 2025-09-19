@@ -25,7 +25,12 @@ class ClaudeCodeCommand:
     def __init__(self, server_manager=None):
         """Initialize the command."""
         self.server_manager = server_manager
-        self.base_dir = Path.home() / ".claude" / "projects" / "-home-soryhyun-DiPeO"
+        self.base_dir = (
+            Path.home()
+            / ".claude"
+            / "projects"
+            / "-home-soryhyun-DiPeO-apps-server--dipeo-workspaces-exec-default"
+        )
         self.output_base = Path("projects/claude_code")
         self.translator = ClaudeCodeTranslator()
 
