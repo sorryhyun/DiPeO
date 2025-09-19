@@ -196,7 +196,4 @@ class BaseConverter(ABC):
         """
         report = self.convert(preprocessed_data)
         diagram = report.diagram if report.diagram else {}
-        print(
-            f"[BASE DEBUG] process() returning diagram with {len(diagram.get('nodes', []))} nodes"
-        )
         return diagram, report

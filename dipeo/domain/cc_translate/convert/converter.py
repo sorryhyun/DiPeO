@@ -54,13 +54,6 @@ class Converter(BaseConverter):
                 context.complete(success=False)
                 return self._create_report(context, None)
 
-            # Debug: Print info about preprocessed data
-            print(f"[DEBUG] Processing session {preprocessed_data.session.session_id}")
-            print(f"[DEBUG] Number of processed events: {len(preprocessed_data.processed_events)}")
-            print(
-                f"[DEBUG] Event types: {[e.type.value if hasattr(e.type, 'value') else str(e.type) for e in preprocessed_data.processed_events[:5]]}"
-            )
-
             # Reset state for new conversion
             self._reset_state()
 
@@ -77,17 +70,12 @@ class Converter(BaseConverter):
 
             # Group events into conversation turns
             conversation_turns = self._group_events_into_turns(preprocessed_data.processed_events)
-            print(f"[DEBUG] Number of conversation turns: {len(conversation_turns)}")
 
             # Process conversation flow
             prev_node_label = start_node_label
-            for i, turn_events in enumerate(conversation_turns):
-                print(
-                    f"[DEBUG] Processing turn {i+1}/{len(conversation_turns)}, {len(turn_events)} events"
-                )
+            for _i, turn_events in enumerate(conversation_turns):
                 try:
                     turn_node_labels = self._process_event_turn(turn_events, preprocessed_data)
-                    print(f"[DEBUG] Created {len(turn_node_labels)} nodes from turn")
 
                     # Connect to previous node
                     if turn_node_labels:
@@ -102,19 +90,14 @@ class Converter(BaseConverter):
 
                 except Exception as e:
                     context.add_warning(f"Error processing turn: {e!s}")
-                    print(f"[DEBUG] Error processing turn: {e!s}")
                     continue
 
             # Assemble the final diagram
-            print(f"[DEBUG] Total nodes to assemble: {len(self.node_builder.nodes)}")
-            print(f"[DEBUG] Total connections: {len(self.connection_builder.get_connections())}")
-            print(f"[DEBUG] Total persons: {len(self.node_builder.persons)}")
             diagram = self.assembler.assemble_light_diagram(
                 nodes=self.node_builder.nodes,
                 connections=self.connection_builder.get_connections(),
                 persons=self.node_builder.persons,
             )
-            print(f"[DEBUG] Assembled diagram has {len(diagram.get('nodes', []))} nodes")
 
             # Add processing metadata
             diagram = self.assembler.add_processing_metadata(
@@ -128,16 +111,9 @@ class Converter(BaseConverter):
             context.complete(success=True)
 
             report = self._create_report(context, diagram)
-            print(f"[DEBUG] Report has diagram: {report.diagram is not None}")
-            if report.diagram:
-                print(f"[DEBUG] Report diagram has {len(report.diagram.get('nodes', []))} nodes")
             return report
 
         except Exception as e:
-            print(f"[DEBUG ERROR] Conversion exception: {e!s}")
-            import traceback
-
-            traceback.print_exc()
             context.add_error(f"Conversion failed: {e!s}")
             context.complete(success=False)
             return self._create_report(context, None)

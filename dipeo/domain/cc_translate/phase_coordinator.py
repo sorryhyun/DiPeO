@@ -133,13 +133,9 @@ class PhaseCoordinator:
             metrics.add_phase_result(result)
 
             if not result.success:
-                print(f"[PHASE DEBUG] Conversion failed: {result.error}")
                 return {}, metrics
 
             diagram = result.data
-            print(
-                f"[PHASE DEBUG] Conversion result diagram has {len(diagram.get('nodes', []))} nodes"
-            )
         else:
             # If conversion is skipped, assume preprocessed_data is already a diagram
             diagram = preprocessed_data if isinstance(preprocessed_data, dict) else {}
@@ -178,9 +174,6 @@ class PhaseCoordinator:
                                 "connections_modified": result.report.total_connections_modified,
                             }
 
-        print(
-            f"[PHASE DEBUG] Final diagram has {len(diagram.get('nodes', []))} nodes, {len(diagram.get('connections', []))} connections"
-        )
         return diagram, metrics
 
     def preprocess_only(
