@@ -1,7 +1,7 @@
 {
   "session_id": "42f73c5f-68dd-4f25-9e7b-ff19346b0ff1",
   "directory_name": "2025-09-19_08-46-57",
-  "converted_at": "2025-09-19T18:58:17.466803",
+  "converted_at": "2025-09-19T19:11:04.208317",
   "stats": {
     "session_id": "42f73c5f-68dd-4f25-9e7b-ff19346b0ff1",
     "total_events": 204,
@@ -31,12 +31,12 @@
         "node_count": 70,
         "connection_count": 69,
         "node_types": [
-          "code_job",
-          "person_job",
+          "api_job",
           "db",
-          "diff_patch",
+          "person_job",
           "start",
-          "api_job"
+          "code_job",
+          "diff_patch"
         ]
       }
     },
@@ -47,12 +47,12 @@
         "node_count": 67,
         "connection_count": 69,
         "node_types": [
-          "code_job",
-          "person_job",
+          "api_job",
           "db",
-          "diff_patch",
+          "person_job",
           "start",
-          "api_job"
+          "code_job",
+          "diff_patch"
         ]
       }
     }

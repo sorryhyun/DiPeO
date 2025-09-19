@@ -287,9 +287,18 @@ class ClaudeCodeCommand:
             return dumper.represent_scalar("tag:yaml.org,2002:str", data)
 
         def dict_representer(dumper, data):
-            if isinstance(data, dict) and len(data) == 2:
+            if isinstance(data, dict):
                 keys = set(data.keys())
-                if keys == {"x", "y"}:
+                # Handle position dictionaries
+                if len(data) == 2 and keys == {"x", "y"}:
+                    return dumper.represent_mapping("tag:yaml.org,2002:map", data, flow_style=True)
+                # Handle connection dictionaries
+                if ("from" in keys and "to" in keys and "content_type" in keys) and keys <= {
+                    "from",
+                    "to",
+                    "content_type",
+                    "label",
+                }:
                     return dumper.represent_mapping("tag:yaml.org,2002:map", data, flow_style=True)
             return dumper.represent_mapping("tag:yaml.org,2002:map", data)
 

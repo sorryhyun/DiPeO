@@ -144,20 +144,22 @@ cli_hiddenimports = [
     'rich.syntax',
     'prompt_toolkit',
     'dipeo_cli',
-    'dipeo_cli.minimal_cli',
+    'dipeo_cli.__main__',
+    'dipeo_cli.commands',
+    'dipeo_cli.server_manager',
 ]
 
 # Determine which hidden imports to use
 if IS_SERVER_BUILD:
     hiddenimports = base_hiddenimports + server_hiddenimports
-    entry_script = str(ROOT_DIR / 'apps' / 'server' / 'main_bundled.py')
+    entry_script = str(ROOT_DIR / 'apps' / 'server' / 'main.py')
 elif IS_CLI_BUILD:
     hiddenimports = base_hiddenimports + cli_hiddenimports
-    entry_script = str(ROOT_DIR / 'apps' / 'cli' / 'src' / 'dipeo_cli' / 'minimal_cli.py')
+    entry_script = str(ROOT_DIR / 'apps' / 'cli' / 'src' / 'dipeo_cli' / '__main__.py')
 else:
     # Default to server if not specified
     hiddenimports = base_hiddenimports + server_hiddenimports
-    entry_script = str(ROOT_DIR / 'apps' / 'server' / 'main_bundled.py')
+    entry_script = str(ROOT_DIR / 'apps' / 'server' / 'main.py')
 
 # Collect all data files
 datas = [
