@@ -47,6 +47,13 @@ export const dbFields: UnifiedFieldDefinition[] = [
     description: '"Query configuration"',
   },
   {
+    name: 'keys',
+    type: 'text',
+    label: '"Keys"',
+    required: false,
+    description: '"Single key or comma-separated list of keys/dot-paths to target"',
+  },
+  {
     name: 'data',
     type: 'textarea',
     label: '"Data"',

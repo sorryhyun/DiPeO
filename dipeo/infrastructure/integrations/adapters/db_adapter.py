@@ -27,24 +27,32 @@ class DBOperationsAdapter:
         self.validation_service = validation_service
 
     async def execute_operation(
-        self, db_name: str, operation: str, value: Any = None
+        self, db_name: str, operation: str, value: Any = None, keys: Any = None
     ) -> dict[str, Any]:
         self.validation_service.validate_operation(
             operation, self.domain_service.ALLOWED_OPERATIONS
         )
-        self.validation_service.validate_db_operation_input(operation, value)
+        self.validation_service.validate_db_operation_input(operation, value, keys)
 
         if operation == "prompt":
             return self.domain_service.prepare_prompt_response(db_name)
 
         file_path = await self._get_db_file_path(db_name)
 
+        normalized_keys = self.domain_service.normalize_keys(keys)
+
         if operation == "read":
-            return await self._read_db(file_path)
+            return await self._read_db(file_path, normalized_keys)
         elif operation == "write":
-            return await self._write_db(file_path, value)
+            return await self._write_db(
+                file_path, value, normalized_keys or None, operation="write"
+            )
         elif operation == "append":
             return await self._append_db(file_path, value)
+        elif operation == "update":
+            return await self._write_db(
+                file_path, value, normalized_keys or None, operation="update"
+            )
         else:
             raise ValidationError(
                 f"Unsupported operation: {operation}", details={"operation": operation}
@@ -55,7 +63,9 @@ class DBOperationsAdapter:
         path = Path(db_path)
         return path
 
-    async def _read_db(self, file_path: Path) -> dict[str, Any]:
+    async def _read_db(
+        self, file_path: Path, keys: list[str] | None = None
+    ) -> dict[str, Any]:
         try:
             import logging
 
@@ -64,7 +74,9 @@ class DBOperationsAdapter:
             exists = self.file_system.exists(file_path)
             if not exists:
                 logger.warning(f"File not found: {file_path}")
-                return self.domain_service.prepare_read_response({}, str(file_path), 0)
+                return self.domain_service.prepare_read_response(
+                    {}, str(file_path), 0, keys or []
+                )
 
             with self.file_system.open(file_path, "rb") as f:
                 raw_content = f.read()
@@ -78,7 +90,12 @@ class DBOperationsAdapter:
 
             size = self.file_system.size(file_path)
 
-            return self.domain_service.prepare_read_response(data, str(file_path), size)
+            if keys:
+                data = self.domain_service.extract_data_by_keys(data, keys)
+
+            return self.domain_service.prepare_read_response(
+                data, str(file_path), size, keys or []
+            )
         except ValidationError:
             raise
         except Exception as e:
@@ -86,8 +103,21 @@ class DBOperationsAdapter:
                 f"Failed to read database: {e!s}", details={"file_path": str(file_path)}
             )
 
-    async def _write_db(self, file_path: Path, value: Any) -> dict[str, Any]:
+    async def _write_db(
+        self,
+        file_path: Path,
+        value: Any,
+        keys: list[str] | None = None,
+        operation: str = "write",
+    ) -> dict[str, Any]:
         try:
+            keys = keys or []
+            if operation == "update" and not keys:
+                raise ValidationError(
+                    "Update operation requires one or more keys",
+                    details={"operation": operation},
+                )
+
             is_code_file = any(
                 str(file_path).endswith(ext)
                 for ext in [
@@ -104,7 +134,17 @@ class DBOperationsAdapter:
                 ]
             )
 
-            if is_code_file and isinstance(value, str):
+            if keys:
+                existing_data: Any = {}
+                if self.file_system.exists(file_path):
+                    existing_result = await self._read_db(file_path)
+                    existing_data = existing_result["value"]
+                updated_data = self.domain_service.update_data_by_keys(
+                    existing_data, value, keys
+                )
+                json_data = self.domain_service.ensure_json_serializable(updated_data)
+                content = json.dumps(json_data, indent=2)
+            elif is_code_file and isinstance(value, str):
                 content = value
                 json_data = value  # Keep for response
             else:
@@ -118,8 +158,13 @@ class DBOperationsAdapter:
             with self.file_system.open(file_path, "wb") as f:
                 f.write(content.encode("utf-8"))
 
+            if operation == "update" or keys:
+                return self.domain_service.prepare_update_response(
+                    json_data, str(file_path), len(content), keys
+                )
+
             return self.domain_service.prepare_write_response(
-                json_data, str(file_path), len(content)
+                json_data, str(file_path), len(content), keys or []
             )
         except Exception as e:
             raise ValidationError(

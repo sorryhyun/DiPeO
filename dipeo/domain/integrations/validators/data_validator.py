@@ -9,7 +9,7 @@ from dipeo.domain.base.validator import BaseValidator, Severity, ValidationResul
 class DataValidator(BaseValidator):
     """Validates data operations including database operations."""
 
-    ALLOWED_DB_OPERATIONS = ["prompt", "read", "write", "append"]
+    ALLOWED_DB_OPERATIONS = ["prompt", "read", "write", "append", "update"]
 
     def _perform_validation(self, target: Any, result: ValidationResult) -> None:
         if isinstance(target, dict):
@@ -64,6 +64,17 @@ class DataValidator(BaseValidator):
 
         if "key" in config:
             self._validate_db_key(config["key"], result)
+
+        if "keys" in config:
+            self._validate_db_keys(config["keys"], result)
+
+        if operation == "update" and not config.get("keys"):
+            result.add_error(
+                ValidationError(
+                    "Update operation requires one or more keys",
+                    details={"operation": operation},
+                )
+            )
 
     def _validate_data_content(self, data_dict: dict[str, Any], result: ValidationResult) -> None:
         data = data_dict.get("data")
@@ -205,6 +216,41 @@ class DataValidator(BaseValidator):
                 )
             )
 
+    def _validate_db_keys(self, keys: Any, result: ValidationResult) -> None:
+        if keys is None:
+            return
+
+        if isinstance(keys, str):
+            if not keys.strip():
+                result.add_error(ValidationError("Keys string cannot be empty"))
+            return
+
+        if not isinstance(keys, (list, tuple)):
+            result.add_error(
+                ValidationError(
+                    "Keys must be provided as a string or list of strings",
+                    details={"type": type(keys).__name__},
+                )
+            )
+            return
+
+        for index, key in enumerate(keys):
+            if not isinstance(key, str):
+                result.add_error(
+                    ValidationError(
+                        "Each key must be a string",
+                        details={"index": index, "type": type(key).__name__},
+                    )
+                )
+                continue
+            if not key.strip():
+                result.add_error(
+                    ValidationError(
+                        "Key entries cannot be empty",
+                        details={"index": index},
+                    )
+                )
+
     def _check_sensitive_data(self, data: Any, result: ValidationResult) -> None:
         data_str = str(data).lower()
 
@@ -235,9 +281,9 @@ class DataValidator(BaseValidator):
                 details={"operation": operation, "allowed": allowed_operations},
             )
 
-    def validate_db_operation_input(self, operation: str, value: Any) -> None:
+    def validate_db_operation_input(self, operation: str, value: Any, keys: Any = None) -> None:
         """Validate input for database operations (raises exception)."""
-        config = {"operation": operation, "value": value}
+        config = {"operation": operation, "value": value, "keys": keys}
         result = self.validate(config)
 
         if not result.is_valid:

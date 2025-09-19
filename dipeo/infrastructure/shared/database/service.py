@@ -11,7 +11,7 @@ from dipeo.infrastructure.integrations.adapters import DBOperationsAdapter
 class DBOperationsDomainService:
     """Backward compatibility wrapper for DBOperationsDomainService."""
 
-    ALLOWED_OPERATIONS = ["prompt", "read", "write", "append"]
+    ALLOWED_OPERATIONS = ["prompt", "read", "write", "append", "update"]
 
     def __init__(self, file_system: FileSystemPort, validation_service: DataValidator):
         self.domain_service = DomainDBService()
@@ -24,9 +24,9 @@ class DBOperationsDomainService:
         self.validation_service = validation_service
 
     async def execute_operation(
-        self, db_name: str, operation: str, value: Any = None
+        self, db_name: str, operation: str, value: Any = None, keys: Any = None
     ) -> dict[str, Any]:
-        return await self.adapter.execute_operation(db_name, operation, value)
+        return await self.adapter.execute_operation(db_name, operation, value, keys)
 
     async def _get_db_file_path(self, db_name: str) -> str:
         return await self.adapter._get_db_file_path(db_name)
