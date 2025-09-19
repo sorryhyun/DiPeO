@@ -1,0 +1,109 @@
+{
+  "session_id": "92e3f266-4d65-476e-96b8-2f82bb64b941",
+  "converted_at": "2025-09-19T17:57:33.059399",
+  "source_file": "/home/soryhyun/.claude/projects/-home-soryhyun-DiPeO/92e3f266-4d65-476e-96b8-2f82bb64b941.jsonl",
+  "stats": {
+    "session_id": "92e3f266-4d65-476e-96b8-2f82bb64b941",
+    "total_events": 141,
+    "user_messages": 50,
+    "assistant_messages": 91,
+    "tool_usage": {
+      "Grep": 9,
+      "Glob": 2,
+      "Read": 13,
+      "Bash": 6,
+      "ExitPlanMode": 1,
+      "TodoWrite": 4,
+      "Edit": 10
+    },
+    "unique_files_accessed": 6,
+    "bash_commands_executed": 6,
+    "duration_seconds": 479.199,
+    "duration_human": "0:07:59.199000"
+  },
+  "format": "light",
+  "diagrams": {
+    "original": {
+      "file": "diagram.light.yaml",
+      "statistics": {
+        "node_count": 43,
+        "connection_count": 48,
+        "node_types": [
+          "start",
+          "person_job",
+          "db",
+          "api_job",
+          "code_job",
+          "diff_patch"
+        ]
+      },
+      "optimizations": {
+        "merge_reads": false,
+        "simplify": false,
+        "post_processed": true
+      },
+      "post_processing_results": {
+        "applied": true,
+        "total_changes": 22,
+        "nodes_removed": 7,
+        "connections_modified": 14,
+        "session_event_pruning": {
+          "applied": true,
+          "events_pruned": 1,
+          "pruning_time_ms": 0.0896453857421875,
+          "changes": [
+            {
+              "type": "node_removed",
+              "description": "Pruned user event: No matches found result",
+              "target": "b1847248-e8e2-49a5-a913-76f21d46bb50"
+            }
+          ]
+        }
+      }
+    },
+    "optimized": {
+      "file": "optimized.light.yaml",
+      "statistics": {
+        "node_count": 43,
+        "connection_count": 48,
+        "node_types": [
+          "start",
+          "person_job",
+          "db",
+          "api_job",
+          "code_job",
+          "diff_patch"
+        ]
+      },
+      "optimization_level": "aggressive",
+      "post_processing_results": {
+        "applied": true,
+        "total_changes": 22,
+        "nodes_removed": 7,
+        "connections_modified": 14,
+        "session_event_pruning": {
+          "applied": true,
+          "events_pruned": 1,
+          "pruning_time_ms": 0.06985664367675781,
+          "changes": [
+            {
+              "type": "node_removed",
+              "description": "Pruned user event: No matches found result",
+              "target": "b1847248-e8e2-49a5-a913-76f21d46bb50"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "dual_generation": {
+    "enabled": true,
+    "optimize_level": "aggressive"
+  },
+  "optimization_comparison": {
+    "nodes_removed": 0,
+    "connections_removed": 0,
+    "node_reduction_percent": 0.0,
+    "connection_reduction_percent": 0.0
+  }
+}

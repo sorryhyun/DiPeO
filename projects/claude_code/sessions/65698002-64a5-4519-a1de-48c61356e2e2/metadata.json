@@ -1,0 +1,67 @@
+{
+  "session_id": "65698002-64a5-4519-a1de-48c61356e2e2",
+  "converted_at": "2025-09-19T17:44:14.497534",
+  "source_file": "/home/soryhyun/.claude/projects/-home-soryhyun-DiPeO/65698002-64a5-4519-a1de-48c61356e2e2.jsonl",
+  "stats": {
+    "session_id": "65698002-64a5-4519-a1de-48c61356e2e2",
+    "total_events": 19,
+    "user_messages": 9,
+    "assistant_messages": 10,
+    "tool_usage": {
+      "Read": 1,
+      "Edit": 2,
+      "Bash": 1
+    },
+    "unique_files_accessed": 1,
+    "bash_commands_executed": 1,
+    "duration_seconds": 77.065,
+    "duration_human": "0:01:17.065000"
+  },
+  "format": "light",
+  "diagrams": {
+    "original": {
+      "file": "diagram.light.yaml",
+      "statistics": {
+        "node_count": 9,
+        "connection_count": 8,
+        "node_types": [
+          "code_job",
+          "diff_patch",
+          "person_job",
+          "start",
+          "db"
+        ]
+      },
+      "optimizations": {
+        "merge_reads": false,
+        "simplify": false,
+        "post_processed": false
+      }
+    },
+    "optimized": {
+      "file": "optimized.light.yaml",
+      "statistics": {
+        "node_count": 9,
+        "connection_count": 8,
+        "node_types": [
+          "code_job",
+          "diff_patch",
+          "person_job",
+          "start",
+          "db"
+        ]
+      },
+      "optimization_level": "aggressive"
+    }
+  },
+  "dual_generation": {
+    "enabled": true,
+    "optimize_level": "aggressive"
+  },
+  "optimization_comparison": {
+    "nodes_removed": 0,
+    "connections_removed": 0,
+    "node_reduction_percent": 0.0,
+    "connection_reduction_percent": 0.0
+  }
+}

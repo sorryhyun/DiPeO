@@ -387,15 +387,6 @@ def main():
         default="light",
         help="Output format (default: light)",
     )
-    convert_parser.add_argument(
-        "--auto-execute", action="store_true", help="Automatically execute the generated diagram"
-    )
-    convert_parser.add_argument(
-        "--merge-reads", action="store_true", help="Merge consecutive file read operations"
-    )
-    convert_parser.add_argument(
-        "--simplify", action="store_true", help="Simplify diagram by removing intermediate results"
-    )
 
     # Watch subcommand
     watch_parser = dipeocc_subparsers.add_parser(
@@ -403,9 +394,6 @@ def main():
     )
     watch_parser.add_argument(
         "--interval", type=int, default=30, help="Check interval in seconds (default: 30)"
-    )
-    watch_parser.add_argument(
-        "--auto-execute", action="store_true", help="Automatically execute new diagrams"
     )
 
     # Stats subcommand
@@ -552,17 +540,13 @@ def main():
                 kwargs["latest"] = getattr(args, "latest", False)
                 kwargs["output_dir"] = getattr(args, "output_dir", None)
                 kwargs["format"] = getattr(args, "format", "light")
-                kwargs["auto_execute"] = getattr(args, "auto_execute", False)
-                kwargs["merge_reads"] = getattr(args, "merge_reads", False)
-                kwargs["simplify"] = getattr(args, "simplify", False)
             elif args.dipeocc_action == "watch":
                 kwargs["interval"] = getattr(args, "interval", 30)
-                kwargs["auto_execute"] = getattr(args, "auto_execute", False)
             elif args.dipeocc_action == "stats":
                 kwargs["session_id"] = args.session_id
 
             success = cli.claude_code(args.dipeocc_action, **kwargs)
-            os._exit(0 if success else 1)
+            sys.exit(0 if success else 1)
 
     except KeyboardInterrupt:
         print("\n\nInterrupted by user")

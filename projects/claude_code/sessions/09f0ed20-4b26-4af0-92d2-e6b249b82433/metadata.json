@@ -1,0 +1,44 @@
+{
+  "session_id": "09f0ed20-4b26-4af0-92d2-e6b249b82433",
+  "converted_at": "2025-09-19T18:14:21.958220",
+  "stats": {
+    "session_id": "09f0ed20-4b26-4af0-92d2-e6b249b82433",
+    "total_events": 156,
+    "user_messages": 55,
+    "assistant_messages": 101,
+    "tool_usage": {
+      "TodoWrite": 12,
+      "ExitPlanMode": 1,
+      "Edit": 15,
+      "Grep": 11,
+      "Read": 6,
+      "Bash": 5
+    },
+    "unique_files_accessed": 2,
+    "bash_commands_executed": 5,
+    "duration_seconds": 648.231,
+    "duration_human": "0:10:48.231000"
+  },
+  "format": "light",
+  "diagrams": {
+    "primary": {
+      "file": "diagram.light.yaml",
+      "type": "optimized",
+      "statistics": {
+        "node_count": 50,
+        "connection_count": 52,
+        "node_types": [
+          "api_job",
+          "person_job",
+          "diff_patch",
+          "start",
+          "db",
+          "code_job"
+        ]
+      }
+    }
+  },
+  "options": {
+    "save_original": false
+  }
+}

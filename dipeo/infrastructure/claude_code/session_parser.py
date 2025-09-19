@@ -341,6 +341,34 @@ def find_session_files(base_dir: Path, limit: int = 50) -> list[Path]:
     return session_files
 
 
+def extract_session_timestamp(file_path: Path) -> Optional[datetime]:
+    """Extract the first timestamp from a session file for directory naming."""
+    if not file_path.exists():
+        return None
+
+    try:
+        with open(file_path, encoding="utf-8") as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                try:
+                    data = json.loads(line)
+                    if "timestamp" in data:
+                        timestamp_str = data["timestamp"]
+                        return datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+                except json.JSONDecodeError:
+                    continue
+    except Exception:
+        pass
+
+    return None
+
+
+def format_timestamp_for_directory(timestamp: datetime) -> str:
+    """Format timestamp for directory naming (YYYY-MM-DD_HH-MM-SS)."""
+    return timestamp.strftime("%Y-%m-%d_%H-%M-%S")
+
+
 def parse_session_file(file_path: Path) -> ClaudeCodeSession:
     """Convenience function to parse a session file."""
     # Extract session ID from filename (assuming format: session-{id}.jsonl)

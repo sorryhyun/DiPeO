@@ -22,28 +22,31 @@ Pure business logic following DDD and hexagonal architecture.
 - **Compilation**: DomainCompiler, NodeFactory, ConnectionResolver, CompileTimeResolver
 - **Strategies**: Native, Readable, Light, Executable formats
 - **Models**: ExecutableDiagram, ExecutableNode/Edge
-- **Claude Code Translation** (`cc_translate/`): Converts Claude Code sessions to DiPeO diagrams
+- **Services**: DiagramFormatDetector, DiagramStatisticsService
+
+### 3. Claude Code Translation (`cc_translate/`)
+- **Session Conversion**: Converts Claude Code sessions to DiPeO diagrams
   - `translator.py`: Main orchestration logic
   - `node_builders.py`: Node creation for different tool types
   - `text_utils.py`: Text extraction and unescaping
   - `diff_utils.py`: Unified diff generation for Edit operations
-- **Services**: DiagramFormatDetector, DiagramStatisticsService
+  - `post_processing/`: Session optimization and pruning
 
-### 3. Execution (`execution/`)
+### 4. Execution (`execution/`)
 - **Resolution**: RuntimeInputResolver, TransformationEngine, NodeStrategies
-- ConnectionRules, TransformRules  
+- ConnectionRules, TransformRules
 - DynamicOrderCalculator
 
-### 4. Events (`events/`)
+### 5. Events (`events/`)
 - Event contracts and messaging patterns
 
-### 5. Integrations (`integrations/`)
+### 6. Integrations (`integrations/`)
 - **API**: APIBusinessLogic, RetryPolicy
 - **Database**: DBOperationsDomainService
 - **File**: FileExtension, FileSize, Checksum
 - **Validators**: API, Data, File, Notion
 
-### 6. Base (`base/`)
+### 7. Base (`base/`)
 - BaseValidator, exceptions, service base classes
 
 ## Key Patterns
@@ -142,7 +145,7 @@ def test_connection_rules():
 ```python
 # Current imports (v1.0 unified)
 from dipeo.domain.diagram.compilation import CompileTimeResolver, Connection, TransformRules
-from dipeo.domain.diagram.cc_translate import ClaudeCodeTranslator  # Claude Code session translation
+from dipeo.domain.cc_translate import ClaudeCodeTranslator  # Claude Code session translation
 from dipeo.domain.execution.resolution import RuntimeInputResolver, TransformationEngine
 from dipeo.domain.execution.envelope import EnvelopeFactory  # Unified output pattern
 from dipeo.domain.events import EventBus  # Unified event protocol

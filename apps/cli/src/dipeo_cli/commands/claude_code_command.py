@@ -2,7 +2,6 @@
 
 import json
 import shutil
-import sys
 import time
 from datetime import datetime
 from pathlib import Path
@@ -10,11 +9,12 @@ from typing import Any, Optional
 
 import yaml
 
-from dipeo.domain.diagram.cc_translate import ClaudeCodeTranslator
-from dipeo.domain.diagram.cc_translate.post_processing import PipelineConfig, ProcessingPreset
+from dipeo.domain.cc_translate import ClaudeCodeTranslator
+from dipeo.domain.cc_translate.post_processing import PipelineConfig, ProcessingPreset
 from dipeo.infrastructure.claude_code.session_parser import (
-    ClaudeCodeSession,
+    extract_session_timestamp,
     find_session_files,
+    format_timestamp_for_directory,
     parse_session_file,
 )
 
@@ -25,12 +25,7 @@ class ClaudeCodeCommand:
     def __init__(self, server_manager=None):
         """Initialize the command."""
         self.server_manager = server_manager
-        self.base_dir = (
-            Path.home()
-            / ".claude"
-            / "projects"
-            / "-home-soryhyun-DiPeO-apps-server--dipeo-workspaces-exec-default"
-        )
+        self.base_dir = Path.home() / ".claude" / "projects" / "-home-soryhyun-DiPeO"
         self.output_base = Path("projects/claude_code")
         self.translator = ClaudeCodeTranslator()
 
@@ -44,14 +39,10 @@ class ClaudeCodeCommand:
                 latest=kwargs.get("latest", False),
                 output_dir=kwargs.get("output_dir"),
                 format_type=kwargs.get("format", "light"),
-                auto_execute=kwargs.get("auto_execute", False),
-                merge_reads=kwargs.get("merge_reads", False),
-                simplify=kwargs.get("simplify", False),
             )
         elif action == "watch":
             return self._watch_sessions(
                 interval=kwargs.get("interval", 30),
-                auto_execute=kwargs.get("auto_execute", False),
             )
         elif action == "stats":
             return self._show_stats(kwargs.get("session_id"))
@@ -115,16 +106,12 @@ class ClaudeCodeCommand:
         latest: Optional[int | bool] = False,
         output_dir: Optional[str] = None,
         format_type: str = "light",
-        auto_execute: bool = False,
-        merge_reads: bool = False,
-        simplify: bool = False,
     ) -> bool:
         """Convert Claude Code session(s) to DiPeO diagram(s)."""
+        # Determine which session(s) to convert
         sessions_to_convert = []
 
-        # Determine which session(s) to convert
         if latest:
-            # latest can be True (convert 1) or an integer (convert N)
             num_sessions = 1 if latest is True else latest
             session_files = find_session_files(self.base_dir, limit=num_sessions)
             if not session_files:
@@ -138,10 +125,8 @@ class ClaudeCodeCommand:
 
             sessions_to_convert = [(f.stem, f) for f in session_files]
         elif session_id:
-            # Look for the session file
             session_file = self.base_dir / f"{session_id}.jsonl"
             if not session_file.exists():
-                # Try with "session-" prefix
                 session_file = self.base_dir / f"session-{session_id}.jsonl"
                 if not session_file.exists():
                     print(f"Session file not found: {session_id}")
@@ -155,7 +140,7 @@ class ClaudeCodeCommand:
         successful_conversions = 0
         failed_conversions = 0
 
-        for idx, (session_id, session_file) in enumerate(sessions_to_convert, 1):
+        for idx, (current_session_id, session_file) in enumerate(sessions_to_convert, 1):
             if len(sessions_to_convert) > 1:
                 print(
                     f"\n[{idx}/{len(sessions_to_convert)}] Converting session: {session_file.name}"
@@ -165,144 +150,59 @@ class ClaudeCodeCommand:
 
             try:
                 # Parse the session
-                session = parse_session_file(session_file)
-                stats = session.get_summary_stats()
+                session = self._parse_session_file(session_file)
 
-                print(f"   Events: {stats['total_events']}")
-                print(f"   Duration: {stats.get('duration_human', 'unknown')}")
-                print(f"   Tools used: {len(stats.get('tool_usage', {}))}")
-
-                # Translate to diagram
                 print("\n🔄 Translating to DiPeO diagram...")
 
-                # Configure post-processing based on flags
-                post_process = merge_reads or simplify
-                if post_process:
-                    # Create custom config based on flags
-                    if simplify:
-                        # Use aggressive preset if simplify is requested
-                        config = PipelineConfig.from_preset(ProcessingPreset.AGGRESSIVE)
-                    elif merge_reads:
-                        # Use deduplication only
-                        config = PipelineConfig.from_preset(ProcessingPreset.NONE)
-                        config.read_deduplicator.enabled = True
-                    else:
-                        config = PipelineConfig.from_preset(ProcessingPreset.STANDARD)
+                # Generate both original and optimized diagrams (always)
+                original_diagram_data = self._generate_original_diagram(session)
+                optimized_diagram_data = self._generate_optimized_diagram(session)
 
-                    diagram_data = self.translator.translate(
-                        session, post_process=True, processing_config=config
-                    )
-                else:
-                    diagram_data = self.translator.translate(session)
+                # Setup output directory
+                output_dir_path = self._setup_output_directory(
+                    current_session_id, output_dir, session_file
+                )
 
-                # Determine output path
-                output_dir_path = Path(output_dir) if output_dir else self.output_base
-                output_dir_path = output_dir_path / "sessions" / session_id
-                output_dir_path.mkdir(parents=True, exist_ok=True)
+                # Save both diagrams with new naming convention
+                file_extension = "yaml" if format_type == "light" else "json"
 
-                # Save diagram based on format
-                if format_type == "light":
-                    output_file = output_dir_path / "diagram.light.yaml"
+                # Save original diagram as 'diagram.light.yaml'
+                original_file = output_dir_path / f"diagram.{format_type}.{file_extension}"
+                self._save_diagram(original_diagram_data, original_file, format_type)
+                print(f"📄 Original diagram saved to: {original_file}")
 
-                    # Create a custom YAML dumper with better formatting
-                    class CustomYAMLDumper(yaml.SafeDumper):
-                        pass
+                # Save optimized diagram as 'optimized.light.yaml'
+                optimized_file = output_dir_path / f"optimized.{format_type}.{file_extension}"
+                self._save_diagram(optimized_diagram_data, optimized_file, format_type)
+                print(f"✅ Optimized diagram saved to: {optimized_file}")
 
-                    # Custom representer for multi-line strings using literal style
-                    def str_representer(dumper, data):
-                        # Check if this is a multi-line string (has actual newlines)
-                        if "\n" in data:
-                            # Use literal style for multi-line strings
-                            return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
-                        # Check for diff patterns even in single-line strings
-                        elif (
-                            data.startswith("---") or data.startswith("+++") or data.startswith("#")
-                        ):
-                            # Might be the start of a diff, use literal style
-                            return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
-                        # Use default style for single-line strings
-                        return dumper.represent_scalar("tag:yaml.org,2002:str", data)
-
-                    # Custom representer for compact position dicts
-                    def dict_representer(dumper, data):
-                        # Use flow style for simple position/vec2 dicts
-                        if isinstance(data, dict) and len(data) == 2:
-                            keys = set(data.keys())
-                            if keys == {"x", "y"}:
-                                # Use flow style for position objects
-                                return dumper.represent_mapping(
-                                    "tag:yaml.org,2002:map", data, flow_style=True
-                                )
-                        # Use default block style for other dicts
-                        return dumper.represent_mapping("tag:yaml.org,2002:map", data)
-
-                    # Register representers with our custom dumper
-                    CustomYAMLDumper.add_representer(str, str_representer)
-                    CustomYAMLDumper.add_representer(dict, dict_representer)
-
-                    with open(output_file, "w", encoding="utf-8") as f:
-                        yaml.dump(
-                            diagram_data,
-                            f,
-                            Dumper=CustomYAMLDumper,
-                            default_flow_style=False,
-                            sort_keys=False,
-                            allow_unicode=True,
-                            width=4096,  # Wider lines for better readability
-                        )
-                elif format_type == "native":
-                    output_file = output_dir_path / "diagram.native.json"
-                    with open(output_file, "w") as f:
-                        json.dump(diagram_data, f, indent=2)
-                else:
-                    print(f"Unsupported format: {format_type}")
-                    failed_conversions += 1
-                    continue
-
-                print(f"✅ Diagram saved to: {output_file}")
-
-                # Copy original session JSONL file to the session folder
-                session_jsonl_dest = output_dir_path / "session.jsonl"
-                shutil.copy2(session_file, session_jsonl_dest)
-                print(f"📄 Session JSONL saved to: {session_jsonl_dest}")
-
-                # Save metadata
-                metadata_file = output_dir_path / "metadata.json"
-                metadata = {
-                    "session_id": session_id,
-                    "converted_at": datetime.now().isoformat(),
-                    "source_file": str(session_file),
-                    "stats": stats,
-                    "format": format_type,
-                    "optimizations": {
-                        "merge_reads": merge_reads,
-                        "simplify": simplify,
-                        "post_processed": post_process,
+                # Create diagrams info for metadata
+                diagrams_info = {
+                    "original": {
+                        "file": f"diagram.{format_type}.{file_extension}",
+                        "type": "original",
+                        "statistics": self._get_diagram_stats(original_diagram_data),
+                    },
+                    "optimized": {
+                        "file": f"optimized.{format_type}.{file_extension}",
+                        "type": "optimized",
+                        "statistics": self._get_diagram_stats(optimized_diagram_data),
                     },
                 }
 
-                # Add post-processing details if available
-                if "metadata" in diagram_data and "post_processing" in diagram_data["metadata"]:
-                    metadata["post_processing_results"] = diagram_data["metadata"][
-                        "post_processing"
-                    ]
+                # Create metadata
+                metadata = self._create_session_metadata(
+                    current_session_id, session, diagrams_info, format_type, output_dir_path.name
+                )
+
+                metadata_file = output_dir_path / "metadata.json"
                 with open(metadata_file, "w") as f:
                     json.dump(metadata, f, indent=2)
-
-                # Create/update symlink to latest (only for single conversion)
-                if len(sessions_to_convert) == 1:
-                    latest_link = self.output_base / f"latest.{format_type}.yaml"
-                    if latest_link.exists() or latest_link.is_symlink():
-                        latest_link.unlink()
-                    latest_link.symlink_to(output_file.relative_to(self.output_base.parent))
-                    print(f"🔗 Latest symlink updated: {latest_link}")
-
                 print(f"📊 Metadata saved to: {metadata_file}")
 
-                # Auto-execute if requested (only for single conversion)
-                if auto_execute and self.server_manager and len(sessions_to_convert) == 1:
-                    print("\n🚀 Auto-executing generated diagram...")
-                    self._execute_diagram(str(output_file))
+                # Create latest symlink for single conversions (point to optimized version)
+                if len(sessions_to_convert) == 1:
+                    self._create_latest_symlink(optimized_file, format_type)
 
                 successful_conversions += 1
                 if len(sessions_to_convert) == 1:
@@ -325,7 +225,164 @@ class ClaudeCodeCommand:
 
         return successful_conversions > 0
 
-    def _watch_sessions(self, interval: int = 30, auto_execute: bool = False) -> bool:
+    def _get_diagram_stats(self, diagram_data: dict[str, Any]) -> dict[str, Any]:
+        """Extract basic statistics from a diagram."""
+        nodes = diagram_data.get("nodes", [])
+        connections = diagram_data.get("connections", [])
+        return {
+            "node_count": len(nodes),
+            "connection_count": len(connections),
+            "node_types": list(set(node.get("type", "unknown") for node in nodes)),
+        }
+
+    def _parse_session_file(self, session_file: Path) -> Any:
+        """Parse and validate a Claude Code session file."""
+        session = parse_session_file(session_file)
+        stats = session.get_summary_stats()
+
+        print(f"   Events: {stats['total_events']}")
+        print(f"   Duration: {stats.get('duration_human', 'unknown')}")
+        print(f"   Tools used: {len(stats.get('tool_usage', {}))}")
+
+        return session
+
+    def _generate_optimized_diagram(self, session: Any) -> dict[str, Any]:
+        """Generate optimized diagram using standard post-processing."""
+        print("   ⚡ Generating optimized diagram...")
+
+        # Use standard preset for optimization
+        config = PipelineConfig.from_preset(ProcessingPreset.STANDARD)
+        return self.translator.translate(session, post_process=True, processing_config=config)
+
+    def _generate_original_diagram(self, session: Any) -> dict[str, Any]:
+        """Generate original diagram with minimal post-processing."""
+        print("   📄 Generating original diagram...")
+
+        # Use minimal processing for original
+        return self.translator.translate(session)
+
+    def _save_diagram(
+        self, diagram_data: dict[str, Any], file_path: Path, format_type: str
+    ) -> None:
+        """Save diagram to file in the specified format."""
+        if format_type == "light":
+            self._save_light_diagram(diagram_data, file_path)
+        elif format_type == "native":
+            with open(file_path, "w") as f:
+                json.dump(diagram_data, f, indent=2)
+        else:
+            raise ValueError(f"Unsupported format: {format_type}")
+
+    def _save_light_diagram(self, diagram_data: dict[str, Any], file_path: Path) -> None:
+        """Save diagram in light format with custom YAML formatting."""
+
+        class CustomYAMLDumper(yaml.SafeDumper):
+            pass
+
+        def str_representer(dumper, data):
+            if "\n" in data or (
+                data.startswith("---") or data.startswith("+++") or data.startswith("#")
+            ):
+                return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+            return dumper.represent_scalar("tag:yaml.org,2002:str", data)
+
+        def dict_representer(dumper, data):
+            if isinstance(data, dict) and len(data) == 2:
+                keys = set(data.keys())
+                if keys == {"x", "y"}:
+                    return dumper.represent_mapping("tag:yaml.org,2002:map", data, flow_style=True)
+            return dumper.represent_mapping("tag:yaml.org,2002:map", data)
+
+        CustomYAMLDumper.add_representer(str, str_representer)
+        CustomYAMLDumper.add_representer(dict, dict_representer)
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            yaml.dump(
+                diagram_data,
+                f,
+                Dumper=CustomYAMLDumper,
+                default_flow_style=False,
+                sort_keys=False,
+                allow_unicode=True,
+                width=4096,
+            )
+
+    def _setup_output_directory(
+        self, session_id: str, output_dir: Optional[str], session_file: Path
+    ) -> Path:
+        """Setup output directory using timestamp-based naming and copy session files."""
+        output_dir_path = Path(output_dir) if output_dir else self.output_base
+
+        # Extract timestamp from session file for directory naming
+        timestamp = extract_session_timestamp(session_file)
+        if timestamp:
+            dir_name = format_timestamp_for_directory(timestamp)
+        else:
+            # Fallback to session_id if timestamp extraction fails
+            dir_name = session_id
+            print(f"⚠️  Warning: Could not extract timestamp, using session ID: {session_id}")
+
+        output_dir_path = output_dir_path / "sessions" / dir_name
+        output_dir_path.mkdir(parents=True, exist_ok=True)
+
+        # Copy original session JSONL file as 'original_session.jsonl'
+        original_session_dest = output_dir_path / "original_session.jsonl"
+        shutil.copy2(session_file, original_session_dest)
+        print(f"📄 Original session JSONL saved to: {original_session_dest}")
+
+        # Copy as 'session.jsonl' for processed version (same content for now)
+        session_jsonl_dest = output_dir_path / "session.jsonl"
+        shutil.copy2(session_file, session_jsonl_dest)
+        print(f"📄 Session JSONL saved to: {session_jsonl_dest}")
+
+        return output_dir_path
+
+    def _create_session_metadata(
+        self,
+        session_id: str,
+        session: Any,
+        diagrams_info: dict[str, Any],
+        format_type: str,
+        directory_name: str,
+    ) -> dict[str, Any]:
+        """Generate essential session metadata."""
+        stats = session.get_summary_stats()
+
+        metadata = {
+            "session_id": session_id,
+            "directory_name": directory_name,  # Timestamp-based directory name
+            "converted_at": datetime.now().isoformat(),
+            "stats": stats,
+            "format": format_type,
+            "diagrams": diagrams_info,
+            "file_structure": {
+                "original_session": "original_session.jsonl",
+                "processed_session": "session.jsonl",
+                "original_diagram": f"diagram.{format_type}.yaml"
+                if format_type == "light"
+                else f"diagram.{format_type}.json",
+                "optimized_diagram": f"optimized.{format_type}.yaml"
+                if format_type == "light"
+                else f"optimized.{format_type}.json",
+                "metadata": "metadata.json",
+            },
+            "options": {
+                "save_original": True,  # Always save both versions now
+                "timestamp_based_naming": True,
+            },
+        }
+
+        return metadata
+
+    def _create_latest_symlink(self, diagram_file: Path, format_type: str) -> None:
+        """Create symlink to latest converted diagram."""
+        latest_link = self.output_base / f"latest.{format_type}.yaml"
+        if latest_link.exists() or latest_link.is_symlink():
+            latest_link.unlink()
+        latest_link.symlink_to(diagram_file.relative_to(self.output_base.parent))
+        print(f"🔗 Latest symlink updated: {latest_link}")
+
+    def _watch_sessions(self, interval: int = 30) -> bool:
         """Watch for new sessions and convert them automatically."""
         print(f"👀 Watching for new Claude Code sessions (interval: {interval}s)")
         print(f"   Directory: {self.base_dir}")
@@ -354,10 +411,7 @@ class ClaudeCodeCommand:
                         processed_sessions.add(session_id)
 
                         # Convert the new session
-                        success = self._convert_session(
-                            session_id=session_id,
-                            auto_execute=auto_execute,
-                        )
+                        success = self._convert_session(session_id=session_id)
                         if success:
                             print(f"✅ Successfully converted: {session_id}")
                         else:
@@ -441,29 +495,4 @@ class ClaudeCodeCommand:
 
         except Exception as e:
             print(f"Error analyzing session: {e}")
-            return False
-
-    def _execute_diagram(self, diagram_path: str) -> bool:
-        """Execute the generated diagram using the server."""
-        if not self.server_manager:
-            print("Server manager not available for execution")
-            return False
-
-        try:
-            from dipeo_cli.commands.run_command import RunCommand
-
-            run_command = RunCommand(self.server_manager)
-
-            # Determine format from file extension
-            format_type = "light" if diagram_path.endswith(".light.yaml") else "native"
-
-            return run_command.execute(
-                diagram=diagram_path,
-                debug=False,
-                no_browser=True,
-                timeout=300,
-                format_type=format_type,
-            )
-        except Exception as e:
-            print(f"Failed to execute diagram: {e}")
             return False

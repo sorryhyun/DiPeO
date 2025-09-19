@@ -2,7 +2,7 @@
 
 import pytest
 
-from dipeo.domain.diagram.cc_translate.payload_utils import (
+from dipeo.domain.cc_translate.payload_utils import (
     classify_payload,
     extract_error_message,
     extract_original_content,
