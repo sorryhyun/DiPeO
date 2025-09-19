@@ -32,7 +32,8 @@ plan.md
 *.tsbuildinfo
 .ruff_cache/
 .playwright-mcp/DiPeO-dev/.pyinstaller_hooks/*
-
+original_session.jsonl
+session.jsonl
 # Staging directories
 dipeo/diagram_generated_staged/
 .backups/
