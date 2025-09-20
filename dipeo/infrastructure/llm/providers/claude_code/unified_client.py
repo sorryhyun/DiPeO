@@ -107,7 +107,7 @@ class UnifiedClaudeCodeClient:
             len(messages),
             execution_phase,
         )
-        system_message, serialized_messages = self._processor.prepare_message(messages)
+        system_message, formatted_messages = self._processor.prepare_message(messages)
 
         # Configure MCP server based on execution phase
         use_tools = execution_phase in (
@@ -156,7 +156,20 @@ class UnifiedClaudeCodeClient:
                 result_text = ""
                 tool_invocation_data = None
 
-                async for message in wrapper.query(serialized_messages):
+                # Create async generator for messages if multiple messages exist
+                async def message_generator():
+                    for msg in formatted_messages:
+                        yield msg
+
+                # Use async iterable if we have multiple messages, otherwise use JSON string
+                if len(formatted_messages) > 1:
+                    query_input = message_generator()
+                else:
+                    import json
+
+                    query_input = json.dumps(formatted_messages)
+
+                async for message in wrapper.query(query_input):
                     # Check for tool invocations in assistant messages
                     if hasattr(message, "content") and not hasattr(message, "result"):
                         # Check if this message contains tool invocations
@@ -218,7 +231,7 @@ class UnifiedClaudeCodeClient:
     ) -> AsyncIterator[str]:
         """Stream chat completion response."""
         # Prepare messages for Claude SDK
-        system_message, serialized_messages = self._processor.prepare_message(messages)
+        system_message, formatted_messages = self._processor.prepare_message(messages)
 
         # Configure MCP server based on execution phase
         use_tools = execution_phase in (
@@ -252,7 +265,21 @@ class UnifiedClaudeCodeClient:
             # For streaming, we need to handle both AssistantMessage (for real-time streaming)
             # and ResultMessage (for final result)
             has_yielded_content = False
-            async for message in wrapper.query(serialized_messages):
+
+            # Create async generator for messages if multiple messages exist
+            async def message_generator():
+                for msg in formatted_messages:
+                    yield msg
+
+            # Use async iterable if we have multiple messages, otherwise use JSON string
+            if len(formatted_messages) > 1:
+                query_input = message_generator()
+            else:
+                import json
+
+                query_input = json.dumps(formatted_messages)
+
+            async for message in wrapper.query(query_input):
                 if hasattr(message, "content") and not hasattr(message, "result"):
                     # Stream content from AssistantMessage (real-time streaming)
                     for block in message.content:

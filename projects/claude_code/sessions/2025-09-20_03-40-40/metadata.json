@@ -1,7 +1,7 @@
 {
   "session_id": "95493a1e-7776-4bd6-b958-414dc54a0733",
   "directory_name": "2025-09-20_03-40-40",
-  "converted_at": "2025-09-20T13:59:12.426966",
+  "converted_at": "2025-09-20T14:24:28.227301",
   "stats": {
     "session_id": "95493a1e-7776-4bd6-b958-414dc54a0733",
     "total_events": 6,
@@ -22,8 +22,8 @@
         "node_count": 5,
         "connection_count": 4,
         "node_types": [
-          "start",
-          "person_job"
+          "person_job",
+          "start"
         ]
       }
     },
@@ -34,8 +34,8 @@
         "node_count": 5,
         "connection_count": 4,
         "node_types": [
-          "start",
-          "person_job"
+          "person_job",
+          "start"
         ]
       }
     },
@@ -46,8 +46,8 @@
         "node_count": 5,
         "connection_count": 4,
         "node_types": [
-          "start",
-          "person_job"
+          "person_job",
+          "start"
         ]
       }
     }

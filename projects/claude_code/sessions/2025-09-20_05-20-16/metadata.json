@@ -1,24 +1,17 @@
 {
-  "session_id": "9c0b38de-fa29-48bf-9846-b35921fce337",
-  "directory_name": "2025-09-20_04-38-04",
-  "converted_at": "2025-09-20T14:24:27.764910",
+  "session_id": "45d022ae-57f1-4285-9241-f99967c603c7",
+  "directory_name": "2025-09-20_05-20-16",
+  "converted_at": "2025-09-20T14:24:27.469941",
   "stats": {
-    "session_id": "9c0b38de-fa29-48bf-9846-b35921fce337",
-    "total_events": 149,
-    "user_messages": 51,
-    "assistant_messages": 98,
-    "tool_usage": {
-      "Read": 18,
-      "Glob": 2,
-      "TodoWrite": 7,
-      "ExitPlanMode": 1,
-      "Edit": 16,
-      "Bash": 2
-    },
-    "unique_files_accessed": 10,
-    "bash_commands_executed": 2,
-    "duration_seconds": 926.697,
-    "duration_human": "0:15:26.697000"
+    "session_id": "45d022ae-57f1-4285-9241-f99967c603c7",
+    "total_events": 9,
+    "user_messages": 9,
+    "assistant_messages": 0,
+    "tool_usage": {},
+    "unique_files_accessed": 0,
+    "bash_commands_executed": 0,
+    "duration_seconds": 6.008,
+    "duration_human": "0:00:06.008000"
   },
   "format": "light",
   "diagrams": {
@@ -26,13 +19,9 @@
       "file": "diagram.light.yaml",
       "type": "original",
       "statistics": {
-        "node_count": 75,
-        "connection_count": 74,
+        "node_count": 7,
+        "connection_count": 6,
         "node_types": [
-          "db",
-          "diff_patch",
-          "code_job",
-          "api_job",
           "person_job",
           "start"
         ]
@@ -42,13 +31,9 @@
       "file": "optimized.light.yaml",
       "type": "optimized",
       "statistics": {
-        "node_count": 67,
-        "connection_count": 72,
+        "node_count": 7,
+        "connection_count": 6,
         "node_types": [
-          "db",
-          "diff_patch",
-          "code_job",
-          "api_job",
           "person_job",
           "start"
         ]
@@ -58,12 +43,11 @@
       "file": "grouped.light.yaml",
       "type": "grouped",
       "statistics": {
-        "node_count": 12,
-        "connection_count": 11,
+        "node_count": 7,
+        "connection_count": 6,
         "node_types": [
-          "db",
-          "start",
-          "sub_diagram"
+          "person_job",
+          "start"
         ]
       }
     }

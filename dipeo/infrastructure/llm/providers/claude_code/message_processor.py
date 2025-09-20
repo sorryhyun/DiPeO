@@ -59,10 +59,10 @@ class ClaudeCodeMessageProcessor:
         return None
 
     @staticmethod
-    def prepare_message(messages: list[Message]) -> tuple[str | None, str]:
+    def prepare_message(messages: list[Message]) -> tuple[str | None, list[dict[str, Any]]]:
         """Prepare messages for Claude Code format.
 
-        Returns a tuple of system prompt text and serialized structured
+        Returns a tuple of system prompt text and a list of formatted
         messages expected by the Claude Code SDK.
         """
         system_messages: list[str] = []
@@ -89,7 +89,7 @@ class ClaudeCodeMessageProcessor:
                     role = "user"
 
             if role == "system":
-                system_messages.append(ClaudeCodeMessageProcessor._normalize_text(raw_content))
+                system_messages.append(str(raw_content).strip() if raw_content else "")
                 continue
 
             message_payload = {
@@ -116,44 +116,28 @@ class ClaudeCodeMessageProcessor:
                 }
             )
 
-        serialized_messages = json.dumps(formatted_messages)
-
-        return system_message, serialized_messages
-
-    @staticmethod
-    def _normalize_text(raw_content: Any) -> str:
-        """Convert various message content shapes into plain text."""
-        if isinstance(raw_content, str):
-            return raw_content.strip()
-
-        if isinstance(raw_content, list):
-            parts: list[str] = []
-            for item in raw_content:
-                if isinstance(item, dict) and item.get("type") == "text":
-                    parts.append(str(item.get("text", "")))
-                else:
-                    parts.append(str(item))
-            return "\n".join(parts).strip()
-
-        if isinstance(raw_content, dict):
-            if "content" in raw_content and isinstance(raw_content["content"], list):
-                return ClaudeCodeMessageProcessor._normalize_text(raw_content["content"])
-            if "text" in raw_content:
-                return str(raw_content.get("text", "")).strip()
-
-        return str(raw_content).strip()
+        return system_message, formatted_messages
 
     @staticmethod
     def _build_sdk_content(raw_content: Any) -> list[dict[str, Any]]:
         """Convert message content into Claude SDK block format."""
         if isinstance(raw_content, list):
-            blocks: list[dict[str, Any]] = []
-            for item in raw_content:
-                if isinstance(item, dict) and item.get("type"):
-                    blocks.append(item)
-                else:
-                    blocks.append({"type": "text", "text": str(item)})
-            return blocks
+            # Only flatten if all items are content blocks (have 'type' field)
+            # This prevents flattening of separate messages into a single content array
+            if all(isinstance(item, dict) and item.get("type") for item in raw_content):
+                return raw_content  # Already in proper block format
+            elif all(isinstance(item, dict) and not item.get("type") for item in raw_content):
+                # Convert plain dicts to text blocks
+                blocks = []
+                for item in raw_content:
+                    if "text" in item:
+                        blocks.append({"type": "text", "text": str(item["text"])})
+                    else:
+                        blocks.append({"type": "text", "text": str(item)})
+                return blocks
+            else:
+                # Mixed types - don't flatten, treat as single text content
+                return [{"type": "text", "text": str(raw_content)}]
 
         if isinstance(raw_content, dict):
             if raw_content.get("type"):

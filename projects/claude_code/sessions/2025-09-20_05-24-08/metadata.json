@@ -1,17 +1,17 @@
 {
-  "session_id": "dd4f5616-9320-4201-a1dd-1c0555b951c3",
-  "directory_name": "2025-09-20_04-01-19",
-  "converted_at": "2025-09-20T14:24:28.219835",
+  "session_id": "09c0faec-9f8d-4a6d-83ff-a7e27b063178",
+  "directory_name": "2025-09-20_05-24-08",
+  "converted_at": "2025-09-20T14:28:16.879025",
   "stats": {
-    "session_id": "dd4f5616-9320-4201-a1dd-1c0555b951c3",
-    "total_events": 9,
-    "user_messages": 9,
-    "assistant_messages": 0,
+    "session_id": "09c0faec-9f8d-4a6d-83ff-a7e27b063178",
+    "total_events": 2,
+    "user_messages": 1,
+    "assistant_messages": 1,
     "tool_usage": {},
     "unique_files_accessed": 0,
     "bash_commands_executed": 0,
-    "duration_seconds": 29.435,
-    "duration_human": "0:00:29.435000"
+    "duration_seconds": 2.448,
+    "duration_human": "0:00:02.448000"
   },
   "format": "light",
   "diagrams": {
@@ -19,11 +19,11 @@
       "file": "diagram.light.yaml",
       "type": "original",
       "statistics": {
-        "node_count": 7,
-        "connection_count": 6,
+        "node_count": 2,
+        "connection_count": 1,
         "node_types": [
-          "person_job",
-          "start"
+          "start",
+          "person_job"
         ]
       }
     },
@@ -31,11 +31,11 @@
       "file": "optimized.light.yaml",
       "type": "optimized",
       "statistics": {
-        "node_count": 7,
-        "connection_count": 6,
+        "node_count": 2,
+        "connection_count": 1,
         "node_types": [
-          "person_job",
-          "start"
+          "start",
+          "person_job"
         ]
       }
     },
@@ -43,11 +43,11 @@
       "file": "grouped.light.yaml",
       "type": "grouped",
       "statistics": {
-        "node_count": 7,
-        "connection_count": 6,
+        "node_count": 2,
+        "connection_count": 1,
         "node_types": [
-          "person_job",
-          "start"
+          "start",
+          "person_job"
         ]
       }
     }

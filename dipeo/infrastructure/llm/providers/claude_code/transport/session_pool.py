@@ -11,6 +11,7 @@ import logging
 import os
 import time
 from collections import OrderedDict
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
@@ -111,11 +112,11 @@ class SessionClient:
             logger.error(f"[SessionClient] Failed to connect session {self.session_id}: {e}")
             raise
 
-    async def query(self, prompt: str):
+    async def query(self, prompt: str | AsyncIterator[dict[str, Any]]):
         """Execute a query on this session.
 
         Args:
-            prompt: The prompt to send
+            prompt: The prompt to send (string or async iterable of message dicts)
 
         Yields:
             Messages from the response
