@@ -1,25 +1,25 @@
 {
-  "session_id": "b1476fda-a6a3-4c48-95d5-d19356be8080",
-  "directory_name": "2025-09-19_13-10-41",
-  "converted_at": "2025-09-20T11:04:42.616889",
+  "session_id": "4b49c446-f6b4-4262-9f2f-f6177168ca3e",
+  "directory_name": "2025-09-20_02-18-06",
+  "converted_at": "2025-09-20T11:35:58.940022",
   "stats": {
-    "session_id": "b1476fda-a6a3-4c48-95d5-d19356be8080",
-    "total_events": 237,
-    "user_messages": 83,
-    "assistant_messages": 153,
+    "session_id": "4b49c446-f6b4-4262-9f2f-f6177168ca3e",
+    "total_events": 165,
+    "user_messages": 57,
+    "assistant_messages": 108,
     "tool_usage": {
-      "Bash": 19,
-      "Read": 22,
-      "TodoWrite": 13,
-      "Glob": 1,
-      "Grep": 6,
-      "Edit": 10,
-      "MultiEdit": 2
+      "Bash": 12,
+      "Read": 6,
+      "Grep": 2,
+      "ExitPlanMode": 1,
+      "TodoWrite": 10,
+      "Write": 14,
+      "Edit": 7
     },
-    "unique_files_accessed": 9,
-    "bash_commands_executed": 19,
-    "duration_seconds": 681.688,
-    "duration_human": "0:11:21.688000"
+    "unique_files_accessed": 21,
+    "bash_commands_executed": 12,
+    "duration_seconds": 1071.234,
+    "duration_human": "0:17:51.234000"
   },
   "format": "light",
   "diagrams": {
@@ -27,14 +27,15 @@
       "file": "diagram.light.yaml",
       "type": "original",
       "statistics": {
-        "node_count": 160,
-        "connection_count": 159,
+        "node_count": 105,
+        "connection_count": 104,
         "node_types": [
-          "person_job",
+          "diff_patch",
+          "api_job",
           "start",
           "db",
           "code_job",
-          "diff_patch"
+          "person_job"
         ]
       }
     },
@@ -42,14 +43,15 @@
       "file": "optimized.light.yaml",
       "type": "optimized",
       "statistics": {
-        "node_count": 147,
-        "connection_count": 159,
+        "node_count": 105,
+        "connection_count": 104,
         "node_types": [
-          "person_job",
+          "diff_patch",
+          "api_job",
           "start",
           "db",
           "code_job",
-          "diff_patch"
+          "person_job"
         ]
       }
     }

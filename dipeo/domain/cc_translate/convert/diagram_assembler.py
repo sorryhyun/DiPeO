@@ -4,29 +4,35 @@ This module handles the final assembly of nodes, connections, and metadata
 into the light format diagram structure.
 """
 
-from typing import Any
+from typing import Any, Optional
+
+from .person_registry import PersonRegistry
 
 
 class DiagramAssembler:
     """Assembles final light format diagram from components."""
 
-    def __init__(self):
-        """Initialize the diagram assembler."""
-        pass
+    def __init__(self, person_registry: Optional[PersonRegistry] = None):
+        """Initialize the diagram assembler.
+
+        Args:
+            person_registry: Optional person registry for managing persons
+        """
+        self.person_registry = person_registry
 
     def assemble_light_diagram(
         self,
         nodes: list[dict[str, Any]],
         connections: list[dict[str, Any]],
-        persons: dict[str, Any],
-        metadata: dict[str, Any] | None = None,
+        persons: Optional[dict[str, Any]] = None,
+        metadata: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """Assemble components into light format diagram.
 
         Args:
             nodes: List of node dictionaries
             connections: List of connection dictionaries
-            persons: Dictionary of person configurations
+            persons: Optional dictionary of person configurations
             metadata: Optional metadata to include
 
         Returns:
@@ -44,8 +50,13 @@ class DiagramAssembler:
             diagram["connections"] = connections
 
         # Add persons section if we have AI agents
+        # Use provided persons or get from registry
         if persons:
             diagram["persons"] = persons
+        elif self.person_registry:
+            registry_persons = self.person_registry.get_all_persons()
+            if registry_persons:
+                diagram["persons"] = registry_persons
 
         # Add metadata if provided
         if metadata:

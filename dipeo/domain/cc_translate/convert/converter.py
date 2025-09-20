@@ -13,7 +13,9 @@ from ..models.preprocessed import PreprocessedData
 from .base import BaseConverter, ConversionContext, ConversionReport, ConversionStatus
 from .connection_builder import ConnectionBuilder
 from .diagram_assembler import DiagramAssembler
-from .node_builders import NodeBuilder
+
+# Use refactored NodeBuilder
+from .node_builder_refactored import NodeBuilder
 
 
 class Converter(BaseConverter):
@@ -23,7 +25,8 @@ class Converter(BaseConverter):
         """Initialize the converter."""
         self.node_builder = NodeBuilder()
         self.connection_builder = ConnectionBuilder()
-        self.assembler = DiagramAssembler()
+        # Pass person registry to assembler for better integration
+        self.assembler = DiagramAssembler(self.node_builder.person_registry)
         self.node_map: dict[str, str] = {}  # Maps event UUID to node label
 
     def convert(
@@ -171,11 +174,19 @@ class Converter(BaseConverter):
         current_turn = []
 
         for event in events:
-            # Start a new turn on user events (unless it's a tool result response)
-            if event.is_user_event() and not event.parent_uuid:
-                if current_turn:
+            # Start a new turn on non-meta user events that have content
+            if event.is_user_event() and not event.is_meta and event.content.has_content():
+                # Check if this is the start of a new conversation turn
+                # A new turn starts when we encounter a user message after assistant/tool events
+                if current_turn and any(
+                    e.is_assistant_event() or e.type in [EventType.TOOL_USE, EventType.TOOL_RESULT]
+                    for e in current_turn
+                ):
                     turns.append(current_turn)
-                current_turn = [event]
+                    current_turn = [event]
+                else:
+                    # Continue adding to current turn (consecutive user messages or first message)
+                    current_turn.append(event)
             else:
                 current_turn.append(event)
 
@@ -196,8 +207,8 @@ class Converter(BaseConverter):
 
         for event in turn_events:
             if event.is_user_event():
-                # Skip user events that are just showing tool results
-                if not event.parent_uuid:
+                # Skip meta events and events without content
+                if not event.is_meta:
                     user_node_label = self._create_user_node_from_event(event)
                     if user_node_label:
                         node_labels.append(user_node_label)
@@ -208,6 +219,8 @@ class Converter(BaseConverter):
                     tool_node_labels = self._create_tool_nodes_from_event(event)
                     node_labels.extend(tool_node_labels)
                 else:
+                    # Pure assistant responses don't create nodes (they're outputs of user prompts)
+                    # Still call create_assistant_node to register the claude_code person if needed
                     assistant_node_label = self._create_assistant_node_from_event(
                         event, system_messages
                     )
@@ -237,16 +250,19 @@ class Converter(BaseConverter):
     def _create_assistant_node_from_event(
         self, event: DomainEvent, system_messages: list[str]
     ) -> Optional[str]:
-        """Create a node for AI assistant response from domain event."""
+        """Handle AI assistant response from domain event - typically returns None."""
         content = event.content.text or ""
 
         if not content.strip():
             return None
 
+        # Call create_assistant_node which now returns None for pure text responses
         node = self.node_builder.create_assistant_node(content, system_messages)
         if node:
             self.node_map[event.uuid] = node["label"]
             return node["label"]
+
+        # Most assistant responses won't create nodes since they're outputs of user prompts
         return None
 
     def _create_tool_nodes_from_event(self, event: DomainEvent) -> list[str]:
@@ -275,9 +291,9 @@ class Converter(BaseConverter):
         if "initial_prompt" in preprocessed_data.conversation_context:
             return preprocessed_data.conversation_context["initial_prompt"]
 
-        # Fall back to first user event
+        # Fall back to first non-meta user event with content
         for event in preprocessed_data.processed_events:
-            if event.is_user_event():
+            if event.is_user_event() and not event.is_meta and event.content.has_content():
                 return event.content.text or "Claude Code Session"
 
         return "Claude Code Session"
