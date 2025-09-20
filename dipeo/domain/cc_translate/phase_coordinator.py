@@ -150,8 +150,17 @@ class PhaseCoordinator:
                 )
                 pipeline = PostProcessor(config)
 
+                # Pass through relevant kwargs to post-processor
+                post_process_kwargs = {}
+                if "output_base_path" in kwargs:
+                    post_process_kwargs["output_base_path"] = kwargs["output_base_path"]
+
                 result = self.with_error_boundary(
-                    PipelinePhase.POST_PROCESS, pipeline.process, diagram, config
+                    PipelinePhase.POST_PROCESS,
+                    pipeline.process,
+                    diagram,
+                    config,
+                    **post_process_kwargs,
                 )
                 metrics.add_phase_result(result)
 

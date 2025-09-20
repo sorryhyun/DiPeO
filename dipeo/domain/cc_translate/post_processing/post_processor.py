@@ -11,6 +11,7 @@ from .base import (
 )
 from .config import PipelineConfig, ProcessingPreset
 from .read_deduplicator import ReadNodeDeduplicator
+from .to_do_subdiagram_grouper import To_Do_Subdiagram_Grouper
 
 
 class PostProcessor(BasePostProcessor):
@@ -38,8 +39,18 @@ class PostProcessor(BasePostProcessor):
         #     self._processors.append(ConsecutiveNodeMerger(self.config.consecutive_merger))
         # etc.
 
+        # Add TodoSubdiagramGrouper if enabled (should be last as it's structural)
+        if self.config.todo_subdiagram_grouper.enabled:
+            self._grouper_config_base = {
+                "enabled": self.config.todo_subdiagram_grouper.enabled,
+                "output_subdirectory": self.config.todo_subdiagram_grouper.output_subdirectory,
+                "preserve_connections": self.config.todo_subdiagram_grouper.preserve_connections,
+                "naming_convention": self.config.todo_subdiagram_grouper.naming_convention,
+            }
+            # Note: We'll create the actual grouper instance in process() with output_base_path
+
     def process(
-        self, diagram: dict[str, Any], config: Optional[Any] = None
+        self, diagram: dict[str, Any], config: Optional[Any] = None, **kwargs
     ) -> tuple[dict[str, Any], DiagramPipelineReport]:
         """
         Process diagram through all configured processors.
@@ -63,6 +74,13 @@ class PostProcessor(BasePostProcessor):
         # Calculate initial statistics
         report.diagram_stats["initial"] = self._calculate_diagram_stats(diagram)
 
+        # Add TodoSubdiagramGrouper if enabled and output_base_path is provided
+        processors = list(self._processors)  # Copy base processors
+        if hasattr(self, "_grouper_config_base") and kwargs.get("output_base_path"):
+            grouper_config = self._grouper_config_base.copy()
+            grouper_config["output_base_path"] = kwargs["output_base_path"]
+            processors.append(To_Do_Subdiagram_Grouper(grouper_config))
+        print(processors)
         # Process through each processor
         processed_diagram = diagram
         for iteration in range(pipeline_config.max_iterations):
@@ -72,7 +90,7 @@ class PostProcessor(BasePostProcessor):
 
             iteration_had_changes = False
 
-            for processor in self._processors:
+            for processor in processors:
                 if not processor.is_applicable(processed_diagram):
                     continue
 

@@ -1,0 +1,83 @@
+{
+  "session_id": "3f81d7ab-e41e-43a8-809a-a08036bdbe02",
+  "directory_name": "2025-09-20_04-27-06",
+  "converted_at": "2025-09-20T13:36:51.061196",
+  "stats": {
+    "session_id": "3f81d7ab-e41e-43a8-809a-a08036bdbe02",
+    "total_events": 112,
+    "user_messages": 41,
+    "assistant_messages": 71,
+    "tool_usage": {
+      "TodoWrite": 10,
+      "Read": 5,
+      "Grep": 2,
+      "Glob": 2,
+      "Edit": 10,
+      "Bash": 4
+    },
+    "unique_files_accessed": 5,
+    "bash_commands_executed": 4,
+    "duration_seconds": 583.517,
+    "duration_human": "0:09:43.517000"
+  },
+  "format": "light",
+  "diagrams": {
+    "original": {
+      "file": "diagram.light.yaml",
+      "type": "original",
+      "statistics": {
+        "node_count": 62,
+        "connection_count": 61,
+        "node_types": [
+          "person_job",
+          "diff_patch",
+          "code_job",
+          "start",
+          "db",
+          "api_job"
+        ]
+      }
+    },
+    "optimized": {
+      "file": "optimized.light.yaml",
+      "type": "optimized",
+      "statistics": {
+        "node_count": 62,
+        "connection_count": 61,
+        "node_types": [
+          "person_job",
+          "diff_patch",
+          "code_job",
+          "start",
+          "db",
+          "api_job"
+        ]
+      }
+    },
+    "grouped": {
+      "file": "grouped.light.yaml",
+      "type": "grouped",
+      "statistics": {
+        "node_count": 9,
+        "connection_count": 8,
+        "node_types": [
+          "sub_diagram",
+          "start"
+        ]
+      }
+    }
+  },
+  "file_structure": {
+    "original_session": "original_session.jsonl",
+    "processed_session": "session.jsonl",
+    "original_diagram": "diagram.light.yaml",
+    "optimized_diagram": "optimized.light.yaml",
+    "grouped_diagram": "grouped.light.yaml",
+    "metadata": "metadata.json",
+    "grouped_subdirectory": "grouped/"
+  },
+  "options": {
+    "save_original": true,
+    "timestamp_based_naming": true
+  }
+}

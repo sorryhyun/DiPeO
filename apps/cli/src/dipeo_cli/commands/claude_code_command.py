@@ -157,16 +157,17 @@ class ClaudeCodeCommand:
 
                 print("\n🔄 Translating to DiPeO diagram...")
 
-                # Generate both original and optimized diagrams (always)
-                original_diagram_data = self._generate_original_diagram(session)
-                optimized_diagram_data = self._generate_optimized_diagram(session)
-
-                # Setup output directory
+                # Setup output directory first (needed for sub-diagram grouping)
                 output_dir_path = self._setup_output_directory(
                     current_session_id, output_dir, session_file
                 )
 
-                # Save both diagrams with new naming convention
+                # Generate original, optimized, and grouped diagrams
+                original_diagram_data = self._generate_original_diagram(session)
+                optimized_diagram_data = self._generate_optimized_diagram(session)
+                grouped_diagram_data = self._generate_grouped_diagram(session, output_dir_path)
+
+                # Save all three diagrams
                 file_extension = "yaml" if format_type == "light" else "json"
 
                 # Save original diagram as 'diagram.light.yaml'
@@ -174,10 +175,15 @@ class ClaudeCodeCommand:
                 self._save_diagram(original_diagram_data, original_file, format_type)
                 print(f"📄 Original diagram saved to: {original_file}")
 
-                # Save optimized diagram as 'optimized.light.yaml'
+                # Save optimized diagram as 'optimized.light.yaml' (without TODO grouping)
                 optimized_file = output_dir_path / f"optimized.{format_type}.{file_extension}"
                 self._save_diagram(optimized_diagram_data, optimized_file, format_type)
                 print(f"✅ Optimized diagram saved to: {optimized_file}")
+
+                # Save grouped diagram as 'grouped.light.yaml' (with TODO grouping + optimizations)
+                grouped_file = output_dir_path / f"grouped.{format_type}.{file_extension}"
+                self._save_diagram(grouped_diagram_data, grouped_file, format_type)
+                print(f"🗂️  Grouped diagram saved to: {grouped_file}")
 
                 # Create diagrams info for metadata
                 diagrams_info = {
@@ -191,6 +197,11 @@ class ClaudeCodeCommand:
                         "type": "optimized",
                         "statistics": self._get_diagram_stats(optimized_diagram_data),
                     },
+                    "grouped": {
+                        "file": f"grouped.{format_type}.{file_extension}",
+                        "type": "grouped",
+                        "statistics": self._get_diagram_stats(grouped_diagram_data),
+                    },
                 }
 
                 # Create metadata
@@ -203,9 +214,9 @@ class ClaudeCodeCommand:
                     json.dump(metadata, f, indent=2)
                 print(f"📊 Metadata saved to: {metadata_file}")
 
-                # Create latest symlink for single conversions (point to optimized version)
+                # Create latest symlink for single conversions (point to grouped version)
                 if len(sessions_to_convert) == 1:
-                    self._create_latest_symlink(optimized_file, format_type)
+                    self._create_latest_symlink(grouped_file, format_type)
 
                 successful_conversions += 1
                 if len(sessions_to_convert) == 1:
@@ -250,16 +261,36 @@ class ClaudeCodeCommand:
         return session
 
     def _generate_optimized_diagram(self, session: Any) -> dict[str, Any]:
-        """Generate optimized diagram using standard post-processing."""
+        """Generate optimized diagram without structural changes."""
         print("   ⚡ Generating optimized diagram...")
 
         # Adapt infrastructure session to domain port
         session_adapter = SessionAdapter(session)
 
-        # Use standard preset for optimization
-        config = PipelineConfig.from_preset(ProcessingPreset.STANDARD)
+        # Use optimization-only preset (no TO_DO grouping)
+        config = PipelineConfig.from_preset(ProcessingPreset.OPTIMIZATION_ONLY)
+
         diagram, _ = self.coordinator.translate(
             session_adapter, post_process=True, processing_config=config
+        )
+        return diagram
+
+    def _generate_grouped_diagram(self, session: Any, output_dir_path: Path) -> dict[str, Any]:
+        """Generate grouped diagram with TO_DO subdiagram grouping and optimizations."""
+        print("   🗂️  Generating grouped diagram...")
+
+        # Adapt infrastructure session to domain port
+        session_adapter = SessionAdapter(session)
+
+        # Use grouping preset (includes TO_DO grouping + optimizations)
+        config = PipelineConfig.from_preset(ProcessingPreset.GROUPING)
+        config.todo_subdiagram_grouper.output_subdirectory = "grouped"
+
+        diagram, _ = self.coordinator.translate(
+            session_adapter,
+            post_process=True,
+            processing_config=config,
+            output_base_path=str(output_dir_path),
         )
         return diagram
 
@@ -411,7 +442,11 @@ class ClaudeCodeCommand:
                 "optimized_diagram": f"optimized.{format_type}.yaml"
                 if format_type == "light"
                 else f"optimized.{format_type}.json",
+                "grouped_diagram": f"grouped.{format_type}.yaml"
+                if format_type == "light"
+                else f"grouped.{format_type}.json",
                 "metadata": "metadata.json",
+                "grouped_subdirectory": "grouped/",
             },
             "options": {
                 "save_original": True,  # Always save both versions now

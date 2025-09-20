@@ -1,0 +1,98 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 100, y: 100}
+  props:
+    trigger_mode: manual
+    custom_data:
+      session_id: 3f81d7ab-e41e-43a8-809a-a08036bdbe02
+      initial_prompt: |-
+        <command-name>/clear</command-name>
+                    <command-message>clear</command-message>
+                    <command-args></command-args>
+- label: prev_to_do_sub
+  type: sub_diagram
+  position: {x: 300, y: 100}
+  props:
+    sub_diagram_path: grouped/prev_to_do.light.yaml
+    execution_mode: sequential
+- label: to_do_1_sub
+  type: sub_diagram
+  position: {x: 500, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_1.light.yaml
+    execution_mode: sequential
+- label: to_do_2_sub
+  type: sub_diagram
+  position: {x: 700, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_2.light.yaml
+    execution_mode: sequential
+- label: to_do_4_sub
+  type: sub_diagram
+  position: {x: 900, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_4.light.yaml
+    execution_mode: sequential
+- label: to_do_5_sub
+  type: sub_diagram
+  position: {x: 1100, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_5.light.yaml
+    execution_mode: sequential
+- label: to_do_7_sub
+  type: sub_diagram
+  position: {x: 1300, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_7.light.yaml
+    execution_mode: sequential
+- label: to_do_8_sub
+  type: sub_diagram
+  position: {x: 1500, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_8.light.yaml
+    execution_mode: sequential
+- label: to_do_10_sub
+  type: sub_diagram
+  position: {x: 1700, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_10.light.yaml
+    execution_mode: sequential
+connections:
+- {from: Start, to: prev_to_do_sub, content_type: raw_text}
+- {from: prev_to_do_sub, to: to_do_1_sub, content_type: raw_text}
+- {from: to_do_1_sub, to: to_do_2_sub, content_type: raw_text}
+- {from: to_do_2_sub, to: to_do_4_sub, content_type: raw_text}
+- {from: to_do_4_sub, to: to_do_5_sub, content_type: raw_text}
+- {from: to_do_5_sub, to: to_do_7_sub, content_type: raw_text}
+- {from: to_do_7_sub, to: to_do_8_sub, content_type: raw_text}
+- {from: to_do_8_sub, to: to_do_10_sub, content_type: raw_text}
+metadata:
+  conversion:
+    total_nodes: 62
+    total_connections: 61
+    total_persons: 0
+    node_types:
+      start: 1
+      person_job: 8
+      db: 15
+      api_job: 20
+      code_job: 8
+      diff_patch: 10
+  grouped: true
+  original_nodes: 62
+  sub_diagrams: 8
+  grouping_method: todo_updates
+  post_processing:
+    optimization:
+      applied: true
+      total_changes: 9
+      nodes_removed: 0
+      connections_modified: 0
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.
