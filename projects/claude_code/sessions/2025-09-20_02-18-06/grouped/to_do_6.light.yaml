@@ -1,0 +1,599 @@
+version: light
+nodes:
+- label: Bash Command 10
+  type: code_job
+  position:
+    x: 300
+    y: 1300
+  props:
+    language: bash
+    code: dipeocc convert 4ad614ca-a513-432c-b600-d598c4816336 --output-dir /tmp/dipeo-test
+    timeout: 120000
+    description: Test dipeocc convert with a small session
+- label: Bash Command 19
+  type: code_job
+  position:
+    x: 300
+    y: 1450
+  props:
+    language: bash
+    code: dipeo run projects/claude_code/latest.light.yaml --dry-run
+    timeout: 120000
+    description: Test executing generated diagram in dry-run mode
+- label: Claude Responds To User 1
+  type: person_job
+  position:
+    x: 350
+    y: 100
+  props:
+    person: claude_code
+    default_prompt: "<command-name>/clear</command-name>\n            <command-message>clear</command-message>\n            <command-args></command-args>"
+- label: Bash Command 3
+  type: code_job
+  position:
+    x: 350
+    y: 250
+  props:
+    language: bash
+    code: mkdir -p /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories
+    timeout: 120000
+    description: Create node_factories directory
+- label: tool_result 12
+  type: api_job
+  position:
+    x: 350
+    y: 550
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 20
+  type: api_job
+  position:
+    x: 350
+    y: 700
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 26
+  type: api_job
+  position:
+    x: 350
+    y: 1000
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 11
+  type: code_job
+  position:
+    x: 350
+    y: 1300
+  props:
+    language: bash
+    code: ls -la /tmp/dipeo-test/sessions/2025-09-19_12-45-21/
+    timeout: 120000
+    description: List generated files to check conversion worked
+- label: Grep Search 20
+  type: code_job
+  position:
+    x: 350
+    y: 1450
+  props:
+    language: bash
+    code: rg -l 'from.*\.shared\.' /home/soryhyun/DiPeO/dipeo/domain/cc_translate
+    tool: Grep
+    description: Grep search operation
+- label: Claude Responds To User 2
+  type: person_job
+  position:
+    x: 400
+    y: 100
+  props:
+    person: claude_code
+    default_prompt: <local-command-stdout></local-command-stdout>
+- label: Write File 6
+  type: db
+  position:
+    x: 400
+    y: 250
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/position_manager.py
+    content: "\"\"\"Position management for nodes in DiPeO diagrams.\n\nThis module handles node positioning logic including layout algorithms\nand position calculations for diagram visualization.\n\"\"\"\n\nfrom typing import Optional\n\n\nclass PositionManager:\n    \"\"\"Manages node positioning for DiPeO diagram layout.\"\"\"\n\n    def __init__(self, initial_x: int = 100, initial_y: int = 100):\n        \"\"\"Initialize the position manager.\n\n        Args:\n            initial_x: Starting X coordinate for nodes\n            initial_y: Starting Y coordinate for nodes\n        \"\"\"\n        self.initial_x = initial_x\n        self.initial_y = initial_y\n        self.node_counter = 0\n        self.current_x = initial_x\n        self.current_y = initial_y\n\n    def reset(self):\n        \"\"\"Reset position manager to initial state.\"\"\"\n        self.node_counter = 0\n        self.current_x = self.initial_x\n        self.current_y = self.initial_y\n\n    def get_next_position(self) -> dict[str, int]:\n        \"\"\"Calculate position for the next node.\n\n        Returns:\n            Dictionary with x and y coordinates\n        \"\"\"\n        self.node_counter += 1\n\n        # Calculate position with horizontal spread and vertical rows\n        x = 300 + (self.node_counter * 50) % 800\n        y = 100 + (self.node_counter // 10) * 150\n\n        return {\"x\": x, \"y\": y}\n\n    def get_start_position(self) -> dict[str, int]:\n        \"\"\"Get the position for the start node.\n\n        Returns:\n            Dictionary with x and y coordinates for start node\n        \"\"\"\n        return {\"x\": self.initial_x, \"y\": self.initial_y}\n\n    def get_position_for_index(self, index: int) -> dict[str, int]:\n        \"\"\"Calculate position for a specific node index.\n\n        Args:\n            index: The node index to calculate position for\n\n        Returns:\n            Dictionary with x and y coordinates\n        \"\"\"\n        x = 300 + (index * 50) % 800\n        y = 100 + (index // 10) * 150\n\n        return {\"x\": x, \"y\": y}\n\n    def set_custom_position(self, x: int, y: int):\n        \"\"\"Set a custom position for special nodes.\n\n        Args:\n            x: X coordinate\n            y: Y coordinate\n        \"\"\"\n        self.current_x = x\n        self.current_y = y\n\n    @property\n    def current_position(self) -> dict[str, int]:\n        \"\"\"Get the current position without incrementing counter.\n\n        Returns:\n            Dictionary with current x and y coordinates\n        \"\"\"\n        return {\"x\": self.current_x, \"y\": self.current_y}\n\n    def increment_counter(self) -> int:\n        \"\"\"Increment and return the node counter.\n\n        Returns:\n            The incremented node counter\n        \"\"\"\n        self.node_counter += 1\n        return self.node_counter\n\n\nclass GridPositionManager(PositionManager):\n    \"\"\"Alternative position manager using grid-based layout.\"\"\"\n\n    def __init__(\n        self,\n        initial_x: int = 100,\n        initial_y: int = 100,\n        grid_width: int = 5,\n        cell_width: int = 200,\n        cell_height: int = 150,\n    ):\n        \"\"\"Initialize grid-based position manager.\n\n        Args:\n            initial_x: Starting X coordinate\n            initial_y: Starting Y coordinate\n            grid_width: Number of columns in grid\n            cell_width: Width of each grid cell\n            cell_height: Height of each grid cell\n        \"\"\"\n        super().__init__(initial_x, initial_y)\n        self.grid_width = grid_width\n        self.cell_width = cell_width\n        self.cell_height = cell_height\n\n    def get_next_position(self) -> dict[str, int]:\n        \"\"\"Calculate position for the next node using grid layout.\n\n        Returns:\n            Dictionary with x and y coordinates\n        \"\"\"\n        col = self.node_counter % self.grid_width\n        row = self.node_counter // self.grid_width\n\n        x = self.initial_x + (col * self.cell_width)\n        y = self.initial_y + (row\
+      \ * self.cell_height)\n\n        self.node_counter += 1\n\n        return {\"x\": x, \"y\": y}"
+- label: Write File 13
+  type: db
+  position:
+    x: 400
+    y: 550
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/file_node_builder.py
+    content: "\"\"\"File node builder for file operations.\n\nThis module handles the creation of nodes for file operations including\nread, write, and edit (diff_patch) operations in DiPeO diagrams.\n\"\"\"\n\nfrom typing import Any, Optional\n\nfrom .base_node_builder import BaseNodeBuilder\nfrom ..payload_processor import PayloadProcessor\n\n\nclass FileNodeBuilder(BaseNodeBuilder):\n    \"\"\"Builder for creating file operation nodes.\"\"\"\n\n    def __init__(\n        self,\n        payload_processor: Optional[PayloadProcessor] = None,\n        position_manager: Optional[Any] = None,\n    ):\n        \"\"\"Initialize the file node builder.\n\n        Args:\n            payload_processor: Processor for handling payloads\n            position_manager: Optional position manager\n        \"\"\"\n        super().__init__(position_manager)\n        self.payload_processor = payload_processor or PayloadProcessor()\n        self.supported_tools = [\"Read\", \"Write\", \"Edit\", \"MultiEdit\"]\n\n    def can_handle(self, tool_name: str) -> bool:\n        \"\"\"Check if this builder can handle the given tool.\n\n        Args:\n            tool_name: Name of the tool\n\n        Returns:\n            True if this builder handles file operations\n        \"\"\"\n        return tool_name in self.supported_tools\n\n    def create_node(\n        self,\n        tool_name: str,\n        tool_input: dict[str, Any],\n        tool_result: Optional[dict[str, Any]] = None,\n    ) -> Optional[dict[str, Any]]:\n        \"\"\"Create a file operation node.\n\n        Args:\n            tool_name: Name of the tool\n            tool_input: Input parameters for the tool\n            tool_result: Optional tool execution result\n\n        Returns:\n            The created node or None if not applicable\n        \"\"\"\n        if not self.can_handle(tool_name):\n            return None\n\n        if tool_name == \"Read\":\n            return self.create_read_node(tool_input)\n        elif tool_name == \"Write\":\n            return self.create_write_node(tool_input, tool_result)\n        elif tool_name in [\"Edit\", \"MultiEdit\"]:\n            return self.create_edit_node(tool_name, tool_input, tool_result)\n\n        return None\n\n    def create_read_node(self, tool_input: dict[str, Any]) -> dict[str, Any]:\n        \"\"\"Create a DB node for file read operation.\n\n        Args:\n            tool_input: Input parameters including file path\n\n        Returns:\n            The created read node\n        \"\"\"\n        label = f\"Read File {self.increment_counter()}\"\n        file_path = tool_input.get(\"file_path\", \"unknown\")\n\n        node = {\n            \"label\": label,\n            \"type\": \"db\",\n            \"position\": self.get_position(),\n            \"props\": {\n                \"operation\": \"read\",\n                \"sub_type\": \"file\",\n                \"file\": file_path,\n            },\n        }\n        self.nodes.append(node)\n        return node\n\n    def create_write_node(\n        self, tool_input: dict[str, Any], tool_result: Optional[dict[str, Any]] = None\n    ) -> dict[str, Any]:\n        \"\"\"Create a DB node for file write operation.\n\n        Args:\n            tool_input: Input parameters including file path and content\n            tool_result: Optional tool execution result\n\n        Returns:\n            The created write node\n        \"\"\"\n        label = f\"Write File {self.increment_counter()}\"\n        file_path = tool_input.get(\"file_path\", \"unknown\")\n\n        # Try to extract content from tool result first (more reliable)\n        content = None\n        if tool_result:\n            payload = self.payload_processor.extract_tool_result_payload(tool_result)\n            if payload:\n                content = self.payload_processor.extract_file_content(payload)\n\n        # Fall back to tool input if no result content\n        if content is None:\n            content = tool_input.get(\"content\", \"\")\n\n        node = {\n            \"label\": label,\n            \"type\": \"db\"\
+      ,\n            \"position\": self.get_position(),\n            \"props\": {\n                \"operation\": \"write\",\n                \"sub_type\": \"file\",\n                \"file\": file_path,\n                \"content\": content,\n            },\n        }\n        self.nodes.append(node)\n        return node\n\n    def create_edit_node(\n        self,\n        tool_name: str,\n        tool_input: dict[str, Any],\n        tool_result: Optional[dict[str, Any]] = None,\n    ) -> Optional[dict[str, Any]]:\n        \"\"\"Create a diff_patch node for file edit operation.\n\n        Args:\n            tool_name: Either \"Edit\" or \"MultiEdit\"\n            tool_input: Input parameters including file path and changes\n            tool_result: Optional tool execution result\n\n        Returns:\n            The created edit node or None if failed\n        \"\"\"\n        label = f\"{tool_name} File {self.increment_counter()}\"\n        file_path = tool_input.get(\"file_path\", \"unknown\")\n\n        # Extract payload and check for errors\n        payload = self.payload_processor.extract_tool_result_payload(tool_result)\n        if payload:\n            is_error, error_msg = self.payload_processor.extract_error_info(payload)\n            if is_error:\n                print(f\"Skipping failed {tool_name} for {file_path}: {error_msg}\")\n                return self._create_error_node(tool_name, file_path, error_msg)\n\n        # Determine if we should create a diff_patch or write node\n        if payload and self.payload_processor.should_create_diff_node(payload):\n            return self._create_diff_patch_node(\n                label, file_path, tool_name, tool_input, payload\n            )\n        elif payload and self.payload_processor.should_create_write_node(payload):\n            # Full write without original - create db write node\n            content = self.payload_processor.extract_file_content(payload)\n            if content:\n                return self._create_write_node_from_edit(file_path, content)\n\n        # Fallback to simple diff from input\n        return self._create_simple_diff_node(label, file_path, tool_name, tool_input)\n\n    def _create_diff_patch_node(\n        self,\n        label: str,\n        file_path: str,\n        tool_name: str,\n        tool_input: dict[str, Any],\n        payload: dict[str, Any],\n    ) -> dict[str, Any]:\n        \"\"\"Create a diff_patch node with verified payload.\n\n        Args:\n            label: Node label\n            file_path: Target file path\n            tool_name: Tool name\n            tool_input: Tool input parameters\n            payload: Verified payload with diff content\n\n        Returns:\n            The created diff_patch node\n        \"\"\"\n        # Import diff utilities - will be moved to local utils later\n        from ..shared.diff_utils import DiffGenerator\n\n        diff_generator = DiffGenerator()\n\n        # Try to get patch directly from payload\n        patch_data = payload.get(\"structuredPatch\") or payload.get(\"patch\")\n        if patch_data:\n            diff_content = diff_generator.accept_provider_patch_verbatim(patch_data)\n        else:\n            # Generate diff from tool result\n            diff_content = diff_generator.generate_diff_from_tool_result(\n                file_path, payload\n            )\n\n        if not diff_content:\n            # Fallback to generating from input\n            diff_content = self._generate_diff_from_input(\n                file_path, tool_name, tool_input\n            )\n\n        node = {\n            \"label\": label,\n            \"type\": \"diff_patch\",\n            \"position\": self.get_position(),\n            \"props\": {\n                \"target_path\": file_path,\n                \"diff\": diff_content,\n                \"format\": \"unified\",\n                \"backup\": True,\n                \"validate\": True,\n            },\n        }\n        self.nodes.append(node)\n        return node\n\n    def _create_simple_diff_node(\n        self, label: str, file_path:\
+      \ str, tool_name: str, tool_input: dict[str, Any]\n    ) -> dict[str, Any]:\n        \"\"\"Create a simple diff_patch node from input only.\n\n        Args:\n            label: Node label\n            file_path: Target file path\n            tool_name: Tool name\n            tool_input: Tool input parameters\n\n        Returns:\n            The created diff_patch node\n        \"\"\"\n        diff_content = self._generate_diff_from_input(file_path, tool_name, tool_input)\n\n        node = {\n            \"label\": label,\n            \"type\": \"diff_patch\",\n            \"position\": self.get_position(),\n            \"props\": {\n                \"target_path\": file_path,\n                \"diff\": diff_content,\n                \"format\": \"unified\",\n                \"backup\": True,\n                \"validate\": True,\n            },\n        }\n        self.nodes.append(node)\n        return node\n\n    def _create_write_node_from_edit(\n        self, file_path: str, content: str\n    ) -> dict[str, Any]:\n        \"\"\"Create a write node when edit results in full file replacement.\n\n        Args:\n            file_path: Target file path\n            content: Full file content\n\n        Returns:\n            The created write node\n        \"\"\"\n        label = f\"Write {file_path} {self.increment_counter()}\"\n\n        node = {\n            \"label\": label,\n            \"type\": \"db\",\n            \"position\": self.get_position(),\n            \"props\": {\n                \"operation\": \"write\",\n                \"sub_type\": \"file\",\n                \"file\": file_path,\n                \"content\": content,\n            },\n        }\n        self.nodes.append(node)\n        return node\n\n    def _create_error_node(\n        self, tool_name: str, file_path: str, error_msg: str\n    ) -> dict[str, Any]:\n        \"\"\"Create a TODO node for failed operations.\n\n        Args:\n            tool_name: Tool that failed\n            file_path: Target file path\n            error_msg: Error message\n\n        Returns:\n            A TODO node indicating the failure\n        \"\"\"\n        label = f\"Failed {tool_name} {self.increment_counter()}\"\n\n        node = {\n            \"label\": label,\n            \"type\": \"db\",\n            \"position\": self.get_position(),\n            \"props\": {\n                \"operation\": \"write\",\n                \"sub_type\": \"memory\",\n                \"query\": \"UPDATE TODO LIST\",\n                \"data\": {\n                    \"todos\": [\n                        {\n                            \"content\": f\"Failed {tool_name}: {error_msg}\",\n                            \"status\": \"error\",\n                            \"file\": file_path,\n                        }\n                    ]\n                },\n            },\n        }\n        self.nodes.append(node)\n        return node\n\n    def _generate_diff_from_input(\n        self, file_path: str, tool_name: str, tool_input: dict[str, Any]\n    ) -> str:\n        \"\"\"Generate diff content from tool input.\n\n        Args:\n            file_path: Target file path\n            tool_name: Tool name\n            tool_input: Tool input parameters\n\n        Returns:\n            Generated diff content\n        \"\"\"\n        # Import utilities - will be moved to local utils later\n        from ..shared.diff_utils import DiffGenerator\n        from ..shared.text_utils import TextProcessor\n\n        diff_generator = DiffGenerator()\n        text_processor = TextProcessor()\n\n        if tool_name == \"Edit\":\n            old_string = tool_input.get(\"old_string\", \"\")\n            new_string = tool_input.get(\"new_string\", \"\")\n\n            # Unescape strings for proper diff generation\n            old_string = text_processor.unescape_string(old_string)\n            new_string = text_processor.unescape_string(new_string)\n\n            return diff_generator.generate_unified_diff(\n                file_path, old_string, new_string\n            )\n\n        elif tool_name\
+      \ == \"MultiEdit\":\n            edits = tool_input.get(\"edits\", [])\n            # Process edits to unescape strings\n            processed_edits = []\n            for edit in edits:\n                if isinstance(edit, dict):\n                    processed_edit = edit.copy()\n                    if \"old_string\" in processed_edit:\n                        processed_edit[\"old_string\"] = text_processor.unescape_string(\n                            processed_edit[\"old_string\"]\n                        )\n                    if \"new_string\" in processed_edit:\n                        processed_edit[\"new_string\"] = text_processor.unescape_string(\n                            processed_edit[\"new_string\"]\n                        )\n                    processed_edits.append(processed_edit)\n\n            return diff_generator.generate_multiedit_diff(\n                file_path, processed_edits, None\n            )\n\n        return \"# Unable to generate diff\""
+- label: Bash Command 4
+  type: code_job
+  position:
+    x: 400
+    y: 850
+  props:
+    language: bash
+    code: mkdir -p /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/utils
+    timeout: 120000
+    description: Create utils directory
+- label: Edit File 22
+  type: diff_patch
+  position:
+    x: 400
+    y: 1000
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py\n@@ -13,7 +13,9 @@\n from .base import BaseConverter, ConversionContext, ConversionReport, ConversionStatus\n from .connection_builder import ConnectionBuilder\n from .diagram_assembler import DiagramAssembler\n-from .node_builders import NodeBuilder\n+\n+# Use refactored NodeBuilder\n+from .node_builder_refactored import NodeBuilder\n \n \n class Converter(BaseConverter):\n@@ -23,5 +25,6 @@\n         \"\"\"Initialize the converter.\"\"\"\n         self.node_builder = NodeBuilder()\n         self.connection_builder = ConnectionBuilder()\n-        self.assembler = DiagramAssembler()\n+        # Pass person registry to assembler for better integration\n+        self.assembler = DiagramAssembler(self.node_builder.person_registry)\n         self.node_map: dict[str, str] = {}  # Maps event UUID to node label"
+    format: unified
+    backup: true
+    validate: true
+- label: Read File 27
+  type: db
+  position:
+    x: 400
+    y: 1300
+  props:
+    operation: read
+    sub_type: file
+    file: /tmp/dipeo-test/sessions/2025-09-19_12-45-21/diagram.light.yaml
+- label: Grep Search 21
+  type: code_job
+  position:
+    x: 400
+    y: 1450
+  props:
+    language: bash
+    code: rg -l '\.\.shared' /home/soryhyun/DiPeO/dipeo/domain/cc_translate
+    tool: Grep
+    description: Grep search operation
+- label: Claude Responds To User 3
+  type: person_job
+  position:
+    x: 450
+    y: 100
+  props:
+    person: claude_code
+    default_prompt: it seems @dipeo/domain/cc_translate/convert/node_builders.py is quite monolithic and, @dipeo/domain/cc_translate/convert/diagram_assembler.py is not being used it seems. anyway how can we refactor files in @dipeo/domain/cc_translate/convert/ ? think
+- label: tool_result 5
+  type: api_job
+  position:
+    x: 450
+    y: 250
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 13
+  type: api_job
+  position:
+    x: 450
+    y: 550
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 5
+  type: code_job
+  position:
+    x: 450
+    y: 850
+  props:
+    language: bash
+    code: cp /home/soryhyun/DiPeO/dipeo/domain/cc_translate/shared/text_utils.py /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/utils/
+    timeout: 120000
+    description: Copy text_utils.py to convert/utils
+- label: tool_result 27
+  type: api_job
+  position:
+    x: 450
+    y: 1000
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Claude Responds To User 4
+  type: person_job
+  position:
+    x: 450
+    y: 1300
+  props:
+    person: claude_code
+    default_prompt: '[Request interrupted by user]'
+- label: Grep Search 22
+  type: code_job
+  position:
+    x: 450
+    y: 1450
+  props:
+    language: bash
+    code: rg -n 'from dipeo.domain.cc_translate.shared' /home/soryhyun/DiPeO
+    tool: Grep
+    description: Grep search operation
+- label: Bash Command 1
+  type: code_job
+  position:
+    x: 500
+    y: 100
+  props:
+    language: bash
+    code: find /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert -type f -name "*.py" | head -20
+    timeout: 120000
+    description: Find all Python files in cc_translate/convert directory
+- label: Write File 7
+  type: db
+  position:
+    x: 500
+    y: 400
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/person_registry.py
+    content: "\"\"\"Person registry management for Claude Code translation.\n\nThis module manages the registration and configuration of AI agents (persons)\nthat participate in the conversation within DiPeO diagrams.\n\"\"\"\n\nfrom typing import Any, Optional\n\n\nclass PersonRegistry:\n    \"\"\"Manages registration of persons (AI agents) in DiPeO diagrams.\"\"\"\n\n    def __init__(self):\n        \"\"\"Initialize the person registry.\"\"\"\n        self.persons: dict[str, dict[str, Any]] = {}\n        self._default_claude_config = {\n            \"service\": \"anthropic\",\n            \"model\": \"claude-code\",\n            \"api_key_id\": \"APIKEY_CLAUDE\",\n            \"system_prompt\": \"You are Claude Code, an AI assistant helping with software development.\",\n        }\n        self._default_user_config = {\n            \"service\": \"human\",\n            \"model\": \"user\",\n            \"api_key_id\": None,\n            \"system_prompt\": \"Human user providing input and feedback.\",\n        }\n\n    def reset(self):\n        \"\"\"Reset the person registry.\"\"\"\n        self.persons = {}\n\n    def register_claude(\n        self,\n        person_id: str = \"claude_code\",\n        system_messages: Optional[list[str]] = None,\n        custom_config: Optional[dict[str, Any]] = None,\n    ) -> dict[str, Any]:\n        \"\"\"Register Claude as a person in the diagram.\n\n        Args:\n            person_id: Identifier for Claude person\n            system_messages: Optional system messages to include in prompt\n            custom_config: Optional custom configuration to override defaults\n\n        Returns:\n            The registered Claude person configuration\n        \"\"\"\n        if person_id in self.persons:\n            return self.persons[person_id]\n\n        # Build system prompt with additional context if provided\n        base_prompt = self._default_claude_config[\"system_prompt\"]\n        if system_messages:\n            # Add meta/system messages to provide context (limit to first 5)\n            system_context = \"\\n\\nAdditional context:\\n\" + \"\\n\".join(\n                system_messages[:5]\n            )\n            full_system_prompt = base_prompt + system_context\n        else:\n            full_system_prompt = base_prompt\n\n        # Create Claude configuration\n        claude_config = self._default_claude_config.copy()\n        claude_config[\"system_prompt\"] = full_system_prompt\n\n        # Apply any custom configuration\n        if custom_config:\n            claude_config.update(custom_config)\n\n        self.persons[person_id] = claude_config\n        return claude_config\n\n    def register_user(\n        self,\n        person_id: str = \"user\",\n        custom_config: Optional[dict[str, Any]] = None,\n    ) -> dict[str, Any]:\n        \"\"\"Register a human user as a person in the diagram.\n\n        Args:\n            person_id: Identifier for user person\n            custom_config: Optional custom configuration to override defaults\n\n        Returns:\n            The registered user person configuration\n        \"\"\"\n        if person_id in self.persons:\n            return self.persons[person_id]\n\n        user_config = self._default_user_config.copy()\n\n        # Apply any custom configuration\n        if custom_config:\n            user_config.update(custom_config)\n\n        self.persons[person_id] = user_config\n        return user_config\n\n    def register_custom_person(\n        self,\n        person_id: str,\n        service: str,\n        model: str,\n        api_key_id: Optional[str] = None,\n        system_prompt: str = \"\",\n        **kwargs: Any,\n    ) -> dict[str, Any]:\n        \"\"\"Register a custom AI agent as a person.\n\n        Args:\n            person_id: Unique identifier for the person\n            service: Service provider (e.g., \"openai\", \"anthropic\")\n            model: Model name (e.g., \"gpt-5\", \"claude-code\")\n            api_key_id: Optional API key identifier\n            system_prompt: System prompt for the agent\n\
+      \            **kwargs: Additional configuration parameters\n\n        Returns:\n            The registered person configuration\n        \"\"\"\n        if person_id in self.persons:\n            return self.persons[person_id]\n\n        person_config = {\n            \"service\": service,\n            \"model\": model,\n            \"api_key_id\": api_key_id,\n            \"system_prompt\": system_prompt,\n            **kwargs,\n        }\n\n        self.persons[person_id] = person_config\n        return person_config\n\n    def get_person(self, person_id: str) -> Optional[dict[str, Any]]:\n        \"\"\"Get a registered person's configuration.\n\n        Args:\n            person_id: The person identifier\n\n        Returns:\n            Person configuration if registered, None otherwise\n        \"\"\"\n        return self.persons.get(person_id)\n\n    def is_registered(self, person_id: str) -> bool:\n        \"\"\"Check if a person is registered.\n\n        Args:\n            person_id: The person identifier\n\n        Returns:\n            True if person is registered, False otherwise\n        \"\"\"\n        return person_id in self.persons\n\n    def get_all_persons(self) -> dict[str, dict[str, Any]]:\n        \"\"\"Get all registered persons.\n\n        Returns:\n            Dictionary of all registered persons\n        \"\"\"\n        return self.persons.copy()\n\n    def update_person(\n        self, person_id: str, updates: dict[str, Any]\n    ) -> Optional[dict[str, Any]]:\n        \"\"\"Update an existing person's configuration.\n\n        Args:\n            person_id: The person identifier\n            updates: Dictionary of fields to update\n\n        Returns:\n            Updated person configuration if exists, None otherwise\n        \"\"\"\n        if person_id not in self.persons:\n            return None\n\n        self.persons[person_id].update(updates)\n        return self.persons[person_id]\n\n    def ensure_claude_registered(\n        self, system_messages: Optional[list[str]] = None\n    ) -> str:\n        \"\"\"Ensure Claude is registered and return the person ID.\n\n        Args:\n            system_messages: Optional system messages to include\n\n        Returns:\n            The Claude person ID\n        \"\"\"\n        person_id = \"claude_code\"\n        if not self.is_registered(person_id):\n            self.register_claude(person_id, system_messages)\n        return person_id"
+- label: Write File 14
+  type: db
+  position:
+    x: 500
+    y: 550
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/code_node_builder.py
+    content: "\"\"\"Code node builder for code execution operations.\n\nThis module handles the creation of nodes for code execution including\nbash commands and search operations in DiPeO diagrams.\n\"\"\"\n\nfrom typing import Any, Optional\n\nfrom .base_node_builder import BaseNodeBuilder\n\n\nclass CodeNodeBuilder(BaseNodeBuilder):\n    \"\"\"Builder for creating code execution nodes.\"\"\"\n\n    def __init__(self, position_manager: Optional[Any] = None):\n        \"\"\"Initialize the code node builder.\n\n        Args:\n            position_manager: Optional position manager\n        \"\"\"\n        super().__init__(position_manager)\n        self.supported_tools = [\"Bash\", \"Grep\", \"Glob\", \"Search\"]\n\n    def can_handle(self, tool_name: str) -> bool:\n        \"\"\"Check if this builder can handle the given tool.\n\n        Args:\n            tool_name: Name of the tool\n\n        Returns:\n            True if this builder handles code execution operations\n        \"\"\"\n        return tool_name in self.supported_tools\n\n    def create_node(\n        self,\n        tool_name: str,\n        tool_input: dict[str, Any],\n        tool_result: Optional[dict[str, Any]] = None,\n    ) -> Optional[dict[str, Any]]:\n        \"\"\"Create a code execution node.\n\n        Args:\n            tool_name: Name of the tool\n            tool_input: Input parameters for the tool\n            tool_result: Optional tool execution result\n\n        Returns:\n            The created node or None if not applicable\n        \"\"\"\n        if not self.can_handle(tool_name):\n            return None\n\n        if tool_name == \"Bash\":\n            return self.create_bash_node(tool_input)\n        elif tool_name in [\"Grep\", \"Glob\", \"Search\"]:\n            return self.create_search_node(tool_name, tool_input)\n\n        return None\n\n    def create_bash_node(self, tool_input: dict[str, Any]) -> dict[str, Any]:\n        \"\"\"Create a code_job node for bash command execution.\n\n        Args:\n            tool_input: Input parameters including command\n\n        Returns:\n            The created bash node\n        \"\"\"\n        label = f\"Bash Command {self.increment_counter()}\"\n        command = tool_input.get(\"command\", \"\")\n        description = tool_input.get(\"description\", \"Execute command\")\n\n        node = {\n            \"label\": label,\n            \"type\": \"code_job\",\n            \"position\": self.get_position(),\n            \"props\": {\n                \"language\": \"bash\",\n                \"code\": command,\n                \"timeout\": tool_input.get(\"timeout\", 120000),\n                \"description\": description,\n            },\n        }\n        self.nodes.append(node)\n        return node\n\n    def create_search_node(\n        self, tool_name: str, tool_input: dict[str, Any]\n    ) -> dict[str, Any]:\n        \"\"\"Create a code_job node for search operations.\n\n        Args:\n            tool_name: Name of the search tool\n            tool_input: Input parameters for the search\n\n        Returns:\n            The created search node\n        \"\"\"\n        label = f\"{tool_name} Search {self.increment_counter()}\"\n\n        if tool_name == \"Grep\":\n            code = self._build_grep_command(tool_input)\n        elif tool_name == \"Glob\":\n            code = self._build_glob_command(tool_input)\n        else:\n            # Fallback for generic search\n            query = tool_input.get(\"query\", \"\") or tool_input.get(\"pattern\", \"\")\n            code = f\"# {tool_name} search for: {query}\"\n\n        node = {\n            \"label\": label,\n            \"type\": \"code_job\",\n            \"position\": self.get_position(),\n            \"props\": {\n                \"language\": \"bash\",\n                \"code\": code,\n                \"tool\": tool_name,\n                \"description\": f\"{tool_name} search operation\",\n            },\n        }\n        self.nodes.append(node)\n        return node\n\n    def _build_grep_command(self, tool_input: dict[str,\
+      \ Any]) -> str:\n        \"\"\"Build ripgrep command from Grep tool parameters.\n\n        Args:\n            tool_input: Grep tool input parameters\n\n        Returns:\n            The ripgrep command string\n        \"\"\"\n        pattern = tool_input.get(\"pattern\", \"\")\n        path = tool_input.get(\"path\", \".\")\n\n        # Start with base command\n        cmd_parts = [\"rg\"]\n\n        # Add flags\n        if tool_input.get(\"-n\"):\n            cmd_parts.append(\"-n\")\n        if tool_input.get(\"-i\"):\n            cmd_parts.append(\"-i\")\n        if tool_input.get(\"-A\"):\n            cmd_parts.append(f\"-A {tool_input['-A']}\")\n        if tool_input.get(\"-B\"):\n            cmd_parts.append(f\"-B {tool_input['-B']}\")\n        if tool_input.get(\"-C\"):\n            cmd_parts.append(f\"-C {tool_input['-C']}\")\n        if tool_input.get(\"multiline\"):\n            cmd_parts.append(\"-U --multiline-dotall\")\n\n        # Add type filter if specified\n        if tool_input.get(\"type\"):\n            cmd_parts.append(f\"--type {tool_input['type']}\")\n\n        # Add glob filter if specified\n        if tool_input.get(\"glob\"):\n            cmd_parts.append(f\"--glob '{tool_input['glob']}'\")\n\n        # Add output mode handling\n        output_mode = tool_input.get(\"output_mode\", \"files_with_matches\")\n        if output_mode == \"files_with_matches\":\n            cmd_parts.append(\"-l\")\n        elif output_mode == \"count\":\n            cmd_parts.append(\"-c\")\n        # \"content\" is default, no flag needed\n\n        # Add pattern (properly escaped)\n        escaped_pattern = pattern.replace(\"'\", \"'\\\\''\")\n        cmd_parts.append(f\"'{escaped_pattern}'\")\n\n        # Add path\n        cmd_parts.append(path)\n\n        # Add head limit if specified\n        if tool_input.get(\"head_limit\"):\n            cmd_parts.append(f\"| head -n {tool_input['head_limit']}\")\n\n        return \" \".join(cmd_parts)\n\n    def _build_glob_command(self, tool_input: dict[str, Any]) -> str:\n        \"\"\"Build find command from Glob tool parameters.\n\n        Args:\n            tool_input: Glob tool input parameters\n\n        Returns:\n            The find command string\n        \"\"\"\n        pattern = tool_input.get(\"pattern\", \"\")\n        path = tool_input.get(\"path\", \".\")\n\n        # Convert glob pattern to find command\n        if \"**\" in pattern:\n            # Recursive search\n            name_pattern = pattern.replace(\"**/\", \"\")\n            code = f\"find {path} -name '{name_pattern}' -type f\"\n        else:\n            # Simple glob\n            code = f\"find {path} -maxdepth 1 -name '{pattern}' -type f\"\n\n        # Sort by modification time (newest first)\n        code += \" -printf '%T@ %p\\\\n' | sort -rn | cut -d' ' -f2-\"\n\n        return code"
+- label: Bash Command 6
+  type: code_job
+  position:
+    x: 500
+    y: 850
+  props:
+    language: bash
+    code: cp /home/soryhyun/DiPeO/dipeo/domain/cc_translate/shared/diff_utils.py /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/utils/ && cp /home/soryhyun/DiPeO/dipeo/domain/cc_translate/shared/payload_utils.py /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/utils/
+    timeout: 120000
+    description: Copy diff_utils and payload_utils to convert/utils
+- label: Edit File 23
+  type: diff_patch
+  position:
+    x: 500
+    y: 1000
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/__init__.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/__init__.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/__init__.py\n@@ -9,6 +9,22 @@\n from .connection_builder import ConnectionBuilder\n from .converter import Converter\n from .diagram_assembler import DiagramAssembler\n-from .node_builders import NodeBuilder\n \n-__all__ = [\"ConnectionBuilder\", \"Converter\", \"DiagramAssembler\", \"NodeBuilder\"]\n+# Export refactored NodeBuilder as the main NodeBuilder\n+from .node_builder_refactored import NodeBuilder\n+\n+# Also export new components for direct access if needed\n+from .person_registry import PersonRegistry\n+from .position_manager import PositionManager, GridPositionManager\n+from .payload_processor import PayloadProcessor\n+\n+__all__ = [\n+    \"ConnectionBuilder\",\n+    \"Converter\",\n+    \"DiagramAssembler\",\n+    \"NodeBuilder\",\n+    \"PersonRegistry\",\n+    \"PositionManager\",\n+    \"GridPositionManager\",\n+    \"PayloadProcessor\",\n+]"
+    format: unified
+    backup: true
+    validate: true
+- label: Claude Responds To User 5
+  type: person_job
+  position:
+    x: 500
+    y: 1300
+  props:
+    person: claude_code
+    default_prompt: you can use `dipeocc convert --latest`. think
+- label: Bash Command 23
+  type: code_job
+  position:
+    x: 500
+    y: 1600
+  props:
+    language: bash
+    code: ls -la /home/soryhyun/DiPeO/dipeo/domain/cc_translate/shared/
+    timeout: 120000
+    description: Check what files are in shared directory
+- label: Read File 1
+  type: db
+  position:
+    x: 550
+    y: 100
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/builders.py
+- label: tool_result 6
+  type: api_job
+  position:
+    x: 550
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 14
+  type: api_job
+  position:
+    x: 550
+    y: 550
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Write File 18
+  type: db
+  position:
+    x: 550
+    y: 850
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/utils/__init__.py
+    content: "\"\"\"Utility modules for Claude Code to DiPeO conversion.\n\nThis module contains utility functions used during the conversion process\nincluding text processing, diff generation, and payload classification.\n\"\"\"\n\nfrom .diff_utils import DiffGenerator\nfrom .payload_utils import (\n    classify_payload,\n    extract_error_message,\n    extract_original_content,\n    extract_patch_data,\n    extract_write_content,\n    is_error_payload,\n    is_full_write,\n    is_partial_diff,\n    is_rich_diff,\n    should_create_diff_node,\n    should_create_write_node,\n    validate_rich_diff_payload,\n)\nfrom .text_utils import TextProcessor\n\n__all__ = [\n    # Diff utilities\n    \"DiffGenerator\",\n    # Payload utilities\n    \"classify_payload\",\n    \"extract_error_message\",\n    \"extract_original_content\",\n    \"extract_patch_data\",\n    \"extract_write_content\",\n    \"is_error_payload\",\n    \"is_full_write\",\n    \"is_partial_diff\",\n    \"is_rich_diff\",\n    \"should_create_diff_node\",\n    \"should_create_write_node\",\n    \"validate_rich_diff_payload\",\n    # Text utilities\n    \"TextProcessor\",\n]"
+- label: tool_result 28
+  type: api_job
+  position:
+    x: 550
+    y: 1000
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Read File 28
+  type: db
+  position:
+    x: 550
+    y: 1600
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/shared/__init__.py
+- label: Read File 2
+  type: db
+  position:
+    x: 600
+    y: 100
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/__init__.py
+- label: Write File 8
+  type: db
+  position:
+    x: 600
+    y: 400
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/payload_processor.py
+    content: "\"\"\"Payload processing for tool results in Claude Code translation.\n\nThis module handles the extraction and processing of tool result payloads\nto determine the appropriate node creation strategy.\n\"\"\"\n\nfrom typing import Any, Optional\n\n\nclass PayloadProcessor:\n    \"\"\"Processes tool result payloads for node creation decisions.\"\"\"\n\n    def extract_tool_result_payload(\n        self, tool_use_result: Optional[dict[str, Any] | list[Any] | str]\n    ) -> Optional[dict[str, Any]]:\n        \"\"\"Select the most useful tool result payload for diff generation.\n\n        Args:\n            tool_use_result: The tool use result from Claude Code\n\n        Returns:\n            The most useful payload dictionary or None\n        \"\"\"\n        if not tool_use_result:\n            return None\n\n        candidates: list[Any]\n        if isinstance(tool_use_result, dict):\n            candidates = [tool_use_result]\n        elif isinstance(tool_use_result, list):\n            # Prefer latest results (reverse order)\n            candidates = [item for item in reversed(tool_use_result)]\n        else:\n            # Strings or other primitives are not useful for diff reconstruction\n            return None\n\n        for candidate in candidates:\n            if not isinstance(candidate, dict):\n                continue\n\n            # Ignore explicit errors or empty payloads\n            if candidate.get(\"error\") or candidate.get(\"status\") == \"error\":\n                continue\n\n            # Check for useful content\n            has_content = any(\n                key in candidate\n                for key in (\n                    \"structuredPatch\",\n                    \"patch\",\n                    \"diff\",\n                    \"originalFile\",\n                    \"originalFileContents\",\n                    \"content\",\n                    \"result\",\n                )\n            )\n            if not has_content:\n                continue\n\n            return candidate\n\n        return None\n\n    def extract_file_content(\n        self, payload: dict[str, Any], key_priority: list[str] | None = None\n    ) -> Optional[str]:\n        \"\"\"Extract file content from a payload.\n\n        Args:\n            payload: The payload dictionary\n            key_priority: Priority list of keys to check (default: common content keys)\n\n        Returns:\n            The extracted content or None\n        \"\"\"\n        if not payload:\n            return None\n\n        # Default priority for content keys\n        if key_priority is None:\n            key_priority = [\n                \"content\",\n                \"file_content\",\n                \"fileContent\",\n                \"data\",\n                \"text\",\n                \"body\",\n            ]\n\n        for key in key_priority:\n            if key in payload:\n                content = payload[key]\n                if isinstance(content, str):\n                    return content\n                elif isinstance(content, dict) and \"text\" in content:\n                    return content[\"text\"]\n\n        return None\n\n    def extract_error_info(\n        self, payload: dict[str, Any]\n    ) -> tuple[bool, Optional[str]]:\n        \"\"\"Extract error information from a payload.\n\n        Args:\n            payload: The payload dictionary\n\n        Returns:\n            Tuple of (is_error, error_message)\n        \"\"\"\n        if not payload:\n            return False, None\n\n        # Check for explicit error fields\n        if payload.get(\"error\"):\n            error_msg = payload.get(\"error\")\n            if isinstance(error_msg, str):\n                return True, error_msg\n            elif isinstance(error_msg, dict):\n                return True, error_msg.get(\"message\", str(error_msg))\n            return True, str(error_msg)\n\n        if payload.get(\"status\") == \"error\":\n            return True, payload.get(\"message\", \"Unknown error\")\n\n        if payload.get(\"success\") is False:\n  \
+      \          return True, payload.get(\"message\", \"Operation failed\")\n\n        return False, None\n\n    def extract_file_path(self, payload: dict[str, Any]) -> Optional[str]:\n        \"\"\"Extract file path from a payload.\n\n        Args:\n            payload: The payload dictionary\n\n        Returns:\n            The extracted file path or None\n        \"\"\"\n        if not payload:\n            return None\n\n        # Check common file path keys\n        path_keys = [\"file_path\", \"filePath\", \"path\", \"file\", \"target\", \"filename\"]\n\n        for key in path_keys:\n            if key in payload:\n                path = payload[key]\n                if isinstance(path, str):\n                    return path\n\n        return None\n\n    def extract_operation_type(self, payload: dict[str, Any]) -> Optional[str]:\n        \"\"\"Determine the operation type from a payload.\n\n        Args:\n            payload: The payload dictionary\n\n        Returns:\n            The operation type (e.g., \"read\", \"write\", \"edit\") or None\n        \"\"\"\n        if not payload:\n            return None\n\n        # Check explicit operation field\n        if \"operation\" in payload:\n            return payload[\"operation\"]\n\n        # Infer from content structure\n        if any(\n            key in payload\n            for key in [\"structuredPatch\", \"patch\", \"diff\", \"old_string\", \"new_string\"]\n        ):\n            return \"edit\"\n\n        if any(\n            key in payload\n            for key in [\"content\", \"file_content\", \"write_content\", \"data\"]\n        ):\n            # Check if it's a read based on other indicators\n            if payload.get(\"mode\") == \"r\" or payload.get(\"action\") == \"read\":\n                return \"read\"\n            return \"write\"\n\n        if any(key in payload for key in [\"command\", \"code\", \"script\"]):\n            return \"execute\"\n\n        if any(key in payload for key in [\"query\", \"search\", \"pattern\"]):\n            return \"search\"\n\n        return None\n\n    def should_create_diff_node(self, payload: dict[str, Any]) -> bool:\n        \"\"\"Determine if a diff_patch node should be created.\n\n        Args:\n            payload: The payload dictionary\n\n        Returns:\n            True if a diff_patch node should be created\n        \"\"\"\n        if not payload:\n            return False\n\n        # Check for error\n        is_error, _ = self.extract_error_info(payload)\n        if is_error:\n            return False\n\n        # Check for diff/patch content\n        return any(\n            key in payload\n            for key in [\n                \"structuredPatch\",\n                \"patch\",\n                \"diff\",\n                \"originalFile\",\n                \"originalFileContents\",\n            ]\n        )\n\n    def should_create_write_node(self, payload: dict[str, Any]) -> bool:\n        \"\"\"Determine if a write node should be created.\n\n        Args:\n            payload: The payload dictionary\n\n        Returns:\n            True if a write node should be created\n        \"\"\"\n        if not payload:\n            return False\n\n        # Check for error\n        is_error, _ = self.extract_error_info(payload)\n        if is_error:\n            return False\n\n        # Must have content but no original/diff info\n        has_content = any(\n            key in payload for key in [\"content\", \"file_content\", \"write_content\"]\n        )\n\n        has_diff_info = any(\n            key in payload\n            for key in [\n                \"structuredPatch\",\n                \"patch\",\n                \"diff\",\n                \"originalFile\",\n                \"originalFileContents\",\n            ]\n        )\n\n        return has_content and not has_diff_info\n\n    def merge_payloads(\n        self, primary: dict[str, Any], secondary: dict[str, Any]\n    ) -> dict[str, Any]:\n        \"\"\"Merge two payloads, with primary taking precedence.\n\n        Args:\n            primary:\
+      \ Primary payload (takes precedence)\n            secondary: Secondary payload\n\n        Returns:\n            Merged payload dictionary\n        \"\"\"\n        merged = secondary.copy()\n        merged.update(primary)\n        return merged"
+- label: Write File 15
+  type: db
+  position:
+    x: 600
+    y: 550
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/db_node_builder.py
+    content: "\"\"\"Database node builder for database and memory operations.\n\nThis module handles the creation of nodes for database operations including\nTODO list updates and other memory/database operations in DiPeO diagrams.\n\"\"\"\n\nfrom typing import Any, Optional\n\nfrom .base_node_builder import BaseNodeBuilder\n\n\nclass DbNodeBuilder(BaseNodeBuilder):\n    \"\"\"Builder for creating database operation nodes.\"\"\"\n\n    def __init__(self, position_manager: Optional[Any] = None):\n        \"\"\"Initialize the database node builder.\n\n        Args:\n            position_manager: Optional position manager\n        \"\"\"\n        super().__init__(position_manager)\n        self.supported_tools = [\"TodoWrite\", \"DatabaseQuery\", \"MemoryUpdate\"]\n\n    def can_handle(self, tool_name: str) -> bool:\n        \"\"\"Check if this builder can handle the given tool.\n\n        Args:\n            tool_name: Name of the tool\n\n        Returns:\n            True if this builder handles database operations\n        \"\"\"\n        return tool_name in self.supported_tools\n\n    def create_node(\n        self,\n        tool_name: str,\n        tool_input: dict[str, Any],\n        tool_result: Optional[dict[str, Any]] = None,\n    ) -> Optional[dict[str, Any]]:\n        \"\"\"Create a database operation node.\n\n        Args:\n            tool_name: Name of the tool\n            tool_input: Input parameters for the tool\n            tool_result: Optional tool execution result\n\n        Returns:\n            The created node or None if not applicable\n        \"\"\"\n        if not self.can_handle(tool_name):\n            return None\n\n        if tool_name == \"TodoWrite\":\n            return self.create_todo_node(tool_input)\n        elif tool_name == \"DatabaseQuery\":\n            return self.create_database_query_node(tool_input)\n        elif tool_name == \"MemoryUpdate\":\n            return self.create_memory_update_node(tool_input)\n\n        return None\n\n    def create_todo_node(self, tool_input: dict[str, Any]) -> dict[str, Any]:\n        \"\"\"Create a DB node for TodoWrite operation.\n\n        Args:\n            tool_input: Input parameters including todos\n\n        Returns:\n            The created TODO node\n        \"\"\"\n        label = f\"Update TODO {self.increment_counter()}\"\n        todos = tool_input.get(\"todos\", [])\n\n        node = {\n            \"label\": label,\n            \"type\": \"db\",\n            \"position\": self.get_position(),\n            \"props\": {\n                \"operation\": \"write\",\n                \"sub_type\": \"memory\",\n                \"query\": \"UPDATE TODO LIST\",\n                \"data\": {\"todos\": todos},\n            },\n        }\n        self.nodes.append(node)\n        return node\n\n    def create_database_query_node(\n        self, tool_input: dict[str, Any]\n    ) -> dict[str, Any]:\n        \"\"\"Create a DB node for database query operation.\n\n        Args:\n            tool_input: Input parameters including query\n\n        Returns:\n            The created database query node\n        \"\"\"\n        label = f\"Database Query {self.increment_counter()}\"\n        query = tool_input.get(\"query\", \"\")\n        database = tool_input.get(\"database\", \"default\")\n\n        node = {\n            \"label\": label,\n            \"type\": \"db\",\n            \"position\": self.get_position(),\n            \"props\": {\n                \"operation\": \"read\",\n                \"sub_type\": \"database\",\n                \"query\": query,\n                \"database\": database,\n            },\n        }\n        self.nodes.append(node)\n        return node\n\n    def create_memory_update_node(\n        self, tool_input: dict[str, Any]\n    ) -> dict[str, Any]:\n        \"\"\"Create a DB node for memory update operation.\n\n        Args:\n            tool_input: Input parameters including memory data\n\n        Returns:\n            The created memory update node\n        \"\"\"\n        label = f\"Memory Update {self.increment_counter()}\"\
+      \n        memory_key = tool_input.get(\"key\", \"default\")\n        memory_value = tool_input.get(\"value\", {})\n\n        node = {\n            \"label\": label,\n            \"type\": \"db\",\n            \"position\": self.get_position(),\n            \"props\": {\n                \"operation\": \"write\",\n                \"sub_type\": \"memory\",\n                \"query\": f\"UPDATE MEMORY SET value = ? WHERE key = '{memory_key}'\",\n                \"data\": {\"key\": memory_key, \"value\": memory_value},\n            },\n        }\n        self.nodes.append(node)\n        return node"
+- label: tool_result 21
+  type: api_job
+  position:
+    x: 600
+    y: 850
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 24
+  type: diff_patch
+  position:
+    x: 600
+    y: 1150
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/__init__.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/__init__.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/__init__.py\n@@ -5,5 +5,22 @@\n \"\"\"\n \n from .base_node_builder import BaseNodeBuilder, SimpleNodeBuilder\n+from .tool_node_factory import ToolNodeFactory\n+from .start_node_builder import StartNodeBuilder\n+from .person_node_builder import PersonNodeBuilder\n+from .file_node_builder import FileNodeBuilder\n+from .code_node_builder import CodeNodeBuilder\n+from .db_node_builder import DbNodeBuilder\n+from .api_node_builder import ApiNodeBuilder\n \n-__all__ = [\"BaseNodeBuilder\", \"SimpleNodeBuilder\"]\n+__all__ = [\n+    \"BaseNodeBuilder\",\n+    \"SimpleNodeBuilder\",\n+    \"ToolNodeFactory\",\n+    \"StartNodeBuilder\",\n+    \"PersonNodeBuilder\",\n+    \"FileNodeBuilder\",\n+    \"CodeNodeBuilder\",\n+    \"DbNodeBuilder\",\n+    \"ApiNodeBuilder\",\n+]"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 33
+  type: api_job
+  position:
+    x: 600
+    y: 1300
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Grep Search 24
+  type: code_job
+  position:
+    x: 600
+    y: 1600
+  props:
+    language: bash
+    code: rg -l 'cc_translate.shared' /home/soryhyun/DiPeO
+    tool: Grep
+    description: Grep search operation
+- label: Grep Search 2
+  type: code_job
+  position:
+    x: 650
+    y: 100
+  props:
+    language: bash
+    code: rg 'class|def' /home/soryhyun/DiPeO/dipeo/domain/cc_translate/shared | head -n 50
+    tool: Grep
+    description: Grep search operation
+- label: tool_result 7
+  type: api_job
+  position:
+    x: 650
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 15
+  type: api_job
+  position:
+    x: 650
+    y: 550
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+connections:
+- from: Claude Responds To User 1
+  to: Claude Responds To User 2
+  content_type: raw_text
+- from: Claude Responds To User 2
+  to: Claude Responds To User 3
+  content_type: raw_text
+- from: Claude Responds To User 3
+  to: Bash Command 1
+  content_type: raw_text
+- from: Bash Command 1
+  to: Read File 1
+  content_type: raw_text
+- from: Read File 1
+  to: Read File 2
+  content_type: raw_text
+- from: Read File 2
+  to: Grep Search 2
+  content_type: raw_text
+- from: Bash Command 3
+  to: Write File 6
+  content_type: raw_text
+- from: Write File 6
+  to: tool_result 5
+  content_type: raw_text
+- from: tool_result 5
+  to: Write File 7
+  content_type: raw_text
+- from: Write File 7
+  to: tool_result 6
+  content_type: raw_text
+- from: tool_result 6
+  to: Write File 8
+  content_type: raw_text
+- from: Write File 8
+  to: tool_result 7
+  content_type: raw_text
+- from: tool_result 12
+  to: Write File 13
+  content_type: raw_text
+- from: Write File 13
+  to: tool_result 13
+  content_type: raw_text
+- from: tool_result 13
+  to: Write File 14
+  content_type: raw_text
+- from: Write File 14
+  to: tool_result 14
+  content_type: raw_text
+- from: tool_result 14
+  to: Write File 15
+  content_type: raw_text
+- from: Write File 15
+  to: tool_result 15
+  content_type: raw_text
+- from: tool_result 20
+  to: Bash Command 4
+  content_type: raw_text
+- from: Bash Command 4
+  to: Bash Command 5
+  content_type: raw_text
+- from: Bash Command 5
+  to: Bash Command 6
+  content_type: raw_text
+- from: Bash Command 6
+  to: Write File 18
+  content_type: raw_text
+- from: Write File 18
+  to: tool_result 21
+  content_type: raw_text
+- from: tool_result 26
+  to: Edit File 22
+  content_type: raw_text
+- from: Edit File 22
+  to: tool_result 27
+  content_type: raw_text
+- from: tool_result 27
+  to: Edit File 23
+  content_type: raw_text
+- from: Edit File 23
+  to: tool_result 28
+  content_type: raw_text
+- from: tool_result 28
+  to: Edit File 24
+  content_type: raw_text
+- from: Bash Command 10
+  to: Bash Command 11
+  content_type: raw_text
+- from: Bash Command 11
+  to: Read File 27
+  content_type: raw_text
+- from: Read File 27
+  to: Claude Responds To User 4
+  content_type: raw_text
+- from: Claude Responds To User 4
+  to: Claude Responds To User 5
+  content_type: raw_text
+- from: Bash Command 19
+  to: Grep Search 20
+  content_type: raw_text
+- from: Grep Search 20
+  to: Grep Search 21
+  content_type: raw_text
+- from: Grep Search 21
+  to: Grep Search 22
+  content_type: raw_text
+- from: Grep Search 22
+  to: Bash Command 23
+  content_type: raw_text
+- from: Bash Command 23
+  to: Read File 28
+  content_type: raw_text
+- from: Read File 28
+  to: Grep Search 24
+  content_type: raw_text
+metadata:
+  group_name: to_do_6
+  node_count: 46
+  connection_count: 38
+  extracted_from: unknown
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

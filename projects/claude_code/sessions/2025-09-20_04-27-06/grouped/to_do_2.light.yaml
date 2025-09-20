@@ -1,28 +1,5 @@
 version: light
 nodes:
-- label: Update TODO 5
-  type: db
-  position:
-    x: 650
-    y: 400
-  props:
-    operation: write
-    sub_type: memory
-    query: UPDATE TODO LIST
-    data:
-      todos:
-      - content: Examine the post_processor.py file and TODO diagram processing
-        status: completed
-        activeForm: Examining post_processor.py and TODO diagram processing
-      - content: Investigate dipeocc conversion system
-        status: completed
-        activeForm: Investigating dipeocc conversion system
-      - content: Identify why To_Do_Subdiagram_Grouper is not working
-        status: completed
-        activeForm: Identifying why To_Do_Subdiagram_Grouper is not working
-      - content: Fix the TODO diagram processing issue
-        status: completed
-        activeForm: Fixing the TODO diagram processing issue
 - label: Claude Responds To User 7
   type: person_job
   position:
@@ -103,29 +80,6 @@ nodes:
     code: ls -la projects/claude_code/sessions/2025-09-20_04-27-06/
     timeout: 120000
     description: Check the output directory for TODO subdiagram grouper results
-- label: Update TODO 8
-  type: db
-  position:
-    x: 750
-    y: 700
-  props:
-    operation: write
-    sub_type: memory
-    query: UPDATE TODO LIST
-    data:
-      todos:
-      - content: Create separate config for optimization vs grouping
-        status: completed
-        activeForm: Creating separate config for optimization vs grouping
-      - content: Simplify presets to just OPTIMIZATION_ONLY and GROUPING
-        status: in_progress
-        activeForm: Simplifying presets to just OPTIMIZATION_ONLY and GROUPING
-      - content: Update dipeocc command to generate both optimized and grouped diagrams
-        status: pending
-        activeForm: Updating dipeocc command to generate both optimized and grouped diagrams
-      - content: Test the fix
-        status: pending
-        activeForm: Testing the fix
 - label: Edit File 15
   type: diff_patch
   position:
@@ -207,23 +161,6 @@ nodes:
     format: unified
     backup: true
     validate: true
-- label: Update TODO 10
-  type: db
-  position:
-    x: 850
-    y: 850
-  props:
-    operation: write
-    sub_type: memory
-    query: UPDATE TODO LIST
-    data:
-      todos:
-      - content: Update dipeocc command to generate both optimized and grouped diagrams
-        status: completed
-        activeForm: Updating dipeocc command to generate both optimized and grouped diagrams
-      - content: Test the fix
-        status: in_progress
-        activeForm: Testing the fix
 - label: Glob Search 3
   type: code_job
   position:
@@ -302,29 +239,6 @@ nodes:
     code: dipeocc convert --latest
     timeout: 120000
     description: Test the updated dipeocc command
-- label: Update TODO 3
-  type: db
-  position:
-    x: 1000
-    y: 250
-  props:
-    operation: write
-    sub_type: memory
-    query: UPDATE TODO LIST
-    data:
-      todos:
-      - content: Examine the post_processor.py file and TODO diagram processing
-        status: completed
-        activeForm: Examining post_processor.py and TODO diagram processing
-      - content: Investigate dipeocc conversion system
-        status: completed
-        activeForm: Investigating dipeocc conversion system
-      - content: Identify why To_Do_Subdiagram_Grouper is not working
-        status: in_progress
-        activeForm: Identifying why To_Do_Subdiagram_Grouper is not working
-      - content: Fix the TODO diagram processing issue
-        status: pending
-        activeForm: Fixing the TODO diagram processing issue
 connections:
 - from: tool_result 2
   to: Grep Search 1
@@ -340,12 +254,6 @@ connections:
   content_type: raw_text
 - from: Glob Search 3
   to: Read File 3
-  content_type: raw_text
-- from: Read File 3
-  to: Update TODO 3
-  content_type: raw_text
-- from: Update TODO 5
-  to: tool_result 6
   content_type: raw_text
 - from: tool_result 6
   to: Bash Command 6
@@ -365,12 +273,6 @@ connections:
 - from: Claude Responds To User 7
   to: Claude Responds To User 8
   content_type: raw_text
-- from: Claude Responds To User 8
-  to: Update TODO 8
-  content_type: raw_text
-- from: Update TODO 8
-  to: tool_result 11
-  content_type: raw_text
 - from: tool_result 11
   to: Edit File 9
   content_type: raw_text
@@ -389,19 +291,13 @@ connections:
 - from: Edit File 15
   to: tool_result 19
   content_type: raw_text
-- from: tool_result 19
-  to: Update TODO 10
-  content_type: raw_text
-- from: Update TODO 10
-  to: tool_result 20
-  content_type: raw_text
 - from: tool_result 20
   to: Bash Command 8
   content_type: raw_text
 metadata:
   group_name: to_do_2
-  node_count: 28
-  connection_count: 24
+  node_count: 24
+  connection_count: 18
   extracted_from: unknown
 persons:
   claude_code:

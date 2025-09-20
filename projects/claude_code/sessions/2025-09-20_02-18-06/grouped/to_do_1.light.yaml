@@ -1,0 +1,133 @@
+version: light
+nodes:
+- label: tool_result 10
+  type: api_job
+  position:
+    x: 950
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 18
+  type: api_job
+  position:
+    x: 950
+    y: 700
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Write File 21
+  type: db
+  position:
+    x: 950
+    y: 1000
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builder_refactored.py
+    content: "\"\"\"Refactored node builder using the factory pattern.\n\nThis module provides a simplified NodeBuilder interface that delegates\nto specialized builders through the ToolNodeFactory.\n\"\"\"\n\nfrom typing import Any, Optional\n\nfrom .node_factories.tool_node_factory import ToolNodeFactory\nfrom .person_registry import PersonRegistry\nfrom .position_manager import PositionManager\nfrom .payload_processor import PayloadProcessor\n\n\nclass NodeBuilder:\n    \"\"\"Refactored NodeBuilder using factory pattern for better separation of concerns.\"\"\"\n\n    def __init__(self):\n        \"\"\"Initialize the refactored node builder.\"\"\"\n        # Create shared components\n        self.person_registry = PersonRegistry()\n        self.position_manager = PositionManager()\n        self.payload_processor = PayloadProcessor()\n\n        # Create the factory with shared components\n        self.factory = ToolNodeFactory(\n            person_registry=self.person_registry,\n            position_manager=self.position_manager,\n            payload_processor=self.payload_processor,\n        )\n\n        # For compatibility, expose some properties\n        self.node_counter = 0\n        self.persons = {}\n\n        # Import utilities for backward compatibility\n        from .utils import TextProcessor, DiffGenerator\n\n        self.text_processor = TextProcessor()\n        self.diff_generator = DiffGenerator()\n\n    def reset(self):\n        \"\"\"Reset the node builder state.\"\"\"\n        self.factory.reset()\n        self.node_counter = 0\n        self.persons = {}\n        self.text_processor = TextProcessor()\n\n    def increment_counter(self) -> int:\n        \"\"\"Increment and return the node counter.\n\n        Returns:\n            The incremented counter value\n        \"\"\"\n        self.node_counter = self.factory.increment_counter()\n        return self.node_counter\n\n    def get_position(self) -> dict[str, int]:\n        \"\"\"Calculate node position based on current counter.\n\n        Returns:\n            Dictionary with x and y coordinates\n        \"\"\"\n        return self.position_manager.get_next_position()\n\n    def create_start_node(self, session_id: str, initial_prompt: str) -> dict[str, Any]:\n        \"\"\"Create the start node for the diagram.\n\n        Args:\n            session_id: The Claude Code session ID\n            initial_prompt: The initial user prompt\n\n        Returns:\n            The created start node\n        \"\"\"\n        return self.factory.create_start_node(session_id, initial_prompt)\n\n    def create_user_node(self, content: str) -> Optional[dict[str, Any]]:\n        \"\"\"Create a node for user input that Claude Code will respond to.\n\n        Args:\n            content: The user's message content\n\n        Returns:\n            The created user node or None if content is empty\n        \"\"\"\n        return self.factory.create_user_node(content)\n\n    def create_assistant_node(\n        self, content: str, system_messages: Optional[list[str]] = None\n    ) -> Optional[dict[str, Any]]:\n        \"\"\"Handle AI assistant response.\n\n        Args:\n            content: The assistant's response content\n            system_messages: Optional system messages for context\n\n        Returns:\n            Usually None as responses are outputs of user nodes\n        \"\"\"\n        return self.factory.create_assistant_node(content, system_messages)\n\n    def create_tool_node(\n        self,\n        tool_name: str,\n        tool_input: dict[str, Any],\n        tool_use_result: Optional[dict[str, Any]] = None,\n    ) -> Optional[dict[str, Any]]:\n        \"\"\"Create appropriate node based on tool name.\n\n        Args:\n            tool_name: Name of the tool\n            tool_input: Input parameters for the tool\n            tool_use_result: Optional tool execution result\n\n        Returns:\n            The created node or None if not applicable\n        \"\"\"\n        # Track the tool being used (for compatibility)\n        self.text_processor.set_last_tool(tool_name)\n\
+      \n        return self.factory.create_tool_node(tool_name, tool_input, tool_use_result)\n\n    # Compatibility methods for direct access\n    def create_read_node(self, tool_input: dict[str, Any]) -> dict[str, Any]:\n        \"\"\"Create a DB node for file read operation.\"\"\"\n        return self.factory.create_tool_node(\"Read\", tool_input)\n\n    def create_write_node(\n        self, tool_input: dict[str, Any], tool_use_result: Optional[dict[str, Any]] = None\n    ) -> dict[str, Any]:\n        \"\"\"Create a DB node for file write operation.\"\"\"\n        return self.factory.create_tool_node(\"Write\", tool_input, tool_use_result)\n\n    def create_edit_node(\n        self, tool_name: str, tool_input: dict[str, Any], original_content: Optional[str] = None\n    ) -> dict[str, Any]:\n        \"\"\"Create a diff_patch node for file edit operation.\"\"\"\n        # For compatibility with original interface\n        return self.factory.create_tool_node(tool_name, tool_input)\n\n    def create_edit_node_with_result(\n        self,\n        tool_name: str,\n        tool_input: dict[str, Any],\n        tool_use_result: Optional[dict[str, Any]] = None,\n    ) -> Optional[dict[str, Any]]:\n        \"\"\"Create a diff_patch node using tool_use_result for better diff generation.\"\"\"\n        return self.factory.create_tool_node(tool_name, tool_input, tool_use_result)\n\n    def create_bash_node(self, tool_input: dict[str, Any]) -> dict[str, Any]:\n        \"\"\"Create a code_job node for bash command execution.\"\"\"\n        return self.factory.create_tool_node(\"Bash\", tool_input)\n\n    def create_todo_node(self, tool_input: dict[str, Any]) -> dict[str, Any]:\n        \"\"\"Create a DB node for TodoWrite operation.\"\"\"\n        return self.factory.create_tool_node(\"TodoWrite\", tool_input)\n\n    def create_search_node(self, tool_name: str, tool_input: dict[str, Any]) -> dict[str, Any]:\n        \"\"\"Create a code_job node for search operations.\"\"\"\n        return self.factory.create_tool_node(tool_name, tool_input)\n\n    def create_generic_tool_node(\n        self, tool_name: str, tool_input: dict[str, Any]\n    ) -> dict[str, Any]:\n        \"\"\"Create a generic API node for unknown tools.\"\"\"\n        return self.factory.create_tool_node(tool_name, tool_input)\n\n    def get_nodes(self) -> list[dict[str, Any]]:\n        \"\"\"Get all created nodes.\n\n        Returns:\n            List of all nodes created by this builder\n        \"\"\"\n        return self.factory.get_all_nodes()\n\n    def get_persons(self) -> dict[str, dict[str, Any]]:\n        \"\"\"Get all registered persons.\n\n        Returns:\n            Dictionary of person configurations\n        \"\"\"\n        self.persons = self.factory.get_persons()\n        return self.persons\n\n    # Property for backward compatibility\n    @property\n    def nodes(self) -> list[dict[str, Any]]:\n        \"\"\"Property for backward compatibility with direct nodes access.\"\"\"\n        return self.factory.get_all_nodes()"
+- label: tool_result 32
+  type: api_job
+  position:
+    x: 950
+    y: 1150
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 18
+  type: code_job
+  position:
+    x: 950
+    y: 1450
+  props:
+    language: bash
+    code: grep -A 5 "^persons:" projects/claude_code/sessions/2025-09-20_02-18-06/diagram.light.yaml
+    timeout: 120000
+    description: Check persons section in diagram
+- label: tool_result 3
+  type: api_job
+  position:
+    x: 1000
+    y: 250
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Write File 11
+  type: db
+  position:
+    x: 1000
+    y: 550
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/start_node_builder.py
+    content: "\"\"\"Start node builder for DiPeO diagrams.\n\nThis module handles the creation of start nodes which initiate\ndiagram execution in Claude Code translations.\n\"\"\"\n\nfrom typing import Any, Optional\n\nfrom .base_node_builder import BaseNodeBuilder\n\n\nclass StartNodeBuilder(BaseNodeBuilder):\n    \"\"\"Builder for creating start nodes in DiPeO diagrams.\"\"\"\n\n    def can_handle(self, tool_name: str) -> bool:\n        \"\"\"Start nodes are not created from tools.\n\n        Args:\n            tool_name: Name of the tool\n\n        Returns:\n            Always False as start nodes are not tool-based\n        \"\"\"\n        return False\n\n    def create_node(\n        self,\n        tool_name: str,\n        tool_input: dict[str, Any],\n        tool_result: Optional[dict[str, Any]] = None,\n    ) -> Optional[dict[str, Any]]:\n        \"\"\"Start nodes are not created from tool events.\n\n        Args:\n            tool_name: Name of the tool\n            tool_input: Input parameters for the tool\n            tool_result: Optional tool execution result\n\n        Returns:\n            Always None as start nodes are not tool-based\n        \"\"\"\n        return None\n\n    def create_start_node(self, session_id: str, initial_prompt: str) -> dict[str, Any]:\n        \"\"\"Create the start node for the diagram.\n\n        Args:\n            session_id: The Claude Code session ID\n            initial_prompt: The initial user prompt that started the session\n\n        Returns:\n            The created start node\n        \"\"\"\n        # Start node always at fixed position\n        position = self.position_manager.get_start_position()\n\n        node = {\n            \"label\": \"Start\",\n            \"type\": \"start\",\n            \"position\": position,\n            \"props\": {\n                \"trigger_mode\": \"manual\",\n                \"custom_data\": {\n                    \"session_id\": session_id,\n                    \"initial_prompt\": initial_prompt[:200]\n                    if initial_prompt\n                    else \"Claude Code Session\",\n                },\n            },\n        }\n        self.nodes.append(node)\n        return node"
+- label: Write File 17
+  type: db
+  position:
+    x: 1000
+    y: 700
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/tool_node_factory.py
+    content: "\"\"\"Tool node factory for creating nodes based on tool events.\n\nThis module provides a factory that delegates node creation to\nspecialized builders based on the tool type.\n\"\"\"\n\nfrom typing import Any, Optional\n\nfrom .api_node_builder import ApiNodeBuilder\nfrom .code_node_builder import CodeNodeBuilder\nfrom .db_node_builder import DbNodeBuilder\nfrom .file_node_builder import FileNodeBuilder\nfrom .person_node_builder import PersonNodeBuilder\nfrom .start_node_builder import StartNodeBuilder\nfrom ..payload_processor import PayloadProcessor\nfrom ..person_registry import PersonRegistry\nfrom ..position_manager import PositionManager\n\n\nclass ToolNodeFactory:\n    \"\"\"Factory for creating nodes based on tool events.\"\"\"\n\n    def __init__(\n        self,\n        person_registry: Optional[PersonRegistry] = None,\n        position_manager: Optional[PositionManager] = None,\n        payload_processor: Optional[PayloadProcessor] = None,\n    ):\n        \"\"\"Initialize the tool node factory.\n\n        Args:\n            person_registry: Optional person registry\n            position_manager: Optional position manager\n            payload_processor: Optional payload processor\n        \"\"\"\n        # Create shared resources\n        self.person_registry = person_registry or PersonRegistry()\n        self.position_manager = position_manager or PositionManager()\n        self.payload_processor = payload_processor or PayloadProcessor()\n\n        # Initialize specialized builders\n        self.start_builder = StartNodeBuilder(self.position_manager)\n        self.person_builder = PersonNodeBuilder(\n            self.person_registry, self.position_manager\n        )\n        self.file_builder = FileNodeBuilder(\n            self.payload_processor, self.position_manager\n        )\n        self.code_builder = CodeNodeBuilder(self.position_manager)\n        self.db_builder = DbNodeBuilder(self.position_manager)\n        self.api_builder = ApiNodeBuilder(self.position_manager)\n\n        # Order matters - more specific builders should come first\n        self.builders = [\n            self.file_builder,\n            self.code_builder,\n            self.db_builder,\n            self.api_builder,  # API builder last as it handles unknown tools\n        ]\n\n        # Track all nodes created\n        self._all_nodes: list[dict[str, Any]] = []\n\n    def reset(self):\n        \"\"\"Reset all builders and shared resources.\"\"\"\n        self.person_registry.reset()\n        self.position_manager.reset()\n\n        # Reset all builders\n        for builder in [\n            self.start_builder,\n            self.person_builder,\n            self.file_builder,\n            self.code_builder,\n            self.db_builder,\n            self.api_builder,\n        ]:\n            builder.reset()\n\n        self._all_nodes = []\n\n    def create_start_node(self, session_id: str, initial_prompt: str) -> dict[str, Any]:\n        \"\"\"Create the start node for the diagram.\n\n        Args:\n            session_id: The Claude Code session ID\n            initial_prompt: The initial user prompt\n\n        Returns:\n            The created start node\n        \"\"\"\n        node = self.start_builder.create_start_node(session_id, initial_prompt)\n        self._all_nodes.append(node)\n        return node\n\n    def create_user_node(self, content: str) -> Optional[dict[str, Any]]:\n        \"\"\"Create a node for user input.\n\n        Args:\n            content: The user's message content\n\n        Returns:\n            The created user node or None if content is empty\n        \"\"\"\n        node = self.person_builder.create_user_node(content)\n        if node:\n            self._all_nodes.append(node)\n        return node\n\n    def create_assistant_node(\n        self, content: str, system_messages: Optional[list[str]] = None\n    ) -> Optional[dict[str, Any]]:\n        \"\"\"Handle AI assistant response.\n\n        Args:\n            content: The assistant's response content\n            system_messages: Optional\
+      \ system messages for context\n\n        Returns:\n            Usually None as responses are outputs of user nodes\n        \"\"\"\n        node = self.person_builder.create_assistant_node(content, system_messages)\n        if node:\n            self._all_nodes.append(node)\n        return node\n\n    def create_tool_node(\n        self,\n        tool_name: str,\n        tool_input: dict[str, Any],\n        tool_use_result: Optional[dict[str, Any]] = None,\n    ) -> Optional[dict[str, Any]]:\n        \"\"\"Create appropriate node based on tool name.\n\n        Args:\n            tool_name: Name of the tool\n            tool_input: Input parameters for the tool\n            tool_use_result: Optional tool execution result\n\n        Returns:\n            The created node or None if not applicable\n        \"\"\"\n        # Defensive handling for None or missing tool_name\n        if not tool_name:\n            print(\"Warning: Missing tool name, skipping node creation\")\n            return None\n\n        # Ensure tool_input is a dict\n        if tool_input is None:\n            tool_input = {}\n        elif not isinstance(tool_input, dict):\n            print(f\"Warning: Invalid tool_input type for {tool_name}, using empty dict\")\n            tool_input = {}\n\n        try:\n            # Find the appropriate builder\n            for builder in self.builders:\n                if builder.can_handle(tool_name):\n                    node = builder.create_node(tool_name, tool_input, tool_use_result)\n                    if node:\n                        self._all_nodes.append(node)\n                    return node\n\n            # If no builder handles it, use API builder as fallback\n            node = self.api_builder.create_generic_api_node(tool_name, tool_input)\n            if node:\n                self._all_nodes.append(node)\n            return node\n\n        except Exception as e:\n            print(f\"Warning: Error creating {tool_name} node: {e}\")\n            # Fallback to generic node on error\n            node = self.api_builder.create_generic_api_node(tool_name, tool_input)\n            if node:\n                self._all_nodes.append(node)\n            return node\n\n    def get_all_nodes(self) -> list[dict[str, Any]]:\n        \"\"\"Get all nodes created by the factory.\n\n        Returns:\n            List of all created nodes\n        \"\"\"\n        return self._all_nodes.copy()\n\n    def get_persons(self) -> dict[str, dict[str, Any]]:\n        \"\"\"Get all registered persons.\n\n        Returns:\n            Dictionary of person configurations\n        \"\"\"\n        return self.person_registry.get_all_persons()\n\n    def get_node_count(self) -> int:\n        \"\"\"Get the total count of nodes created.\n\n        Returns:\n            Number of nodes created\n        \"\"\"\n        return len(self._all_nodes)\n\n    def increment_counter(self) -> int:\n        \"\"\"Increment and return the node counter.\n\n        Returns:\n            The incremented counter value\n        \"\"\"\n        return self.position_manager.increment_counter()"
+- label: tool_result 25
+  type: api_job
+  position:
+    x: 1000
+    y: 1000
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 8
+  type: code_job
+  position:
+    x: 1000
+    y: 1150
+  props:
+    language: bash
+    code: dipeocc stats --latest
+    timeout: 120000
+    description: Test dipeocc stats with refactored code
+connections:
+- from: tool_result 10
+  to: Write File 11
+  content_type: raw_text
+- from: tool_result 18
+  to: Write File 17
+  content_type: raw_text
+- from: Write File 21
+  to: tool_result 25
+  content_type: raw_text
+- from: tool_result 32
+  to: Bash Command 8
+  content_type: raw_text
+metadata:
+  group_name: to_do_1
+  node_count: 10
+  connection_count: 4
+  extracted_from: unknown
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

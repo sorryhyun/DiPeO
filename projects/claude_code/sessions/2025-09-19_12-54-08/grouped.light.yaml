@@ -1,0 +1,153 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 100, y: 100}
+  props:
+    trigger_mode: manual
+    custom_data:
+      session_id: 8cd01420-f7e0-4417-91fb-71d5c3c044e3
+      initial_prompt: |-
+        <command-name>/clear</command-name>
+                    <command-message>clear</command-message>
+                    <command-args></command-args>
+- label: Update TODO 1
+  type: db
+  position: {x: 300, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Fix session.jsonl preprocessing in claude_code_command.py
+        status: in_progress
+        activeForm: Fixing session.jsonl preprocessing in claude_code_command.py
+- label: prev_to_do_sub
+  type: sub_diagram
+  position: {x: 500, y: 100}
+  props:
+    sub_diagram_path: grouped/prev_to_do.light.yaml
+    execution_mode: sequential
+- label: Update TODO 2
+  type: db
+  position: {x: 700, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Fix session.jsonl preprocessing in claude_code_command.py
+        status: completed
+        activeForm: Fixing session.jsonl preprocessing in claude_code_command.py
+- label: to_do_1_sub
+  type: sub_diagram
+  position: {x: 900, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_1.light.yaml
+    execution_mode: sequential
+- label: Update TODO 3
+  type: db
+  position: {x: 1100, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Create SessionSerializer in infrastructure layer for JSONL conversion
+        status: in_progress
+        activeForm: Creating SessionSerializer in infrastructure layer for JSONL conversion
+- label: to_do_2_sub
+  type: sub_diagram
+  position: {x: 1300, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_2.light.yaml
+    execution_mode: sequential
+- label: Update TODO 4
+  type: db
+  position: {x: 1500, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Create SessionSerializer in infrastructure layer for JSONL conversion
+        status: completed
+        activeForm: Creating SessionSerializer in infrastructure layer for JSONL conversion
+      - content: Add serialization methods to session_parser.py
+        status: in_progress
+        activeForm: Adding serialization methods to session_parser.py
+- label: to_do_5_sub
+  type: sub_diagram
+  position: {x: 1700, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_5.light.yaml
+    execution_mode: sequential
+- label: Update TODO 5
+  type: db
+  position: {x: 1900, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Add serialization methods to session_parser.py
+        status: completed
+        activeForm: Adding serialization methods to session_parser.py
+connections:
+- {from: Start, to: Update TODO 1, content_type: raw_text}
+- {from: Update TODO 1, to: prev_to_do_sub, content_type: raw_text}
+- {from: prev_to_do_sub, to: Update TODO 2, content_type: raw_text}
+- {from: Update TODO 2, to: to_do_1_sub, content_type: raw_text}
+- {from: to_do_1_sub, to: Update TODO 3, content_type: raw_text}
+- {from: Update TODO 3, to: to_do_2_sub, content_type: raw_text}
+- {from: to_do_2_sub, to: Update TODO 4, content_type: raw_text}
+- {from: Update TODO 4, to: to_do_5_sub, content_type: raw_text}
+- {from: to_do_5_sub, to: Update TODO 5, content_type: raw_text}
+metadata:
+  conversion:
+    total_nodes: 84
+    total_connections: 83
+    total_persons: 0
+    node_types:
+      start: 1
+      person_job: 12
+      code_job: 23
+      db: 18
+      api_job: 18
+      diff_patch: 12
+  deduplication:
+    files_deduplicated: 2
+    total_nodes_removed: 2
+    deduplicated_files:
+      /home/soryhyun/DiPeO/dipeo/infrastructure/cc_translate/adapters.py:
+        original_count: 2
+        kept_node: Read File 3
+        removed_nodes:
+        - Read File 21
+      /home/soryhyun/DiPeO/dipeo/infrastructure/cc_translate/session_parser.py:
+        original_count: 2
+        kept_node: Read File 4
+        removed_nodes:
+        - Read File 17
+  grouped: true
+  original_nodes: 82
+  sub_diagrams: 4
+  extracted_todos: 5
+  grouping_method: todo_updates_with_extraction
+  post_processing:
+    optimization:
+      applied: true
+      total_changes: 12
+      nodes_removed: 2
+      connections_modified: 4
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

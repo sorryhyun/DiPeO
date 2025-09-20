@@ -1,0 +1,207 @@
+version: light
+nodes:
+- label: Claude Responds To User 1
+  type: person_job
+  position:
+    x: 350
+    y: 100
+  props:
+    person: claude_code
+    default_prompt: "<command-name>/clear</command-name>\n            <command-message>clear</command-message>\n            <command-args></command-args>"
+- label: tool_result 12
+  type: api_job
+  position:
+    x: 350
+    y: 550
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Claude Responds To User 2
+  type: person_job
+  position:
+    x: 400
+    y: 100
+  props:
+    person: claude_code
+    default_prompt: <local-command-stdout></local-command-stdout>
+- label: tool_result 5
+  type: api_job
+  position:
+    x: 400
+    y: 250
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 12
+  type: diff_patch
+  position:
+    x: 400
+    y: 550
+  props:
+    target_path: /home/soryhyun/DiPeO/TODO.md
+    diff: "--- /home/soryhyun/DiPeO/TODO.md\n+++ /home/soryhyun/DiPeO/TODO.md\n@@ -1,16 +1,16 @@\n-## Phase 5: Refactor Phase Coordinator \U0001F3AF\n+## Phase 5: Refactor Phase Coordinator \U0001F3AF ✅\n \n-### 5.1 Create Pipeline Abstraction\n-- [ ] Create `pipeline/` directory\n-- [ ] Create `pipeline/base.py` with `TranslationPipeline` abstract class\n-- [ ] Define clear phase interfaces\n+### 5.1 Create Pipeline Abstraction ✅\n+- [x] Create `pipeline/` directory\n+- [x] Create `pipeline/base.py` with `TranslationPipeline` abstract class\n+- [x] Define clear phase interfaces\n \n-### 5.2 Update PhaseCoordinator\n-- [ ] Implement `TranslationPipeline` interface\n-- [ ] Accept `SessionPort` instead of `ClaudeCodeSession`\n-- [ ] Add proper error boundaries between phases\n-- [ ] Add phase timing and metrics\n+### 5.2 Update PhaseCoordinator ✅\n+- [x] Implement `TranslationPipeline` interface\n+- [x] Accept `SessionPort` instead of `ClaudeCodeSession`\n+- [x] Add proper error boundaries between phases\n+- [x] Add phase timing and metrics\n \n-### 5.3 Update Main Translator\n-- [ ] Update `ClaudeCodeTranslator` to use ports\n-- [ ] Add adapter layer for infrastructure types\n+### 5.3 Update Main Translator ✅\n+- [x] Update `ClaudeCodeTranslator` to use ports\n+- [x] Add adapter layer for infrastructure types"
+    format: unified
+    backup: true
+    validate: true
+- label: Claude Responds To User 3
+  type: person_job
+  position:
+    x: 450
+    y: 100
+  props:
+    person: claude_code
+    default_prompt: '<command-message>todo is running…</command-message>
+
+      <command-name>/todo</command-name>
+
+      <command-args>5</command-args>'
+- label: Edit File 6
+  type: diff_patch
+  position:
+    x: 450
+    y: 250
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py\n@@ -6,13 +6,19 @@\n 3. Post-process - Optimize and clean generated diagrams\n \"\"\"\n \n+from datetime import datetime\n from typing import Any, Optional\n \n-from dipeo.infrastructure.claude_code import ClaudeCodeSession\n-\n from .convert import DiagramConverter\n+from .pipeline import (\n+    PhaseResult,\n+    PipelineMetrics,\n+    PipelinePhase,\n+    TranslationPipeline,\n+)\n+from .ports import SessionPort\n from .post_processing import PipelineConfig, PostProcessingPipeline, ProcessingPreset\n from .preprocess import SessionOrchestrator\n \n \n-class PhaseCoordinator:\n+class PhaseCoordinator(TranslationPipeline):"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 13
+  type: api_job
+  position:
+    x: 450
+    y: 550
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Read File 1
+  type: db
+  position:
+    x: 500
+    y: 100
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/TODO.md
+- label: tool_result 6
+  type: api_job
+  position:
+    x: 500
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 13
+  type: diff_patch
+  position:
+    x: 500
+    y: 550
+  props:
+    target_path: /home/soryhyun/DiPeO/TODO.md
+    diff: "--- /home/soryhyun/DiPeO/TODO.md\n+++ /home/soryhyun/DiPeO/TODO.md\n@@ -1,3 +1,3 @@\n ### Week 3 (Integration)\n-- [ ] Phase 5: Refactor Phase Coordinator\n+- [x] Phase 5: Refactor Phase Coordinator ✅\n - [ ] Phase 6: Testing Infrastructure"
+    format: unified
+    backup: true
+    validate: true
+- label: Edit File 7
+  type: diff_patch
+  position:
+    x: 550
+    y: 400
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py\n@@ -1,9 +1,9 @@\n     def translate(\n         self,\n-        session: ClaudeCodeSession,\n-        post_process: bool = False,\n-        processing_config: Optional[PipelineConfig] = None,\n-    ) -> dict[str, Any]:\n+        session: SessionPort,\n+        skip_phases: Optional[list[PipelinePhase]] = None,\n+        **kwargs\n+    ) -> tuple[dict[str, Any], PipelineMetrics]:\n         \"\"\"\n         Translate a Claude Code session into a light format diagram.\n \n@@ -13,45 +13,156 @@\n         3. Post-process the diagram (optimization, cleanup)\n \n         Args:\n-            session: Parsed Claude Code session\n-            post_process: Whether to apply post-processing optimizations\n-            processing_config: Custom processing configuration\n+            session: Session to translate via port interface\n+            skip_phases: Optional list of phases to skip\n+            **kwargs: Phase-specific configuration options\n+                - processing_config: PipelineConfig for post-processing\n+                - verbose: bool for verbose output\n \n         Returns:\n-            Light format diagram dictionary\n+            Tuple of (diagram, pipeline_metrics)\n         \"\"\"\n+        skip_phases = skip_phases or []\n+        metrics = PipelineMetrics()\n+\n         # Phase 1: Preprocess\n-        preprocessed_data, reports = self.preprocessor.preprocess(session)\n+        if PipelinePhase.PREPROCESS not in skip_phases:\n+            preprocess_result = self.execute_phase(\n+                PipelinePhase.PREPROCESS,\n+                session,\n+                **kwargs\n+            )\n+            metrics.add_phase_result(preprocess_result)\n+\n+            if not preprocess_result.success:\n+                return {}, metrics\n+\n+            preprocessed_data = preprocess_result.data\n+        else:\n+            # If preprocessing is skipped, assume session is preprocessed data\n+            preprocessed_data = session\n \n         # Phase 2: Convert\n+        if PipelinePhase.CONVERT not in skip_phases:\n+            convert_result = self.execute_phase(\n+                PipelinePhase.CONVERT,\n+                preprocessed_data,\n+                **kwargs\n+            )\n+            metrics.add_phase_result(convert_result)\n+\n+            if not convert_result.success:\n+                return {}, metrics\n+\n+            diagram = convert_result.data\n+        else:\n+            # If conversion is skipped, assume preprocessed_data is already a diagram\n+            diagram = preprocessed_data if isinstance(preprocessed_data, dict) else {}\n+\n+        # Phase 3: Post-process\n+        if PipelinePhase.POST_PROCESS not in skip_phases:\n+            # Check if post-processing should be applied\n+            should_post_process = kwargs.get('post_process', False)\n+\n+            if should_post_process:\n+                postprocess_result = self.execute_phase(\n+                    PipelinePhase.POST_PROCESS,\n+                    diagram,\n+                    **kwargs\n+                )\n+                metrics.add_phase_result(postprocess_result)\n+\n+                if postprocess_result.success:\n+                    diagram = postprocess_result.data\n+\n+                    # Add metrics to diagram metadata\n+                    if postprocess_result.report and hasattr(postprocess_result.report, 'has_changes'):\n+                        if postprocess_result.report.has_changes():\n+                            if \"metadata\" not in diagram:\n+                                diagram[\"metadata\"] = {}\n+                            if \"post_processing\" not in diagram[\"metadata\"]:\n+                                diagram[\"metadata\"][\"post_processing\"] = {}\n+\n+                            diagram[\"metadata\"][\"post_processing\"][\"optimization\"] = {\n+                                \"applied\": True,\n+                      \
+      \          \"total_changes\": postprocess_result.report.total_changes,\n+                                \"nodes_removed\": postprocess_result.report.total_nodes_removed,\n+                                \"connections_modified\": postprocess_result.report.total_connections_modified,\n+                            }\n+\n+        return diagram, metrics\n+\n+    def execute_phase(\n+        self,\n+        phase: PipelinePhase,\n+        input_data: Any,\n+        **kwargs\n+    ) -> PhaseResult:\n+        \"\"\"\n+        Execute a single phase of the pipeline.\n+\n+        Args:\n+            phase: The phase to execute\n+            input_data: Input data for the phase\n+            **kwargs: Phase-specific options\n+\n+        Returns:\n+            PhaseResult containing output and metrics\n+        \"\"\"\n+        if phase == PipelinePhase.PREPROCESS:\n+            return self.with_error_boundary(\n+                phase,\n+                self._execute_preprocess,\n+                input_data,\n+                kwargs.get('processing_config')\n+            )\n+\n+        elif phase == PipelinePhase.CONVERT:\n+            return self.with_error_boundary(\n+                phase,\n+                self._execute_convert,\n+                input_data\n+            )\n+\n+        elif phase == PipelinePhase.POST_PROCESS:\n+            return self.with_error_boundary(\n+                phase,\n+                self._execute_post_process,\n+                input_data,\n+                kwargs.get('processing_config')\n+            )\n+\n+        else:\n+            return PhaseResult(\n+                phase=phase,\n+                data=None,\n+                success=False,\n+                start_time=datetime.now(),\n+                end_time=datetime.now(),\n+                error=f\"Unknown phase: {phase}\"\n+            )\n+\n+    def _execute_preprocess(\n+        self,\n+        session: SessionPort,\n+        processing_config: Optional[PipelineConfig] = None\n+    ) -> tuple[Any, Optional[list]]:\n+        \"\"\"Execute the preprocessing phase.\"\"\"\n+        return self.preprocessor.preprocess(session)\n+\n+    def _execute_convert(self, preprocessed_data: Any) -> tuple[dict, None]:\n+        \"\"\"Execute the conversion phase.\"\"\"\n         diagram = self.converter.convert(preprocessed_data)\n+        return diagram, None\n \n-        # Phase 3: Post-process (if requested)\n-        if post_process:\n-            pipeline_config = processing_config or PipelineConfig.from_preset(\n-                ProcessingPreset.STANDARD\n-            )\n-            pipeline = PostProcessingPipeline(pipeline_config)\n-            diagram, post_processing_report = pipeline.process(diagram)\n-\n-            # Add post-processing report to metadata if it had changes\n-            if post_processing_report.has_changes():\n-                if \"metadata\" not in diagram:\n-                    diagram[\"metadata\"] = {}\n-                if \"post_processing\" not in diagram[\"metadata\"]:\n-                    diagram[\"metadata\"][\"post_processing\"] = {}\n-\n-                diagram[\"metadata\"][\"post_processing\"][\"optimization\"] = {\n-                    \"applied\": True,\n-                    \"total_changes\": post_processing_report.total_changes,\n-                    \"nodes_removed\": post_processing_report.total_nodes_removed,\n-                    \"connections_modified\": post_processing_report.total_connections_modified,\n-                }\n-\n-                # Print summary if verbose\n-                if pipeline_config.verbose_reporting:\n-                    print(f\"\n-Post-processing: {post_processing_report.get_summary()}\n-\")\n-\n-        return diagram\n+    def _execute_post_process(\n+        self,\n+        diagram: dict[str, Any],\n+        processing_config: Optional[PipelineConfig] = None\n+    ) -> tuple[dict, Any]:\n+        \"\"\"Execute the post-processing phase.\"\"\"\n+        pipeline_config = processing_config or PipelineConfig.from_preset(\n+            ProcessingPreset.STANDARD\n\
+      +        )\n+        pipeline = PostProcessingPipeline(pipeline_config)\n+        return pipeline.process(diagram)"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 14
+  type: api_job
+  position:
+    x: 550
+    y: 550
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 1
+  type: api_job
+  position:
+    x: 600
+    y: 100
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 7
+  type: api_job
+  position:
+    x: 600
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+connections:
+- from: Claude Responds To User 1
+  to: Claude Responds To User 2
+  content_type: raw_text
+- from: Claude Responds To User 2
+  to: Claude Responds To User 3
+  content_type: raw_text
+- from: Claude Responds To User 3
+  to: Read File 1
+  content_type: raw_text
+- from: tool_result 5
+  to: Edit File 6
+  content_type: raw_text
+- from: Edit File 6
+  to: tool_result 6
+  content_type: raw_text
+- from: tool_result 6
+  to: Edit File 7
+  content_type: raw_text
+- from: Edit File 7
+  to: tool_result 7
+  content_type: raw_text
+- from: tool_result 12
+  to: Edit File 12
+  content_type: raw_text
+- from: Edit File 12
+  to: tool_result 13
+  content_type: raw_text
+- from: tool_result 13
+  to: Edit File 13
+  content_type: raw_text
+- from: Edit File 13
+  to: tool_result 14
+  content_type: raw_text
+metadata:
+  group_name: to_do_5
+  node_count: 15
+  connection_count: 11
+  extracted_from: unknown
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

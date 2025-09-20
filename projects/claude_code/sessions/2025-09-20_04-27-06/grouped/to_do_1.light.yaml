@@ -118,35 +118,9 @@ nodes:
     body: {}
     timeout: 30
     description: tool_result operation
-- label: Update TODO 2
-  type: db
-  position:
-    x: 650
-    y: 100
-  props:
-    operation: write
-    sub_type: memory
-    query: UPDATE TODO LIST
-    data:
-      todos:
-      - content: Examine the post_processor.py file and TODO diagram processing
-        status: completed
-        activeForm: Examining post_processor.py and TODO diagram processing
-      - content: Investigate dipeocc conversion system
-        status: in_progress
-        activeForm: Investigating dipeocc conversion system
-      - content: Identify why To_Do_Subdiagram_Grouper is not working
-        status: pending
-        activeForm: Identifying why To_Do_Subdiagram_Grouper is not working
-      - content: Fix the TODO diagram processing issue
-        status: pending
-        activeForm: Fixing the TODO diagram processing issue
 connections:
 - from: tool_result 1
   to: Read File 1
-  content_type: raw_text
-- from: Read File 1
-  to: Update TODO 2
   content_type: raw_text
 - from: Edit File 5
   to: tool_result 5
@@ -168,8 +142,8 @@ connections:
   content_type: raw_text
 metadata:
   group_name: to_do_1
-  node_count: 12
-  connection_count: 8
+  node_count: 11
+  connection_count: 7
   extracted_from: unknown
 persons:
   claude_code:

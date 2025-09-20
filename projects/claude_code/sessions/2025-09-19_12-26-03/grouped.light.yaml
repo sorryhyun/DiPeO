@@ -1,0 +1,248 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 100, y: 100}
+  props:
+    trigger_mode: manual
+    custom_data:
+      session_id: 7a1d270b-fd38-4360-a3fd-f1908201d88f
+      initial_prompt: |-
+        <command-name>/clear</command-name>
+                    <command-message>clear</command-message>
+                    <command-args></command-args>
+- label: Update TODO 1
+  type: db
+  position: {x: 300, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Analyze current cc_translate structure and complexity issues
+        status: completed
+        activeForm: Analyzing current cc_translate structure
+      - content: Design simplified base class architecture
+        status: in_progress
+        activeForm: Designing simplified base class architecture
+      - content: Create unified BasePhaseProcessor class
+        status: pending
+        activeForm: Creating unified BasePhaseProcessor class
+      - content: Refactor PreprocessPhase to extend BasePhaseProcessor
+        status: pending
+        activeForm: Refactoring PreprocessPhase
+      - content: Refactor ConvertPhase to extend BasePhaseProcessor
+        status: pending
+        activeForm: Refactoring ConvertPhase
+      - content: Refactor PostProcessPhase to extend BasePhaseProcessor
+        status: pending
+        activeForm: Refactoring PostProcessPhase
+      - content: Simplify PhaseCoordinator to use unified base methods
+        status: pending
+        activeForm: Simplifying PhaseCoordinator
+      - content: Clean up redundant abstractions and consolidate reports
+        status: pending
+        activeForm: Cleaning up redundant abstractions
+      - content: Test the refactored translation pipeline
+        status: pending
+        activeForm: Testing refactored pipeline
+- label: prev_to_do_sub
+  type: sub_diagram
+  position: {x: 500, y: 100}
+  props:
+    sub_diagram_path: grouped/prev_to_do.light.yaml
+    execution_mode: sequential
+- label: Update TODO 2
+  type: db
+  position: {x: 700, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Analyze current cc_translate structure and complexity issues
+        status: completed
+        activeForm: Analyzing current cc_translate structure
+      - content: Design separate base classes for each phase
+        status: completed
+        activeForm: Designing separate base classes for each phase
+      - content: Create/enhance BasePreprocessor with standard interface
+        status: pending
+        activeForm: Creating BasePreprocessor with standard interface
+      - content: Create/enhance BaseConverter with standard interface
+        status: pending
+        activeForm: Creating BaseConverter with standard interface
+      - content: Create/enhance BasePostProcessor with standard interface
+        status: pending
+        activeForm: Creating BasePostProcessor with standard interface
+      - content: Refactor SessionOrchestrator to extend BasePreprocessor
+        status: pending
+        activeForm: Refactoring SessionOrchestrator
+      - content: Refactor DiagramConverter to extend BaseConverter
+        status: pending
+        activeForm: Refactoring DiagramConverter
+      - content: Refactor PostProcessingPipeline to extend BasePostProcessor
+        status: pending
+        activeForm: Refactoring PostProcessingPipeline
+      - content: Simplify PhaseCoordinator to just call base methods
+        status: pending
+        activeForm: Simplifying PhaseCoordinator
+      - content: Remove redundant pipeline abstractions
+        status: pending
+        activeForm: Removing redundant abstractions
+      - content: Test the refactored translation pipeline
+        status: pending
+        activeForm: Testing refactored pipeline
+- label: to_do_2_sub
+  type: sub_diagram
+  position: {x: 900, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_2.light.yaml
+    execution_mode: sequential
+- label: Update TODO 3
+  type: db
+  position: {x: 1100, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Write refactoring plan in TODO.md
+        status: in_progress
+        activeForm: Writing refactoring plan in TODO.md
+      - content: Consolidate pipeline/base.py into phase_coordinator.py
+        status: pending
+        activeForm: Consolidating pipeline/base.py into phase_coordinator.py
+      - content: Create/enhance BasePreprocessor with standard interface
+        status: pending
+        activeForm: Creating BasePreprocessor with standard interface
+      - content: Create/enhance BaseConverter with standard interface
+        status: pending
+        activeForm: Creating BaseConverter with standard interface
+      - content: Create/enhance BasePostProcessor with standard interface
+        status: pending
+        activeForm: Creating BasePostProcessor with standard interface
+      - content: Refactor SessionOrchestrator to extend BasePreprocessor
+        status: pending
+        activeForm: Refactoring SessionOrchestrator
+      - content: Refactor DiagramConverter to extend BaseConverter
+        status: pending
+        activeForm: Refactoring DiagramConverter
+      - content: Refactor PostProcessingPipeline to extend BasePostProcessor
+        status: pending
+        activeForm: Refactoring PostProcessingPipeline
+      - content: Simplify PhaseCoordinator to use standard process() methods
+        status: pending
+        activeForm: Simplifying PhaseCoordinator
+      - content: Delete pipeline/ directory after consolidation
+        status: pending
+        activeForm: Deleting pipeline/ directory
+      - content: Test the refactored translation pipeline
+        status: pending
+        activeForm: Testing refactored pipeline
+- label: to_do_4_sub
+  type: sub_diagram
+  position: {x: 1300, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_4.light.yaml
+    execution_mode: sequential
+- label: Update TODO 4
+  type: db
+  position: {x: 1500, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Write refactoring plan in TODO.md
+        status: completed
+        activeForm: Writing refactoring plan in TODO.md
+      - content: Consolidate pipeline/base.py into phase_coordinator.py
+        status: in_progress
+        activeForm: Consolidating pipeline/base.py into phase_coordinator.py
+      - content: Create/enhance BasePreprocessor with standard interface
+        status: pending
+        activeForm: Creating BasePreprocessor with standard interface
+      - content: Create/enhance BaseConverter with standard interface
+        status: pending
+        activeForm: Creating BaseConverter with standard interface
+      - content: Create/enhance BasePostProcessor with standard interface
+        status: pending
+        activeForm: Creating BasePostProcessor with standard interface
+      - content: Refactor SessionOrchestrator to extend BasePreprocessor
+        status: pending
+        activeForm: Refactoring SessionOrchestrator
+      - content: Refactor DiagramConverter to extend BaseConverter
+        status: pending
+        activeForm: Refactoring DiagramConverter
+      - content: Refactor PostProcessingPipeline to extend BasePostProcessor
+        status: pending
+        activeForm: Refactoring PostProcessingPipeline
+      - content: Simplify PhaseCoordinator to use standard process() methods
+        status: pending
+        activeForm: Simplifying PhaseCoordinator
+      - content: Delete pipeline/ directory after consolidation
+        status: pending
+        activeForm: Deleting pipeline/ directory
+      - content: Test the refactored translation pipeline
+        status: pending
+        activeForm: Testing refactored pipeline
+connections:
+- {from: Start, to: Update TODO 1, content_type: raw_text}
+- {from: Update TODO 1, to: prev_to_do_sub, content_type: raw_text}
+- {from: prev_to_do_sub, to: Update TODO 2, content_type: raw_text}
+- {from: Update TODO 2, to: to_do_2_sub, content_type: raw_text}
+- {from: to_do_2_sub, to: Update TODO 3, content_type: raw_text}
+- {from: Update TODO 3, to: to_do_4_sub, content_type: raw_text}
+- {from: to_do_4_sub, to: Update TODO 4, content_type: raw_text}
+metadata:
+  conversion:
+    total_nodes: 37
+    total_connections: 36
+    total_persons: 0
+    node_types:
+      start: 1
+      person_job: 8
+      code_job: 5
+      db: 16
+      api_job: 7
+  deduplication:
+    files_deduplicated: 3
+    total_nodes_removed: 3
+    deduplicated_files:
+      /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py:
+        original_count: 2
+        kept_node: Read File 1
+        removed_nodes:
+        - Read File 11
+      /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/base.py:
+        original_count: 2
+        kept_node: Read File 4
+        removed_nodes:
+        - Read File 8
+      /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/base.py:
+        original_count: 2
+        kept_node: Read File 5
+        removed_nodes:
+        - Read File 10
+  grouped: true
+  original_nodes: 34
+  sub_diagrams: 3
+  extracted_todos: 4
+  grouping_method: todo_updates_with_extraction
+  post_processing:
+    optimization:
+      applied: true
+      total_changes: 14
+      nodes_removed: 3
+      connections_modified: 6
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

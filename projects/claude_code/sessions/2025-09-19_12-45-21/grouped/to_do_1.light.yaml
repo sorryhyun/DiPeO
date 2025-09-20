@@ -1,0 +1,64 @@
+version: light
+nodes:
+- label: tool_result 1
+  type: api_job
+  position:
+    x: 750
+    y: 100
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Read File 1
+  type: db
+  position:
+    x: 800
+    y: 250
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/diagram_converter.py
+    lines: '1:50'
+- label: Read File 2
+  type: db
+  position:
+    x: 850
+    y: 250
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/pipeline.py
+    lines: '1:40'
+- label: Read File 3
+  type: db
+  position:
+    x: 900
+    y: 250
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/session_orchestrator.py
+    lines: '1:40'
+connections:
+- from: tool_result 1
+  to: Read File 1
+  content_type: raw_text
+- from: Read File 1
+  to: Read File 2
+  content_type: raw_text
+- from: Read File 2
+  to: Read File 3
+  content_type: raw_text
+metadata:
+  group_name: to_do_1
+  node_count: 4
+  connection_count: 3
+  extracted_from: unknown
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

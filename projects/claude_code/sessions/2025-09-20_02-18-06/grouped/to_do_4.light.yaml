@@ -1,0 +1,371 @@
+version: light
+nodes:
+- label: tool_result 22
+  type: api_job
+  position:
+    x: 700
+    y: 850
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 25
+  type: diff_patch
+  position:
+    x: 700
+    y: 1150
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/file_node_builder.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/file_node_builder.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/file_node_builder.py\n@@ -1,4 +1,4 @@\n-        # Import diff utilities - will be moved to local utils later\n-        from ..shared.diff_utils import DiffGenerator\n+        # Import diff utilities\n+        from ..utils.diff_utils import DiffGenerator\n \n         diff_generator = DiffGenerator()"
+    format: unified
+    backup: true
+    validate: true
+- label: Bash Command 13
+  type: code_job
+  position:
+    x: 700
+    y: 1300
+  props:
+    language: bash
+    code: dipeocc convert --latest --debug 2>&1 | head -100
+    timeout: 120000
+    description: Test dipeocc convert with latest session in debug mode
+- label: Grep Search 26
+  type: code_job
+  position:
+    x: 700
+    y: 1600
+  props:
+    language: bash
+    code: rg -n 'from.*shared import|import.*shared' /home/soryhyun/DiPeO/dipeo/domain/cc_translate/__init__.py
+    tool: Grep
+    description: Grep search operation
+- label: Read File 4
+  type: db
+  position:
+    x: 750
+    y: 100
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/connection_builder.py
+    lines: 1:100
+- label: tool_result 8
+  type: api_job
+  position:
+    x: 750
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 16
+  type: api_job
+  position:
+    x: 750
+    y: 700
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 19
+  type: diff_patch
+  position:
+    x: 750
+    y: 850
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/diagram_assembler.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/diagram_assembler.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/diagram_assembler.py\n@@ -4,12 +4,18 @@\n into the light format diagram structure.\n \"\"\"\n \n-from typing import Any\n+from typing import Any, Optional\n+\n+from .person_registry import PersonRegistry\n \n \n class DiagramAssembler:\n     \"\"\"Assembles final light format diagram from components.\"\"\"\n \n-    def __init__(self):\n-        \"\"\"Initialize the diagram assembler.\"\"\"\n-        pass\n+    def __init__(self, person_registry: Optional[PersonRegistry] = None):\n+        \"\"\"Initialize the diagram assembler.\n+\n+        Args:\n+            person_registry: Optional person registry for managing persons\n+        \"\"\"\n+        self.person_registry = person_registry"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 30
+  type: api_job
+  position:
+    x: 750
+    y: 1150
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 14
+  type: code_job
+  position:
+    x: 750
+    y: 1300
+  props:
+    language: bash
+    code: dipeocc convert --latest
+    timeout: 120000
+    description: Test dipeocc convert with latest session
+- label: Read File 29
+  type: db
+  position:
+    x: 750
+    y: 1600
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/__init__.py
+- label: Read File 5
+  type: db
+  position:
+    x: 800
+    y: 250
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/base.py
+    lines: 1:100
+- label: Write File 9
+  type: db
+  position:
+    x: 800
+    y: 400
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/base_node_builder.py
+    content: "\"\"\"Base node builder with common functionality for all node types.\n\nThis module provides the abstract base class and common functionality\nfor all specialized node builders in the DiPeO diagram conversion.\n\"\"\"\n\nfrom abc import ABC, abstractmethod\nfrom typing import Any, Optional\n\nfrom ..position_manager import PositionManager\n\n\nclass BaseNodeBuilder(ABC):\n    \"\"\"Abstract base class for all node builders.\"\"\"\n\n    def __init__(self, position_manager: Optional[PositionManager] = None):\n        \"\"\"Initialize the base node builder.\n\n        Args:\n            position_manager: Optional position manager for node layout\n        \"\"\"\n        self.position_manager = position_manager or PositionManager()\n        self.nodes: list[dict[str, Any]] = []\n        self._node_counter = 0\n\n    def reset(self):\n        \"\"\"Reset the builder state.\"\"\"\n        self.nodes = []\n        self._node_counter = 0\n        self.position_manager.reset()\n\n    def increment_counter(self) -> int:\n        \"\"\"Increment and return the node counter.\n\n        Returns:\n            The incremented counter value\n        \"\"\"\n        self._node_counter += 1\n        return self._node_counter\n\n    def get_position(self) -> dict[str, int]:\n        \"\"\"Get the position for the next node.\n\n        Returns:\n            Dictionary with x and y coordinates\n        \"\"\"\n        return self.position_manager.get_next_position()\n\n    def create_base_node(\n        self,\n        label: str,\n        node_type: str,\n        props: dict[str, Any],\n        position: Optional[dict[str, int]] = None,\n        metadata: Optional[dict[str, Any]] = None,\n    ) -> dict[str, Any]:\n        \"\"\"Create a base node structure.\n\n        Args:\n            label: The node label\n            node_type: The type of node (e.g., \"start\", \"person_job\", \"db\")\n            props: Node properties\n            position: Optional position override\n            metadata: Optional metadata\n\n        Returns:\n            The created node dictionary\n        \"\"\"\n        node = {\n            \"label\": label,\n            \"type\": node_type,\n            \"position\": position or self.get_position(),\n            \"props\": props,\n        }\n\n        if metadata:\n            node[\"metadata\"] = metadata\n\n        self.nodes.append(node)\n        return node\n\n    @abstractmethod\n    def can_handle(self, tool_name: str) -> bool:\n        \"\"\"Check if this builder can handle the given tool.\n\n        Args:\n            tool_name: Name of the tool\n\n        Returns:\n            True if this builder can handle the tool\n        \"\"\"\n        pass\n\n    @abstractmethod\n    def create_node(\n        self,\n        tool_name: str,\n        tool_input: dict[str, Any],\n        tool_result: Optional[dict[str, Any]] = None,\n    ) -> Optional[dict[str, Any]]:\n        \"\"\"Create a node for the given tool.\n\n        Args:\n            tool_name: Name of the tool\n            tool_input: Input parameters for the tool\n            tool_result: Optional tool execution result\n\n        Returns:\n            The created node or None if not applicable\n        \"\"\"\n        pass\n\n    def validate_node(self, node: dict[str, Any]) -> list[str]:\n        \"\"\"Validate a node structure.\n\n        Args:\n            node: The node to validate\n\n        Returns:\n            List of validation errors (empty if valid)\n        \"\"\"\n        errors = []\n\n        # Check required fields\n        required_fields = [\"type\", \"label\", \"position\"]\n        for field in required_fields:\n            if field not in node:\n                errors.append(f\"Missing required field: {field}\")\n\n        # Validate position structure\n        if \"position\" in node:\n            position = node[\"position\"]\n            if not isinstance(position, dict):\n                errors.append(\"Position must be a dictionary\")\n            elif \"x\" not in position or \"y\" not in position:\n          \
+      \      errors.append(\"Position must have x and y coordinates\")\n\n        # Validate props if present\n        if \"props\" in node and not isinstance(node[\"props\"], dict):\n            errors.append(\"Node props must be a dictionary\")\n\n        return errors\n\n    def get_nodes(self) -> list[dict[str, Any]]:\n        \"\"\"Get all created nodes.\n\n        Returns:\n            List of all nodes created by this builder\n        \"\"\"\n        return self.nodes.copy()\n\n    def get_node_count(self) -> int:\n        \"\"\"Get the count of nodes created.\n\n        Returns:\n            Number of nodes created\n        \"\"\"\n        return len(self.nodes)\n\n\nclass SimpleNodeBuilder(BaseNodeBuilder):\n    \"\"\"Simple concrete implementation for basic node types.\"\"\"\n\n    def __init__(\n        self,\n        supported_tools: list[str],\n        node_type: str,\n        position_manager: Optional[PositionManager] = None,\n    ):\n        \"\"\"Initialize a simple node builder.\n\n        Args:\n            supported_tools: List of tool names this builder handles\n            node_type: The type of node to create\n            position_manager: Optional position manager\n        \"\"\"\n        super().__init__(position_manager)\n        self.supported_tools = supported_tools\n        self.node_type = node_type\n\n    def can_handle(self, tool_name: str) -> bool:\n        \"\"\"Check if this builder can handle the given tool.\n\n        Args:\n            tool_name: Name of the tool\n\n        Returns:\n            True if this builder can handle the tool\n        \"\"\"\n        return tool_name in self.supported_tools\n\n    def create_node(\n        self,\n        tool_name: str,\n        tool_input: dict[str, Any],\n        tool_result: Optional[dict[str, Any]] = None,\n    ) -> Optional[dict[str, Any]]:\n        \"\"\"Create a node for the given tool.\n\n        Args:\n            tool_name: Name of the tool\n            tool_input: Input parameters for the tool\n            tool_result: Optional tool execution result\n\n        Returns:\n            The created node or None if not applicable\n        \"\"\"\n        if not self.can_handle(tool_name):\n            return None\n\n        label = f\"{tool_name} {self.increment_counter()}\"\n        props = self._build_props(tool_name, tool_input, tool_result)\n\n        return self.create_base_node(\n            label=label,\n            node_type=self.node_type,\n            props=props,\n        )\n\n    def _build_props(\n        self,\n        tool_name: str,\n        tool_input: dict[str, Any],\n        tool_result: Optional[dict[str, Any]] = None,\n    ) -> dict[str, Any]:\n        \"\"\"Build node properties.\n\n        Args:\n            tool_name: Name of the tool\n            tool_input: Input parameters\n            tool_result: Optional tool result\n\n        Returns:\n            Dictionary of node properties\n        \"\"\"\n        # Default implementation - override in subclasses\n        return {\n            \"tool\": tool_name,\n            **tool_input,\n        }"
+- label: Write File 16
+  type: db
+  position:
+    x: 800
+    y: 700
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/api_node_builder.py
+    content: "\"\"\"API node builder for API call operations.\n\nThis module handles the creation of nodes for generic API calls and\nweb operations in DiPeO diagrams.\n\"\"\"\n\nfrom typing import Any, Optional\n\nfrom .base_node_builder import BaseNodeBuilder\n\n\nclass ApiNodeBuilder(BaseNodeBuilder):\n    \"\"\"Builder for creating API call nodes.\"\"\"\n\n    def __init__(self, position_manager: Optional[Any] = None):\n        \"\"\"Initialize the API node builder.\n\n        Args:\n            position_manager: Optional position manager\n        \"\"\"\n        super().__init__(position_manager)\n        # These are tools that don't fit other categories\n        self.supported_tools = [\n            \"WebFetch\",\n            \"WebSearch\",\n            \"Task\",\n            \"ExitPlanMode\",\n            \"BashOutput\",\n            \"KillShell\",\n        ]\n\n    def can_handle(self, tool_name: str) -> bool:\n        \"\"\"Check if this builder can handle the given tool.\n\n        Args:\n            tool_name: Name of the tool\n\n        Returns:\n            True if this builder handles API operations\n        \"\"\"\n        # Handle known API tools or any unknown tools as generic API\n        return tool_name in self.supported_tools or not self._is_known_tool(tool_name)\n\n    def create_node(\n        self,\n        tool_name: str,\n        tool_input: dict[str, Any],\n        tool_result: Optional[dict[str, Any]] = None,\n    ) -> Optional[dict[str, Any]]:\n        \"\"\"Create an API call node.\n\n        Args:\n            tool_name: Name of the tool\n            tool_input: Input parameters for the tool\n            tool_result: Optional tool execution result\n\n        Returns:\n            The created node or None if not applicable\n        \"\"\"\n        # Special handling for specific tools\n        if tool_name == \"WebFetch\":\n            return self.create_web_fetch_node(tool_input)\n        elif tool_name == \"WebSearch\":\n            return self.create_web_search_node(tool_input)\n        elif tool_name == \"Task\":\n            return self.create_task_node(tool_input)\n        else:\n            # Generic API node for unknown tools\n            return self.create_generic_api_node(tool_name, tool_input)\n\n    def create_web_fetch_node(self, tool_input: dict[str, Any]) -> dict[str, Any]:\n        \"\"\"Create an API node for web fetch operation.\n\n        Args:\n            tool_input: Input parameters including URL and prompt\n\n        Returns:\n            The created web fetch node\n        \"\"\"\n        label = f\"WebFetch {self.increment_counter()}\"\n        url = tool_input.get(\"url\", \"\")\n        prompt = tool_input.get(\"prompt\", \"\")\n\n        node = {\n            \"label\": label,\n            \"type\": \"api_job\",\n            \"position\": self.get_position(),\n            \"props\": {\n                \"endpoint\": url,\n                \"method\": \"GET\",\n                \"body\": {\"prompt\": prompt},\n                \"timeout\": 30,\n                \"description\": \"Fetch and process web content\",\n            },\n        }\n        self.nodes.append(node)\n        return node\n\n    def create_web_search_node(self, tool_input: dict[str, Any]) -> dict[str, Any]:\n        \"\"\"Create an API node for web search operation.\n\n        Args:\n            tool_input: Input parameters including query\n\n        Returns:\n            The created web search node\n        \"\"\"\n        label = f\"WebSearch {self.increment_counter()}\"\n        query = tool_input.get(\"query\", \"\")\n        allowed_domains = tool_input.get(\"allowed_domains\", [])\n        blocked_domains = tool_input.get(\"blocked_domains\", [])\n\n        node = {\n            \"label\": label,\n            \"type\": \"api_job\",\n            \"position\": self.get_position(),\n            \"props\": {\n                \"endpoint\": \"/search\",\n                \"method\": \"POST\",\n                \"body\": {\n                    \"query\": query,\n                    \"allowed_domains\": allowed_domains,\n\
+      \                    \"blocked_domains\": blocked_domains,\n                },\n                \"timeout\": 30,\n                \"description\": \"Search the web\",\n            },\n        }\n        self.nodes.append(node)\n        return node\n\n    def create_task_node(self, tool_input: dict[str, Any]) -> dict[str, Any]:\n        \"\"\"Create an API node for Task (agent) invocation.\n\n        Args:\n            tool_input: Input parameters including subagent type and prompt\n\n        Returns:\n            The created task node\n        \"\"\"\n        label = f\"Task {self.increment_counter()}\"\n        subagent_type = tool_input.get(\"subagent_type\", \"general-purpose\")\n        prompt = tool_input.get(\"prompt\", \"\")\n        description = tool_input.get(\"description\", \"Launch agent\")\n\n        node = {\n            \"label\": label,\n            \"type\": \"api_job\",\n            \"position\": self.get_position(),\n            \"props\": {\n                \"endpoint\": f\"/agents/{subagent_type}\",\n                \"method\": \"POST\",\n                \"body\": {\"prompt\": prompt, \"description\": description},\n                \"timeout\": 600,  # Agents can take longer\n                \"description\": f\"Launch {subagent_type} agent\",\n            },\n        }\n        self.nodes.append(node)\n        return node\n\n    def create_generic_api_node(\n        self, tool_name: str, tool_input: dict[str, Any]\n    ) -> dict[str, Any]:\n        \"\"\"Create a generic API node for unknown tools.\n\n        Args:\n            tool_name: Name of the tool\n            tool_input: Input parameters\n\n        Returns:\n            The created generic API node\n        \"\"\"\n        label = f\"{tool_name} {self.increment_counter()}\"\n\n        node = {\n            \"label\": label,\n            \"type\": \"api_job\",\n            \"position\": self.get_position(),\n            \"props\": {\n                \"endpoint\": f\"/tools/{tool_name}\",\n                \"method\": \"POST\",\n                \"body\": tool_input,\n                \"timeout\": 30,\n                \"description\": f\"{tool_name} operation\",\n            },\n        }\n        self.nodes.append(node)\n        return node\n\n    def _is_known_tool(self, tool_name: str) -> bool:\n        \"\"\"Check if a tool is known to other builders.\n\n        Args:\n            tool_name: Name of the tool\n\n        Returns:\n            True if the tool is handled by another builder\n        \"\"\"\n        known_tools = [\n            # File operations\n            \"Read\",\n            \"Write\",\n            \"Edit\",\n            \"MultiEdit\",\n            # Code operations\n            \"Bash\",\n            \"Grep\",\n            \"Glob\",\n            \"Search\",\n            # Database operations\n            \"TodoWrite\",\n            \"DatabaseQuery\",\n            \"MemoryUpdate\",\n        ]\n        return tool_name in known_tools"
+- label: tool_result 23
+  type: api_job
+  position:
+    x: 800
+    y: 850
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 26
+  type: diff_patch
+  position:
+    x: 800
+    y: 1150
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/file_node_builder.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/file_node_builder.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/file_node_builder.py\n@@ -1,6 +1,6 @@\n-        # Import utilities - will be moved to local utils later\n-        from ..shared.diff_utils import DiffGenerator\n-        from ..shared.text_utils import TextProcessor\n+        # Import utilities\n+        from ..utils.diff_utils import DiffGenerator\n+        from ..utils.text_utils import TextProcessor\n \n         diff_generator = DiffGenerator()\n         text_processor = TextProcessor()"
+    format: unified
+    backup: true
+    validate: true
+- label: Bash Command 15
+  type: code_job
+  position:
+    x: 800
+    y: 1450
+  props:
+    language: bash
+    code: head -20 projects/claude_code/sessions/2025-09-20_02-18-06/diagram.light.yaml
+    timeout: 120000
+    description: Check if generated diagram has nodes
+- label: Grep Search 27
+  type: code_job
+  position:
+    x: 800
+    y: 1600
+  props:
+    language: bash
+    code: rg --glob '*.py' -l 'from dipeo.domain.cc_translate.shared|from dipeo.domain.cc_translate import.*shared' /home/soryhyun/DiPeO
+    tool: Grep
+    description: Grep search operation
+- label: ExitPlanMode 1
+  type: api_job
+  position:
+    x: 850
+    y: 250
+  props:
+    endpoint: /tools/ExitPlanMode
+    method: POST
+    body:
+      plan: "## Refactoring Plan for cc_translate/convert Module\n\n### Phase 1: Create Specialized Node Builders\n**Split NodeBuilder into focused node builders using factory pattern:**\n\n1. **node_factories/base_node_builder.py**\n   - Abstract base with common node creation logic\n   - Counter management, position calculation\n   - Basic validation\n\n2. **node_factories/tool_node_factory.py**\n   - Factory for creating tool-based nodes\n   - Delegates to specific builders based on tool type\n\n3. **Individual node builders:**\n   - **start_node_builder.py** - Start node creation\n   - **person_node_builder.py** - User/Assistant nodes  \n   - **file_node_builder.py** - Read/Write/Edit file operations\n   - **code_node_builder.py** - Bash/Search operations\n   - **db_node_builder.py** - Database/TODO operations\n   - **api_node_builder.py** - Generic API nodes\n\n### Phase 2: Extract Cross-Cutting Concerns\n\n4. **position_manager.py**\n   - Node positioning logic\n   - Layout algorithms\n\n5. **person_registry.py**\n   - Person registration and management\n   - Claude/user person configuration\n\n6. **payload_processor.py**\n   - Move payload extraction from node_builders\n   - Centralize tool result processing\n\n### Phase 3: Reorganize Utilities\n\n7. **Move shared utilities into convert module:**\n   - **convert/text_utils.py** (from shared/)\n   - **convert/diff_utils.py** (from shared/)\n   - **convert/payload_utils.py** (from shared/)\n\n### Phase 4: Enhance DiagramAssembler\n\n8. **Expand DiagramAssembler responsibilities:**\n   - Take over person registry management\n   - Add diagram validation\n   - Handle preprocessing metadata integration\n\n### Phase 5: Unify Validation\n\n9. **Use existing validators consistently:**\n   - Remove duplicate validation in node_builders\n   - Use NodeBuilderValidator and ConnectionBuilderValidator from builders.py\n\n### File Structure After Refactoring:\n```\nconvert/\n├── __init__.py\n├── base.py\n├── builders.py (validators)\n├── converter.py (main orchestrator)\n├── connection_builder.py\n├── diagram_assembler.py (enhanced)\n├── position_manager.py (new)\n├── person_registry.py (new)\n├── payload_processor.py (new)\n├── node_factories/\n│   ├── __init__.py\n│   ├── base_node_builder.py\n│   ├── tool_node_factory.py\n│   ├── start_node_builder.py\n│   ├── person_node_builder.py\n│   ├── file_node_builder.py\n│   ├── code_node_builder.py\n│   ├── db_node_builder.py\n│   └── api_node_builder.py\n└── utils/\n    ├── __init__.py\n    ├── text_utils.py (moved from shared/)\n    ├── diff_utils.py (moved from shared/)\n    └── payload_utils.py (moved from shared/)\n```\n\n### Benefits:\n- **Single Responsibility**: Each builder focuses on one node type\n- **Better testability**: Smaller, focused classes\n- **Easier maintenance**: Clear separation of concerns\n- **Extensibility**: Easy to add new node types\n- **Reusability**: Shared utilities properly organized"
+    timeout: 30
+    description: ExitPlanMode operation
+- label: tool_result 9
+  type: api_job
+  position:
+    x: 850
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 17
+  type: api_job
+  position:
+    x: 850
+    y: 700
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 20
+  type: diff_patch
+  position:
+    x: 850
+    y: 850
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/diagram_assembler.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/diagram_assembler.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/diagram_assembler.py\n@@ -2,15 +2,15 @@\n         self,\n         nodes: list[dict[str, Any]],\n         connections: list[dict[str, Any]],\n-        persons: dict[str, Any],\n-        metadata: dict[str, Any] | None = None,\n+        persons: Optional[dict[str, Any]] = None,\n+        metadata: Optional[dict[str, Any]] = None,\n     ) -> dict[str, Any]:\n         \"\"\"Assemble components into light format diagram.\n \n         Args:\n             nodes: List of node dictionaries\n             connections: List of connection dictionaries\n-            persons: Dictionary of person configurations\n+            persons: Optional dictionary of person configurations\n             metadata: Optional metadata to include\n \n         Returns:\n@@ -28,8 +28,13 @@\n             diagram[\"connections\"] = connections\n \n         # Add persons section if we have AI agents\n+        # Use provided persons or get from registry\n         if persons:\n             diagram[\"persons\"] = persons\n+        elif self.person_registry:\n+            registry_persons = self.person_registry.get_all_persons()\n+            if registry_persons:\n+                diagram[\"persons\"] = registry_persons\n \n         # Add metadata if provided\n         if metadata:"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 31
+  type: api_job
+  position:
+    x: 850
+    y: 1150
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 16
+  type: code_job
+  position:
+    x: 850
+    y: 1450
+  props:
+    language: bash
+    code: grep -c "^- label:" projects/claude_code/sessions/2025-09-20_02-18-06/diagram.light.yaml
+    timeout: 120000
+    description: Count nodes in generated diagram
+- label: Claude Responds To User 6
+  type: person_job
+  position:
+    x: 850
+    y: 1600
+  props:
+    person: claude_code
+    default_prompt: '[Request interrupted by user]'
+- label: tool_result 2
+  type: api_job
+  position:
+    x: 900
+    y: 250
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Write File 10
+  type: db
+  position:
+    x: 900
+    y: 400
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/__init__.py
+    content: '"""Node factory module for creating different types of nodes in DiPeO diagrams.
+
+
+      This module provides specialized node builders for different node types
+
+      using a factory pattern to maintain separation of concerns.
+
+      """
+
+
+      from .base_node_builder import BaseNodeBuilder, SimpleNodeBuilder
+
+
+      __all__ = ["BaseNodeBuilder", "SimpleNodeBuilder"]'
+connections:
+- from: Read File 4
+  to: Read File 5
+  content_type: raw_text
+- from: Read File 5
+  to: ExitPlanMode 1
+  content_type: raw_text
+- from: ExitPlanMode 1
+  to: tool_result 2
+  content_type: raw_text
+- from: tool_result 8
+  to: Write File 9
+  content_type: raw_text
+- from: Write File 9
+  to: tool_result 9
+  content_type: raw_text
+- from: tool_result 9
+  to: Write File 10
+  content_type: raw_text
+- from: tool_result 16
+  to: Write File 16
+  content_type: raw_text
+- from: Write File 16
+  to: tool_result 17
+  content_type: raw_text
+- from: tool_result 22
+  to: Edit File 19
+  content_type: raw_text
+- from: Edit File 19
+  to: tool_result 23
+  content_type: raw_text
+- from: tool_result 23
+  to: Edit File 20
+  content_type: raw_text
+- from: Edit File 25
+  to: tool_result 30
+  content_type: raw_text
+- from: tool_result 30
+  to: Edit File 26
+  content_type: raw_text
+- from: Edit File 26
+  to: tool_result 31
+  content_type: raw_text
+- from: Bash Command 13
+  to: Bash Command 14
+  content_type: raw_text
+- from: Bash Command 14
+  to: Bash Command 15
+  content_type: raw_text
+- from: Bash Command 15
+  to: Bash Command 16
+  content_type: raw_text
+- from: Grep Search 26
+  to: Read File 29
+  content_type: raw_text
+- from: Read File 29
+  to: Grep Search 27
+  content_type: raw_text
+- from: Grep Search 27
+  to: Claude Responds To User 6
+  content_type: raw_text
+metadata:
+  group_name: to_do_4
+  node_count: 27
+  connection_count: 20
+  extracted_from: unknown
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

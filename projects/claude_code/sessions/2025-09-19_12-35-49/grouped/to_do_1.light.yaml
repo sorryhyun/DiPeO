@@ -1,0 +1,119 @@
+version: light
+nodes:
+- label: tool_result 12
+  type: api_job
+  position:
+    x: 550
+    y: 550
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 22
+  type: diff_patch
+  position:
+    x: 550
+    y: 850
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/session_orchestrator.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/session_orchestrator.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/session_orchestrator.py\n@@ -1,3 +1,70 @@\n         preprocessed_data.conversation_context = {\"error\": error_message, \"preprocessing_failed\": True}\n \n         return preprocessed_data, reports\n+\n+    def process(\n+        self, session: DomainSession, config: Optional[Any] = None\n+    ) -> tuple[PreprocessedData, SessionProcessingReport]:\n+        \"\"\"\n+        Standard interface: process a session and return preprocessed data with report.\n+\n+        Args:\n+            session: The session to preprocess\n+            config: Optional preprocessing configuration\n+\n+        Returns:\n+            Tuple of (preprocessed_data, processing_report)\n+        \"\"\"\n+        # Use provided config or fall back to instance config\n+        if config and isinstance(config, PreprocessConfig):\n+            original_config = self.config\n+            self.config = config\n+            try:\n+                preprocessed_data, reports = self.preprocess(session)\n+            finally:\n+                self.config = original_config\n+        else:\n+            preprocessed_data, reports = self.preprocess(session)\n+\n+        # Consolidate multiple reports into one\n+        consolidated_report = self._consolidate_reports(session.session_id, reports)\n+\n+        return preprocessed_data, consolidated_report\n+\n+    def _consolidate_reports(\n+        self, session_id: str, reports: list[SessionProcessingReport]\n+    ) -> SessionProcessingReport:\n+        \"\"\"Consolidate multiple processing reports into one.\n+\n+        Args:\n+            session_id: The session ID\n+            reports: List of individual processor reports\n+\n+        Returns:\n+            Consolidated SessionProcessingReport\n+        \"\"\"\n+        consolidated = SessionProcessingReport(session_id=session_id)\n+\n+        for report in reports:\n+            # Merge changes\n+            consolidated.changes.extend(report.changes)\n+\n+            # Merge errors and warnings\n+            consolidated.errors.extend(report.errors)\n+            consolidated.warnings.extend(report.warnings)\n+\n+            # Update event counts\n+            if report.total_events_before > 0:\n+                consolidated.total_events_before = max(\n+                    consolidated.total_events_before, report.total_events_before\n+                )\n+            consolidated.total_events_after = report.total_events_after\n+\n+            # Sum processing times\n+            consolidated.processing_time_ms += report.processing_time_ms\n+\n+            # Merge metadata\n+            if report.metadata:\n+                consolidated.metadata.update(report.metadata)\n+\n+        return consolidated"
+    format: unified
+    backup: true
+    validate: true
+- label: Edit File 29
+  type: diff_patch
+  position:
+    x: 550
+    y: 1000
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/pipeline.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/pipeline.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/pipeline.py\n@@ -1,5 +1,5 @@\n                     # Check for errors\n-                    if processor_report.error and self.config.fail_on_error:\n+                    if processor_report.error and pipeline_config.fail_on_error:\n                         # Stop pipeline on error\n                         break\n \n@@ -10,4 +10,4 @@\n                     )\n                     report.add_processor_report(error_report)\n \n-                    if self.config.fail_on_error:\n+                    if pipeline_config.fail_on_error:"
+    format: unified
+    backup: true
+    validate: true
+- label: Grep Search 3
+  type: code_job
+  position:
+    x: 550
+    y: 1300
+  props:
+    language: bash
+    code: rg -l 'from .*\.pipeline import' /home/soryhyun/DiPeO/dipeo/domain/cc_translate
+    tool: Grep
+    description: Grep search operation
+- label: tool_result 1
+  type: api_job
+  position:
+    x: 600
+    y: 100
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 7
+  type: api_job
+  position:
+    x: 600
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 18
+  type: api_job
+  position:
+    x: 600
+    y: 850
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 25
+  type: api_job
+  position:
+    x: 600
+    y: 1150
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Read File 35
+  type: db
+  position:
+    x: 600
+    y: 1300
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/__init__.py
+connections:
+- from: Edit File 22
+  to: tool_result 18
+  content_type: raw_text
+- from: Edit File 29
+  to: tool_result 25
+  content_type: raw_text
+- from: Grep Search 3
+  to: Read File 35
+  content_type: raw_text
+metadata:
+  group_name: to_do_1
+  node_count: 9
+  connection_count: 3
+  extracted_from: unknown
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

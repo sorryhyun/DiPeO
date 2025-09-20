@@ -1,12 +1,12 @@
 {
   "session_id": "9c0b38de-fa29-48bf-9846-b35921fce337",
   "directory_name": "2025-09-20_04-38-04",
-  "converted_at": "2025-09-20T13:53:12.916529",
+  "converted_at": "2025-09-20T13:59:11.968435",
   "stats": {
     "session_id": "9c0b38de-fa29-48bf-9846-b35921fce337",
-    "total_events": 146,
-    "user_messages": 50,
-    "assistant_messages": 96,
+    "total_events": 149,
+    "user_messages": 51,
+    "assistant_messages": 98,
     "tool_usage": {
       "Read": 18,
       "Glob": 2,
@@ -17,8 +17,8 @@
     },
     "unique_files_accessed": 10,
     "bash_commands_executed": 2,
-    "duration_seconds": 907.746,
-    "duration_human": "0:15:07.746000"
+    "duration_seconds": 926.697,
+    "duration_human": "0:15:26.697000"
   },
   "format": "light",
   "diagrams": {
@@ -29,12 +29,12 @@
         "node_count": 75,
         "connection_count": 74,
         "node_types": [
-          "start",
-          "diff_patch",
-          "db",
           "api_job",
+          "diff_patch",
+          "person_job",
+          "start",
           "code_job",
-          "person_job"
+          "db"
         ]
       }
     },
@@ -45,12 +45,12 @@
         "node_count": 67,
         "connection_count": 72,
         "node_types": [
-          "start",
-          "diff_patch",
-          "db",
           "api_job",
+          "diff_patch",
+          "person_job",
+          "start",
           "code_job",
-          "person_job"
+          "db"
         ]
       }
     },
@@ -61,9 +61,9 @@
         "node_count": 12,
         "connection_count": 11,
         "node_types": [
-          "db",
           "sub_diagram",
-          "start"
+          "start",
+          "db"
         ]
       }
     }

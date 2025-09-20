@@ -1,23 +1,23 @@
 {
   "session_id": "d6ca586f-71ec-407b-9d7e-5cfe350adc99",
   "directory_name": "2025-09-19_12-15-26",
-  "converted_at": "2025-09-19T21:22:42.181872",
+  "converted_at": "2025-09-20T13:59:14.885717",
   "stats": {
     "session_id": "d6ca586f-71ec-407b-9d7e-5cfe350adc99",
-    "total_events": 150,
-    "user_messages": 51,
-    "assistant_messages": 99,
+    "total_events": 213,
+    "user_messages": 73,
+    "assistant_messages": 140,
     "tool_usage": {
-      "TodoWrite": 10,
-      "Read": 20,
-      "Grep": 6,
-      "Bash": 6,
-      "Edit": 5
+      "TodoWrite": 11,
+      "Read": 24,
+      "Grep": 8,
+      "Bash": 12,
+      "Edit": 12
     },
-    "unique_files_accessed": 16,
-    "bash_commands_executed": 6,
-    "duration_seconds": 435.056,
-    "duration_human": "0:07:15.056000"
+    "unique_files_accessed": 17,
+    "bash_commands_executed": 12,
+    "duration_seconds": 635.228,
+    "duration_human": "0:10:35.228000"
   },
   "format": "light",
   "diagrams": {
@@ -25,18 +25,45 @@
       "file": "diagram.light.yaml",
       "type": "original",
       "statistics": {
-        "node_count": 0,
-        "connection_count": 0,
-        "node_types": []
+        "node_count": 96,
+        "connection_count": 95,
+        "node_types": [
+          "api_job",
+          "diff_patch",
+          "person_job",
+          "start",
+          "code_job",
+          "db"
+        ]
       }
     },
     "optimized": {
       "file": "optimized.light.yaml",
       "type": "optimized",
       "statistics": {
-        "node_count": 0,
-        "connection_count": 0,
-        "node_types": []
+        "node_count": 89,
+        "connection_count": 94,
+        "node_types": [
+          "api_job",
+          "diff_patch",
+          "person_job",
+          "start",
+          "code_job",
+          "db"
+        ]
+      }
+    },
+    "grouped": {
+      "file": "grouped.light.yaml",
+      "type": "grouped",
+      "statistics": {
+        "node_count": 21,
+        "connection_count": 20,
+        "node_types": [
+          "sub_diagram",
+          "start",
+          "db"
+        ]
       }
     }
   },
@@ -45,7 +72,9 @@
     "processed_session": "session.jsonl",
     "original_diagram": "diagram.light.yaml",
     "optimized_diagram": "optimized.light.yaml",
-    "metadata": "metadata.json"
+    "grouped_diagram": "grouped.light.yaml",
+    "metadata": "metadata.json",
+    "grouped_subdirectory": "grouped/"
   },
   "options": {
     "save_original": true,

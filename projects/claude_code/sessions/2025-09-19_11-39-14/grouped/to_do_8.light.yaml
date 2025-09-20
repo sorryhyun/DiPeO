@@ -1,0 +1,141 @@
+version: light
+nodes:
+- label: Edit File 6
+  type: diff_patch
+  position:
+    x: 950
+    y: 250
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/base.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/base.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/base.py\n@@ -1,9 +1,9 @@\n @dataclass\n-class ProcessingReport:\n-    \"\"\"Report of changes made by a processor.\"\"\"\n+class DiagramProcessingReport:\n+    \"\"\"Report of changes made by a diagram processor.\"\"\"\n \n     processor_name: str\n-    changes: list[ProcessingChange] = field(default_factory=list)\n+    changes: list[DiagramChange] = field(default_factory=list)\n     nodes_removed: int = 0\n     nodes_modified: int = 0\n     connections_removed: int = 0\n@@ -12,18 +12,18 @@\n     processing_time_ms: float = 0\n     error: Optional[str] = None\n \n-    def add_change(self, change: ProcessingChange) -> None:\n+    def add_change(self, change: DiagramChange) -> None:\n         \"\"\"Add a change to the report and update counters.\"\"\"\n         self.changes.append(change)\n \n         # Update counters based on change type\n-        if change.change_type == ChangeType.NODE_REMOVED:\n+        if change.change_type == DiagramChangeType.NODE_REMOVED:\n             self.nodes_removed += 1\n-        elif change.change_type == ChangeType.NODE_MODIFIED:\n+        elif change.change_type == DiagramChangeType.NODE_MODIFIED:\n             self.nodes_modified += 1\n-        elif change.change_type == ChangeType.CONNECTION_REMOVED:\n+        elif change.change_type == DiagramChangeType.CONNECTION_REMOVED:\n             self.connections_removed += 1\n-        elif change.change_type == ChangeType.CONNECTION_MODIFIED:\n+        elif change.change_type == DiagramChangeType.CONNECTION_MODIFIED:\n             self.connections_modified += 1\n-        elif change.change_type == ChangeType.CONNECTION_ADDED:\n+        elif change.change_type == DiagramChangeType.CONNECTION_ADDED:\n             self.connections_added += 1"
+    format: unified
+    backup: true
+    validate: true
+- label: Edit File 13
+  type: diff_patch
+  position:
+    x: 950
+    y: 400
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/processors/read_deduplicator.py
+    diff: '--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/processors/read_deduplicator.py
+
+      +++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/processors/read_deduplicator.py
+
+      @@ -1 +1 @@
+
+      -ChangeType
+
+      +DiagramChangeType'
+    format: unified
+    backup: true
+    validate: true
+- label: Edit File 18
+  type: diff_patch
+  position:
+    x: 950
+    y: 700
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/processors/read_deduplicator.py
+    diff: '--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/processors/read_deduplicator.py
+
+      +++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/processors/read_deduplicator.py
+
+      @@ -1 +1 @@
+
+      -from ..base import BaseDiagramProcessor, DiagramDiagramChangeType, DiagramChange, DiagramProcessingReport
+
+      +from ..base import BaseDiagramProcessor, DiagramChangeType, DiagramChange, DiagramProcessingReport'
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 19
+  type: api_job
+  position:
+    x: 950
+    y: 1000
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 25
+  type: api_job
+  position:
+    x: 950
+    y: 1150
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 3
+  type: api_job
+  position:
+    x: 1000
+    y: 250
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 11
+  type: api_job
+  position:
+    x: 1000
+    y: 550
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 16
+  type: api_job
+  position:
+    x: 1000
+    y: 700
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 22
+  type: diff_patch
+  position:
+    x: 1000
+    y: 1000
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/__init__.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/__init__.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/__init__.py\n@@ -2,4 +2,4 @@\n \n from .config import PipelineConfig, ProcessingPreset, ReadDeduplicatorConfig\n from .pipeline import PostProcessingPipeline\n-from .processors import ReadNodeDeduplicator\n+from .read_deduplicator import ReadNodeDeduplicator"
+    format: unified
+    backup: true
+    validate: true
+connections:
+- from: Edit File 6
+  to: tool_result 3
+  content_type: raw_text
+- from: Edit File 13
+  to: tool_result 11
+  content_type: raw_text
+- from: Edit File 18
+  to: tool_result 16
+  content_type: raw_text
+- from: tool_result 19
+  to: Edit File 22
+  content_type: raw_text
+metadata:
+  group_name: to_do_8
+  node_count: 9
+  connection_count: 4
+  extracted_from: unknown
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

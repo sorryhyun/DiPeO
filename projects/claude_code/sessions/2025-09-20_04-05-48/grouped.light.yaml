@@ -1,0 +1,311 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 100, y: 100}
+  props:
+    trigger_mode: manual
+    custom_data:
+      session_id: 3bf495a2-7de0-40ff-8eed-b4500e490da0
+      initial_prompt: I want to make @dipeo/domain/cc_translate/ to group nodes in sub_diagram, by TODO updates. for example, all nodes and edges before update TODOs will be a sub_diagram named 'prev_todo', and between tas
+- label: Update TODO 1
+  type: db
+  position: {x: 300, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Create TodoSubdiagramGrouper post-processor class
+        status: pending
+        activeForm: Creating TodoSubdiagramGrouper post-processor class
+      - content: Add TodoSubdiagramGrouperConfig to config.py
+        status: pending
+        activeForm: Adding TodoSubdiagramGrouperConfig to config.py
+      - content: Integrate grouper into PostProcessor pipeline
+        status: pending
+        activeForm: Integrating grouper into PostProcessor pipeline
+      - content: Extend CLI with --group-by-todos flag
+        status: pending
+        activeForm: Extending CLI with --group-by-todos flag
+      - content: Test the implementation with sample diagram
+        status: pending
+        activeForm: Testing the implementation with sample diagram
+- label: to_do_1_sub
+  type: sub_diagram
+  position: {x: 500, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_1.light.yaml
+    execution_mode: sequential
+- label: Update TODO 2
+  type: db
+  position: {x: 700, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Create TodoSubdiagramGrouper post-processor class
+        status: in_progress
+        activeForm: Creating TodoSubdiagramGrouper post-processor class
+      - content: Add TodoSubdiagramGrouperConfig to config.py
+        status: pending
+        activeForm: Adding TodoSubdiagramGrouperConfig to config.py
+      - content: Integrate grouper into PostProcessor pipeline
+        status: pending
+        activeForm: Integrating grouper into PostProcessor pipeline
+      - content: Extend CLI with --group-by-todos flag
+        status: pending
+        activeForm: Extending CLI with --group-by-todos flag
+      - content: Test the implementation with sample diagram
+        status: pending
+        activeForm: Testing the implementation with sample diagram
+- label: to_do_2_sub
+  type: sub_diagram
+  position: {x: 900, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_2.light.yaml
+    execution_mode: sequential
+- label: Update TODO 3
+  type: db
+  position: {x: 1100, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Create TodoSubdiagramGrouper post-processor class
+        status: completed
+        activeForm: Creating TodoSubdiagramGrouper post-processor class
+      - content: Add TodoSubdiagramGrouperConfig to config.py
+        status: in_progress
+        activeForm: Adding TodoSubdiagramGrouperConfig to config.py
+      - content: Integrate grouper into PostProcessor pipeline
+        status: pending
+        activeForm: Integrating grouper into PostProcessor pipeline
+      - content: Extend CLI with --group-by-todos flag
+        status: pending
+        activeForm: Extending CLI with --group-by-todos flag
+      - content: Test the implementation with sample diagram
+        status: pending
+        activeForm: Testing the implementation with sample diagram
+- label: to_do_4_sub
+  type: sub_diagram
+  position: {x: 1300, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_4.light.yaml
+    execution_mode: sequential
+- label: Update TODO 4
+  type: db
+  position: {x: 1500, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Create TodoSubdiagramGrouper post-processor class
+        status: completed
+        activeForm: Creating TodoSubdiagramGrouper post-processor class
+      - content: Add TodoSubdiagramGrouperConfig to config.py
+        status: completed
+        activeForm: Adding TodoSubdiagramGrouperConfig to config.py
+      - content: Integrate grouper into PostProcessor pipeline
+        status: in_progress
+        activeForm: Integrating grouper into PostProcessor pipeline
+      - content: Update CLI behavior to make grouping default
+        status: pending
+        activeForm: Updating CLI behavior to make grouping default
+      - content: Test the implementation with sample diagram
+        status: pending
+        activeForm: Testing the implementation with sample diagram
+- label: to_do_8_sub
+  type: sub_diagram
+  position: {x: 1700, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_8.light.yaml
+    execution_mode: sequential
+- label: Update TODO 5
+  type: db
+  position: {x: 1900, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Create TodoSubdiagramGrouper post-processor class
+        status: completed
+        activeForm: Creating TodoSubdiagramGrouper post-processor class
+      - content: Add TodoSubdiagramGrouperConfig to config.py
+        status: completed
+        activeForm: Adding TodoSubdiagramGrouperConfig to config.py
+      - content: Integrate grouper into PostProcessor pipeline
+        status: completed
+        activeForm: Integrating grouper into PostProcessor pipeline
+      - content: Update CLI behavior to make grouping default
+        status: in_progress
+        activeForm: Updating CLI behavior to make grouping default
+      - content: Test the implementation with sample diagram
+        status: pending
+        activeForm: Testing the implementation with sample diagram
+- label: Update TODO 6
+  type: db
+  position: {x: 2100, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Create TodoSubdiagramGrouper post-processor class
+        status: completed
+        activeForm: Creating TodoSubdiagramGrouper post-processor class
+      - content: Add TodoSubdiagramGrouperConfig to config.py
+        status: completed
+        activeForm: Adding TodoSubdiagramGrouperConfig to config.py
+      - content: Integrate grouper into PostProcessor pipeline
+        status: completed
+        activeForm: Integrating grouper into PostProcessor pipeline
+      - content: Update CLI behavior to make grouping default
+        status: completed
+        activeForm: Updating CLI behavior to make grouping default
+      - content: Test the implementation with sample diagram
+        status: in_progress
+        activeForm: Testing the implementation with sample diagram
+- label: Update TODO 7
+  type: db
+  position: {x: 2300, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Create TodoSubdiagramGrouper post-processor class
+        status: completed
+        activeForm: Creating TodoSubdiagramGrouper post-processor class
+      - content: Add TodoSubdiagramGrouperConfig to config.py
+        status: completed
+        activeForm: Adding TodoSubdiagramGrouperConfig to config.py
+      - content: Fix TodoSubdiagramGrouper integration to use _processors properly
+        status: in_progress
+        activeForm: Fixing TodoSubdiagramGrouper integration to use _processors properly
+      - content: Update CLI behavior to make grouping default
+        status: completed
+        activeForm: Updating CLI behavior to make grouping default
+      - content: Test the implementation with sample diagram
+        status: pending
+        activeForm: Testing the implementation with sample diagram
+- label: Update TODO 8
+  type: db
+  position: {x: 2500, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Create TodoSubdiagramGrouper post-processor class
+        status: completed
+        activeForm: Creating TodoSubdiagramGrouper post-processor class
+      - content: Add TodoSubdiagramGrouperConfig to config.py
+        status: completed
+        activeForm: Adding TodoSubdiagramGrouperConfig to config.py
+      - content: Rename classes and methods to use to_do_ prefix instead of TODO
+        status: in_progress
+        activeForm: Renaming classes and methods to use to_do_ prefix instead of TODO
+      - content: Update CLI behavior to make grouping default
+        status: completed
+        activeForm: Updating CLI behavior to make grouping default
+      - content: Test the implementation with sample diagram
+        status: pending
+        activeForm: Testing the implementation with sample diagram
+connections:
+- {from: Start, to: Update TODO 1, content_type: raw_text}
+- {from: Update TODO 1, to: to_do_1_sub, content_type: raw_text}
+- {from: to_do_1_sub, to: Update TODO 2, content_type: raw_text}
+- {from: Update TODO 2, to: to_do_2_sub, content_type: raw_text}
+- {from: to_do_2_sub, to: Update TODO 3, content_type: raw_text}
+- {from: Update TODO 3, to: to_do_4_sub, content_type: raw_text}
+- {from: to_do_4_sub, to: Update TODO 4, content_type: raw_text}
+- {from: Update TODO 4, to: to_do_8_sub, content_type: raw_text}
+- {from: to_do_8_sub, to: Update TODO 5, content_type: raw_text}
+- {from: Update TODO 5, to: Update TODO 6, content_type: raw_text}
+- {from: Update TODO 6, to: Update TODO 7, content_type: raw_text}
+- {from: Update TODO 7, to: Update TODO 8, content_type: raw_text}
+metadata:
+  conversion:
+    total_nodes: 125
+    total_connections: 124
+    total_persons: 0
+    node_types:
+      start: 1
+      person_job: 8
+      code_job: 21
+      db: 34
+      api_job: 36
+      diff_patch: 25
+  deduplication:
+    files_deduplicated: 6
+    total_nodes_removed: 15
+    deduplicated_files:
+      /home/soryhyun/DiPeO/apps/cli/src/dipeo_cli/commands/claude_code_command.py:
+        original_count: 5
+        kept_node: Read File 2
+        removed_nodes:
+        - Read File 22
+        - Read File 23
+        - Read File 29
+        - Read File 37
+      /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/config.py:
+        original_count: 5
+        kept_node: Read File 3
+        removed_nodes:
+        - Read File 10
+        - Read File 13
+        - Read File 15
+        - Read File 16
+      /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/post_processor.py:
+        original_count: 4
+        kept_node: Read File 4
+        removed_nodes:
+        - Read File 18
+        - Read File 33
+        - Read File 35
+      /home/soryhyun/DiPeO/projects/claude_code/sessions/2025-09-20_03-13-54/diagram.light.yaml:
+        original_count: 2
+        kept_node: Read File 5
+        removed_nodes:
+        - Read File 6
+      /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py:
+        original_count: 3
+        kept_node: Read File 25
+        removed_nodes:
+        - Read File 26
+        - Read File 27
+      /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/todo_subdiagram_grouper.py:
+        original_count: 2
+        kept_node: Read File 46
+        removed_nodes:
+        - Read File 49
+  grouped: true
+  original_nodes: 110
+  sub_diagrams: 4
+  extracted_todos: 8
+  grouping_method: todo_updates_with_extraction
+  post_processing:
+    optimization:
+      applied: true
+      total_changes: 51
+      nodes_removed: 15
+      connections_modified: 30
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

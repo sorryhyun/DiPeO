@@ -1,0 +1,181 @@
+version: light
+nodes:
+- label: Edit File 13
+  type: diff_patch
+  position:
+    x: 900
+    y: 700
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/infrastructure/cc_translate/adapters.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/infrastructure/cc_translate/adapters.py\n+++ /home/soryhyun/DiPeO/dipeo/infrastructure/cc_translate/adapters.py\n@@ -7,14 +7,23 @@\n from datetime import datetime\n from typing import Optional\n \n+from dipeo.domain.cc_translate.models.event import (\n+    DomainEvent,\n+    EventContent,\n+    EventRole,\n+    EventType,\n+    ToolInfo,\n+)\n+from dipeo.domain.cc_translate.models.session import DomainSession, SessionMetadata\n+\n from .session_parser import ClaudeCodeSession\n \n \n class SessionAdapter:\n-    \"\"\"Adapter to convert ClaudeCodeSession to SessionPort interface.\n-\n-    This adapter allows infrastructure types to be used with domain\n-    layer components that expect SessionPort protocol.\n+    \"\"\"Adapter to convert ClaudeCodeSession to DomainSession.\n+\n+    This adapter converts infrastructure types to domain models\n+    for use with domain layer components.\n     \"\"\"\n \n     def __init__(self, session: ClaudeCodeSession):\n@@ -24,6 +33,142 @@\n             session: The infrastructure ClaudeCodeSession to adapt\n         \"\"\"\n         self._session = session\n+        self._domain_session = None\n+\n+    def to_domain_session(self) -> DomainSession:\n+        \"\"\"Convert infrastructure session to domain model.\n+\n+        Returns:\n+            DomainSession with properly converted events and metadata\n+        \"\"\"\n+        if self._domain_session is None:\n+            # Convert metadata\n+            metadata = SessionMetadata(\n+                session_id=self._session.session_id,\n+                start_time=self._session.metadata.start_time if hasattr(self._session.metadata, \"start_time\") else None,\n+                end_time=self._session.metadata.end_time if hasattr(self._session.metadata, \"end_time\") else None,\n+                event_count=len(self._session.events),\n+                tool_usage_count=self._session.extract_tool_usage() if hasattr(self._session, \"extract_tool_usage\") else {},\n+                file_operations=self._session.metadata.file_operations if hasattr(self._session.metadata, \"file_operations\") else {},\n+            )\n+\n+            # Convert events\n+            domain_events = []\n+            for event in self._session.events:\n+                domain_event = self._convert_event(event)\n+                if domain_event:\n+                    domain_events.append(domain_event)\n+\n+            # Create domain session\n+            self._domain_session = DomainSession(\n+                session_id=self._session.session_id,\n+                events=domain_events,\n+                metadata=metadata,\n+                conversation_turns=getattr(self._session, \"conversation_turns\", []),\n+            )\n+\n+        return self._domain_session\n+\n+    def _convert_event(self, infra_event) -> Optional[DomainEvent]:\n+        \"\"\"Convert infrastructure event to domain event.\n+\n+        Args:\n+            infra_event: Infrastructure layer event\n+\n+        Returns:\n+            DomainEvent or None if conversion fails\n+        \"\"\"\n+        # Determine event type\n+        event_type = self._get_event_type(infra_event)\n+\n+        # Determine role\n+        role = None\n+        if event_type == EventType.USER:\n+            role = EventRole.USER\n+        elif event_type == EventType.ASSISTANT:\n+            role = EventRole.ASSISTANT\n+        elif event_type == EventType.SYSTEM:\n+            role = EventRole.SYSTEM\n+\n+        # Create content\n+        content = self._create_event_content(infra_event)\n+\n+        # Create tool info if applicable\n+        tool_info = None\n+        if hasattr(infra_event, \"tool_name\") and infra_event.tool_name:\n+            tool_info = ToolInfo(\n+                name=infra_event.tool_name,\n+                input_params=infra_event.tool_input if hasattr(infra_event, \"tool_input\") else {},\n+                results=infra_event.tool_results if hasattr(infra_event, \"tool_results\") else [],\n+                status=\"success\" if hasattr(infra_event,\
+      \ \"tool_results\") else \"pending\",\n+            )\n+\n+        # Create domain event\n+        return DomainEvent(\n+            uuid=infra_event.uuid if hasattr(infra_event, \"uuid\") else str(id(infra_event)),\n+            type=event_type,\n+            timestamp=infra_event.timestamp if hasattr(infra_event, \"timestamp\") else datetime.now(),\n+            content=content,\n+            parent_uuid=infra_event.parent_uuid if hasattr(infra_event, \"parent_uuid\") else None,\n+            role=role,\n+            tool_info=tool_info,\n+            is_meta=infra_event.is_meta if hasattr(infra_event, \"is_meta\") else False,\n+        )\n+\n+    def _get_event_type(self, event) -> EventType:\n+        \"\"\"Determine the event type from infrastructure event.\"\"\"\n+        if hasattr(event, \"type\"):\n+            event_type_str = event.type.lower()\n+            if event_type_str == \"user\":\n+                return EventType.USER\n+            elif event_type_str == \"assistant\":\n+                return EventType.ASSISTANT\n+            elif event_type_str == \"summary\":\n+                return EventType.SUMMARY\n+            elif event_type_str == \"system\":\n+                return EventType.SYSTEM\n+            elif \"tool\" in event_type_str:\n+                return EventType.TOOL_USE\n+\n+        # Default to assistant if unknown\n+        return EventType.ASSISTANT\n+\n+    def _create_event_content(self, event) -> EventContent:\n+        \"\"\"Create event content from infrastructure event.\"\"\"\n+        text = None\n+        data = {}\n+\n+        # Extract text content\n+        if hasattr(event, \"message\") and event.message:\n+            text = event.message\n+        elif hasattr(event, \"content\"):\n+            if isinstance(event.content, str):\n+                text = event.content\n+            elif isinstance(event.content, list):\n+                # Extract text from content list\n+                text_parts = []\n+                for item in event.content:\n+                    if isinstance(item, dict) and \"text\" in item:\n+                        text_parts.append(item[\"text\"])\n+                    elif isinstance(item, str):\n+                        text_parts.append(item)\n+                if text_parts:\n+                    text = \"\n+\".join(text_parts)\n+\n+        # Add tool-related data if present\n+        if hasattr(event, \"tool_input\") and event.tool_input:\n+            data[\"tool_input\"] = event.tool_input\n+        if hasattr(event, \"tool_results\") and event.tool_results:\n+            data[\"tool_results\"] = event.tool_results\n+\n+        return EventContent(text=text, data=data)\n+\n+    # Legacy SessionPort compatibility methods (for backward compatibility)\n+    @property\n+    def id(self) -> str:\n+        \"\"\"Get the session identifier (for SessionPort compatibility).\"\"\"\n+        return self._session.session_id\n \n     @property\n     def session_id(self) -> str:\n@@ -32,67 +177,32 @@\n \n     @property\n     def events(self) -> list:\n-        \"\"\"Get all events in the session.\"\"\"\n-        return self._session.events\n-\n-    @property\n-    def metadata(self) -> dict:\n-        \"\"\"Get session metadata.\"\"\"\n-        return self._session.metadata\n+        \"\"\"Get all events in the session (converts to domain events).\"\"\"\n+        return self.to_domain_session().events\n+\n+    @property\n+    def metadata(self) -> SessionMetadata:\n+        \"\"\"Get session metadata (as domain model).\"\"\"\n+        return self.to_domain_session().metadata\n \n     @property\n     def start_time(self) -> Optional[datetime]:\n         \"\"\"Get session start time.\"\"\"\n-        if hasattr(self._session.metadata, \"start_time\"):\n-            return self._session.metadata.start_time\n-        return None\n+        return self.to_domain_session().metadata.start_time\n \n     @property\n     def end_time(self) -> Optional[datetime]:\n         \"\"\"Get session end time.\"\"\"\n-        if hasattr(self._session.metadata, \"end_time\"\
+      ):\n-            return self._session.metadata.end_time\n-        return None\n+        return self.to_domain_session().metadata.end_time\n \n     def get_event_count(self) -> int:\n         \"\"\"Get total number of events.\"\"\"\n-        return len(self._session.events)\n+        return len(self.to_domain_session().events)\n \n     def get_tool_usage_stats(self) -> dict[str, int]:\n         \"\"\"Get tool usage statistics.\"\"\"\n-        return self._session.extract_tool_usage()\n+        return self.to_domain_session().metadata.tool_usage_count\n \n     def to_dict(self) -> dict:\n         \"\"\"Convert session to dictionary representation.\"\"\"\n-        # Convert to a dictionary format compatible with domain expectations\n-        return {\n-            \"session_id\": self.session_id,\n-            \"event_count\": self.get_event_count(),\n-            \"tool_usage\": self.get_tool_usage_stats(),\n-            \"events\": [self._event_to_dict(e) for e in self.events],\n-            \"metadata\": self._metadata_to_dict(),\n-        }\n-\n-    def _event_to_dict(self, event) -> dict:\n-        \"\"\"Convert an event to dictionary.\"\"\"\n-        return {\n-            \"type\": event.type,\n-            \"uuid\": event.uuid,\n-            \"timestamp\": event.timestamp.isoformat() if event.timestamp else None,\n-            \"tool_name\": event.tool_name,\n-            \"tool_input\": event.tool_input,\n-            \"tool_results\": event.tool_results,\n-            \"message\": event.message,\n-        }\n-\n-    def _metadata_to_dict(self) -> dict:\n-        \"\"\"Convert metadata to dictionary.\"\"\"\n-        meta = self._session.metadata\n-        return {\n-            \"session_id\": meta.session_id,\n-            \"start_time\": meta.start_time.isoformat() if meta.start_time else None,\n-            \"end_time\": meta.end_time.isoformat() if meta.end_time else None,\n-            \"event_count\": meta.event_count,\n-            \"tool_usage_count\": meta.tool_usage_count,\n-            \"file_operations\": meta.file_operations,\n-        }\n+        return self.to_domain_session().to_dict()"
+    format: unified
+    backup: true
+    validate: true
+- label: Bash Command 15
+  type: code_job
+  position:
+    x: 900
+    y: 1150
+  props:
+    language: bash
+    code: "python3 -c \"\nfrom dipeo.infrastructure.cc_translate import parse_session_file, SessionAdapter\nfrom dipeo.domain.cc_translate.preprocess import SessionOrchestrator\nfrom pathlib import Path\n\nsession_file = Path.home() / '.claude' / 'projects' / '-home-soryhyun-DiPeO' / 'd6ca586f-71ec-407b-9d7e-5cfe350adc99.jsonl'\nif session_file.exists():\n    session = parse_session_file(session_file)\n    adapter = SessionAdapter(session)\n    \n    # Convert to domain session\n    domain_session = adapter.to_domain_session()\n    print(f'Domain session ID: {domain_session.session_id}')\n    print(f'Domain session events: {len(domain_session.events)}')\n    \n    # Try preprocessing\n    orchestrator = SessionOrchestrator()\n    try:\n        preprocessed, reports = orchestrator.preprocess(domain_session)\n        print(f'Preprocessing succeeded: {preprocessed is not None}')\n        if preprocessed:\n            print(f'Processed events: {len(preprocessed.processed_events)}')\n    except Exception as e:\n        print(f'Error: {e}')\n        import traceback\n        traceback.print_exc()\nelse:\n    print('Session file not found')\n\" 2>&1"
+    timeout: 120000
+    description: Debug preprocessing directly
+- label: tool_result 4
+  type: api_job
+  position:
+    x: 950
+    y: 250
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 7
+  type: api_job
+  position:
+    x: 950
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 11
+  type: api_job
+  position:
+    x: 950
+    y: 700
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 30
+  type: diff_patch
+  position:
+    x: 950
+    y: 1150
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/session_orchestrator.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/session_orchestrator.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/session_orchestrator.py\n@@ -1,3 +1,3 @@\n         # Basic session info\n-        metadata[\"session_id\"] = session.id\n+        metadata[\"session_id\"] = session.session_id\n         metadata[\"total_events\"] = len(session.events)"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 23
+  type: api_job
+  position:
+    x: 950
+    y: 1450
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Grep Search 1
+  type: code_job
+  position:
+    x: 1000
+    y: 250
+  props:
+    language: bash
+    code: rg -n 'dipeocc.*convert.*latest' /home/soryhyun/DiPeO/apps/cli
+    tool: Grep
+    description: Grep search operation
+- label: Claude Responds To User 4
+  type: person_job
+  position:
+    x: 1000
+    y: 550
+  props:
+    person: claude_code
+    default_prompt: ok but those diagrams are empty. think
+- label: Edit File 24
+  type: diff_patch
+  position:
+    x: 1000
+    y: 1000
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/base.py
+    diff: '--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/base.py
+
+      +++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/base.py
+
+      @@ -1 +1 @@
+
+      -from dipeo.diagram_generated import DomainDiagram
+
+      +# Removed dependency on generated code - domain should not depend on generated'
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 19
+  type: api_job
+  position:
+    x: 1000
+    y: 1150
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 20
+  type: code_job
+  position:
+    x: 1000
+    y: 1450
+  props:
+    language: bash
+    code: dipeocc convert --latest 2>&1 | grep -A2 "node_count"
+    timeout: 120000
+    description: Check if nodes are being generated
+- label: Bash Command 2
+  type: code_job
+  position:
+    x: 1050
+    y: 250
+  props:
+    language: bash
+    code: find /home/soryhyun/DiPeO/apps/cli -name "*.py" -exec grep -l "dipeocc" {} \;
+    timeout: 120000
+    description: Find files containing dipeocc
+connections:
+- from: tool_result 4
+  to: Grep Search 1
+  content_type: raw_text
+- from: Grep Search 1
+  to: Bash Command 2
+  content_type: raw_text
+- from: tool_result 7
+  to: Claude Responds To User 4
+  content_type: raw_text
+- from: Edit File 13
+  to: tool_result 11
+  content_type: raw_text
+- from: Bash Command 15
+  to: Edit File 30
+  content_type: raw_text
+- from: Edit File 30
+  to: tool_result 19
+  content_type: raw_text
+- from: tool_result 23
+  to: Bash Command 20
+  content_type: raw_text
+metadata:
+  group_name: to_do_6
+  node_count: 13
+  connection_count: 7
+  extracted_from: unknown
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

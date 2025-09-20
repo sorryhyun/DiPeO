@@ -1,0 +1,152 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position:
+    x: 100
+    y: 100
+  props:
+    trigger_mode: manual
+    custom_data:
+      session_id: 4ad614ca-a513-432c-b600-d598c4816336
+      initial_prompt: "<command-name>/clear</command-name>\n            <command-message>clear</command-message>\n            <command-args></command-args>"
+- label: Bash Command 6
+  type: code_job
+  position:
+    x: 300
+    y: 250
+  props:
+    language: bash
+    code: rg "from.*pipeline import|import.*pipeline|PostProcessingPipeline" --type py
+    timeout: 120000
+    description: Find all imports of PostProcessingPipeline
+- label: Claude Responds To User 1
+  type: person_job
+  position:
+    x: 350
+    y: 100
+  props:
+    person: claude_code
+    default_prompt: "<command-name>/clear</command-name>\n            <command-message>clear</command-message>\n            <command-args></command-args>"
+- label: Claude Responds To User 4
+  type: person_job
+  position:
+    x: 350
+    y: 250
+  props:
+    person: claude_code
+    default_prompt: '[Request interrupted by user]'
+- label: Claude Responds To User 2
+  type: person_job
+  position:
+    x: 400
+    y: 100
+  props:
+    person: claude_code
+    default_prompt: <local-command-stdout></local-command-stdout>
+- label: Claude Responds To User 5
+  type: person_job
+  position:
+    x: 400
+    y: 250
+  props:
+    person: claude_code
+    default_prompt: "<command-name>/model</command-name>\n            <command-message>model</command-message>\n            <command-args></command-args>"
+- label: Claude Responds To User 3
+  type: person_job
+  position:
+    x: 450
+    y: 100
+  props:
+    person: claude_code
+    default_prompt: it seems @dipeo/domain/cc_translate/ has inconsistent phase methods. can't we just renmae `diagram_converter.py` to `converter.py` which implements its base, and `pipeline` to `post_processor`... etc? those are unnecessarily diverse. think
+- label: Claude Responds To User 6
+  type: person_job
+  position:
+    x: 450
+    y: 250
+  props:
+    person: claude_code
+    default_prompt: "<local-command-stdout>Set model to \e[1mopus (claude-opus-4-1-20250805)\e[22m</local-command-stdout>"
+- label: Bash Command 1
+  type: code_job
+  position:
+    x: 500
+    y: 100
+  props:
+    language: bash
+    code: find /home/soryhyun/DiPeO -type d -name "*cc_translate*" 2>/dev/null | head -20
+    timeout: 120000
+    description: Find cc_translate directories
+- label: Bash Command 2
+  type: code_job
+  position:
+    x: 550
+    y: 100
+  props:
+    language: bash
+    code: ls -la /home/soryhyun/DiPeO/dipeo/domain/cc_translate/
+    timeout: 120000
+    description: List files in domain cc_translate
+- label: Bash Command 3
+  type: code_job
+  position:
+    x: 600
+    y: 100
+  props:
+    language: bash
+    code: ls -la /home/soryhyun/DiPeO/dipeo/infrastructure/cc_translate/
+    timeout: 120000
+    description: List files in infrastructure cc_translate
+- label: Bash Command 4
+  type: code_job
+  position:
+    x: 650
+    y: 100
+  props:
+    language: bash
+    code: find /home/soryhyun/DiPeO/dipeo/domain/cc_translate -name "*.py" | grep -v __pycache__ | xargs ls -1
+    timeout: 120000
+    description: Find all Python files in domain cc_translate
+connections:
+- from: Start
+  to: Claude Responds To User 1
+  content_type: raw_text
+- from: Claude Responds To User 1
+  to: Claude Responds To User 2
+  content_type: raw_text
+- from: Claude Responds To User 2
+  to: Claude Responds To User 3
+  content_type: raw_text
+- from: Claude Responds To User 3
+  to: Bash Command 1
+  content_type: raw_text
+- from: Bash Command 1
+  to: Bash Command 2
+  content_type: raw_text
+- from: Bash Command 2
+  to: Bash Command 3
+  content_type: raw_text
+- from: Bash Command 3
+  to: Bash Command 4
+  content_type: raw_text
+- from: Bash Command 6
+  to: Claude Responds To User 4
+  content_type: raw_text
+- from: Claude Responds To User 4
+  to: Claude Responds To User 5
+  content_type: raw_text
+- from: Claude Responds To User 5
+  to: Claude Responds To User 6
+  content_type: raw_text
+metadata:
+  group_name: prev_to_do
+  node_count: 12
+  connection_count: 10
+  extracted_from: unknown
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

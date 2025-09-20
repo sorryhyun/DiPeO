@@ -1,0 +1,132 @@
+version: light
+nodes:
+- label: Write File 7
+  type: db
+  position:
+    x: 550
+    y: 400
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/infrastructure/cc_translate/__init__.py
+    content: '"""Infrastructure adapters for Claude Code translation."""
+
+
+      from .adapters import SessionAdapter
+
+
+      __all__ = ["SessionAdapter"]'
+- label: Claude Responds To User 8
+  type: person_job
+  position:
+    x: 550
+    y: 550
+  props:
+    person: claude_code
+    default_prompt: '[Request interrupted by user]'
+- label: Grep Search 9
+  type: code_job
+  position:
+    x: 550
+    y: 850
+  props:
+    language: bash
+    code: rg -l 'from dipeo\.infrastructure' /home/soryhyun/DiPeO/dipeo/domain
+    tool: Grep
+    description: Grep search operation
+- label: tool_result 14
+  type: api_job
+  position:
+    x: 550
+    y: 1000
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 1
+  type: api_job
+  position:
+    x: 600
+    y: 100
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 4
+  type: api_job
+  position:
+    x: 600
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Claude Responds To User 9
+  type: person_job
+  position:
+    x: 600
+    y: 550
+  props:
+    person: claude_code
+    default_prompt: ok I agree with option 2. think
+- label: Read File 16
+  type: db
+  position:
+    x: 600
+    y: 850
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/session_preprocessor.py
+    lines: '1:50'
+- label: Bash Command 14
+  type: code_job
+  position:
+    x: 600
+    y: 1150
+  props:
+    language: bash
+    code: rm /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/session_preprocessor.py
+    timeout: 120000
+    description: Remove obsolete session preprocessor
+- label: tool_result 21
+  type: api_job
+  position:
+    x: 600
+    y: 1300
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+connections:
+- from: Write File 7
+  to: tool_result 4
+  content_type: raw_text
+- from: Claude Responds To User 8
+  to: Claude Responds To User 9
+  content_type: raw_text
+- from: Grep Search 9
+  to: Read File 16
+  content_type: raw_text
+- from: tool_result 14
+  to: Bash Command 14
+  content_type: raw_text
+metadata:
+  group_name: to_do_1
+  node_count: 10
+  connection_count: 4
+  extracted_from: unknown
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.
