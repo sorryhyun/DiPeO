@@ -1,96 +1,99 @@
 version: light
-nodes:
-- label: optimist
-  type: person_job
-  position: {x: 600, y: 452}
-  props:
-    default_prompt: Argue against the argument.
-    first_only_prompt: 'Suggest a reasonable argument: {{topic}}'
-    max_iteration: 2
-    memorize_to: GOLDFISH
-    person: optimist
-    flipped: [false, true]
-- label: end
-  type: endpoint
-  position: {x: 58, y: 668}
-  props:
-    file_format: txt
-    save_to_file: true
-    flipped: [true, false]
-    file_path: files/results/output.txt
-- label: db
-  type: db
-  position: {x: 431, y: 148}
-  props:
-    operation: read
-    sub_type: file
-    file: files/uploads/questions.txt
-- label: pessimist
-  type: person_job
-  position: {x: 899, y: 380}
-  props:
-    default_prompt: Argue against the argument.
-    first_only_prompt: 'Suggest a reasonable argument: {{topic}}'
-    max_iteration: 3
-    memorize_to: GOLDFISH
-    person: pessimist
-    flipped: [false, true]
-- label: start
-  type: start
-  position: {x: 177, y: 320}
-- label: judge panel
-  type: person_job
-  position: {x: 439, y: 663}
-  props:
-    default_prompt: Judge which panel is more reasonable.
-    flipped: true
-    max_iteration: 1
-    memorize_to: ALL_MESSAGES
-    person: judge
-- label: condition
-  type: condition
-  position: {x: 785, y: 647}
-  props:
-    condition_type: detect_max_iterations
-    flipped: [true, true]
-connections:
-- from: db
-  to: optimist_first
-  content_type: raw_text
-  label: topic
-- from: db
-  to: pessimist_first
-  content_type: raw_text
-  label: topic
-- from: start
-  to: db
-  content_type: raw_text
-- {from: judge panel, to: end, content_type: raw_text}
-- from: condition_condtrue
-  to: judge panel
-  content_type: conversation_state
-- from: optimist
-  to: pessimist
-  content_type: conversation_state
-- from: pessimist
-  to: condition
-  content_type: conversation_state
-- from: condition_condfalse
-  to: optimist
-  content_type: conversation_state
+
+name: ollama_debate_example
+description: Local debate powered by Ollama personas with a detecting loop guard.
+
 persons:
-  judge:
+  Judge:
     service: ollama
     model: llama3.2:1b
-    system_prompt: Say 25 words at most.
-    api_key_id: APIKEY_DUMMY  # Ollama doesn't need a real API key
-  optimist:
+    api_key_id: APIKEY_DUMMY  # Ollama runners ignore this value
+    system_prompt: |
+      You are an impartial moderator. Summarize the winning side in under 25 words.
+
+  Optimist:
     service: ollama
     model: llama3.2:1b
-    system_prompt: Be optimistic and say 25 words at most.
     api_key_id: APIKEY_DUMMY
-  pessimist:
+    system_prompt: |
+      You argue with enthusiasm and highlight positive opportunities. Stay under 25 words.
+
+  Pessimist:
     service: ollama
     model: llama3.2:1b
-    system_prompt: Be pessimistic and say 25 words at most.
     api_key_id: APIKEY_DUMMY
+    system_prompt: |
+      You argue with skepticism and focus on risks. Stay under 25 words.
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 177, y: 320}
+    props:
+      trigger_mode: manual
+
+  - label: Load Topic
+    type: db
+    position: {x: 431, y: 148}
+    props:
+      operation: read
+      sub_type: file
+      source_details: files/uploads/questions.txt
+
+  - label: Optimist
+    type: person_job
+    position: {x: 600, y: 452}
+    props:
+      person: Optimist
+      first_only_prompt: "Suggest a reasonable argument: {{topic}}"
+      default_prompt: Argue against the argument.
+      max_iteration: 2
+      memorize_to: GOLDFISH
+      flipped: [false, true]
+
+  - label: Pessimist
+    type: person_job
+    position: {x: 899, y: 380}
+    props:
+      person: Pessimist
+      first_only_prompt: "Suggest a reasonable argument: {{topic}}"
+      default_prompt: Argue against the argument.
+      max_iteration: 3
+      memorize_to: GOLDFISH
+      flipped: [false, true]
+
+  - label: Judge Panel
+    type: person_job
+    position: {x: 439, y: 663}
+    props:
+      person: Judge
+      default_prompt: Judge which panel is more reasonable.
+      max_iteration: 1
+      memorize_to: ALL_MESSAGES
+      flipped: [true, false]
+
+  - label: Detect Max Iterations
+    type: condition
+    position: {x: 785, y: 647}
+    props:
+      condition_type: detect_max_iterations
+      flipped: [true, true]
+
+  - label: Save Verdict
+    type: endpoint
+    position: {x: 58, y: 668}
+    props:
+      save_to_file: true
+      file_format: txt
+      file_path: files/results/output.txt
+      flipped: [true, false]
+
+connections:
+  - {from: Start, to: Load Topic}
+  - {from: Load Topic, to: Optimist_first, content_type: raw_text, label: topic}
+  - {from: Load Topic, to: Pessimist_first, content_type: raw_text, label: topic}
+  - {from: Optimist, to: Pessimist, content_type: conversation_state}
+  - {from: Pessimist, to: Detect Max Iterations, content_type: conversation_state}
+  - {from: Detect Max Iterations_condfalse, to: Optimist, content_type: conversation_state}
+  - {from: Detect Max Iterations_condtrue, to: Judge Panel, content_type: conversation_state}
+  - {from: Judge Panel, to: Save Verdict, content_type: raw_text}
