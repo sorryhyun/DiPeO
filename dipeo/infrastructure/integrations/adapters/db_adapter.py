@@ -27,12 +27,19 @@ class DBOperationsAdapter:
         self.validation_service = validation_service
 
     async def execute_operation(
-        self, db_name: str, operation: str, value: Any = None, keys: Any = None
+        self,
+        db_name: str,
+        operation: str,
+        value: Any = None,
+        keys: Any = None,
+        lines: Any = None,
     ) -> dict[str, Any]:
         self.validation_service.validate_operation(
             operation, self.domain_service.ALLOWED_OPERATIONS
         )
-        self.validation_service.validate_db_operation_input(operation, value, keys)
+        self.validation_service.validate_db_operation_input(
+            operation, value, keys, lines
+        )
 
         if operation == "prompt":
             return self.domain_service.prepare_prompt_response(db_name)
@@ -42,7 +49,7 @@ class DBOperationsAdapter:
         normalized_keys = self.domain_service.normalize_keys(keys)
 
         if operation == "read":
-            return await self._read_db(file_path, normalized_keys)
+            return await self._read_db(file_path, normalized_keys, lines)
         elif operation == "write":
             return await self._write_db(
                 file_path, value, normalized_keys or None, operation="write"
@@ -64,7 +71,7 @@ class DBOperationsAdapter:
         return path
 
     async def _read_db(
-        self, file_path: Path, keys: list[str] | None = None
+        self, file_path: Path, keys: list[str] | None = None, lines: Any = None
     ) -> dict[str, Any]:
         try:
             import logging
@@ -83,18 +90,47 @@ class DBOperationsAdapter:
 
             content = raw_content.decode("utf-8")
 
-            try:
-                data = self.domain_service.validate_json_data(content, str(file_path))
-            except ValidationError:
-                data = content
+            normalized_ranges = (
+                self.domain_service.normalize_line_ranges(lines)
+                if lines is not None
+                else []
+            )
+            line_metadata: list[dict[str, int | None]] | None = None
+            total_lines: int | None = None
+
+            if normalized_ranges:
+                sliced_content, metadata, total_lines = (
+                    self.domain_service.extract_lines_from_content(
+                        content, normalized_ranges
+                    )
+                )
+                data = sliced_content
+                line_metadata = metadata if metadata is not None else []
+            else:
+                try:
+                    data = self.domain_service.validate_json_data(
+                        content, str(file_path)
+                    )
+                except ValidationError:
+                    data = content
 
             size = self.file_system.size(file_path)
 
             if keys:
+                if normalized_ranges:
+                    raise ValidationError(
+                        "Cannot combine 'keys' and 'lines' for database read operations",
+                        details={"file_path": str(file_path)},
+                    )
                 data = self.domain_service.extract_data_by_keys(data, keys)
 
             return self.domain_service.prepare_read_response(
-                data, str(file_path), size, keys or []
+                data,
+                str(file_path),
+                size,
+                keys or [],
+                line_ranges=line_metadata,
+                total_lines=total_lines,
             )
         except ValidationError:
             raise

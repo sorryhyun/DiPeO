@@ -1,7 +1,7 @@
 """Domain service for database operations."""
 
 import json
-from typing import Any, Iterable
+from typing import Any, Iterable, Sequence
 
 from dipeo.domain.base.exceptions import ValidationError
 
@@ -52,6 +52,174 @@ class DBOperationsDomainService:
             "Database keys must be provided as a string or list of strings",
             details={"keys": keys},
         )
+
+    def _coerce_line_endpoint(self, value: Any, field_name: str) -> int | None:
+        if value is None:
+            return None
+
+        if isinstance(value, bool):
+            raise ValidationError(
+                f"Line range {field_name} cannot be a boolean",
+                details={"value": value},
+            )
+
+        if isinstance(value, int):
+            if value < 1:
+                raise ValidationError(
+                    "Line numbers must be positive integers (1-indexed)",
+                    details={field_name: value},
+                )
+            return value
+
+        if isinstance(value, float):
+            if value.is_integer():
+                return self._coerce_line_endpoint(int(value), field_name)
+            raise ValidationError(
+                "Line range boundaries must be whole numbers",
+                details={field_name: value},
+            )
+
+        if isinstance(value, str):
+            stripped = value.strip()
+            if not stripped:
+                return None
+            try:
+                parsed = int(stripped)
+            except ValueError as exc:
+                raise ValidationError(
+                    "Line range boundaries must be integers",
+                    details={field_name: value},
+                ) from exc
+            return self._coerce_line_endpoint(parsed, field_name)
+
+        raise ValidationError(
+            "Unsupported line range boundary type",
+            details={field_name: value, "type": type(value).__name__},
+        )
+
+    def _validate_line_range(
+        self, start: int | None, end: int | None, raw_value: Any
+    ) -> tuple[int | None, int | None]:
+        if start is not None and end is not None and end < start:
+            raise ValidationError(
+                "Line range end must be greater than or equal to start",
+                details={"start": start, "end": end, "raw": raw_value},
+            )
+        return start, end
+
+    def _parse_line_range(self, spec: Any) -> list[tuple[int | None, int | None]]:
+        if spec is None:
+            return []
+
+        if isinstance(spec, tuple) and len(spec) == 2:
+            start, end = spec
+            start_val = self._coerce_line_endpoint(start, "start")
+            end_val = self._coerce_line_endpoint(end, "end")
+            return [self._validate_line_range(start_val, end_val, spec)]
+
+        if isinstance(spec, (list, set)):
+            ranges: list[tuple[int | None, int | None]] = []
+            for item in spec:
+                ranges.extend(self._parse_line_range(item))
+            return ranges
+
+        if isinstance(spec, dict):
+            start = spec.get("start")
+            if start is None:
+                start = spec.get("from")
+            end = spec.get("end")
+            if end is None:
+                end = spec.get("to")
+            start_val = self._coerce_line_endpoint(start, "start")
+            end_val = self._coerce_line_endpoint(end, "end")
+            return [self._validate_line_range(start_val, end_val, spec)]
+
+        if isinstance(spec, bool):
+            raise ValidationError(
+                "Line range specification cannot be a boolean",
+                details={"value": spec},
+            )
+
+        if isinstance(spec, (int, float)):
+            start_val = self._coerce_line_endpoint(spec, "start")
+            return [self._validate_line_range(start_val, start_val, spec)]
+
+        if isinstance(spec, str):
+            value = spec.strip()
+            if not value:
+                return []
+            if "," in value:
+                ranges: list[tuple[int | None, int | None]] = []
+                for part in value.split(","):
+                    ranges.extend(self._parse_line_range(part))
+                return ranges
+            if ":" in value:
+                start_str, end_str = value.split(":", 1)
+            else:
+                start_str, end_str = value, value
+            start_val = self._coerce_line_endpoint(start_str, "start")
+            end_val = self._coerce_line_endpoint(end_str, "end")
+            return [self._validate_line_range(start_val, end_val, spec)]
+
+        raise ValidationError(
+            "Unsupported line range specification",
+            details={"value": spec, "type": type(spec).__name__},
+        )
+
+    def normalize_line_ranges(self, lines: Any) -> list[tuple[int | None, int | None]]:
+        if lines is None:
+            return []
+
+        ranges = self._parse_line_range(lines)
+        # Preserve order but remove exact duplicates while keeping first occurrence
+        seen: set[tuple[int | None, int | None]] = set()
+        normalized: list[tuple[int | None, int | None]] = []
+        for start, end in ranges:
+            key = (start, end)
+            if key in seen:
+                continue
+            seen.add(key)
+            normalized.append(key)
+        return normalized
+
+    def extract_lines_from_content(
+        self, content: str, ranges: Sequence[tuple[int | None, int | None]]
+    ) -> tuple[str, list[dict[str, int | None]], int]:
+        lines = content.splitlines(keepends=True)
+        total_lines = len(lines)
+
+        if not ranges:
+            return content, [], total_lines
+
+        segments: list[str] = []
+        metadata: list[dict[str, int | None]] = []
+
+        for start, end in ranges:
+            requested_start = 1 if start is None else start
+            requested_end = end if end is not None else total_lines
+
+            start_index = max((requested_start or 1) - 1, 0)
+            end_bound = total_lines if end is None else max(min(end, total_lines), 0)
+
+            if end_bound < start_index:
+                end_bound = start_index
+
+            segment_lines = lines[start_index:end_bound]
+            segments.append("".join(segment_lines))
+
+            resolved_start = start_index + 1 if segment_lines else None
+            resolved_end = end_bound if segment_lines else None
+
+            metadata.append(
+                {
+                    "start": start,
+                    "end": end,
+                    "resolved_start": resolved_start,
+                    "resolved_end": resolved_end,
+                }
+            )
+
+        return "".join(segments), metadata, total_lines
 
     @staticmethod
     def _split_key_path(key_path: str) -> list[str]:
@@ -184,17 +352,27 @@ class DBOperationsDomainService:
         return {"value": db_name, "metadata": {"operation": "prompt", "content_type": "text"}}
 
     def prepare_read_response(
-        self, data: Any, file_path: str, size: int, keys: list[str] | None = None
+        self,
+        data: Any,
+        file_path: str,
+        size: int,
+        keys: list[str] | None = None,
+        line_ranges: list[dict[str, int | None]] | None = None,
+        total_lines: int | None = None,
     ) -> dict[str, Any]:
-        return {
-            "value": data,
-            "metadata": {
-                "operation": "read",
-                "file_path": file_path,
-                "size": size,
-                "keys": keys or [],
-            },
+        metadata = {
+            "operation": "read",
+            "file_path": file_path,
+            "size": size,
+            "keys": keys or [],
         }
+        if line_ranges is not None:
+            metadata["line_ranges"] = line_ranges
+            metadata["partial_content"] = True
+        if total_lines is not None:
+            metadata["total_lines"] = total_lines
+
+        return {"value": data, "metadata": metadata}
 
     def prepare_write_response(
         self, data: Any, file_path: str, size: int, keys: list[str] | None = None

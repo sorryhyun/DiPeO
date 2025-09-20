@@ -317,9 +317,13 @@ class CreateDbInput:
     
     
     keys: Optional[str] = None  # Single key or list of dot-separated keys to target within the JSON payload
-    
-    
-    
+
+
+
+    lines: Optional[strawberry.scalars.JSON] = None  # Line selection or ranges to read (e.g., 1:120 or ['10:20'])
+
+
+
     data: Optional[strawberry.scalars.JSON] = None  # Data configuration
     
     
@@ -363,9 +367,13 @@ class UpdateDbInput:
     
     
     keys: Optional[str] = None  # Single key or list of dot-separated keys to target within the JSON payload
-    
-    
-    
+
+
+
+    lines: Optional[strawberry.scalars.JSON] = None  # Line selection or ranges to read (e.g., 1:120 or ['10:20'])
+
+
+
     data: Optional[strawberry.scalars.JSON] = None  # Data configuration
     
     

@@ -24,9 +24,16 @@ class DBOperationsDomainService:
         self.validation_service = validation_service
 
     async def execute_operation(
-        self, db_name: str, operation: str, value: Any = None, keys: Any = None
+        self,
+        db_name: str,
+        operation: str,
+        value: Any = None,
+        keys: Any = None,
+        lines: Any = None,
     ) -> dict[str, Any]:
-        return await self.adapter.execute_operation(db_name, operation, value, keys)
+        return await self.adapter.execute_operation(
+            db_name, operation, value, keys, lines
+        )
 
     async def _get_db_file_path(self, db_name: str) -> str:
         return await self.adapter._get_db_file_path(db_name)

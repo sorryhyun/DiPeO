@@ -58,6 +58,14 @@ export const dbFields: UnifiedFieldDefinition[] = [
     description: '"Single key or list of dot-separated keys to target within the JSON payload"',
   },
   {
+    name: 'lines',
+    type: 'text',
+    label: '"Lines"',
+    required: false,
+    placeholder: '"e.g., 1:120 or 5,10:20"',
+    description: '"Line selection or ranges to read (e.g., 1:120 or [\'10:20\'])"',
+  },
+  {
     name: 'data',
     type: 'textarea',
     label: '"Data"',

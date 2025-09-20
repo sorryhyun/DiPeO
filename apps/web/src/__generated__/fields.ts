@@ -196,6 +196,12 @@ export const GENERATED_FIELD_CONFIGS: GeneratedFieldConfigs = {
       required: false,
     },
     {
+      name: 'lines',
+      type: 'text',
+      label: 'lines',
+      required: false,
+    },
+    {
       name: 'data',
       type: 'textarea',
       label: 'data',

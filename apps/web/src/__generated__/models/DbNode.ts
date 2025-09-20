@@ -9,6 +9,7 @@ export interface DbNodeData {
   operation: string;
   query?: string | undefined;
   keys?: any | undefined;
+  lines?: any | undefined;
   data?: Record<string, any> | undefined;
   serialize_json?: boolean | undefined;
   format?: string | undefined;
@@ -22,6 +23,7 @@ export const DbNodeDataSchema = z.object({
   operation: z.string().describe("Operation configuration"),
   query: z.string().optional().describe("Query configuration"),
   keys: z.any().optional().describe("Single key or list of dot-separated keys to target within the JSON payload"),
+  lines: z.any().optional().describe("Line selection or ranges to read (e.g., 1:120 or ['10:20'])"),
   data: z.record(z.any()).optional().describe("Data configuration"),
   serialize_json: z.boolean().optional().describe("Serialize structured data to JSON string (for backward compatibility)"),
   format: z.string().optional().describe("Data format (json, yaml, csv, text, etc.)"),
