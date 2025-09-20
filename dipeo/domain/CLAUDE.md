@@ -10,43 +10,64 @@ Pure business logic following DDD and hexagonal architecture.
 ## Bounded Contexts
 
 ### 1. Conversation (`conversation/`)
-- **Person**: Agent with Brain (memory selection) and Hand (execution) components
-- **CognitiveBrain**: Memory selection, scoring, and deduplication logic
+- **Person**: Agent with memory selection and execution capabilities
+- **IntelligentMemoryStrategy**: LLM-based memory selection with scoring and deduplication
+  - MemoryConfig: Configuration for memory selection behavior
   - MessageScorer: Scores messages by recency, frequency, relevance
   - MessageDeduplicator: Removes duplicate messages based on content overlap
-  - MemorySelectionConfig: Configuration for memory selection behavior
 - **Conversation**: Dialogue history management
-- **Ports**: MemorySelectionPort protocol for LLM-based selection
+- **Ports**: LLMService protocol for memory selection
 
 ### 2. Diagram (`diagram/`)
 - **Compilation**: DomainCompiler, NodeFactory, ConnectionResolver, CompileTimeResolver
 - **Strategies**: Native, Readable, Light, Executable formats
 - **Models**: ExecutableDiagram, ExecutableNode/Edge
 - **Services**: DiagramFormatDetector, DiagramStatisticsService
+- **Validation**: DiagramValidator and validation rules
+- **Utils**: Helper utilities for diagram processing
 
 ### 3. Claude Code Translation (`cc_translate/`)
-- **Session Conversion**: Converts Claude Code sessions to DiPeO diagrams
-  - `translator.py`: Main orchestration logic
-  - `node_builders.py`: Node creation for different tool types
-  - `text_utils.py`: Text extraction and unescaping
-  - `diff_utils.py`: Unified diff generation for Edit operations
-  - `post_processing/`: Session optimization and pruning
+- **PhaseCoordinator**: Main orchestration for session conversion
+- **Convert Module**:
+  - `converter.py`: Core conversion logic
+  - `node_builder_refactored.py`: Node creation for different tool types
+  - `diagram_assembler.py`: Diagram assembly and structuring
+  - `connection_builder.py`: Connection logic between nodes
+  - `person_registry.py`: Registry for person nodes
+  - `node_factories/`: Specialized node factory implementations
+- **Preprocess**: Input preprocessing and validation
+- **Post-processing**: Session optimization and pruning
+- **Models**: Domain models for Claude Code translation
+- **Ports**: External service interfaces
 
 ### 4. Execution (`execution/`)
 - **Resolution**: RuntimeInputResolver, TransformationEngine, NodeStrategies
-- ConnectionRules, TransformRules
-- DynamicOrderCalculator
+- **State Management**: StateTracker, ExecutionTracker
+- **Token Management**: TokenManager, TokenTypes
+- **Event Management**: EventManager for execution events
+- **Rules**: ConnectionRules, TransformRules
+- **Context**: ExecutionContext management
+- **Envelope**: EnvelopeFactory for unified output pattern
+- **Validation**: Execution validation rules
 
-### 5. Events (`events/`)
+### 5. Codegen (`codegen/`)
+- **IR Models**: Intermediate representation models for code generation
+- **IR Builder Port**: Port interface for IR builders
+- **Ports**: External service interfaces for code generation
+
+### 6. Events (`events/`)
 - Event contracts and messaging patterns
+- Unified EventBus protocol
 
-### 6. Integrations (`integrations/`)
-- **API**: APIBusinessLogic, RetryPolicy
-- **Database**: DBOperationsDomainService
-- **File**: FileExtension, FileSize, Checksum
-- **Validators**: API, Data, File, Notion
+### 7. Integrations (`integrations/`)
+- **API Services** (`api_services/`): APIBusinessLogic, retry policies
+- **API Value Objects** (`api_value_objects/`): API-related value objects
+- **DB Services** (`db_services/`): Database domain services
+- **File Value Objects** (`file_value_objects/`): File-related value objects
+- **Validators**: API, Data, File, Notion validation logic
+- **Ports**: Integration service interfaces
 
-### 7. Base (`base/`)
+### 8. Base (`base/`)
 - BaseValidator, exceptions, service base classes
 
 ## Key Patterns
@@ -63,15 +84,16 @@ class DiagramStatisticsService:
     def calculate_complexity(self, diagram: DomainDiagram) -> ComplexityMetrics:
         pass
 
-# Cognitive Components - Memory and reasoning
-class CognitiveBrain:
-    def __init__(self, memory_selector: MemorySelectionPort):
-        self._memory_selector = memory_selector
-        self._scorer = MessageScorer()
-        self._deduplicator = MessageDeduplicator()
-    
-    async def select_memories(self, messages, criteria, at_most):
-        # Intelligent memory selection with scoring and filtering
+# Memory Strategy - Intelligent memory selection
+class IntelligentMemoryStrategy:
+    def __init__(self, llm_service: LLMServicePort, config: Optional[MemoryConfig] = None):
+        self._llm_service = llm_service
+        self._config = config or MemoryConfig()
+        self._scorer = MessageScorer(self._config)
+        self._deduplicator = MessageDeduplicator(self._config)
+
+    async def select_memories(self, person_id, messages, criteria, at_most):
+        # LLM-based intelligent memory selection with scoring and deduplication
 
 # Strategies - Pluggable algorithms
 class BaseConversionStrategy(FormatStrategy, ABC):
@@ -85,7 +107,7 @@ class DiagramValidator(BaseValidator):
         pass
 
 # Ports - Domain interfaces
-class MemorySelectionPort(Protocol):
+class LLMServicePort(Protocol):
     async def select_memories(
         self, person_id: PersonID, candidate_messages: Sequence[Message],
         task_preview: str, criteria: str, at_most: Optional[int]
@@ -143,17 +165,23 @@ def test_connection_rules():
 ## Import Paths
 
 ```python
-# Current imports (v1.0 unified)
+# Current imports (v2.0 refactored)
 from dipeo.domain.diagram.compilation import CompileTimeResolver, Connection, TransformRules
-from dipeo.domain.cc_translate import ClaudeCodeTranslator  # Claude Code session translation
+from dipeo.domain.cc_translate.phase_coordinator import PhaseCoordinator  # Claude Code session orchestration
+from dipeo.domain.cc_translate.convert.converter import Converter
 from dipeo.domain.execution.resolution import RuntimeInputResolver, TransformationEngine
 from dipeo.domain.execution.envelope import EnvelopeFactory  # Unified output pattern
+from dipeo.domain.execution.event_manager import EventManager
+from dipeo.domain.execution.state_tracker import StateTracker
+from dipeo.domain.execution.token_manager import TokenManager
 from dipeo.domain.events import EventBus  # Unified event protocol
-from dipeo.domain.ports.storage import StoragePort
+from dipeo.domain.integrations.ports import LLMService as LLMServicePort
 from dipeo.domain.integrations.api_services import APIBusinessLogic
 from dipeo.domain.conversation import Person
-from dipeo.domain.conversation.brain import CognitiveBrain, MemorySelectionConfig
-from dipeo.domain.conversation.ports import MemorySelectionPort
+from dipeo.domain.conversation.memory_strategies import IntelligentMemoryStrategy, MemoryConfig
+from dipeo.domain.conversation.ports import LLMService
+from dipeo.domain.codegen.ir_models import IRSchema, IRTypeDefinition
+from dipeo.domain.codegen.ir_builder_port import IRBuilderPort
 ```
 
 ## Envelope Pattern Usage

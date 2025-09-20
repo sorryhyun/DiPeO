@@ -79,15 +79,29 @@ class FileNodeBuilder(BaseNodeBuilder):
         label = f"Read File {self.increment_counter()}"
         file_path = tool_input.get("file_path", "unknown")
 
+        # Extract limit and offset parameters if present
+        limit = tool_input.get("limit")
+        offset = tool_input.get("offset", 0)
+
+        # Build props for the node
+        props = {
+            "operation": "read",
+            "sub_type": "file",
+            "file": file_path,
+        }
+
+        # Add lines prop if limit or offset is specified
+        if limit is not None:
+            # Calculate the line range
+            start_line = offset + 1 if offset else 1  # Lines are 1-indexed
+            end_line = offset + limit
+            props["lines"] = f"{start_line}:{end_line}"
+
         node = {
             "label": label,
             "type": "db",
             "position": self.get_position(),
-            "props": {
-                "operation": "read",
-                "sub_type": "file",
-                "file": file_path,
-            },
+            "props": props,
         }
         self.nodes.append(node)
         return node

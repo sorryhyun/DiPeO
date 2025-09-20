@@ -110,6 +110,24 @@ class SessionAdapter:
                 results=infra_event.tool_results if hasattr(infra_event, "tool_results") else [],
                 status="success" if hasattr(infra_event, "tool_results") else "pending",
             )
+        elif event_type == EventType.TOOL_RESULT and hasattr(infra_event, "tool_use_result"):
+            # For TOOL_RESULT events from USER events with toolUseResult
+            # Try to get the tool name from the parent event's tool_name if available
+            tool_name = "tool_result"  # Default generic name
+
+            # If we have a parent_uuid, we might be able to get the actual tool name
+            # The session parser should have associated the result with its parent tool event
+            if hasattr(infra_event, "parent_uuid") and infra_event.parent_uuid:
+                # Note: We'd need access to all events to look up the parent
+                # For now, we'll just mark it as a generic tool_result
+                pass
+
+            tool_info = ToolInfo(
+                name=tool_name,
+                input_params={},
+                results=[infra_event.tool_use_result] if infra_event.tool_use_result else [],
+                status="success",
+            )
 
         # Create domain event
         return DomainEvent(
@@ -130,6 +148,9 @@ class SessionAdapter:
         if hasattr(event, "type"):
             event_type_str = event.type.lower()
             if event_type_str == "user":
+                # Check if this is actually a tool result masquerading as a user event
+                if hasattr(event, "tool_use_result") and event.tool_use_result:
+                    return EventType.TOOL_RESULT
                 return EventType.USER
             elif event_type_str == "assistant":
                 return EventType.ASSISTANT
@@ -147,6 +168,18 @@ class SessionAdapter:
         """Create event content from infrastructure event."""
         text = None
         data = {}
+
+        # Handle tool_use_result if present (from USER events with tool results)
+        if hasattr(event, "tool_use_result") and event.tool_use_result:
+            # Store the tool result payload
+            data["tool_result_payload"] = event.tool_use_result
+            # Extract text content if it's a list (file content)
+            if isinstance(event.tool_use_result, list) and event.tool_use_result:
+                # Join lines if it's file content
+                text = "\n".join(str(line) for line in event.tool_use_result)
+            else:
+                text = str(event.tool_use_result)
+            return EventContent(text=text, data=data)
 
         # Extract text content
         if hasattr(event, "message") and event.message:

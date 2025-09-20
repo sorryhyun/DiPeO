@@ -362,6 +362,7 @@ def main():
     list_parser.add_argument(
         "--limit", type=int, default=50, help="Maximum number of sessions to list (default: 50)"
     )
+    list_parser.add_argument("--debug", action="store_true", help="(Ignored for dipeocc commands)")
 
     # Convert subcommand
     convert_parser = dipeocc_subparsers.add_parser(
@@ -387,6 +388,9 @@ def main():
         default="light",
         help="Output format (default: light)",
     )
+    convert_parser.add_argument(
+        "--debug", action="store_true", help="(Ignored for dipeocc commands)"
+    )
 
     # Watch subcommand
     watch_parser = dipeocc_subparsers.add_parser(
@@ -395,12 +399,16 @@ def main():
     watch_parser.add_argument(
         "--interval", type=int, default=30, help="Check interval in seconds (default: 30)"
     )
+    watch_parser.add_argument("--debug", action="store_true", help="(Ignored for dipeocc commands)")
 
     # Stats subcommand
     stats_cc_parser = dipeocc_subparsers.add_parser(
         "stats", help="Show detailed session statistics"
     )
     stats_cc_parser.add_argument("session_id", help="Session ID to analyze")
+    stats_cc_parser.add_argument(
+        "--debug", action="store_true", help="(Ignored for dipeocc commands)"
+    )
 
     args = parser.parse_args()
 

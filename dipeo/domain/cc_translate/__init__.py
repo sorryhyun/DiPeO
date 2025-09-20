@@ -13,7 +13,7 @@ Main entry point:
 
 # Main interfaces
 # Phase-specific modules (for advanced usage)
-from . import convert, post_processing, preprocess, shared
+from . import convert, post_processing, preprocess
 from .phase_coordinator import PhaseCoordinator
 
 __all__ = [
@@ -21,5 +21,4 @@ __all__ = [
     "convert",
     "post_processing",
     "preprocess",
-    "shared",
 ]

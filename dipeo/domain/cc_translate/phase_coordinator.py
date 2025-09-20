@@ -12,7 +12,6 @@ from enum import Enum
 from typing import Any, Optional
 
 from .convert import Converter
-from .ports import SessionPort
 from .post_processing import PipelineConfig, PostProcessor, ProcessingPreset
 from .preprocess import Preprocessor
 
@@ -75,7 +74,7 @@ class PhaseCoordinator:
         self.converter = Converter()
 
     def translate(
-        self, session: SessionPort, skip_phases: Optional[list[PipelinePhase]] = None, **kwargs
+        self, session: Any, skip_phases: Optional[list[PipelinePhase]] = None, **kwargs
     ) -> tuple[dict[str, Any], PipelineMetrics]:
         """
         Translate a Claude Code session into a light format diagram.
@@ -98,7 +97,7 @@ class PhaseCoordinator:
         skip_phases = skip_phases or []
         metrics = PipelineMetrics()
 
-        # Convert SessionPort to DomainSession if needed
+        # Convert session to DomainSession if needed
         if hasattr(session, "to_domain_session"):
             domain_session = session.to_domain_session()
         else:
@@ -176,9 +175,7 @@ class PhaseCoordinator:
 
         return diagram, metrics
 
-    def preprocess_only(
-        self, session: SessionPort, processing_config: Optional[PipelineConfig] = None
-    ):
+    def preprocess_only(self, session: Any, processing_config: Optional[PipelineConfig] = None):
         """
         Run only the preprocessing phase.
 
@@ -191,7 +188,7 @@ class PhaseCoordinator:
         Returns:
             PreprocessedData containing processed data
         """
-        # Convert SessionPort to DomainSession if needed
+        # Convert session to DomainSession if needed
         if hasattr(session, "to_domain_session"):
             domain_session = session.to_domain_session()
         else:

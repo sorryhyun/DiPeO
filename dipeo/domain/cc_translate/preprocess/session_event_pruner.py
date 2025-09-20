@@ -153,7 +153,7 @@ class SessionEventPruner(BaseSessionProcessor):
             if (
                 isinstance(item, dict)
                 and item.get("type") == "tool_result"
-                and item.get("content") == "No matches found"
+                and item.get("content") in ["No matches found", "Error: File does not exist."]
             ):
                 return True
 

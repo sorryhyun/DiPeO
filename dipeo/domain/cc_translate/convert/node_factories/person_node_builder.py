@@ -81,7 +81,6 @@ class PersonNodeBuilder(BaseNodeBuilder):
             "props": {
                 "person": person_id,  # Claude responds to the user's prompt
                 "default_prompt": content,  # The user's message that Claude responds to
-                "max_iteration": 1,
             },
         }
         self.nodes.append(node)
@@ -145,7 +144,6 @@ class PersonNodeBuilder(BaseNodeBuilder):
             "props": {
                 "person": person_id,
                 "default_prompt": prompt,
-                "max_iteration": max_iterations,
             },
         }
         self.nodes.append(node)
