@@ -1,7 +1,7 @@
 """
 Compatibility shim for generated_nodes.py
 Re-exports from individual files for backward compatibility.
-Generated at: 2025-09-19T17:28:44.362012
+Generated at: 2025-09-21T17:46:47.686269
 """
 
 # Re-export all node classes from individual files
@@ -162,6 +162,8 @@ def create_executable_node(
             query=data.get('query'),
             
             keys=data.get('keys'),
+            
+            lines=data.get('lines'),
             
             data=data.get('data'),
             

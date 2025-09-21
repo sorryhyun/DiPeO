@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-19T17:28:43.378161
+Generated at: 2025-09-21T17:46:46.478382
 """
 
 import strawberry
@@ -398,13 +398,13 @@ class DbDataType:
     
     
     keys: Optional[str] = None  # Single key or list of dot-separated keys to target within the JSON payload
-
-
-
-    lines: Optional[JSONScalar] = None  # Line selection or ranges to read (e.g., 1:120 or ['10:20'])
-
-
-
+    
+    
+    
+    lines: Optional[str] = None  # Line selection or ranges to read (e.g., 1:120 or ['10:20'])
+    
+    
+    
     data: Optional[JSONScalar] = None  # Data configuration
     
     
@@ -457,19 +457,19 @@ class DbDataType:
         
         
         field_value = getattr(node, "keys", None)
-
+        
         # Direct assignment for other types
         field_values["keys"] = field_value
-
-
+        
+        
         field_value = getattr(node, "lines", None)
-
-        # Convert dict/object fields to JSONScalar
+        
+        # Direct assignment for other types
         field_values["lines"] = field_value
-
-
+        
+        
         field_value = getattr(node, "data", None)
-
+        
         # Convert dict/object fields to JSONScalar
         field_values["data"] = field_value
         

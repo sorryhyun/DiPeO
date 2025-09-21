@@ -149,7 +149,6 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
         if response.structured_output is not None:
             if hasattr(response.structured_output, "model_dump_json"):
                 content = response.structured_output.model_dump_json()
-                self.log_debug(f"Structured output converted via model_dump_json: {content[:200]}")
             elif hasattr(response.structured_output, "dict"):
                 import json
 
@@ -263,7 +262,6 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
         # Parse MemorySelectionOutput from text response
         ids = []
         if result.text:
-            self.log_debug(f"Memory selection result.text: {result.text[:200]}")
             try:
                 # Try to parse as MemorySelectionOutput JSON if it's structured
                 parsed = json.loads(result.text)

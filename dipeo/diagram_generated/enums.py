@@ -1,7 +1,7 @@
 """
 Generated enum definitions for DiPeO.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-19T17:28:44.365976
+Generated at: 2025-09-21T17:46:47.690610
 """
 
 from enum import Enum
@@ -409,19 +409,6 @@ class EventPriority(str, Enum):
     
 
 
-class TodoSyncMode(str, Enum):
-    """"""
-    
-    OFF = "off"
-    
-    MANUAL = "manual"
-    
-    AUTO = "auto"
-    
-    WATCH = "watch"
-    
-
-
 
 # Export all enums
 __all__ = [
@@ -477,7 +464,5 @@ __all__ = [
     "Severity",
     
     "EventPriority",
-    
-    "TodoSyncMode",
     
 ]

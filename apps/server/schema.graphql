@@ -42,14 +42,6 @@ type CliSessionResult {
   execution_id: String
 }
 
-input ConfigureTodoSyncInput {
-  mode: TodoSyncMode!
-  output_dir: String = null
-  auto_execute: Boolean = null
-  monitor_enabled: Boolean = null
-  debounce_seconds: Float = null
-}
-
 enum ContentType {
   RAW_TEXT
   CONVERSATION_STATE
@@ -370,9 +362,6 @@ type Mutation {
   create_person(input: CreatePersonInput!): PersonResult!
   update_person(person_id: String!, input: UpdatePersonInput!): PersonResult!
   delete_person(person_id: String!): DeleteResult!
-  toggle_todo_sync(input: ToggleTodoSyncInput!): JSON!
-  configure_todo_sync(input: ConfigureTodoSyncInput!): JSON!
-  trigger_todo_sync(session_id: String!): JSON!
 }
 
 """Branded scalar type for NodeID"""
@@ -459,9 +448,6 @@ type Query {
   execution_metrics(execution_id: String!): JSON!
   execution_history(diagram_id: String = null, limit: Int = null, include_metrics: Boolean = null): JSON!
   active_cli_session: JSON!
-  todo_sync_status(session_id: String = null): JSON!
-  todo_diagrams(session_id: String = null, originating_document: String = null, is_active: Boolean = null, limit: Int = null, offset: Int = null): [JSON!]!
-  todo_diagram(id: String!): JSON!
 }
 
 input RegisterCliSessionInput {
@@ -484,24 +470,10 @@ enum Status {
 
 type Subscription {
   execution_updates(execution_id: String!): ExecutionUpdateType!
-  subscribe_todo_updates(session_id: String!): JSON!
 }
 
 """Branded scalar type for TaskID"""
 scalar TaskID
-
-enum TodoSyncMode {
-  OFF
-  MANUAL
-  AUTO
-  WATCH
-}
-
-input ToggleTodoSyncInput {
-  session_id: String!
-  enabled: Boolean!
-  trace_id: String = null
-}
 
 input UnregisterCliSessionInput {
   execution_id: ID!
