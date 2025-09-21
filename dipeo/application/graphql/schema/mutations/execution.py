@@ -17,16 +17,6 @@ from dipeo.diagram_generated.graphql.inputs import (
     InteractiveResponseInput,
     UpdateNodeStateInput,
 )
-from dipeo.diagram_generated.graphql.operations import (
-    CONTROL_EXECUTION_MUTATION,
-    EXECUTE_DIAGRAM_MUTATION,
-    SEND_INTERACTIVE_RESPONSE_MUTATION,
-    UPDATE_NODE_STATE_MUTATION,
-    ControlExecutionOperation,
-    ExecuteDiagramOperation,
-    SendInteractiveResponseOperation,
-    UpdateNodeStateOperation,
-)
 from dipeo.diagram_generated.graphql.results import ExecutionResult
 from dipeo.infrastructure.diagram.adapters import UnifiedSerializerAdapter
 
@@ -253,33 +243,3 @@ async def send_interactive_response(
     except Exception as e:
         logger.error(f"Failed to send interactive response: {e}")
         return ExecutionResult.error_result(error=f"Failed to send interactive response: {e!s}")
-
-
-def create_execution_mutations(registry: ServiceRegistry) -> type:
-    """Create execution mutation methods with injected registry."""
-
-    @strawberry.type
-    class ExecutionMutations:
-        @strawberry.mutation
-        async def execute_diagram(self, input: ExecuteDiagramInput) -> ExecutionResult:
-            """Mutation method that delegates to standalone resolver."""
-            return await execute_diagram(registry, input)
-
-        @strawberry.mutation
-        async def update_node_state(self, input: UpdateNodeStateInput) -> ExecutionResult:
-            """Mutation method that delegates to standalone resolver."""
-            return await update_node_state(registry, input)
-
-        @strawberry.mutation
-        async def control_execution(self, input: ExecutionControlInput) -> ExecutionResult:
-            """Mutation method that delegates to standalone resolver."""
-            return await control_execution(registry, input)
-
-        @strawberry.mutation
-        async def send_interactive_response(
-            self, input: InteractiveResponseInput
-        ) -> ExecutionResult:
-            """Mutation method that delegates to standalone resolver."""
-            return await send_interactive_response(registry, input)
-
-    return ExecutionMutations

@@ -9,14 +9,6 @@ from dipeo.application.registry.keys import API_KEY_SERVICE, LLM_SERVICE
 from dipeo.diagram_generated import DomainApiKey
 from dipeo.diagram_generated.domain_models import ApiKeyID
 from dipeo.diagram_generated.graphql.inputs import CreateApiKeyInput
-from dipeo.diagram_generated.graphql.operations import (
-    CREATE_API_KEY_MUTATION,
-    DELETE_API_KEY_MUTATION,
-    TEST_API_KEY_MUTATION,
-    CreateApiKeyOperation,
-    DeleteApiKeyOperation,
-    TestApiKeyOperation,
-)
 from dipeo.diagram_generated.graphql.results import ApiKeyResult, DeleteResult, TestResult
 
 logger = logging.getLogger(__name__)
@@ -122,26 +114,3 @@ async def test_api_key(registry: ServiceRegistry, api_key_id: strawberry.ID) -> 
     except Exception as e:
         logger.error(f"Failed to test API key {api_key_id}: {e}")
         return TestResult.error_result(error=f"Failed to test API key: {e!s}")
-
-
-def create_api_key_mutations(registry: ServiceRegistry) -> type:
-    """Create API key mutation methods with injected registry."""
-
-    @strawberry.type
-    class ApiKeyMutations:
-        @strawberry.mutation
-        async def create_api_key(self, input: CreateApiKeyInput) -> ApiKeyResult:
-            """Mutation method that delegates to standalone resolver."""
-            return await create_api_key(registry, input)
-
-        @strawberry.mutation
-        async def delete_api_key(self, api_key_id: strawberry.ID) -> DeleteResult:
-            """Mutation method that delegates to standalone resolver."""
-            return await delete_api_key(registry, api_key_id)
-
-        @strawberry.mutation
-        async def test_api_key(self, api_key_id: strawberry.ID) -> TestResult:
-            """Mutation method that delegates to standalone resolver."""
-            return await test_api_key(registry, api_key_id)
-
-    return ApiKeyMutations

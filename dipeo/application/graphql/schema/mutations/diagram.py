@@ -12,14 +12,6 @@ from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
 from dipeo.diagram_generated.domain_models import DiagramID
 from dipeo.diagram_generated.graphql.enums import DiagramFormatGraphQL
 from dipeo.diagram_generated.graphql.inputs import CreateDiagramInput
-from dipeo.diagram_generated.graphql.operations import (
-    CREATE_DIAGRAM_MUTATION,
-    DELETE_DIAGRAM_MUTATION,
-    VALIDATE_DIAGRAM_MUTATION,
-    CreateDiagramOperation,
-    DeleteDiagramOperation,
-    ValidateDiagramOperation,
-)
 from dipeo.diagram_generated.graphql.results import DeleteResult, DiagramResult
 from dipeo.infrastructure.diagram.adapters import UnifiedSerializerAdapter
 
@@ -184,28 +176,3 @@ async def validate_diagram(
     except Exception as e:
         logger.error(f"Failed to validate diagram: {e}")
         return DiagramResult.error_result(error=f"Failed to validate diagram: {e!s}")
-
-
-def create_diagram_mutations(registry: ServiceRegistry) -> type:
-    """Create diagram mutation methods with injected registry."""
-
-    @strawberry.type
-    class DiagramMutations:
-        @strawberry.mutation
-        async def create_diagram(self, input: CreateDiagramInput) -> DiagramResult:
-            """Mutation method that delegates to standalone resolver."""
-            return await create_diagram(registry, input)
-
-        @strawberry.mutation
-        async def delete_diagram(self, diagram_id: strawberry.ID) -> DeleteResult:
-            """Mutation method that delegates to standalone resolver."""
-            return await delete_diagram(registry, diagram_id)
-
-        @strawberry.mutation
-        async def validate_diagram(
-            self, content: str, format: DiagramFormatGraphQL
-        ) -> DiagramResult:
-            """Mutation method that delegates to standalone resolver."""
-            return await validate_diagram(registry, content, format)
-
-    return DiagramMutations

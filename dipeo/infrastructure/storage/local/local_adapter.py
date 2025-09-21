@@ -35,7 +35,6 @@ class LocalBlobAdapter(LoggingMixin, InitializationMixin, BlobStorePort):
             self._versions_dir = self.base_path / "files"
             self._versions_dir.mkdir(exist_ok=True)
             self._initialized = True
-            logger.info(f"LocalBlobAdapter initialized at: {self.base_path}")
         except Exception as e:
             raise StorageError(f"Failed to initialize local blob storage: {e}") from e
 
