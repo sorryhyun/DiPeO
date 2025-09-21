@@ -1,6 +1,7 @@
 """Unified Claude Code client that merges adapter and wrapper layers."""
 
 import asyncio
+import json
 import logging
 import os
 from collections.abc import AsyncIterator
@@ -159,15 +160,13 @@ class UnifiedClaudeCodeClient:
                 # Create async generator for messages if multiple messages exist
                 async def message_generator():
                     for msg in formatted_messages:
-                        yield msg
+                        yield json.dumps(msg, ensure_ascii=False)
 
                 # Use async iterable if we have multiple messages, otherwise use JSON string
                 if len(formatted_messages) > 1:
                     query_input = message_generator()
                 else:
-                    import json
-
-                    query_input = json.dumps(formatted_messages)
+                    query_input = json.dumps(formatted_messages, ensure_ascii=False)
 
                 async for message in wrapper.query(query_input):
                     # Check for tool invocations in assistant messages
@@ -269,15 +268,13 @@ class UnifiedClaudeCodeClient:
             # Create async generator for messages if multiple messages exist
             async def message_generator():
                 for msg in formatted_messages:
-                    yield msg
+                    yield json.dumps(msg, ensure_ascii=False)
 
             # Use async iterable if we have multiple messages, otherwise use JSON string
             if len(formatted_messages) > 1:
                 query_input = message_generator()
             else:
-                import json
-
-                query_input = json.dumps(formatted_messages)
+                query_input = json.dumps(formatted_messages, ensure_ascii=False)
 
             async for message in wrapper.query(query_input):
                 if hasattr(message, "content") and not hasattr(message, "result"):
