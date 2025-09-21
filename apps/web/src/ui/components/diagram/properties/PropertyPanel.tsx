@@ -95,14 +95,15 @@ function ensurePersonFields(flattenedData: Record<string, unknown>): Record<stri
 
 export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityId, data }) => {
   const nodeType = data.type;
-  // For nodes, the type is already a NodeType enum value (e.g., 'person_job')
-  // For arrows and persons, it's a string ('arrow' or 'person')
-  const nodeConfig = nodeType !== 'arrow' && nodeType !== 'person' ? getNodeConfig(nodeType) : undefined;
+  // For nodes, normalize the type to lowercase to match config registry
+  // Backend may send uppercase (e.g., 'PERSON_JOB') but configs are registered as lowercase ('person_job')
+  const normalizedNodeType = typeof nodeType === 'string' ? nodeType.toLowerCase() : nodeType;
+  const nodeConfig = normalizedNodeType !== 'arrow' && normalizedNodeType !== 'person' ? getNodeConfig(normalizedNodeType) : undefined;
   const queryClient = useQueryClient();
 
   // Debug logging for node config lookup
-  if (!nodeConfig && nodeType !== 'arrow' && nodeType !== 'person') {
-    console.warn(`No config found for node type: ${nodeType}`);
+  if (!nodeConfig && normalizedNodeType !== 'arrow' && normalizedNodeType !== 'person') {
+    console.warn(`No config found for node type: ${normalizedNodeType} (original: ${nodeType})`);
   }
 
   // Use context instead of individual hooks
@@ -111,8 +112,8 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
 
   // Get panel config from the new unified configuration
   let panelConfig = null;
-  if (nodeType === 'arrow' || nodeType === 'person') {
-    panelConfig = ENTITY_PANEL_CONFIGS[nodeType];
+  if (normalizedNodeType === 'arrow' || normalizedNodeType === 'person') {
+    panelConfig = ENTITY_PANEL_CONFIGS[normalizedNodeType];
   } else if (nodeConfig) {
     panelConfig = derivePanelConfig(nodeConfig);
   }
@@ -268,7 +269,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
             onChange={(v) => handleFieldUpdate('label', v)}
             placeholder={fieldConfig.labelPlaceholder}
             disabled={isReadOnly}
-            nodeType={nodeType}
+            nodeType={normalizedNodeType}
           />
           <UnifiedFormField
             type="personSelect"
@@ -279,7 +280,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
             placeholder={fieldConfig.personPlaceholder}
             disabled={isReadOnly}
             persons={personsForSelect}
-            nodeType={nodeType}
+            nodeType={normalizedNodeType}
           />
         </FormRow>
       );
@@ -320,7 +321,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
           // Update the prompt_file field with the filename
           handleFieldUpdate('prompt_file', filename);
         } : undefined}
-        nodeType={nodeType}
+        nodeType={normalizedNodeType}
       />
     );
   }, [formData, handleFieldUpdate, isReadOnly, personsForSelect, shouldRenderField, processedFields, nodeType]);
@@ -351,7 +352,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
           <h3 className="text-lg font-semibold">Unknown Node Type</h3>
         </div>
         <div className="space-y-4">
-          <div className="text-red-500">No configuration found for node type: {nodeType}</div>
+          <div className="text-red-500">No configuration found for node type: {normalizedNodeType}</div>
         </div>
       </div>
     );
@@ -363,7 +364,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
         <div className="flex items-center space-x-2 flex-1">
           <span>{nodeConfig?.icon || '⚙️'}</span>
           <h3 className="text-lg font-semibold whitespace-nowrap">
-            {nodeConfig?.label || `${nodeType}`} Properties
+            {nodeConfig?.label || `${normalizedNodeType}`} Properties
           </h3>
           {/* Universal label field for all nodes */}
           {(entityType === 'node' || entityType === 'arrow') && (
@@ -376,7 +377,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
                 onChange={(v) => handleFieldUpdate('label', v)}
                 placeholder="Enter label"
                 disabled={isReadOnly}
-                nodeType={nodeType}
+                nodeType={normalizedNodeType}
               />
             </div>
           )}

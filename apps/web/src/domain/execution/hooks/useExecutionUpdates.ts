@@ -141,9 +141,10 @@ export function useExecutionUpdates({
 
     // Log all updates for debugging (commented out to reduce noise)
     // console.log('[useExecutionUpdates] Received update:', {
-    //   event_type: executionUpdates.event_type,
+    //   event_type: executionUpdates.event_type || executionUpdates.type,
+    //   execution_id: executionUpdates.execution_id,
     //   data: executionUpdates.data,
-    //   full: executionUpdates
+    //   currentExecutionId: executionIdRef.current
     // });
 
     // Check if this is a node event
@@ -326,8 +327,9 @@ export function useExecutionUpdates({
 
     // Handle node events (with throttling)
     if (eventType === 'NODE_STARTED') {
-      const nodeIdStr = executionUpdates.node_id || '';
-      const nodeType = executionUpdates.node_type || '';
+      // Node data is in eventData (parsed from data field), not directly on executionUpdates
+      const nodeIdStr = eventData.node_id || executionUpdates.node_id || '';
+      const nodeType = eventData.node_type || executionUpdates.node_type || '';
 
       if (nodeIdStr) {
         // console.log('[useExecutionUpdates] ✅ Node started event:', { nodeIdStr, nodeType });
@@ -337,9 +339,10 @@ export function useExecutionUpdates({
       }
       return;
     } else if (eventType === 'NODE_COMPLETED') {
-      const nodeIdStr = executionUpdates.node_id || '';
-      const tokenCount = executionUpdates.tokens_used || executionUpdates.metrics?.tokens || undefined;
-      const output = executionUpdates.output || executionUpdates.result || undefined;
+      // Node data is in eventData (parsed from data field), not directly on executionUpdates
+      const nodeIdStr = eventData.node_id || executionUpdates.node_id || '';
+      const tokenCount = eventData.tokens_used || eventData.metrics?.tokens || executionUpdates.tokens_used || executionUpdates.metrics?.tokens || undefined;
+      const output = eventData.output || eventData.result || executionUpdates.output || executionUpdates.result || undefined;
 
       if (nodeIdStr) {
         // console.log('[useExecutionUpdates] ✅ Node completed event:', { nodeIdStr, tokenCount, output });
@@ -349,8 +352,9 @@ export function useExecutionUpdates({
       }
       return;
     } else if (eventType === 'NODE_ERROR') {
-      const nodeIdStr = executionUpdates.node_id || '';
-      const error = executionUpdates.error || 'Unknown error';
+      // Node data is in eventData (parsed from data field), not directly on executionUpdates
+      const nodeIdStr = eventData.node_id || executionUpdates.node_id || '';
+      const error = eventData.error || executionUpdates.error || 'Unknown error';
 
       if (nodeIdStr) {
         updateNodeState(nodeIdStr, {

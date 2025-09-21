@@ -4,92 +4,149 @@
       "id": "node_0",
       "type": "start",
       "position": {
-        "x": 330,
+        "x": 50,
         "y": 200
       },
       "data": {
-        "label": "start",
         "trigger_mode": "manual",
-        "custom_data": {},
-        "output_data_structure": {}
+        "custom_data": {
+          "source_dir": "files/input",
+          "output_dir": "files/output",
+          "file_pattern": "*.txt"
+        },
+        "output_data_structure": {},
+        "label": "start"
       }
     },
     {
       "id": "node_1",
-      "type": "person_job",
+      "type": "integrated_api",
       "position": {
-        "x": 632,
-        "y": 231
+        "x": 250,
+        "y": 200
       },
       "data": {
-        "label": "printer",
-        "default_prompt": "say hi",
-        "max_iteration": 3,
-        "memory_profile": "FULL",
-        "person": "person_person_1",
-        "memory_settings": {
-          "view": "all_involved",
-          "max_messages": null,
-          "preserve_system": true
-        }
+        "provider": "mcp_filesystem",
+        "operation": "directory_list",
+        "config": {
+          "path": "{{source_dir}}",
+          "pattern": "{{file_pattern}}",
+          "recursive": false,
+          "sort_by": "name"
+        },
+        "label": "list source files"
       }
     },
     {
       "id": "node_2",
-      "type": "condition",
+      "type": "code_job",
       "position": {
-        "x": 620,
-        "y": 425
+        "x": 450,
+        "y": 200
       },
       "data": {
-        "label": "condition",
-        "condition_type": "detect_max_iterations",
-        "flipped": [
-          true,
-          true
-        ]
+        "language": "python",
+        "code": "# Extract file paths from directory listing\nfiles_to_process = []\n\nif file_list and \"files\" in file_list:\n    for file_info in file_list[\"files\"]:\n        file_path = f\"{source_dir}/{file_info}\"\n        files_to_process.append({\n            \"path\": file_path,\n            \"name\": file_info\n        })\n\nresult = {\n    \"files\": files_to_process,\n    \"count\": len(files_to_process)\n}\n",
+        "label": "process file list"
       }
     },
     {
       "id": "node_3",
-      "type": "endpoint",
+      "type": "integrated_api",
       "position": {
-        "x": 0,
-        "y": 437
+        "x": 650,
+        "y": 200
       },
       "data": {
-        "label": "endpoint",
-        "file_format": "txt",
-        "save_to_file": true,
-        "file_name": "files/results/total.txt",
-        "flipped": [
-          true,
-          false
-        ]
+        "provider": "mcp_filesystem",
+        "operation": "file_read",
+        "config": {
+          "path": "{{processed_list.files[0].path}}",
+          "encoding": "utf-8"
+        },
+        "label": "read file content"
       }
     },
     {
       "id": "node_4",
       "type": "person_job",
       "position": {
-        "x": 311,
-        "y": 443
+        "x": 850,
+        "y": 200
       },
       "data": {
-        "label": "ask",
-        "default_prompt": "How many times did you respond?",
-        "flipped": [
-          true,
-          false
-        ],
+        "person": "Data Processor",
+        "default_prompt": "Analyze this file content and provide:\n1. Summary of the content\n2. Key topics or themes\n3. Word count and statistics\n4. Suggested improvements or corrections\n\nFile: {{processed_list.files[0].name}}\nContent: {{file_content.content}}\n\nFormat your response as JSON.\n",
         "max_iteration": 1,
-        "memory_profile": "FULL",
-        "person": "person_person_1",
-        "memory_settings": {
-          "view": "all_involved",
-          "max_messages": null,
-          "preserve_system": true
-        }
+        "memorize_to": "SYSTEM_AND_ME",
+        "label": "analyze content"
+      }
+    },
+    {
+      "id": "node_5",
+      "type": "integrated_api",
+      "position": {
+        "x": 1050,
+        "y": 200
+      },
+      "data": {
+        "provider": "mcp_filesystem",
+        "operation": "directory_create",
+        "config": {
+          "path": "{{output_dir}}/analysis",
+          "recursive": true
+        },
+        "label": "ensure output directory"
+      }
+    },
+    {
+      "id": "node_6",
+      "type": "integrated_api",
+      "position": {
+        "x": 1250,
+        "y": 200
+      },
+      "data": {
+        "provider": "mcp_filesystem",
+        "operation": "file_write",
+        "config": {
+          "path": "{{output_dir}}/analysis/{{processed_list.files[0].name}}.analysis.json",
+          "content": "{{analysis}}",
+          "mode": "overwrite",
+          "create_dirs": false
+        },
+        "label": "save analysis"
+      }
+    },
+    {
+      "id": "node_7",
+      "type": "integrated_api",
+      "position": {
+        "x": 1450,
+        "y": 200
+      },
+      "data": {
+        "provider": "mcp_filesystem",
+        "operation": "file_info",
+        "config": {
+          "path": "{{output_dir}}/analysis/{{processed_list.files[0].name}}.analysis.json",
+          "include_content_preview": true
+        },
+        "label": "verify output"
+      }
+    },
+    {
+      "id": "node_8",
+      "type": "endpoint",
+      "position": {
+        "x": 1650,
+        "y": 200
+      },
+      "data": {
+        "file_format": "json",
+        "save_to_file": true,
+        "file_name": "files/results/file_processing_summary.json",
+        "label": "complete"
       }
     }
   ],
@@ -106,53 +163,81 @@
       "id": "arrow_1",
       "source": "node_1_default_output",
       "target": "node_2_default_input",
-      "content_type": "conversation_state",
-      "label": null,
+      "content_type": "raw_text",
+      "label": "file_list",
       "data": null
     },
     {
       "id": "arrow_2",
-      "source": "node_2_condfalse_output",
-      "target": "node_1_default_input",
-      "content_type": "conversation_state",
-      "label": null,
-      "data": {
-        "branch": "false"
-      }
+      "source": "node_2_default_output",
+      "target": "node_3_default_input",
+      "content_type": "raw_text",
+      "label": "processed_list",
+      "data": null
     },
     {
       "id": "arrow_3",
-      "source": "node_2_condtrue_output",
+      "source": "node_3_default_output",
       "target": "node_4_default_input",
-      "content_type": "conversation_state",
-      "label": null,
-      "data": {
-        "branch": "true"
-      }
+      "content_type": "raw_text",
+      "label": "file_content",
+      "data": null
     },
     {
       "id": "arrow_4",
       "source": "node_4_default_output",
-      "target": "node_3_default_input",
+      "target": "node_5_default_input",
+      "content_type": "raw_text",
+      "label": "analysis",
+      "data": null
+    },
+    {
+      "id": "arrow_5",
+      "source": "node_5_default_output",
+      "target": "node_6_default_input",
       "content_type": "raw_text",
       "label": null,
+      "data": null
+    },
+    {
+      "id": "arrow_6",
+      "source": "node_6_default_output",
+      "target": "node_7_default_input",
+      "content_type": "raw_text",
+      "label": "save_result",
+      "data": null
+    },
+    {
+      "id": "arrow_7",
+      "source": "node_7_default_output",
+      "target": "node_8_default_input",
+      "content_type": "raw_text",
+      "label": "verification",
       "data": null
     }
   ],
   "persons": [
     {
-      "id": "person_person_1",
-      "label": "person 1",
+      "id": "Data Processor",
+      "label": "data processor",
       "llm_config": {
         "service": "openai",
-        "model": "gpt-4.1-nano-2025-04-14",
-        "api_key_id": "APIKEY_52609F",
-        "system_prompt": null
+        "model": "gpt-5-nano-2025-08-07",
+        "api_key_id": "default",
+        "system_prompt": "You are a data processing expert who analyzes and transforms file content."
       },
       "type": "person"
     }
   ],
   "handles": [
+    {
+      "id": "node_0_default_input",
+      "node_id": "node_0",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
     {
       "id": "node_0_default_output",
       "node_id": "node_0",
@@ -160,14 +245,6 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
-    },
-    {
-      "id": "node_1_first_input",
-      "node_id": "node_1",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
     },
     {
       "id": "node_1_default_input",
@@ -194,19 +271,11 @@
       "position": "left"
     },
     {
-      "id": "node_2_condtrue_output",
+      "id": "node_2_default_output",
       "node_id": "node_2",
-      "label": "condtrue",
+      "label": "default",
       "direction": "output",
-      "data_type": "boolean",
-      "position": "right"
-    },
-    {
-      "id": "node_2_condfalse_output",
-      "node_id": "node_2",
-      "label": "condfalse",
-      "direction": "output",
-      "data_type": "boolean",
+      "data_type": "any",
       "position": "right"
     },
     {
@@ -218,12 +287,12 @@
       "position": "left"
     },
     {
-      "id": "node_4_first_input",
-      "node_id": "node_4",
-      "label": "first",
-      "direction": "input",
+      "id": "node_3_default_output",
+      "node_id": "node_3",
+      "label": "default",
+      "direction": "output",
       "data_type": "any",
-      "position": "left"
+      "position": "right"
     },
     {
       "id": "node_4_default_input",
@@ -240,16 +309,80 @@
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_5_default_input",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_5_default_output",
+      "node_id": "node_5",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_6_default_input",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_6_default_output",
+      "node_id": "node_6",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_7_default_input",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_7_default_output",
+      "node_id": "node_7",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_8_default_input",
+      "node_id": "node_8",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_8_default_output",
+      "node_id": "node_8",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
     }
   ],
   "metadata": {
-    "name": "diagrams/examples/simple_iter.light.yaml",
+    "name": "file_processing.light.yaml",
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-09-18T05:21:47.568Z",
-    "modified": "2025-09-18T05:21:47.568Z",
+    "created": "2025-09-21T11:49:46.848Z",
+    "modified": "2025-09-21T11:49:46.848Z",
     "version": "1.0.0",
-    "id": "examples/native_diagrams/simple_iter.native.json"
+    "id": "examples/mcp_tools/file_processing.light.yaml"
   }
 }

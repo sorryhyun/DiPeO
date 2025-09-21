@@ -209,10 +209,23 @@ class RepositoryAdapter(LoggingMixin, DiagramRepositoryPort):
             format_str = self._detect_format_from_path(path)
             diagram = self.format_port.deserialize(content, format_str)
 
-            if diagram and diagram.metadata:
-                diagram.metadata.id = diagram_id
-                if not diagram.metadata.name:
-                    diagram.metadata.name = diagram_id.split("/")[-1]
+            if diagram:
+                # Ensure metadata exists
+                if not diagram.metadata:
+                    from dipeo.diagram_generated import DiagramMetadata
+
+                    diagram.metadata = DiagramMetadata(
+                        id=diagram_id,
+                        name=diagram_id.split("/")[-1],
+                        version="1.0",
+                        created="",
+                        modified="",
+                    )
+                else:
+                    # Update existing metadata
+                    diagram.metadata.id = diagram_id
+                    if not diagram.metadata.name:
+                        diagram.metadata.name = diagram_id.split("/")[-1]
 
             return diagram
         except Exception as e:
@@ -321,6 +334,11 @@ class RepositoryAdapter(LoggingMixin, DiagramRepositoryPort):
                             )
                             break
                 elif item.is_dir():
+                    # Skip the claude_code directory when scanning projects
+                    # Convert to string path and check if it contains the pattern
+                    item_str = str(item).replace("\\", "/")
+                    if "/projects/claude_code" in item_str:
+                        continue
                     scan_directory(item, base_for_relative)
 
         self.log_debug(f"Scanning files directory: {self.base_path}")

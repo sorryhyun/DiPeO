@@ -112,13 +112,14 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     skip: !currentExecutionId,
     onConnectionLoss: () => {
       // Handle connection loss during execution
+      // Don't stop execution on temporary disconnections - WebSocket will auto-reconnect
       if (execution.isRunning) {
-        console.log('[useExecution] Connection lost during execution, stopping...');
-        errorExecution('Connection lost');
-        executionActions.stopExecution();
+        console.log('[useExecution] WebSocket temporarily disconnected, waiting for reconnection...');
         if (showToasts) {
-          toast.error('WebSocket connection lost during execution');
+          toast.warning('WebSocket disconnected - attempting to reconnect...');
         }
+        // Don't call errorExecution or stopExecution here
+        // The WebSocket client will automatically reconnect
       }
     }
   });
@@ -281,7 +282,7 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   // Connect to existing execution (for monitor mode with executionId)
   const connectToExecutionWithStore = useCallback((executionIdStr: string, totalNodes?: number, preserveNodeStates: boolean = false) => {
     const nodesArray = Array.from(executionActions.nodes.values());
-    connectToExecution(executionIdStr, totalNodes || nodesArray.length);
+    connectToExecution(executionIdStr, totalNodes || nodesArray.length, preserveNodeStates);
     executionActions.startExecution(executionIdStr, preserveNodeStates);
     onUpdate?.({ type: EventType.EXECUTION_COMPLETED, execution_id: executionId(executionIdStr), timestamp: new Date().toISOString() });
   }, [connectToExecution, executionActions, onUpdate]);
