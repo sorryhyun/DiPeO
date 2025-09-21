@@ -69,6 +69,9 @@ def extract_node_specs(
                     }
                     fields.append(field_def)
 
+                # Extract handler metadata if present
+                handler_metadata = spec_value.get("handlerMetadata", {})
+
                 node_spec = {
                     "node_type": node_type,
                     "node_name": node_name,
@@ -78,6 +81,7 @@ def extract_node_specs(
                     "fields": fields,
                     "icon": spec_value.get("icon", ""),
                     "color": spec_value.get("color", ""),
+                    "handler_metadata": handler_metadata,  # Include handler metadata
                 }
                 node_specs.append(node_spec)
                 break

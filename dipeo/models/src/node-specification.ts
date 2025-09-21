@@ -123,6 +123,18 @@ export interface ExampleConfiguration {
 }
 
 /**
+ * Handler metadata for backend code generation
+ */
+export interface HandlerMetadata {
+  modulePath?: string;  // Module path for handler (e.g., 'dipeo.application.execution.handlers.api_job')
+  className?: string;   // Handler class name (e.g., 'ApiJobHandler')
+  mixins?: string[];    // Default mixins to include (e.g., ['LoggingMixin', 'ValidationMixin'])
+  serviceKeys?: string[];  // Service keys required (e.g., ['LLM_CLIENT', 'STATE_STORE'])
+  skipGeneration?: boolean;  // Skip generation for custom handlers
+  customImports?: string[];  // Additional imports needed
+}
+
+/**
  * Complete node specification
  */
 export interface NodeSpecification {
@@ -139,6 +151,7 @@ export interface NodeSpecification {
   execution?: ExecutionConfiguration;
   examples?: ExampleConfiguration[];
   primaryDisplayField?: string;  // Field name to show when node is not hovered
+  handlerMetadata?: HandlerMetadata;  // Backend handler metadata for code generation
 }
 
 /**

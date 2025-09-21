@@ -129,5 +129,12 @@ export const apiJobSpec: NodeSpecification = {
     maxRetries: 3
   },
 
-  primaryDisplayField: "method"
+  primaryDisplayField: "method",
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.api_job",
+    className: "ApiJobHandler",
+    mixins: ["LoggingMixin", "ValidationMixin", "ConfigurationMixin"],
+    serviceKeys: ["HTTP_CLIENT", "STATE_STORE"]
+  }
 };

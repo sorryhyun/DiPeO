@@ -125,12 +125,41 @@ nodes:
             # Convert UPPER_SNAKE_CASE to lower_snake_case for filters to work properly
             cleaned_spec_data['nodeType'] = node_type_enum.lower()
 
+        # Convert displayName from camelCase to snake_case for template
+        if 'displayName' in cleaned_spec_data:
+            cleaned_spec_data['display_name'] = cleaned_spec_data['displayName']
+
+        # Also keep 'description' and 'category' as-is (they're already lowercase in specs)
+        # But ensure they have snake_case aliases too just in case
+        if 'description' in cleaned_spec_data:
+            cleaned_spec_data['description'] = cleaned_spec_data.get('description', '')
+        if 'category' in cleaned_spec_data:
+            cleaned_spec_data['category'] = cleaned_spec_data.get('category', '')
+
         # Convert node type from hyphenated to snake_case for file names
         # e.g., "api-job" -> "api_job"
         node_type_snake = node_type_str.replace('-', '_')
 
         # Create node_name in PascalCase for class names
         node_name = ''.join(word.title() for word in node_type_snake.split('_'))
+
+        # Create additional naming variants for templates
+        node_type_upper = node_type_snake.upper()  # API_JOB
+        handler_class_name = f"{node_name}Handler"  # ApiJobHandler
+        data_model_name = f"{node_name}Node"  # ApiJobNode
+
+        # Extract handler metadata if present in spec, or use defaults
+        handler_metadata = cleaned_spec_data.get('handlerMetadata', {})
+        if not handler_metadata:
+            # Provide sensible defaults based on node type
+            handler_metadata = {
+                'serviceKeys': [],
+                'mixins': [],
+                'customImports': []
+            }
+
+        # Extract timeout if present
+        timeout = cleaned_spec_data.get('timeout', None)
 
         # Build the context with everything needed for templates
         try:
@@ -139,6 +168,11 @@ nodes:
                 'mappings': mappings,  # Type mappings for python_type_with_context filter
                 'node_type': node_type_snake,  # For file names (api_job)
                 'node_name': node_name,  # For class names (ApiJob)
+                'node_type_upper': node_type_upper,  # For enums (API_JOB)
+                'handler_class_name': handler_class_name,  # For handler class (ApiJobHandler)
+                'data_model_name': data_model_name,  # For data model (ApiJobNode)
+                'handler_metadata': handler_metadata,  # Handler configuration
+                'timeout': timeout,  # Timeout value if set
                 'node_naming': {  # Keep for backward compatibility with templates
                     'node_type': node_type_snake,
                     'node_name': node_name
@@ -161,6 +195,14 @@ nodes:
       engine: jinja2
       template_path: projects/codegen/templates/backend/unified_node_model.j2
       output_path: dipeo/diagram_generated_staged/unified_nodes/{{ node_type }}_node.py
+
+  - label: Generate handler stub
+    type: template_job
+    position: {x: 900, y: 300}
+    props:
+      engine: jinja2
+      template_path: projects/codegen/templates/models/handler_stub.j2
+      output_path: dipeo/diagram_generated_staged/handlers/{{ node_type }}_node.py
 
   # End node to complete the diagram
   - label: End
@@ -188,5 +230,6 @@ connections:
 
   # Pass context to template_job nodes
   - {from: Prepare Context, to: Generate Unified Model, content_type: object}
-
+  - {from: Prepare Context, to: Generate handler stub, content_type: object}
+  - {from: Generate handler stub, to: End}
   - {from: Generate Unified Model, to: End}
