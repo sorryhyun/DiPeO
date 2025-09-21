@@ -42,10 +42,6 @@ Orchestrates business logic between domain and infrastructure layers.
 - **types/**: GraphQL type definitions
 - **schema_factory.py**: Schema assembly
 
-### Conversation Management (`conversation/`)
-- **wiring.py**: Conversation context dependency injection
-- **use_cases/manage_conversation.py**: Conversation lifecycle management
-
 ### Diagram Operations (`diagram/`)
 - **wiring.py**: Diagram service dependency injection
 - **use_cases/**: Diagram-specific operations
@@ -57,9 +53,6 @@ Orchestrates business logic between domain and infrastructure layers.
 ### Registry (`registry/`)
 - **service_registry.py**: Type-safe service locator
 - **keys.py**: Service key definitions
-
-### Utilities (`utils/`)
-- **prompt_builder.py**: Dynamic prompt construction
 
 ## Service Registry
 ```python

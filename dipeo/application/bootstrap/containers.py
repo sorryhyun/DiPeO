@@ -45,7 +45,7 @@ class ApplicationContainer:
             lambda: DiagramValidator(api_key_service=self.registry.resolve(API_KEY_SERVICE)),
         )
 
-        from dipeo.application.utils import PromptBuilder
+        from dipeo.infrastructure.template import PromptBuilder
 
         self.registry.register(
             PROMPT_BUILDER,

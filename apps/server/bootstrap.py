@@ -264,7 +264,6 @@ def bootstrap_services(registry: ServiceRegistry, redis_client: object | None = 
         registry: The service registry to wire services into
         redis_client: Optional Redis client for distributed state
     """
-    from dipeo.application.conversation.wiring import wire_conversation
     from dipeo.application.diagram.wiring import (
         wire_diagram_port,
         wire_diagram_use_cases,
@@ -298,11 +297,8 @@ def bootstrap_services(registry: ServiceRegistry, redis_client: object | None = 
     wire_diagram_port(registry)
     wire_diagram_use_cases(registry)
 
-    # Execution services
+    # Execution services (includes conversation repositories)
     wire_execution(registry)
-
-    # Conversation services
-    wire_conversation(registry)
 
     # Event services must be last to connect everything
     wire_event_services(registry)

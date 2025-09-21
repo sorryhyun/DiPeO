@@ -81,7 +81,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                 return False
             if isinstance(value, str):
                 return bool(value.strip())
-            if isinstance(value, (list, tuple, set)):
+            if isinstance(value, list | tuple | set):
                 return any(item is not None for item in value)
             if isinstance(value, dict):
                 return bool(value)
@@ -207,7 +207,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
 
         # Use PromptBuilder to properly prepare template values from inputs
         # This handles nested structures and makes node outputs available
-        from dipeo.application.utils import PromptBuilder
+        from dipeo.infrastructure.template import PromptBuilder
 
         prompt_builder = PromptBuilder(template_processor)
         prepared_inputs = prompt_builder.prepare_template_values(inputs)

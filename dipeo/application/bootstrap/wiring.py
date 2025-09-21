@@ -19,7 +19,6 @@ def wire_application_services(registry: ServiceRegistry) -> None:
     This includes use cases, orchestrators, and other application services
     that depend on domain ports rather than infrastructure implementations.
     """
-    from dipeo.application.conversation.wiring import wire_conversation
     from dipeo.application.diagram.wiring import (
         wire_diagram_use_cases,
     )
@@ -29,13 +28,9 @@ def wire_application_services(registry: ServiceRegistry) -> None:
     wire_diagram_use_cases(registry)
     logger.info("Wired diagram use cases")
 
-    # Wire execution services
+    # Wire execution services (includes conversation repositories)
     wire_execution(registry)
     logger.info("Wired execution services")
-
-    # Wire conversation services
-    wire_conversation(registry)
-    logger.info("Wired conversation services")
 
 
 def wire_feature_flags(registry: ServiceRegistry, features: list[str]) -> None:
