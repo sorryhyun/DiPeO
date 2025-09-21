@@ -115,7 +115,7 @@ def wire_api_services(registry: ServiceRegistry) -> None:
 
 def wire_storage_services(registry: ServiceRegistry) -> None:
     """Wire storage services."""
-    from dipeo.infrastructure.shared.adapters import (
+    from dipeo.infrastructure.storage import (
         LocalBlobAdapter,
         LocalFileSystemAdapter,
     )
@@ -123,7 +123,7 @@ def wire_storage_services(registry: ServiceRegistry) -> None:
     storage_backend = os.getenv("DIPEO_STORAGE_BACKEND", "local").lower()
 
     if storage_backend == "s3":
-        from dipeo.infrastructure.shared.adapters import S3Adapter
+        from dipeo.infrastructure.storage import S3Adapter
 
         bucket = os.getenv("DIPEO_S3_BUCKET", "dipeo-storage")
         region = os.getenv("DIPEO_S3_REGION", "us-east-1")
@@ -269,7 +269,7 @@ def bootstrap_services(registry: ServiceRegistry, redis_client: object | None = 
         wire_diagram_use_cases,
     )
     from dipeo.application.execution.wiring import wire_execution
-    from dipeo.infrastructure.shared.keys.drivers.api_key_service import APIKeyService
+    from dipeo.infrastructure.security.keys import APIKeyService
 
     # Core services (always required)
     wire_state_services(registry, redis_client)

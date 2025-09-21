@@ -170,7 +170,7 @@ def wire_diagram_port(registry: ServiceRegistry) -> None:
     if registry.has(FILESYSTEM_ADAPTER):
         filesystem = registry.resolve(FILESYSTEM_ADAPTER)
     else:
-        from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
+        from dipeo.infrastructure.storage import LocalFileSystemAdapter
 
         filesystem = LocalFileSystemAdapter(base_path=Path(settings.storage.base_dir).resolve())
 

@@ -46,13 +46,11 @@ class ConvertCommand:
             from dipeo.infrastructure.diagram.drivers.diagram_service import (
                 DiagramService,
             )
-            from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
+            from dipeo.infrastructure.storage import LocalFileSystemAdapter
 
             # Create diagram service using unified config
             settings = get_settings()
-            filesystem = LocalFileSystemAdapter(
-                base_path=Path(settings.storage.base_dir)
-            )
+            filesystem = LocalFileSystemAdapter(base_path=Path(settings.storage.base_dir))
             diagram_service = DiagramService(
                 filesystem=filesystem,
                 base_path=Path(settings.storage.base_dir) / settings.storage.data_dir,

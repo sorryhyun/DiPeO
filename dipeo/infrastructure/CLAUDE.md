@@ -12,13 +12,17 @@ Concrete implementations of domain ports for all I/O operations.
 | `execution/` | State management, message routing |
 | `integrations/` | External APIs (Notion, Slack) |
 | `llm/` | LLM providers (unified clients), domain adapters, simplified service |
-| `repositories/` | Conversation storage (in-memory, persistent) |
-| `shared/` | File system, database, API keys |
+| `common/` | Shared utilities (cache, locks) |
+| `security/` | API key management and security services |
+| `storage/` | All storage concerns (filesystem, blob, artifacts, conversation, JSON DB) |
+| `database/` | [DEPRECATED] Moved to `storage/json_db/` - backward compatibility only |
 
 ## Key Patterns
 
 ```python
 # Port/Adapter - Domain defines interface, infra implements
+from dipeo.infrastructure.storage.local import LocalBlobAdapter
+
 class LocalBlobAdapter(BlobStorePort):
     async def put(self, key: str, data: bytes) -> str:
         pass
@@ -38,13 +42,33 @@ filesystem = request.services.get("filesystem_adapter")
 
 ## Components
 
-### Storage Adapters
-| Adapter | Use Case |
-|---------|----------|
-| `LocalFileSystemAdapter` | Config files, temp files |
-| `LocalBlobAdapter` | Versioned storage |
-| `S3Adapter` | Cloud deployments |
-| `ArtifactStoreAdapter` | ML models, binaries |
+### Storage Adapters (`storage/`)
+| Adapter | Location | Use Case |
+|---------|-------------|----------|
+| `LocalFileSystemAdapter` | `storage/local/` | Config files, temp files |
+| `LocalBlobAdapter` | `storage/local/` | Versioned storage |
+| `S3Adapter` | `storage/cloud/` | Cloud deployments |
+| `ArtifactStoreAdapter` | `storage/artifacts/` | ML models, binaries |
+| `InMemoryConversationRepository` | `storage/conversation/` | Fast, ephemeral conversation storage |
+| `InMemoryPersonRepository` | `storage/conversation/` | Person entity management |
+
+### JSON Database Services (`storage/json_db/`)
+- **DBOperationsDomainService**: JSON file-based database operations
+- **Location**: Moved from `database/` to `storage/json_db/`
+- **Features**: File-based storage with database-like operations (read/write/append/update)
+- **Note**: Backward compatibility maintained via `database/__init__.py`
+
+### Security Services (`security/`)
+- **APIKeyService**: Core API key management interface
+- **EnvironmentAPIKeyService**: Environment-based API key provider
+- **Location**: Moved from `shared/keys/` to `security/keys/`
+- **Features**: Secure API key storage and retrieval
+
+### Common Utilities (`common/`)
+- **SingleFlightCache**: Prevents duplicate concurrent operations (`common/utils/cache.py`)
+- **FileLock, AsyncFileLock, CacheFileLock**: File-based locking mechanisms (`common/utils/locks.py`)
+- **Location**: Moved from `shared/drivers/utils/` to `common/utils/`
+- **Features**: Thread-safe caching and file locking primitives
 
 ### LLM Adapters (`llm/adapters/`)
 - **LLMMemorySelectionAdapter**: Implements MemorySelectionPort using LLM
@@ -59,10 +83,11 @@ filesystem = request.services.get("filesystem_adapter")
   - Supports memory profiles for context control
   - Used by condition nodes for AI-powered flow control
 
-### Conversation Repositories
+### Conversation Storage (`storage/conversation/`)
 - **InMemoryConversationRepository**: Fast, ephemeral storage
 - **InMemoryPersonRepository**: Person entity management
 - **Features**: Message filtering, person-specific views
+- **Location**: Consolidated into storage layer for unified persistence
 
 ### LLM Infrastructure
 - **LLMInfraService**: Main LLM orchestrator
@@ -144,17 +169,35 @@ except Exception as e:
 ## Adding New Infrastructure
 
 ### Storage Adapter
-1. Implement port: `class RedisAdapter(BlobStorePort)`
+1. Implement port: `class RedisAdapter(BlobStorePort)` in appropriate `storage/` subdirectory
+   - Local storage: `storage/local/`
+   - Cloud storage: `storage/cloud/`
+   - Artifact storage: `storage/artifacts/`
 2. Register in DI container
 3. Wire to services
+
+### JSON Database Service
+1. Implement JSON-based storage operations in `storage/json_db/`
+2. Extend DBOperationsDomainService if needed
+3. Register in DI container with FileSystemPort dependency
+
+### Security Service
+1. Create security service in `security/` (API keys, authentication, etc.)
+2. Follow APIKeyService pattern for key management
+3. Register in DI container with proper environment variable mapping
+
+### Common Utility
+1. Add utility to `common/utils/` (cache, locks, helpers)
+2. Follow existing patterns (cache.py for caching, locks.py for locking)
+3. Export from `common/__init__.py`
 
 ### LLM-based Adapter
 1. Create adapter in `llm/adapters/`: `class CustomLLMAdapter`
 2. Use orchestrator for person/facet management
 3. Wire to appropriate handlers or evaluators
 
-### Conversation Repository
-1. Implement repository interface
+### Conversation Storage
+1. Implement repository interface in `storage/conversation/`
 2. Create adapter: `class RedisConversationRepository`
 3. Register in DI container
 

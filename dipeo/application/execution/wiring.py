@@ -36,7 +36,7 @@ def wire_execution(registry: ServiceRegistry) -> None:
     import dipeo.application.execution.handlers
 
     # Wire conversation repositories (used by ExecutionOrchestrator)
-    from dipeo.infrastructure.repositories.conversation import (
+    from dipeo.infrastructure.storage.conversation import (
         InMemoryConversationRepository,
         InMemoryPersonRepository,
     )

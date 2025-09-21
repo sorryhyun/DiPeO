@@ -12,13 +12,13 @@ from dipeo.domain.base import APIKeyError, LLMServiceError
 from dipeo.domain.base.mixins import InitializationMixin, LoggingMixin
 from dipeo.domain.integrations.ports import APIKeyPort
 from dipeo.domain.integrations.ports import LLMService as LLMServicePort
+from dipeo.infrastructure.common.utils import SingleFlightCache
 from dipeo.infrastructure.llm.drivers.types import (
     AdapterConfig,
     DecisionOutput,
     LLMResponse,
     MemorySelectionOutput,
 )
-from dipeo.infrastructure.shared.drivers.utils import SingleFlightCache
 
 
 class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
