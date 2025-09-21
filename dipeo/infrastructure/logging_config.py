@@ -100,12 +100,6 @@ def setup_logging(
     # Get component logger
     logger = logging.getLogger(component)
 
-    # Log initialization
-    if log_to_file:
-        logger.info(f"Logging initialized for {component} - Files: {log_path}")
-    else:
-        logger.info(f"Logging initialized for {component} - Console only")
-
     return logger
 
 

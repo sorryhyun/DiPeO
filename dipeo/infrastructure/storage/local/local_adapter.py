@@ -167,7 +167,6 @@ class LocalFileSystemAdapter(LoggingMixin, InitializationMixin, FileSystemPort):
 
         self.base_path.mkdir(parents=True, exist_ok=True)
         self._initialized = True
-        logger.info(f"LocalFileSystemAdapter initialized at: {self.base_path}")
 
     def _resolve_path(self, path: Path) -> Path:
         return path if path.is_absolute() else self.base_path / path

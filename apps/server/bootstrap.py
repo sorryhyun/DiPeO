@@ -79,7 +79,6 @@ def wire_messaging_services(registry: ServiceRegistry) -> None:
             )
 
             router = RedisMessageRouter()
-            logger.info("Using RedisMessageRouter for multi-worker subscription support")
         except ImportError:
             router = MessageRouter()
             logger.info("Using in-memory MessageRouter")
@@ -304,8 +303,6 @@ def bootstrap_services(registry: ServiceRegistry, redis_client: object | None = 
 
     # Event services must be last to connect everything
     wire_event_services(registry)
-
-    logger.info("All services bootstrapped successfully")
 
 
 async def execute_event_subscriptions(registry: ServiceRegistry) -> None:
