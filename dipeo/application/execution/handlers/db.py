@@ -207,7 +207,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
 
         # Use PromptBuilder to properly prepare template values from inputs
         # This handles nested structures and makes node outputs available
-        from dipeo.infrastructure.template import PromptBuilder
+        from dipeo.infrastructure.diagram.prompt_templates import PromptBuilder
 
         prompt_builder = PromptBuilder(template_processor)
         prepared_inputs = prompt_builder.prepare_template_values(inputs)

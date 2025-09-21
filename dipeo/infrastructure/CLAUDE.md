@@ -7,7 +7,7 @@ Concrete implementations of domain ports for all I/O operations.
 | Module | Purpose |
 |--------|----------|
 | `codegen/` | TypeScript AST parsing, Jinja2 templates |
-| `diagram/` | Diagram compilation, storage, conversion |
+| `diagram/` | Diagram compilation, storage, conversion, prompt templates |
 | `events/` | Event bus (in-memory, Redis) |
 | `execution/` | State management, message routing |
 | `integrations/` | External APIs (Notion, Slack) |
@@ -51,6 +51,13 @@ filesystem = request.services.get("filesystem_adapter")
 | `ArtifactStoreAdapter` | `storage/artifacts/` | ML models, binaries |
 | `InMemoryConversationRepository` | `storage/conversation/` | Fast, ephemeral conversation storage |
 | `InMemoryPersonRepository` | `storage/conversation/` | Person entity management |
+
+### Diagram Infrastructure (`diagram/`)
+- **adapters/**: Diagram-specific adapters for various formats
+- **drivers/**: High-level diagram services and orchestration
+- **prompt_templates/**: Prompt template processing
+  - `PromptBuilder`: Builds prompts from templates with variable substitution
+  - `SimpleTemplateProcessor`: Template processing implementation using Jinja2
 
 ### JSON Database Services (`storage/json_db/`)
 - **DBOperationsDomainService**: JSON file-based database operations

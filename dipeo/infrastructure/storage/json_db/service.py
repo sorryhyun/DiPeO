@@ -31,9 +31,7 @@ class DBOperationsDomainService:
         keys: Any = None,
         lines: Any = None,
     ) -> dict[str, Any]:
-        return await self.adapter.execute_operation(
-            db_name, operation, value, keys, lines
-        )
+        return await self.adapter.execute_operation(db_name, operation, value, keys, lines)
 
     async def _get_db_file_path(self, db_name: str) -> str:
         return await self.adapter._get_db_file_path(db_name)

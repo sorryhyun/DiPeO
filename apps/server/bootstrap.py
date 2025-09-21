@@ -149,7 +149,9 @@ def wire_template_services(registry: ServiceRegistry) -> None:
     """Wire template and processing services for code generation and prompt processing."""
     from dipeo.infrastructure.codegen.parsers.parser_service import ParserService
     from dipeo.infrastructure.codegen.templates.drivers.factory import get_template_service
-    from dipeo.infrastructure.template.simple_processor import SimpleTemplateProcessor
+    from dipeo.infrastructure.diagram.prompt_templates.simple_processor import (
+        SimpleTemplateProcessor,
+    )
 
     # Create the codegen template service for the TEMPLATE_RENDERER port
     template_service = get_template_service(template_dirs=[])
