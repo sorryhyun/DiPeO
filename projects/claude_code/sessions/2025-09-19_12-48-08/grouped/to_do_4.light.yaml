@@ -1,0 +1,357 @@
+version: light
+nodes:
+- label: Read File 1
+  type: db
+  position:
+    x: 700
+    y: 100
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/base.py
+- label: MultiEdit File 9
+  type: diff_patch
+  position:
+    x: 700
+    y: 400
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/preprocessor.py
+    diff: "# MultiEdit diff for /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/preprocessor.py\n# Total edits: 2\n\n# Edit 1/2\n--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/preprocessor.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/preprocessor.py\n@@ -1,2 +1,2 @@\n-class SessionOrchestrator(BasePreprocessor):\n+class Preprocessor(BasePreprocessor):\n     \"\"\"Orchestrates session-level preprocessing for Claude Code translation.\"\"\"\n\n# Edit 2/2\n--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/preprocessor.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/preprocessor.py\n@@ -1,5 +1,5 @@\n     def __init__(self, config: Optional[PreprocessConfig] = None):\n-        \"\"\"Initialize the session orchestrator.\n+        \"\"\"Initialize the preprocessor.\n \n         Args:\n             config: Preprocessing configuration\n"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 11
+  type: api_job
+  position:
+    x: 700
+    y: 700
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Read File 2
+  type: db
+  position:
+    x: 750
+    y: 100
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/base.py
+- label: tool_result 5
+  type: api_job
+  position:
+    x: 750
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Grep Search 6
+  type: code_job
+  position:
+    x: 750
+    y: 700
+  props:
+    language: bash
+    code: rg -l 'DiagramConverter|SessionOrchestrator|PostProcessingPipeline' /home/soryhyun/DiPeO
+    tool: Grep
+    description: Grep search operation
+- label: Read File 3
+  type: db
+  position:
+    x: 800
+    y: 250
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/base.py
+- label: MultiEdit File 10
+  type: diff_patch
+  position:
+    x: 800
+    y: 400
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/post_processor.py
+    diff: '# MultiEdit diff for /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/post_processor.py
+
+      # Total edits: 5
+
+
+      # Edit 1/5
+
+      --- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/post_processor.py
+
+      +++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/post_processor.py
+
+      @@ -1 +1 @@
+
+      -class PostProcessingPipeline(BasePostProcessor):
+
+      +class PostProcessor(BasePostProcessor):
+
+
+      # Edit 2/5
+
+      --- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/post_processor.py
+
+      +++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/post_processor.py
+
+      @@ -1 +1 @@
+
+      -    def create_minimal(cls) -> "PostProcessingPipeline":
+
+      +    def create_minimal(cls) -> "PostProcessor":
+
+
+      # Edit 3/5
+
+      --- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/post_processor.py
+
+      +++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/post_processor.py
+
+      @@ -1 +1 @@
+
+      -    def create_standard(cls) -> "PostProcessingPipeline":
+
+      +    def create_standard(cls) -> "PostProcessor":
+
+
+      # Edit 4/5
+
+      --- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/post_processor.py
+
+      +++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/post_processor.py
+
+      @@ -1 +1 @@
+
+      -    def create_aggressive(cls) -> "PostProcessingPipeline":
+
+      +    def create_aggressive(cls) -> "PostProcessor":
+
+
+      # Edit 5/5
+
+      --- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/post_processor.py
+
+      +++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/post_processor.py
+
+      @@ -1 +1 @@
+
+      -    def create_deduplication_only(cls) -> "PostProcessingPipeline":
+
+      +    def create_deduplication_only(cls) -> "PostProcessor":
+
+      '
+    format: unified
+    backup: true
+    validate: true
+- label: Read File 18
+  type: db
+  position:
+    x: 800
+    y: 700
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/__init__.py
+- label: Read File 4
+  type: db
+  position:
+    x: 850
+    y: 250
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/diagram_converter.py
+- label: tool_result 6
+  type: api_job
+  position:
+    x: 850
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Grep Search 7
+  type: code_job
+  position:
+    x: 850
+    y: 700
+  props:
+    language: bash
+    code: rg -n 'DiagramConverter|SessionOrchestrator|PostProcessingPipeline' /home/soryhyun/DiPeO/dipeo/infrastructure/CLAUDE.md
+    tool: Grep
+    description: Grep search operation
+- label: MultiEdit File 11
+  type: diff_patch
+  position:
+    x: 900
+    y: 400
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py
+    diff: "# MultiEdit diff for /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py\n# Total edits: 4\n\n# Edit 1/4\n--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py\n@@ -1,4 +1,4 @@\n-from .convert import DiagramConverter\n+from .convert import Converter\n from .ports import SessionPort\n-from .post_processing import PipelineConfig, PostProcessingPipeline, ProcessingPreset\n-from .preprocess import SessionOrchestrator\n+from .post_processing import PipelineConfig, PostProcessor, ProcessingPreset\n+from .preprocess import Preprocessor\n\n# Edit 2/4\n--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py\n@@ -1,2 +1,2 @@\n-        self.preprocessor = SessionOrchestrator()\n-        self.converter = DiagramConverter()\n+        self.preprocessor = Preprocessor()\n+        self.converter = Converter()\n\n# Edit 3/4\n--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py\n@@ -1 +1 @@\n-                pipeline = PostProcessingPipeline(config)\n+                pipeline = PostProcessor(config)\n\n# Edit 4/4\n--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py\n@@ -1 +1 @@\n-        pipeline = PostProcessingPipeline(pipeline_config)\n+        pipeline = PostProcessor(pipeline_config)\n"
+    format: unified
+    backup: true
+    validate: true
+- label: Grep Search 8
+  type: code_job
+  position:
+    x: 900
+    y: 700
+  props:
+    language: bash
+    code: rg -l 'from dipeo\.domain\.cc_translate.*\b(DiagramConverter|SessionOrchestrator|PostProcessingPipeline)\b' /home/soryhyun/DiPeO
+    tool: Grep
+    description: Grep search operation
+- label: tool_result 2
+  type: api_job
+  position:
+    x: 950
+    y: 250
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 7
+  type: api_job
+  position:
+    x: 950
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 9
+  type: code_job
+  position:
+    x: 950
+    y: 700
+  props:
+    language: bash
+    code: find /home/soryhyun/DiPeO -type f -name "*.py" -exec grep -l "from.*cc_translate.*import.*\(DiagramConverter\|SessionOrchestrator\|PostProcessingPipeline\)" {} \;
+    timeout: 120000
+    description: Search for Python imports of renamed classes
+- label: Read File 5
+  type: db
+  position:
+    x: 1000
+    y: 250
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/pipeline.py
+- label: Read File 12
+  type: db
+  position:
+    x: 1000
+    y: 550
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/__init__.py
+- label: Read File 19
+  type: db
+  position:
+    x: 1000
+    y: 700
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/__init__.py
+- label: Read File 6
+  type: db
+  position:
+    x: 1050
+    y: 250
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/session_orchestrator.py
+- label: Edit File 13
+  type: diff_patch
+  position:
+    x: 1050
+    y: 550
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/__init__.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/__init__.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/__init__.py\n@@ -1,6 +1,6 @@\n from .connection_builder import ConnectionBuilder\n+from .converter import Converter\n from .diagram_assembler import DiagramAssembler\n-from .diagram_converter import DiagramConverter\n from .node_builders import NodeBuilder\n \n-__all__ = [\"ConnectionBuilder\", \"DiagramAssembler\", \"DiagramConverter\", \"NodeBuilder\"]\n+__all__ = [\"ConnectionBuilder\", \"Converter\", \"DiagramAssembler\", \"NodeBuilder\"]"
+    format: unified
+    backup: true
+    validate: true
+connections:
+- from: Read File 1
+  to: Read File 2
+  content_type: raw_text
+- from: Read File 2
+  to: Read File 3
+  content_type: raw_text
+- from: Read File 3
+  to: Read File 4
+  content_type: raw_text
+- from: tool_result 2
+  to: Read File 5
+  content_type: raw_text
+- from: Read File 5
+  to: Read File 6
+  content_type: raw_text
+- from: MultiEdit File 9
+  to: tool_result 5
+  content_type: raw_text
+- from: tool_result 5
+  to: MultiEdit File 10
+  content_type: raw_text
+- from: MultiEdit File 10
+  to: tool_result 6
+  content_type: raw_text
+- from: tool_result 6
+  to: MultiEdit File 11
+  content_type: raw_text
+- from: MultiEdit File 11
+  to: tool_result 7
+  content_type: raw_text
+- from: tool_result 7
+  to: Read File 12
+  content_type: raw_text
+- from: Read File 12
+  to: Edit File 13
+  content_type: raw_text
+- from: tool_result 11
+  to: Grep Search 6
+  content_type: raw_text
+- from: Grep Search 6
+  to: Read File 18
+  content_type: raw_text
+- from: Read File 18
+  to: Grep Search 7
+  content_type: raw_text
+- from: Grep Search 7
+  to: Grep Search 8
+  content_type: raw_text
+- from: Grep Search 8
+  to: Bash Command 9
+  content_type: raw_text
+- from: Bash Command 9
+  to: Read File 19
+  content_type: raw_text
+metadata:
+  group_name: to_do_4
+  node_count: 22
+  connection_count: 18
+  extracted_from: unknown
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

@@ -1,0 +1,67 @@
+version: light
+nodes:
+- label: Edit File 7
+  type: diff_patch
+  position:
+    x: 1050
+    y: 250
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/base.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/base.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/base.py\n@@ -1,5 +1,5 @@\n-class BaseProcessor(ABC):\n-    \"\"\"Base class for all post-processing processors.\"\"\"\n+class BaseDiagramProcessor(ABC):\n+    \"\"\"Base class for all diagram post-processing processors.\"\"\"\n \n     def __init__(self, config: Optional[dict[str, Any]] = None):\n         \"\"\"Initialize processor with optional configuration.\"\"\"\n@@ -13,7 +13,7 @@\n         pass\n \n     @abstractmethod\n-    def process(self, diagram: dict[str, Any]) -> tuple[dict[str, Any], ProcessingReport]:\n+    def process_diagram(self, diagram: dict[str, Any]) -> tuple[dict[str, Any], DiagramProcessingReport]:\n         \"\"\"\n         Process the diagram and return modified version with report.\n "
+    format: unified
+    backup: true
+    validate: true
+- label: Grep Search 2
+  type: code_job
+  position:
+    x: 1050
+    y: 550
+  props:
+    language: bash
+    code: rg 'class.*BaseProcessor' /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing
+    tool: Grep
+    description: Grep search operation
+- label: Bash Command 6
+  type: code_job
+  position:
+    x: 1050
+    y: 700
+  props:
+    language: bash
+    code: python -c "from dipeo.domain.cc_translate.post_processing import PostProcessingPipeline, PipelineConfig; print('Post-processing module imports successfully')"
+    timeout: 120000
+    description: Test post-processing module imports
+- label: tool_result 20
+  type: api_job
+  position:
+    x: 1050
+    y: 1000
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 26
+  type: api_job
+  position:
+    x: 1050
+    y: 1150
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+connections: []
+metadata:
+  group_name: to_do_9
+  node_count: 5
+  connection_count: 0
+  extracted_from: unknown
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

@@ -1,0 +1,84 @@
+{
+  "session_id": "175ead61-5a29-43f8-8ccb-7a9243b339fd",
+  "directory_name": "2025-09-20_02-50-57",
+  "converted_at": "2025-09-20T14:24:28.707776",
+  "stats": {
+    "session_id": "175ead61-5a29-43f8-8ccb-7a9243b339fd",
+    "total_events": 116,
+    "user_messages": 43,
+    "assistant_messages": 73,
+    "tool_usage": {
+      "Bash": 7,
+      "Read": 8,
+      "Grep": 3,
+      "TodoWrite": 9,
+      "Edit": 7,
+      "Write": 1
+    },
+    "unique_files_accessed": 8,
+    "bash_commands_executed": 7,
+    "duration_seconds": 495.718,
+    "duration_human": "0:08:15.718000"
+  },
+  "format": "light",
+  "diagrams": {
+    "original": {
+      "file": "diagram.light.yaml",
+      "type": "original",
+      "statistics": {
+        "node_count": 60,
+        "connection_count": 59,
+        "node_types": [
+          "db",
+          "diff_patch",
+          "code_job",
+          "api_job",
+          "person_job",
+          "start"
+        ]
+      }
+    },
+    "optimized": {
+      "file": "optimized.light.yaml",
+      "type": "optimized",
+      "statistics": {
+        "node_count": 59,
+        "connection_count": 59,
+        "node_types": [
+          "db",
+          "diff_patch",
+          "code_job",
+          "api_job",
+          "person_job",
+          "start"
+        ]
+      }
+    },
+    "grouped": {
+      "file": "grouped.light.yaml",
+      "type": "grouped",
+      "statistics": {
+        "node_count": 17,
+        "connection_count": 16,
+        "node_types": [
+          "db",
+          "start",
+          "sub_diagram"
+        ]
+      }
+    }
+  },
+  "file_structure": {
+    "original_session": "original_session.jsonl",
+    "processed_session": "session.jsonl",
+    "original_diagram": "diagram.light.yaml",
+    "optimized_diagram": "optimized.light.yaml",
+    "grouped_diagram": "grouped.light.yaml",
+    "metadata": "metadata.json",
+    "grouped_subdirectory": "grouped/"
+  },
+  "options": {
+    "save_original": true,
+    "timestamp_based_naming": true
+  }
+}

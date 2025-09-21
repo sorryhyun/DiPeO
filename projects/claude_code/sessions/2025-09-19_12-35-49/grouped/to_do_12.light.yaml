@@ -1,0 +1,470 @@
+version: light
+nodes:
+- label: Read File 3
+  type: db
+  position:
+    x: 850
+    y: 250
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/pipeline/base.py
+- label: tool_result 9
+  type: api_job
+  position:
+    x: 850
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 15
+  type: api_job
+  position:
+    x: 850
+    y: 700
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 20
+  type: api_job
+  position:
+    x: 850
+    y: 850
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 31
+  type: diff_patch
+  position:
+    x: 850
+    y: 1150
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py\n@@ -1,28 +1,44 @@\n         skip_phases = skip_phases or []\n         metrics = PipelineMetrics()\n \n+        # Convert SessionPort to DomainSession if needed\n+        if hasattr(session, 'to_domain_session'):\n+            domain_session = session.to_domain_session()\n+        else:\n+            domain_session = session\n+\n         # Phase 1: Preprocess\n         if PipelinePhase.PREPROCESS not in skip_phases:\n-            preprocess_result = self.execute_phase(PipelinePhase.PREPROCESS, session, **kwargs)\n-            metrics.add_phase_result(preprocess_result)\n+            result = self.with_error_boundary(\n+                PipelinePhase.PREPROCESS,\n+                self.preprocessor.process,\n+                domain_session,\n+                kwargs.get(\"preprocess_config\")\n+            )\n+            metrics.add_phase_result(result)\n \n-            if not preprocess_result.success:\n+            if not result.success:\n                 return {}, metrics\n \n-            preprocessed_data = preprocess_result.data\n+            preprocessed_data = result.data\n         else:\n             # If preprocessing is skipped, assume session is preprocessed data\n             preprocessed_data = session\n \n         # Phase 2: Convert\n         if PipelinePhase.CONVERT not in skip_phases:\n-            convert_result = self.execute_phase(PipelinePhase.CONVERT, preprocessed_data, **kwargs)\n-            metrics.add_phase_result(convert_result)\n+            result = self.with_error_boundary(\n+                PipelinePhase.CONVERT,\n+                self.converter.process,\n+                preprocessed_data,\n+                kwargs.get(\"convert_config\")\n+            )\n+            metrics.add_phase_result(result)\n \n-            if not convert_result.success:\n+            if not result.success:\n                 return {}, metrics\n \n-            diagram = convert_result.data\n+            diagram = result.data\n         else:\n             # If conversion is skipped, assume preprocessed_data is already a diagram\n             diagram = preprocessed_data if isinstance(preprocessed_data, dict) else {}\n@@ -33,19 +49,23 @@\n             should_post_process = kwargs.get(\"post_process\", False)\n \n             if should_post_process:\n-                postprocess_result = self.execute_phase(\n-                    PipelinePhase.POST_PROCESS, diagram, **kwargs\n+                config = kwargs.get(\"processing_config\") or PipelineConfig.from_preset(ProcessingPreset.STANDARD)\n+                pipeline = PostProcessingPipeline(config)\n+\n+                result = self.with_error_boundary(\n+                    PipelinePhase.POST_PROCESS,\n+                    pipeline.process,\n+                    diagram,\n+                    config\n                 )\n-                metrics.add_phase_result(postprocess_result)\n+                metrics.add_phase_result(result)\n \n-                if postprocess_result.success:\n-                    diagram = postprocess_result.data\n+                if result.success:\n+                    diagram = result.data\n \n                     # Add metrics to diagram metadata\n-                    if postprocess_result.report and hasattr(\n-                        postprocess_result.report, \"has_changes\"\n-                    ):\n-                        if postprocess_result.report.has_changes():\n+                    if result.report and hasattr(result.report, \"has_changes\"):\n+                        if result.report.has_changes():\n                             if \"metadata\" not in diagram:\n                                 diagram[\"metadata\"] = {}\n                             if \"post_processing\" not in diagram[\"metadata\"]:\n@@ -53,9 +73,9 @@\n \n                             diagram[\"metadata\"][\"post_processing\"][\"optimization\"] = {\n                                 \"applied\": True,\n-          \
+      \                      \"total_changes\": postprocess_result.report.total_changes,\n-                                \"nodes_removed\": postprocess_result.report.total_nodes_removed,\n-                                \"connections_modified\": postprocess_result.report.total_connections_modified,\n+                                \"total_changes\": result.report.total_changes,\n+                                \"nodes_removed\": result.report.total_nodes_removed,\n+                                \"connections_modified\": result.report.total_connections_modified,\n                             }\n \n         return diagram, metrics"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 33
+  type: api_job
+  position:
+    x: 850
+    y: 1450
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Read File 4
+  type: db
+  position:
+    x: 900
+    y: 250
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py
+- label: Claude Responds To User 4
+  type: person_job
+  position:
+    x: 900
+    y: 400
+  props:
+    person: claude_code
+    default_prompt: '[Request interrupted by user]'
+- label: Read File 16
+  type: db
+  position:
+    x: 900
+    y: 700
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/orchestrator.py
+    lines: '1:50'
+- label: Read File 24
+  type: db
+  position:
+    x: 900
+    y: 1000
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/pipeline.py
+    lines: 1:100
+- label: tool_result 28
+  type: api_job
+  position:
+    x: 900
+    y: 1150
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 6
+  type: code_job
+  position:
+    x: 900
+    y: 1450
+  props:
+    language: bash
+    code: 'python -c "
+
+      from dipeo.domain.cc_translate import PhaseCoordinator
+
+      from dipeo.domain.cc_translate.phase_coordinator import PipelinePhase, PipelineMetrics
+
+      print(''Imports successful!'')
+
+      coordinator = PhaseCoordinator()
+
+      print(''PhaseCoordinator instantiated successfully!'')
+
+      print(f''Has preprocessor: {hasattr(coordinator, \"preprocessor\")}'')
+
+      print(f''Has converter: {hasattr(coordinator, \"converter\")}'')
+
+      "'
+    timeout: 120000
+    description: Test refactored imports and instantiation
+- label: Edit File 5
+  type: diff_patch
+  position:
+    x: 950
+    y: 250
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py\n@@ -6,16 +6,61 @@\n 3. Post-process - Optimize and clean generated diagrams\n \"\"\"\n \n+from dataclasses import dataclass, field\n from datetime import datetime\n+from enum import Enum\n from typing import Any, Optional\n \n from .convert import DiagramConverter\n-from .pipeline import (\n-    PhaseResult,\n-    PipelineMetrics,\n-    PipelinePhase,\n-    TranslationPipeline,\n-)\n from .ports import SessionPort\n from .post_processing import PipelineConfig, PostProcessingPipeline, ProcessingPreset\n from .preprocess import SessionOrchestrator\n+\n+\n+class PipelinePhase(Enum):\n+    \"\"\"Enumeration of pipeline phases.\"\"\"\n+\n+    PREPROCESS = \"preprocess\"\n+    CONVERT = \"convert\"\n+    POST_PROCESS = \"post_process\"\n+\n+\n+@dataclass\n+class PhaseResult:\n+    \"\"\"Result from a pipeline phase execution.\"\"\"\n+\n+    phase: PipelinePhase\n+    data: Any\n+    success: bool\n+    start_time: datetime\n+    end_time: datetime\n+    error: Optional[str] = None\n+    report: Optional[Any] = None\n+\n+    @property\n+    def duration_ms(self) -> float:\n+        \"\"\"Calculate phase duration in milliseconds.\"\"\"\n+        delta = self.end_time - self.start_time\n+        return delta.total_seconds() * 1000\n+\n+\n+@dataclass\n+class PipelineMetrics:\n+    \"\"\"Metrics for the entire pipeline execution.\"\"\"\n+\n+    total_duration_ms: float = 0.0\n+    phase_durations: dict[PipelinePhase, float] = field(default_factory=dict)\n+    phase_results: list[PhaseResult] = field(default_factory=list)\n+    success: bool = True\n+    errors: list[str] = field(default_factory=list)\n+\n+    def add_phase_result(self, result: PhaseResult) -> None:\n+        \"\"\"Add a phase result and update metrics.\"\"\"\n+        self.phase_results.append(result)\n+        self.phase_durations[result.phase] = result.duration_ms\n+        self.total_duration_ms += result.duration_ms\n+\n+        if not result.success:\n+            self.success = False\n+            if result.error:\n+                self.errors.append(f\"{result.phase.value}: {result.error}\")"
+    format: unified
+    backup: true
+    validate: true
+- label: Claude Responds To User 5
+  type: person_job
+  position:
+    x: 950
+    y: 400
+  props:
+    person: claude_code
+    default_prompt: I think we already have the abstract method. you should check does each phase base include abstract method already. think
+- label: Bash Command 2
+  type: code_job
+  position:
+    x: 950
+    y: 700
+  props:
+    language: bash
+    code: find /home/soryhyun/DiPeO/dipeo/domain/cc_translate -name "*orchestrator*" -o -name "*SessionOrchestrator*" | head -10
+    timeout: 120000
+    description: Finding SessionOrchestrator file
+- label: Edit File 25
+  type: diff_patch
+  position:
+    x: 950
+    y: 1000
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/pipeline.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/pipeline.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/pipeline.py\n@@ -1,6 +1,6 @@\n-from .base import BaseDiagramProcessor, DiagramPipelineReport, DiagramProcessingReport\n+from .base import BasePostProcessor, BaseDiagramProcessor, DiagramPipelineReport, DiagramProcessingReport\n from .config import PipelineConfig, ProcessingPreset\n from .read_deduplicator import ReadNodeDeduplicator\n \n \n-class PostProcessingPipeline:\n+class PostProcessingPipeline(BasePostProcessor):"
+    format: unified
+    backup: true
+    validate: true
+- label: Edit File 32
+  type: diff_patch
+  position:
+    x: 950
+    y: 1150
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py
+    diff: '--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py
+
+      +++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py
+
+      @@ -1,63 +0,0 @@
+
+      -    def execute_phase(self, phase: PipelinePhase, input_data: Any, **kwargs) -> PhaseResult:
+
+      -        """
+
+      -        Execute a single phase of the pipeline.
+
+      -
+
+      -        Args:
+
+      -            phase: The phase to execute
+
+      -            input_data: Input data for the phase
+
+      -            **kwargs: Phase-specific options
+
+      -
+
+      -        Returns:
+
+      -            PhaseResult containing output and metrics
+
+      -        """
+
+      -        if phase == PipelinePhase.PREPROCESS:
+
+      -            return self.with_error_boundary(
+
+      -                phase, self._execute_preprocess, input_data, kwargs.get("processing_config")
+
+      -            )
+
+      -
+
+      -        elif phase == PipelinePhase.CONVERT:
+
+      -            return self.with_error_boundary(phase, self._execute_convert, input_data)
+
+      -
+
+      -        elif phase == PipelinePhase.POST_PROCESS:
+
+      -            return self.with_error_boundary(
+
+      -                phase, self._execute_post_process, input_data, kwargs.get("processing_config")
+
+      -            )
+
+      -
+
+      -        else:
+
+      -            return PhaseResult(
+
+      -                phase=phase,
+
+      -                data=None,
+
+      -                success=False,
+
+      -                start_time=datetime.now(),
+
+      -                end_time=datetime.now(),
+
+      -                error=f"Unknown phase: {phase}",
+
+      -            )
+
+      -
+
+      -    def _execute_preprocess(
+
+      -        self, session: SessionPort, processing_config: Optional[PipelineConfig] = None
+
+      -    ) -> tuple[Any, Optional[list]]:
+
+      -        """Execute the preprocessing phase."""
+
+      -        # Convert SessionPort to DomainSession if needed
+
+      -        if hasattr(session, ''to_domain_session''):
+
+      -            domain_session = session.to_domain_session()
+
+      -        else:
+
+      -            # Assume it''s already a DomainSession or compatible type
+
+      -            domain_session = session
+
+      -
+
+      -        preprocessed_data, reports = self.preprocessor.preprocess(domain_session)
+
+      -        return preprocessed_data, reports
+
+      -
+
+      -    def _execute_convert(self, preprocessed_data: Any) -> tuple[dict, None]:
+
+      -        """Execute the conversion phase."""
+
+      -        conversion_report = self.converter.convert(preprocessed_data)
+
+      -        # Extract the diagram from the report
+
+      -        diagram = conversion_report.diagram if hasattr(conversion_report, ''diagram'') else {}
+
+      -        return diagram, None
+
+      -
+
+      -    def _execute_post_process(
+
+      -        self, diagram: dict[str, Any], processing_config: Optional[PipelineConfig] = None
+
+      -    ) -> tuple[dict, Any]:
+
+      -        """Execute the post-processing phase."""
+
+      -        pipeline_config = processing_config or PipelineConfig.from_preset(ProcessingPreset.STANDARD)
+
+      -        pipeline = PostProcessingPipeline(pipeline_config)
+
+      -        return pipeline.process(diagram)'
+    format: unified
+    backup: true
+    validate: true
+- label: Bash Command 7
+  type: code_job
+  position:
+    x: 950
+    y: 1450
+  props:
+    language: bash
+    code: 'python -c "
+
+      # Test that all phases have the standard process() interface
+
+      from dipeo.domain.cc_translate.preprocess import SessionOrchestrator
+
+      from dipeo.domain.cc_translate.convert import DiagramConverter
+
+      from dipeo.domain.cc_translate.post_processing import PostProcessingPipeline
+
+
+      # Check that all have process() method
+
+      print(''SessionOrchestrator has process:'', hasattr(SessionOrchestrator, ''process''))
+
+      print(''DiagramConverter has process:'', hasattr(DiagramConverter, ''process''))
+
+      print(''PostProcessingPipeline has process:'', hasattr(PostProcessingPipeline, ''process''))
+
+
+      # Check inheritance
+
+      from dipeo.domain.cc_translate.preprocess.base import BasePreprocessor
+
+      from dipeo.domain.cc_translate.convert.base import BaseConverter
+
+      from dipeo.domain.cc_translate.post_processing.base import BasePostProcessor
+
+
+      print(''SessionOrchestrator is BasePreprocessor:'', issubclass(SessionOrchestrator, BasePreprocessor))
+
+      print(''DiagramConverter is BaseConverter:'', issubclass(DiagramConverter, BaseConverter))
+
+      print(''PostProcessingPipeline is BasePostProcessor:'', issubclass(PostProcessingPipeline, BasePostProcessor))
+
+      "'
+    timeout: 120000
+    description: Test standard interface implementation
+- label: tool_result 3
+  type: api_job
+  position:
+    x: 1000
+    y: 250
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Read File 17
+  type: db
+  position:
+    x: 1000
+    y: 700
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/session_orchestrator.py
+    lines: 1:100
+- label: tool_result 21
+  type: api_job
+  position:
+    x: 1000
+    y: 1000
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 29
+  type: api_job
+  position:
+    x: 1000
+    y: 1150
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+connections:
+- from: Read File 3
+  to: Read File 4
+  content_type: raw_text
+- from: Read File 4
+  to: Edit File 5
+  content_type: raw_text
+- from: Edit File 5
+  to: tool_result 3
+  content_type: raw_text
+- from: tool_result 9
+  to: Claude Responds To User 4
+  content_type: raw_text
+- from: Claude Responds To User 4
+  to: Claude Responds To User 5
+  content_type: raw_text
+- from: tool_result 15
+  to: Read File 16
+  content_type: raw_text
+- from: Read File 16
+  to: Bash Command 2
+  content_type: raw_text
+- from: Bash Command 2
+  to: Read File 17
+  content_type: raw_text
+- from: tool_result 20
+  to: Read File 24
+  content_type: raw_text
+- from: Read File 24
+  to: Edit File 25
+  content_type: raw_text
+- from: Edit File 25
+  to: tool_result 21
+  content_type: raw_text
+- from: Edit File 31
+  to: tool_result 28
+  content_type: raw_text
+- from: tool_result 28
+  to: Edit File 32
+  content_type: raw_text
+- from: Edit File 32
+  to: tool_result 29
+  content_type: raw_text
+- from: tool_result 33
+  to: Bash Command 6
+  content_type: raw_text
+- from: Bash Command 6
+  to: Bash Command 7
+  content_type: raw_text
+metadata:
+  group_name: to_do_12
+  node_count: 22
+  connection_count: 16
+  extracted_from: unknown
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

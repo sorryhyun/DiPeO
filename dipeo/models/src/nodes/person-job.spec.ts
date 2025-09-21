@@ -251,5 +251,13 @@ export const personJobSpec: NodeSpecification = {
     maxRetries: 3
   },
 
-  primaryDisplayField: "person"
+  primaryDisplayField: "person",
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.person_job",
+    className: "PersonJobHandler",
+    mixins: ["LoggingMixin", "ValidationMixin", "ConfigurationMixin"],
+    serviceKeys: ["LLM_CLIENT", "STATE_STORE", "EVENT_BUS"],
+    skipGeneration: true  // Already has custom handler
+  }
 };

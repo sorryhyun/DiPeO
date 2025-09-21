@@ -365,13 +365,6 @@ CLI_SESSION_SERVICE = ServiceKey["CliSessionService"](
     description="Service for CLI session management",
 )
 
-MANAGE_CONVERSATION_USE_CASE = ServiceKey["ManageConversationUseCase"](
-    "conversation.use_case.manage",
-    service_type=ServiceType.APPLICATION,
-    description="Use case for managing conversations",
-    dependencies=("repository.conversation",),
-)
-
 EXECUTE_DIAGRAM_USE_CASE = ServiceKey["ExecuteDiagramUseCase"](
     "execution.use_case.execute_diagram",
     service_type=ServiceType.APPLICATION,
@@ -430,7 +423,6 @@ __all__ = [
     "IR_CACHE",
     "LLM_SERVICE",
     "LOAD_DIAGRAM_USE_CASE",
-    "MANAGE_CONVERSATION_USE_CASE",
     "MEMORY_SELECTOR",
     "MEMORY_SERVICE",
     "MESSAGE_ROUTER",

@@ -74,6 +74,37 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                 produced_by=str(node.id),
             )
 
+        lines_value = getattr(node, "lines", None)
+
+        def _has_lines_spec(value: Any) -> bool:
+            if value is None:
+                return False
+            if isinstance(value, str):
+                return bool(value.strip())
+            if isinstance(value, list | tuple | set):
+                return any(item is not None for item in value)
+            if isinstance(value, dict):
+                return bool(value)
+            return True
+
+        lines_specified = _has_lines_spec(lines_value)
+
+        if lines_specified and node.operation != "read":
+            factory = get_envelope_factory()
+            return factory.error(
+                "The 'lines' option is only supported for read operations",
+                error_type="ValueError",
+                produced_by=str(node.id),
+            )
+
+        if lines_specified and getattr(node, "keys", None):
+            factory = get_envelope_factory()
+            return factory.error(
+                "Cannot combine 'lines' and 'keys' for database reads",
+                error_type="ValueError",
+                produced_by=str(node.id),
+            )
+
         # Validate file paths are provided
         file_paths = node.file
         if not file_paths:
@@ -176,7 +207,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
 
         # Use PromptBuilder to properly prepare template values from inputs
         # This handles nested structures and makes node outputs available
-        from dipeo.application.utils import PromptBuilder
+        from dipeo.infrastructure.diagram.prompt_templates import PromptBuilder
 
         prompt_builder = PromptBuilder(template_processor)
         prepared_inputs = prompt_builder.prepare_template_values(inputs)
@@ -202,6 +233,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
         processed_paths = self._expand_glob_patterns(processed_paths, base_dir)
 
         format_type = getattr(node, "format", None)
+        lines_spec = getattr(node, "lines", None) if node.operation == "read" else None
 
         if format_type and node.operation in ("write", "update"):
             adjusted_paths = []
@@ -259,6 +291,9 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
             if node.operation == "read" and len(processed_paths) > 1:
                 results = {}
                 serialize_json = getattr(node, "serialize_json", False)
+                line_metadata: dict[str, list[dict[str, int | None]]] = {}
+                total_lines_map: dict[str, int] = {}
+                partial_files: set[str] = set()
                 for file_path in processed_paths:
                     try:
                         result = await db_service.execute_operation(
@@ -266,19 +301,31 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                             operation=node.operation,
                             value=input_val,
                             keys=keys,
+                            lines=lines_spec,
                         )
                         file_content = result["value"]
+                        metadata = result.get("metadata", {}) or {}
+                        partial_content = bool(metadata.get("partial_content"))
+                        total_lines = metadata.get("total_lines")
 
                         if isinstance(file_content, str):
-                            if format_type:
+                            if format_type and not partial_content:
                                 file_content = self._deserialize_data(file_content, format_type)
-                            elif serialize_json:
+                            elif serialize_json and not partial_content:
                                 try:
                                     file_content = json.loads(file_content)
                                 except json.JSONDecodeError:
                                     logger.warning(f"Failed to parse JSON from {file_path}")
 
                         results[file_path] = file_content
+
+                        line_ranges_meta = metadata.get("line_ranges")
+                        if line_ranges_meta is not None:
+                            line_metadata[file_path] = line_ranges_meta
+                        if partial_content:
+                            partial_files.add(file_path)
+                        if isinstance(total_lines, int):
+                            total_lines_map[file_path] = total_lines
                     except Exception as e:
                         logger.warning(f"Failed to read file {file_path}: {e}")
                         results[file_path] = None
@@ -290,6 +337,10 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                     "file_count": len(processed_paths),
                     "format": format_type,
                     "serialize_json": serialize_json,
+                    "line_ranges": line_metadata or None,
+                    "partial": bool(partial_files),
+                    "partial_files": sorted(partial_files) if partial_files else None,
+                    "total_lines": total_lines_map or None,
                 }
 
             elif len(processed_paths) == 1:
@@ -299,13 +350,27 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                     operation=node.operation,
                     value=input_val,
                     keys=keys,
+                    lines=lines_spec,
                 )
+
+                partial_content = False
+                total_lines = None
+                line_ranges_meta = None
 
                 if node.operation == "read":
                     output_value = result["value"]
-                    if isinstance(output_value, str) and format_type:
+                    metadata = result.get("metadata", {}) or {}
+                    partial_content = bool(metadata.get("partial_content"))
+                    total_lines = metadata.get("total_lines")
+                    line_ranges_meta = metadata.get("line_ranges")
+
+                    if isinstance(output_value, str) and format_type and not partial_content:
                         output_value = self._deserialize_data(output_value, format_type)
-                    elif isinstance(output_value, str) and getattr(node, "serialize_json", False):
+                    elif (
+                        isinstance(output_value, str)
+                        and getattr(node, "serialize_json", False)
+                        and not partial_content
+                    ):
                         try:
                             output_value = json.loads(output_value)
                         except json.JSONDecodeError:
@@ -325,6 +390,9 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                     "serialize_json": serialize_json,
                     "format": format_type,
                     "operation": node.operation,
+                    "line_ranges": line_ranges_meta if node.operation == "read" else None,
+                    "partial": partial_content if node.operation == "read" else False,
+                    "total_lines": total_lines if node.operation == "read" else None,
                 }
 
             else:
@@ -357,6 +425,10 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                 format=result.get("format"),
                 serialize_json=result.get("serialize_json", False),
                 glob=result.get("glob", False),
+                line_ranges=result.get("line_ranges"),
+                partial=result.get("partial", False),
+                partial_files=result.get("partial_files"),
+                total_lines=result.get("total_lines"),
             )
 
             return envelope
@@ -384,6 +456,9 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                 operation=operation,
                 format=result.get("format"),
                 serialize_json=result.get("serialize_json", False),
+                line_ranges=result.get("line_ranges"),
+                partial=result.get("partial", False),
+                total_lines=result.get("total_lines"),
             )
 
             return envelope

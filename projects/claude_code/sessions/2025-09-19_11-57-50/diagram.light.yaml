@@ -1,0 +1,915 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 100, y: 100}
+  props:
+    trigger_mode: manual
+    custom_data:
+      session_id: 727f4fba-2145-4f53-a772-14edc6fbb11a
+      initial_prompt: |-
+        <command-name>/clear</command-name>
+                    <command-message>clear</command-message>
+                    <command-args></command-args>
+- label: Claude Responds To User 1
+  type: person_job
+  position: {x: 350, y: 100}
+  props:
+    person: claude_code
+    default_prompt: |-
+      <command-name>/clear</command-name>
+                  <command-message>clear</command-message>
+                  <command-args></command-args>
+- label: Claude Responds To User 2
+  type: person_job
+  position: {x: 400, y: 100}
+  props:
+    person: claude_code
+    default_prompt: <local-command-stdout></local-command-stdout>
+- label: Claude Responds To User 3
+  type: person_job
+  position: {x: 450, y: 100}
+  props:
+    person: claude_code
+    default_prompt: |-
+      <command-message>todo is running…</command-message>
+      <command-name>/todo</command-name>
+      <command-args>6</command-args>
+- label: Read File 1
+  type: db
+  position: {x: 500, y: 100}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/TODO.md
+- label: Update TODO 1
+  type: db
+  position: {x: 550, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Check existing test structure for cc_translate
+        status: in_progress
+        activeForm: Checking existing test structure
+      - content: Create test directory structure
+        status: pending
+        activeForm: Creating test directory structure
+      - content: Create test fixtures and sample data
+        status: pending
+        activeForm: Creating test fixtures and sample data
+      - content: Write unit tests for preprocess module
+        status: pending
+        activeForm: Writing unit tests for preprocess module
+      - content: Write unit tests for convert module
+        status: pending
+        activeForm: Writing unit tests for convert module
+      - content: Write unit tests for postprocess module
+        status: pending
+        activeForm: Writing unit tests for postprocess module
+      - content: Write integration tests for full pipeline
+        status: pending
+        activeForm: Writing integration tests for full pipeline
+      - content: Update TODO.md to mark Phase 6 as completed
+        status: pending
+        activeForm: Updating TODO.md
+- label: tool_result 1
+  type: api_job
+  position: {x: 600, y: 100}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 1
+  type: code_job
+  position: {x: 650, y: 100}
+  props:
+    language: bash
+    code: find tests -type d -name "*cc_translate*" 2>/dev/null || echo "No cc_translate tests found"
+    timeout: 120000
+    description: Check for existing cc_translate test directories
+- label: Bash Command 2
+  type: code_job
+  position: {x: 700, y: 100}
+  props:
+    language: bash
+    code: ls -la tests/ 2>/dev/null || echo "No tests directory found"
+    timeout: 120000
+    description: List contents of tests directory
+- label: Bash Command 3
+  type: code_job
+  position: {x: 750, y: 100}
+  props:
+    language: bash
+    code: find dipeo -type d -name "tests" 2>/dev/null | head -10
+    timeout: 120000
+    description: Find test directories in dipeo
+- label: Bash Command 4
+  type: code_job
+  position: {x: 800, y: 250}
+  props:
+    language: bash
+    code: ls -la dipeo/domain/cc_translate/tests/
+    timeout: 120000
+    description: Check contents of existing test directory
+- label: Read File 2
+  type: db
+  position: {x: 850, y: 250}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/tests/test_payload_utils.py
+- label: Update TODO 2
+  type: db
+  position: {x: 900, y: 250}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Check existing test structure for cc_translate
+        status: completed
+        activeForm: Checking existing test structure
+      - content: Create test directory structure
+        status: in_progress
+        activeForm: Creating test directory structure
+      - content: Create test fixtures and sample data
+        status: pending
+        activeForm: Creating test fixtures and sample data
+      - content: Write unit tests for preprocess module
+        status: pending
+        activeForm: Writing unit tests for preprocess module
+      - content: Write unit tests for convert module
+        status: pending
+        activeForm: Writing unit tests for convert module
+      - content: Write unit tests for postprocess module
+        status: pending
+        activeForm: Writing unit tests for postprocess module
+      - content: Write integration tests for full pipeline
+        status: pending
+        activeForm: Writing integration tests for full pipeline
+      - content: Update TODO.md to mark Phase 6 as completed
+        status: pending
+        activeForm: Updating TODO.md
+- label: tool_result 2
+  type: api_job
+  position: {x: 950, y: 250}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 5
+  type: code_job
+  position: {x: 1000, y: 250}
+  props:
+    language: bash
+    code: cd dipeo/domain/cc_translate/tests && mkdir -p unit/{preprocess,convert,postprocess} integration fixtures
+    timeout: 120000
+    description: Create test directory structure
+- label: Bash Command 6
+  type: code_job
+  position: {x: 1050, y: 250}
+  props:
+    language: bash
+    code: tree dipeo/domain/cc_translate/tests -d
+    timeout: 120000
+    description: Show test directory structure
+- label: Update TODO 3
+  type: db
+  position: {x: 300, y: 250}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Check existing test structure for cc_translate
+        status: completed
+        activeForm: Checking existing test structure
+      - content: Create test directory structure
+        status: completed
+        activeForm: Creating test directory structure
+      - content: Write unit tests for preprocess module
+        status: in_progress
+        activeForm: Writing unit tests for preprocess module
+      - content: Write unit tests for convert module
+        status: pending
+        activeForm: Writing unit tests for convert module
+      - content: Write unit tests for postprocess module
+        status: pending
+        activeForm: Writing unit tests for postprocess module
+      - content: Update TODO.md to mark Phase 6 as completed
+        status: pending
+        activeForm: Updating TODO.md
+- label: tool_result 3
+  type: api_job
+  position: {x: 350, y: 250}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 7
+  type: code_job
+  position: {x: 400, y: 250}
+  props:
+    language: bash
+    code: ls -la dipeo/domain/cc_translate/preprocess/
+    timeout: 120000
+    description: List preprocess module files
+- label: Read File 3
+  type: db
+  position: {x: 450, y: 250}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/base.py
+    lines: '1:50'
+- label: Write File 4
+  type: db
+  position: {x: 500, y: 400}
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/tests/unit/preprocess/test_base.py
+    content: |-
+      """Unit tests for preprocess base components."""
+
+      from datetime import datetime
+
+      import pytest
+
+      from dipeo.domain.cc_translate.preprocess.base import (
+          SessionChange,
+          SessionChangeType,
+          SessionProcessingReport,
+      )
+
+
+      class TestSessionChange:
+          """Tests for SessionChange dataclass."""
+
+          def test_creation_basic(self):
+              change = SessionChange(
+                  change_type=SessionChangeType.EVENT_PRUNED,
+                  description="Removed redundant event",
+                  target="event_123",
+              )
+              assert change.change_type == SessionChangeType.EVENT_PRUNED
+              assert change.description == "Removed redundant event"
+              assert change.target == "event_123"
+              assert change.details is None
+              assert isinstance(change.timestamp, datetime)
+
+          def test_creation_with_details(self):
+              details = {"reason": "duplicate", "original_id": "event_100"}
+              change = SessionChange(
+                  change_type=SessionChangeType.EVENT_MERGED,
+                  description="Merged duplicate events",
+                  target="event_200",
+                  details=details,
+              )
+              assert change.details == details
+
+          def test_string_representation(self):
+              change = SessionChange(
+                  change_type=SessionChangeType.FIELD_REMOVED,
+                  description="Removed empty field",
+                  target="field:content",
+              )
+              str_repr = str(change)
+              assert "[field_removed]" in str_repr
+              assert "Removed empty field" in str_repr
+              assert "field:content" in str_repr
+
+          def test_all_change_types(self):
+              for change_type in SessionChangeType:
+                  change = SessionChange(
+                      change_type=change_type,
+                      description=f"Test {change_type.value}",
+                      target="test_target",
+                  )
+                  assert change.change_type == change_type
+                  assert change_type.value in str(change)
+
+
+      class TestSessionProcessingReport:
+          """Tests for SessionProcessingReport dataclass."""
+
+          def test_creation_empty(self):
+              report = SessionProcessingReport(session_id="test_session")
+              assert report.session_id == "test_session"
+              assert report.changes == []
+              assert report.total_events_before == 0
+              assert report.total_events_after == 0
+              assert report.processing_time_ms == 0.0
+              assert report.errors == []
+              assert report.warnings == []
+              assert report.metadata == {}
+
+          def test_add_change(self):
+              report = SessionProcessingReport(session_id="test_session")
+              change1 = SessionChange(
+                  change_type=SessionChangeType.EVENT_PRUNED,
+                  description="Removed event 1",
+                  target="event_1",
+              )
+              change2 = SessionChange(
+                  change_type=SessionChangeType.FIELD_REMOVED,
+                  description="Removed field",
+                  target="field:unused",
+              )
+
+              report.add_change(change1)
+              report.add_change(change2)
+
+              assert len(report.changes) == 2
+              assert report.changes[0] == change1
+              assert report.changes[1] == change2
+
+          def test_add_error(self):
+              report = SessionProcessingReport(session_id="test_session")
+              report.add_error("Something went wrong")
+              report.add_error("Another error")
+
+              assert len(report.errors) == 2
+              assert "Something went wrong" in report.errors
+              assert "Another error" in report.errors
+
+          def test_add_warning(self):
+              report = SessionProcessingReport(session_id="test_session")
+              report.add_warning("Potential issue detected")
+
+              assert len(report.warnings) == 1
+              assert "Potential issue detected" in report.warnings
+
+          def test_event_counts(self):
+              report = SessionProcessingReport(
+                  session_id="test_session",
+                  total_events_before=100,
+                  total_events_after=75,
+              )
+              assert report.total_events_before == 100
+              assert report.total_events_after == 75
+              assert report.get_events_removed() == 25
+
+          def test_get_summary(self):
+              report = SessionProcessingReport(
+                  session_id="test_session",
+                  total_events_before=50,
+                  total_events_after=40,
+                  processing_time_ms=123.45,
+              )
+
+              change1 = SessionChange(
+                  change_type=SessionChangeType.EVENT_PRUNED,
+                  description="Removed event",
+                  target="event_1",
+              )
+              change2 = SessionChange(
+                  change_type=SessionChangeType.EVENT_PRUNED,
+                  description="Removed another event",
+                  target="event_2",
+              )
+              change3 = SessionChange(
+                  change_type=SessionChangeType.FIELD_REMOVED,
+                  description="Removed field",
+                  target="field:test",
+              )
+
+              report.add_change(change1)
+              report.add_change(change2)
+              report.add_change(change3)
+              report.add_warning("Test warning")
+
+              summary = report.get_summary()
+
+              assert summary["session_id"] == "test_session"
+              assert summary["total_changes"] == 3
+              assert summary["events_before"] == 50
+              assert summary["events_after"] == 40
+              assert summary["events_removed"] == 10
+              assert summary["processing_time_ms"] == 123.45
+              assert summary["has_errors"] is False
+              assert summary["has_warnings"] is True
+              assert summary["change_breakdown"][SessionChangeType.EVENT_PRUNED] == 2
+              assert summary["change_breakdown"][SessionChangeType.FIELD_REMOVED] == 1
+
+          def test_is_successful(self):
+              report1 = SessionProcessingReport(session_id="test1")
+              assert report1.is_successful() is True
+
+              report2 = SessionProcessingReport(session_id="test2")
+              report2.add_error("Error occurred")
+              assert report2.is_successful() is False
+
+          def test_has_changes(self):
+              report1 = SessionProcessingReport(session_id="test1")
+              assert report1.has_changes() is False
+
+              report2 = SessionProcessingReport(session_id="test2")
+              change = SessionChange(
+                  change_type=SessionChangeType.EVENT_PRUNED,
+                  description="Removed event",
+                  target="event_1",
+              )
+              report2.add_change(change)
+              assert report2.has_changes() is True
+
+          def test_metadata_management(self):
+              report = SessionProcessingReport(
+                  session_id="test_session",
+                  metadata={"initial_key": "initial_value"},
+              )
+
+              report.metadata["new_key"] = "new_value"
+              report.metadata["counter"] = 42
+
+              assert report.metadata["initial_key"] == "initial_value"
+              assert report.metadata["new_key"] == "new_value"
+              assert report.metadata["counter"] == 42
+
+          def test_comprehensive_report(self):
+              report = SessionProcessingReport(
+                  session_id="complex_session",
+                  total_events_before=200,
+                  total_events_after=150,
+                  processing_time_ms=567.89,
+                  metadata={"processor_version": "1.0.0", "mode": "aggressive"},
+              )
+
+              for i in range(30):
+                  report.add_change(
+                      SessionChange(
+                          change_type=SessionChangeType.EVENT_PRUNED,
+                          description=f"Removed redundant event {i}",
+                          target=f"event_{i}",
+                          details={"size_bytes": i * 100},
+                      )
+                  )
+
+              for i in range(20):
+                  report.add_change(
+                      SessionChange(
+                          change_type=SessionChangeType.FIELD_REMOVED,
+                          description=f"Removed field {i}",
+                          target=f"field:{i}",
+                      )
+                  )
+
+              report.add_warning("Large number of events removed")
+              report.add_warning("Consider manual review")
+
+              summary = report.get_summary()
+
+              assert summary["total_changes"] == 50
+              assert summary["events_removed"] == 50
+              assert summary["has_warnings"] is True
+              assert len(summary["change_breakdown"]) == 2
+              assert summary["change_breakdown"][SessionChangeType.EVENT_PRUNED] == 30
+              assert summary["change_breakdown"][SessionChangeType.FIELD_REMOVED] == 20
+
+
+      if __name__ == "__main__":
+          pytest.main([__file__, "-v"])
+- label: tool_result 4
+  type: api_job
+  position: {x: 550, y: 400}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Write File 5
+  type: db
+  position: {x: 600, y: 400}
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/tests/unit/preprocess/test_session_event_pruner.py
+    content: |-
+      """Unit tests for SessionEventPruner."""
+
+      from unittest.mock import Mock
+
+      import pytest
+
+      from dipeo.domain.cc_translate.models.event import DomainEvent
+      from dipeo.domain.cc_translate.models.session import DomainSession
+      from dipeo.domain.cc_translate.preprocess.base import SessionChangeType
+      from dipeo.domain.cc_translate.preprocess.config import SessionEventPrunerConfig
+      from dipeo.domain.cc_translate.preprocess.session_event_pruner import SessionEventPruner
+
+
+      class TestSessionEventPruner:
+          """Tests for SessionEventPruner class."""
+
+          def test_initialization_default(self):
+              pruner = SessionEventPruner()
+              assert pruner.config.max_read_events == 100
+              assert pruner.config.max_write_events == 100
+              assert pruner.config.max_edit_events == 100
+              assert pruner.config.max_bash_events == 100
+              assert pruner.config.max_total_events == 10000
+              assert pruner.config.preserve_error_events is True
+
+          def test_initialization_custom(self):
+              config = SessionEventPrunerConfig(
+                  max_read_events=50,
+                  max_write_events=30,
+                  max_edit_events=40,
+                  max_bash_events=60,
+                  max_total_events=500,
+                  preserve_error_events=False,
+              )
+              pruner = SessionEventPruner(config)
+              assert pruner.config.max_read_events == 50
+              assert pruner.config.max_write_events == 30
+              assert pruner.config.preserve_error_events is False
+
+          def test_process_session_empty(self):
+              pruner = SessionEventPruner()
+              session = DomainSession(
+                  session_id="test_session",
+                  events=[],
+                  metadata={},
+              )
+
+              processed_session = pruner.process_session(session)
+              report = pruner.get_report()
+
+              assert processed_session.session_id == "test_session"
+              assert len(processed_session.events) == 0
+              assert report.total_events_before == 0
+              assert report.total_events_after == 0
+              assert len(report.changes) == 0
+
+          def test_process_session_under_limits(self):
+              pruner = SessionEventPruner()
+              events = [
+                  DomainEvent(
+                      event_id=f"event_{i}",
+                      tool_name="Read" if i % 2 == 0 else "Write",
+                      timestamp=f"2024-01-01T00:00:{i:02d}",
+                      content={"data": f"content_{i}"},
+                      metadata={},
+                  )
+                  for i in range(10)
+              ]
+
+              session = DomainSession(
+                  session_id="test_session",
+                  events=events,
+                  metadata={},
+              )
+
+              processed_session = pruner.process_session(session)
+              report = pruner.get_report()
+
+              assert len(processed_session.events) == 10
+              assert report.total_events_before == 10
+              assert report.total_events_after == 10
+              assert len(report.changes) == 0
+
+          def test_prune_read_events_over_limit(self):
+              config = SessionEventPrunerConfig(
+                  max_read_events=5,
+                  max_total_events=100,
+              )
+              pruner = SessionEventPruner(config)
+
+              events = [
+                  DomainEvent(
+                      event_id=f"read_event_{i}",
+                      tool_name="Read",
+                      timestamp=f"2024-01-01T00:00:{i:02d}",
+                      content={"file_path": f"/path/file_{i}.txt"},
+                      metadata={},
+                  )
+                  for i in range(10)
+              ]
+
+              session = DomainSession(
+                  session_id="test_session",
+                  events=events,
+                  metadata={},
+              )
+
+              processed_session = pruner.process_session(session)
+              report = pruner.get_report()
+
+              assert len(processed_session.events) == 5
+              assert report.total_events_before == 10
+              assert report.total_events_after == 5
+              assert report.get_events_removed() == 5
+
+              changes = [c for c in report.changes if c.change_type == SessionChangeType.EVENT_PRUNED]
+              assert len(changes) == 5
+
+          def test_prune_multiple_tool_types(self):
+              config = SessionEventPrunerConfig(
+                  max_read_events=2,
+                  max_write_events=2,
+                  max_edit_events=2,
+                  max_bash_events=2,
+                  max_total_events=100,
+              )
+              pruner = SessionEventPruner(config)
+
+              events = []
+              for tool in ["Read", "Write", "Edit", "Bash"]:
+                  for i in range(5):
+                      events.append(
+                          DomainEvent(
+                              event_id=f"{tool.lower()}_event_{i}",
+                              tool_name=tool,
+                              timestamp=f"2024-01-01T00:{len(events):02d}:00",
+                              content={"data": f"{tool} content {i}"},
+                              metadata={},
+                          )
+                      )
+
+              session = DomainSession(
+                  session_id="test_session",
+                  events=events,
+                  metadata={},
+              )
+
+              processed_session = pruner.process_session(session)
+              report = pruner.get_report()
+
+              assert len(processed_session.events) == 8
+              assert report.total_events_before == 20
+              assert report.total_events_after == 8
+
+              tool_counts = {}
+              for event in processed_session.events:
+                  tool = event.tool_name
+                  tool_counts[tool] = tool_counts.get(tool, 0) + 1
+
+              assert tool_counts.get("Read", 0) == 2
+              assert tool_counts.get("Write", 0) == 2
+              assert tool_counts.get("Edit", 0) == 2
+              assert tool_counts.get("Bash", 0) == 2
+
+          def test_preserve_error_events(self):
+              config = SessionEventPrunerConfig(
+                  max_bash_events=3,
+                  preserve_error_events=True,
+              )
+              pruner = SessionEventPruner(config)
+
+              events = []
+              for i in range(10):
+                  error_metadata = {"error": True} if i in [2, 5, 8] else {}
+                  events.append(
+                      DomainEvent(
+                          event_id=f"bash_event_{i}",
+                          tool_name="Bash",
+                          timestamp=f"2024-01-01T00:00:{i:02d}",
+                          content={"command": f"cmd_{i}"},
+                          metadata=error_metadata,
+                      )
+                  )
+
+              session = DomainSession(
+                  session_id="test_session",
+                  events=events,
+                  metadata={},
+              )
+
+              processed_session = pruner.process_session(session)
+
+              preserved_error_events = [
+                  e for e in processed_session.events if e.metadata.get("error") is True
+              ]
+              assert len(preserved_error_events) == 3
+
+          def test_total_events_limit(self):
+              config = SessionEventPrunerConfig(
+                  max_read_events=1000,
+                  max_write_events=1000,
+                  max_total_events=50,
+              )
+              pruner = SessionEventPruner(config)
+
+              events = []
+              for i in range(100):
+                  tool = "Read" if i % 2 == 0 else "Write"
+                  events.append(
+                      DomainEvent(
+                          event_id=f"event_{i}",
+                          tool_name=tool,
+                          timestamp=f"2024-01-01T00:{i//60:02d}:{i%60:02d}",
+                          content={"data": f"content_{i}"},
+                          metadata={},
+                      )
+                  )
+
+              session = DomainSession(
+                  session_id="test_session",
+                  events=events,
+                  metadata={},
+              )
+
+              processed_session = pruner.process_session(session)
+              report = pruner.get_report()
+
+              assert len(processed_session.events) == 50
+              assert report.total_events_before == 100
+              assert report.total_events_after == 50
+
+          def test_keep_recent_events(self):
+              config = SessionEventPrunerConfig(
+                  max_read_events=5,
+              )
+              pruner = SessionEventPruner(config)
+
+              events = []
+              for i in range(10):
+                  events.append(
+                      DomainEvent(
+                          event_id=f"read_event_{i}",
+                          tool_name="Read",
+                          timestamp=f"2024-01-01T00:00:{i:02d}",
+                          content={"file_path": f"/path/file_{i}.txt", "order": i},
+                          metadata={},
+                      )
+                  )
+
+              session = DomainSession(
+                  session_id="test_session",
+                  events=events,
+                  metadata={},
+              )
+
+              processed_session = pruner.process_session(session)
+
+              kept_events = [e for e in processed_session.events]
+              event_orders = [e.content.get("order") for e in kept_events]
+
+              assert event_orders == [5, 6, 7, 8, 9]
+
+          def test_mixed_tool_preservation(self):
+              config = SessionEventPrunerConfig(
+                  max_read_events=2,
+                  max_write_events=2,
+                  max_edit_events=2,
+              )
+              pruner = SessionEventPruner(config)
+
+              events = []
+              tools = ["Read", "Write", "Edit", "Other", "Read", "Write", "Edit"]
+              for i, tool in enumerate(tools):
+                  events.append(
+                      DomainEvent(
+                          event_id=f"event_{i}",
+                          tool_name=tool,
+                          timestamp=f"2024-01-01T00:00:{i:02d}",
+                          content={"index": i},
+                          metadata={},
+                      )
+                  )
+
+              session = DomainSession(
+                  session_id="test_session",
+                  events=events,
+                  metadata={},
+              )
+
+              processed_session = pruner.process_session(session)
+
+              other_events = [e for e in processed_session.events if e.tool_name == "Other"]
+              assert len(other_events) == 1
+
+              read_events = [e for e in processed_session.events if e.tool_name == "Read"]
+              assert len(read_events) == 2
+
+              write_events = [e for e in processed_session.events if e.tool_name == "Write"]
+              assert len(write_events) == 2
+
+              edit_events = [e for e in processed_session.events if e.tool_name == "Edit"]
+              assert len(edit_events) == 2
+
+          def test_session_metadata_preserved(self):
+              pruner = SessionEventPruner()
+              session = DomainSession(
+                  session_id="test_session",
+                  events=[],
+                  metadata={
+                      "created_at": "2024-01-01",
+                      "user": "test_user",
+                      "custom_field": "custom_value",
+                  },
+              )
+
+              processed_session = pruner.process_session(session)
+
+              assert processed_session.metadata == session.metadata
+              assert processed_session.metadata["created_at"] == "2024-01-01"
+              assert processed_session.metadata["user"] == "test_user"
+              assert processed_session.metadata["custom_field"] == "custom_value"
+
+          def test_report_details(self):
+              config = SessionEventPrunerConfig(
+                  max_read_events=1,
+              )
+              pruner = SessionEventPruner(config)
+
+              events = [
+                  DomainEvent(
+                      event_id=f"read_{i}",
+                      tool_name="Read",
+                      timestamp=f"2024-01-01T00:00:{i:02d}",
+                      content={"file": f"file_{i}.txt"},
+                      metadata={},
+                  )
+                  for i in range(3)
+              ]
+
+              session = DomainSession(
+                  session_id="test_session",
+                  events=events,
+                  metadata={},
+              )
+
+              pruner.process_session(session)
+              report = pruner.get_report()
+
+              pruned_changes = [
+                  c for c in report.changes if c.change_type == SessionChangeType.EVENT_PRUNED
+              ]
+
+              assert len(pruned_changes) == 2
+              assert all("read_" in c.target for c in pruned_changes)
+              assert all(c.details is not None for c in pruned_changes)
+
+
+      if __name__ == "__main__":
+          pytest.main([__file__, "-v"])
+- label: tool_result 5
+  type: api_job
+  position: {x: 650, y: 400}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Claude Responds To User 4
+  type: person_job
+  position: {x: 700, y: 400}
+  props:
+    person: claude_code
+    default_prompt: '[Request interrupted by user]'
+connections:
+- {from: Start, to: Claude Responds To User 1, content_type: raw_text}
+- {from: Claude Responds To User 1, to: Claude Responds To User 2, content_type: raw_text}
+- {from: Claude Responds To User 2, to: Claude Responds To User 3, content_type: raw_text}
+- {from: Claude Responds To User 3, to: Read File 1, content_type: raw_text}
+- {from: Read File 1, to: Update TODO 1, content_type: raw_text}
+- {from: Update TODO 1, to: tool_result 1, content_type: raw_text}
+- {from: tool_result 1, to: Bash Command 1, content_type: raw_text}
+- {from: Bash Command 1, to: Bash Command 2, content_type: raw_text}
+- {from: Bash Command 2, to: Bash Command 3, content_type: raw_text}
+- {from: Bash Command 3, to: Bash Command 4, content_type: raw_text}
+- {from: Bash Command 4, to: Read File 2, content_type: raw_text}
+- {from: Read File 2, to: Update TODO 2, content_type: raw_text}
+- {from: Update TODO 2, to: tool_result 2, content_type: raw_text}
+- {from: tool_result 2, to: Bash Command 5, content_type: raw_text}
+- {from: Bash Command 5, to: Bash Command 6, content_type: raw_text}
+- {from: Bash Command 6, to: Update TODO 3, content_type: raw_text}
+- {from: Update TODO 3, to: tool_result 3, content_type: raw_text}
+- {from: tool_result 3, to: Bash Command 7, content_type: raw_text}
+- {from: Bash Command 7, to: Read File 3, content_type: raw_text}
+- {from: Read File 3, to: Write File 4, content_type: raw_text}
+- {from: Write File 4, to: tool_result 4, content_type: raw_text}
+- {from: tool_result 4, to: Write File 5, content_type: raw_text}
+- {from: Write File 5, to: tool_result 5, content_type: raw_text}
+- {from: tool_result 5, to: Claude Responds To User 4, content_type: raw_text}
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.
+metadata:
+  conversion:
+    total_nodes: 25
+    total_connections: 24
+    total_persons: 0
+    node_types:
+      start: 1
+      person_job: 4
+      db: 8
+      api_job: 5
+      code_job: 7

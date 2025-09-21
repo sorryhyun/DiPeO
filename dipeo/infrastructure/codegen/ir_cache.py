@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
-from dipeo.config.paths import BASE_DIR
+from dipeo.config.paths import CACHE_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -19,11 +19,11 @@ class IRCache:
         """Initialize IR cache.
 
         Args:
-            cache_dir: Directory for cache files (defaults to BASE_DIR/.cache/ir)
+            cache_dir: Directory for cache files (defaults to CACHE_DIR/ir)
             ttl_hours: Time-to-live in hours
         """
         if cache_dir is None:
-            cache_dir = str(BASE_DIR / ".cache" / "ir")
+            cache_dir = str(CACHE_DIR / "ir")
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.ttl = timedelta(hours=ttl_hours)

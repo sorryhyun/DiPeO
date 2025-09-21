@@ -38,10 +38,16 @@ RESULT_DIR: Path = FILES_DIR / "results"
 CONVERSATION_LOG_DIR: Path = FILES_DIR / "conversation_logs"
 PROMPT_DIR: Path = FILES_DIR / "prompts"
 
+# DiPeO runtime directory for all generated/runtime data
+DIPEO_DIR: Path = BASE_DIR / ".dipeo"
+
 # Data directory for databases
-DATA_DIR: Path = BASE_DIR / ".data"
+DATA_DIR: Path = DIPEO_DIR / "data"
 STATE_DB_PATH: Path = DATA_DIR / "dipeo_state.db"
 EVENTS_DB_PATH: Path = DATA_DIR / "dipeo_events.db"
+
+# Cache directory for temporary cached data
+CACHE_DIR: Path = DIPEO_DIR / "cache"
 
 
 def ensure_directories_exist() -> None:
@@ -53,6 +59,8 @@ def ensure_directories_exist() -> None:
         RESULT_DIR,
         CONVERSATION_LOG_DIR,
         PROMPT_DIR,
+        DIPEO_DIR,
         DATA_DIR,
+        CACHE_DIR,
     ]:
         dir_path.mkdir(parents=True, exist_ok=True)

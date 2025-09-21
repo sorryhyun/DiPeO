@@ -127,7 +127,7 @@ class ServerManager:
         diagram_data: dict[str, Any] | None = None,
         diagram_id: str | None = None,
         input_variables: dict[str, Any] | None = None,
-        use_unified_monitoring: bool = False,
+        use_unified_monitoring: bool = True,  # Default to unified monitoring
         diagram_name: str | None = None,
         diagram_format: str | None = None,
     ) -> dict[str, Any]:

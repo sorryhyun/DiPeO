@@ -169,7 +169,7 @@ export function useExecutionState() {
     skippedNodesRef.current.push({ nodeId: nodeIdStr, reason });
   }, []);
 
-  const connectToExecution = useCallback((executionIdStr: string, totalNodes: number = 0) => {
+  const connectToExecution = useCallback((executionIdStr: string, totalNodes: number = 0, preserveNodeStates: boolean = false) => {
     executionIdRef.current = executionIdStr;
 
     setExecution({
@@ -184,7 +184,10 @@ export function useExecutionState() {
     });
 
     // Clear any existing node states when connecting to a new execution
-    setNodeStates({});
+    // unless we're preserving them (e.g., in monitor mode with pre-populated states)
+    if (!preserveNodeStates) {
+      setNodeStates({});
+    }
   }, []);
 
   return {

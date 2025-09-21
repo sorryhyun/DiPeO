@@ -25,8 +25,10 @@ from .limits import (
 # Path configurations
 from .paths import (
     BASE_DIR,
+    CACHE_DIR,
     CONVERSATION_LOG_DIR,
     DATA_DIR,
+    DIPEO_DIR,
     EVENTS_DB_PATH,
     EXAMPLES_DIR,
     FILES_DIR,
@@ -70,12 +72,14 @@ __all__ = [
     "ALLOWED_EXTENSIONS",
     # Paths
     "BASE_DIR",
+    "CACHE_DIR",
     "CONVERSATION_LOG_DIR",
     "DATA_DIR",
     "DEFAULT_HTTP_TIMEOUT",
     "DEFAULT_PAGE_SIZE",
     # Limits
     "DEFAULT_TIMEOUT",
+    "DIPEO_DIR",
     "EVENTS_DB_PATH",
     "EXAMPLES_DIR",
     "FILES_DIR",

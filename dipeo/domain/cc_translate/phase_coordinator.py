@@ -6,13 +6,63 @@ This module coordinates all three phases of the translation process:
 3. Post-process - Optimize and clean generated diagrams
 """
 
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
 from typing import Any, Optional
 
-from dipeo.infrastructure.claude_code import ClaudeCodeSession
+from .convert import Converter
+from .post_processing import PipelineConfig, PostProcessor, ProcessingPreset
+from .preprocess import Preprocessor
 
-from .convert import DiagramConverter
-from .post_processing import PipelineConfig, PostProcessingPipeline, ProcessingPreset
-from .preprocess import SessionPreprocessor
+
+class PipelinePhase(Enum):
+    """Enumeration of pipeline phases."""
+
+    PREPROCESS = "preprocess"
+    CONVERT = "convert"
+    POST_PROCESS = "post_process"
+
+
+@dataclass
+class PhaseResult:
+    """Result from a pipeline phase execution."""
+
+    phase: PipelinePhase
+    data: Any
+    success: bool
+    start_time: datetime
+    end_time: datetime
+    error: Optional[str] = None
+    report: Optional[Any] = None
+
+    @property
+    def duration_ms(self) -> float:
+        """Calculate phase duration in milliseconds."""
+        delta = self.end_time - self.start_time
+        return delta.total_seconds() * 1000
+
+
+@dataclass
+class PipelineMetrics:
+    """Metrics for the entire pipeline execution."""
+
+    total_duration_ms: float = 0.0
+    phase_durations: dict[PipelinePhase, float] = field(default_factory=dict)
+    phase_results: list[PhaseResult] = field(default_factory=list)
+    success: bool = True
+    errors: list[str] = field(default_factory=list)
+
+    def add_phase_result(self, result: PhaseResult) -> None:
+        """Add a phase result and update metrics."""
+        self.phase_results.append(result)
+        self.phase_durations[result.phase] = result.duration_ms
+        self.total_duration_ms += result.duration_ms
+
+        if not result.success:
+            self.success = False
+            if result.error:
+                self.errors.append(f"{result.phase.value}: {result.error}")
 
 
 class PhaseCoordinator:
@@ -20,15 +70,12 @@ class PhaseCoordinator:
 
     def __init__(self):
         """Initialize the phase coordinator."""
-        self.preprocessor = SessionPreprocessor()
-        self.converter = DiagramConverter()
+        self.preprocessor = Preprocessor()
+        self.converter = Converter()
 
     def translate(
-        self,
-        session: ClaudeCodeSession,
-        post_process: bool = False,
-        processing_config: Optional[PipelineConfig] = None,
-    ) -> dict[str, Any]:
+        self, session: Any, skip_phases: Optional[list[PipelinePhase]] = None, **kwargs
+    ) -> tuple[dict[str, Any], PipelineMetrics]:
         """
         Translate a Claude Code session into a light format diagram.
 
@@ -38,63 +85,126 @@ class PhaseCoordinator:
         3. Post-process the diagram (optimization, cleanup)
 
         Args:
-            session: Parsed Claude Code session
-            post_process: Whether to apply post-processing optimizations
-            processing_config: Custom processing configuration
+            session: Session to translate via port interface
+            skip_phases: Optional list of phases to skip
+            **kwargs: Phase-specific configuration options
+                - processing_config: PipelineConfig for post-processing
+                - verbose: bool for verbose output
 
         Returns:
-            Light format diagram dictionary
+            Tuple of (diagram, pipeline_metrics)
         """
+        skip_phases = skip_phases or []
+        metrics = PipelineMetrics()
+
+        # Convert session to DomainSession if needed
+        if hasattr(session, "to_domain_session"):
+            domain_session = session.to_domain_session()
+        else:
+            domain_session = session
+
         # Phase 1: Preprocess
-        preprocessed_session = self.preprocessor.preprocess(session, processing_config)
+        if PipelinePhase.PREPROCESS not in skip_phases:
+            result = self.with_error_boundary(
+                PipelinePhase.PREPROCESS,
+                self.preprocessor.process,
+                domain_session,
+                kwargs.get("preprocess_config"),
+            )
+            metrics.add_phase_result(result)
+
+            if not result.success:
+                return {}, metrics
+
+            preprocessed_data = result.data
+        else:
+            # If preprocessing is skipped, assume session is preprocessed data
+            preprocessed_data = session
 
         # Phase 2: Convert
-        diagram = self.converter.convert(preprocessed_session)
-
-        # Phase 3: Post-process (if requested)
-        if post_process:
-            pipeline_config = processing_config or PipelineConfig.from_preset(
-                ProcessingPreset.STANDARD
+        if PipelinePhase.CONVERT not in skip_phases:
+            result = self.with_error_boundary(
+                PipelinePhase.CONVERT,
+                self.converter.process,
+                preprocessed_data,
+                kwargs.get("convert_config"),
             )
-            pipeline = PostProcessingPipeline(pipeline_config)
-            diagram, post_processing_report = pipeline.process(diagram)
+            metrics.add_phase_result(result)
 
-            # Add post-processing report to metadata if it had changes
-            if post_processing_report.has_changes():
-                if "metadata" not in diagram:
-                    diagram["metadata"] = {}
-                if "post_processing" not in diagram["metadata"]:
-                    diagram["metadata"]["post_processing"] = {}
+            if not result.success:
+                return {}, metrics
 
-                diagram["metadata"]["post_processing"]["optimization"] = {
-                    "applied": True,
-                    "total_changes": post_processing_report.total_changes,
-                    "nodes_removed": post_processing_report.total_nodes_removed,
-                    "connections_modified": post_processing_report.total_connections_modified,
-                }
+            diagram = result.data
+        else:
+            # If conversion is skipped, assume preprocessed_data is already a diagram
+            diagram = preprocessed_data if isinstance(preprocessed_data, dict) else {}
 
-                # Print summary if verbose
-                if pipeline_config.verbose_reporting:
-                    print(f"\nPost-processing: {post_processing_report.get_summary()}\n")
+        # Phase 3: Post-process
+        if PipelinePhase.POST_PROCESS not in skip_phases:
+            # Check if post-processing should be applied
+            should_post_process = kwargs.get("post_process", False)
 
-        return diagram
+            if should_post_process:
+                config = kwargs.get("processing_config") or PipelineConfig.from_preset(
+                    ProcessingPreset.STANDARD
+                )
+                pipeline = PostProcessor(config)
 
-    def preprocess_only(
-        self, session: ClaudeCodeSession, processing_config: Optional[PipelineConfig] = None
-    ):
+                # Pass through relevant kwargs to post-processor
+                post_process_kwargs = {}
+                if "output_base_path" in kwargs:
+                    post_process_kwargs["output_base_path"] = kwargs["output_base_path"]
+
+                result = self.with_error_boundary(
+                    PipelinePhase.POST_PROCESS,
+                    pipeline.process,
+                    diagram,
+                    config,
+                    **post_process_kwargs,
+                )
+                metrics.add_phase_result(result)
+
+                if result.success:
+                    diagram = result.data
+
+                    # Add metrics to diagram metadata
+                    if result.report and hasattr(result.report, "has_changes"):
+                        if result.report.has_changes():
+                            if "metadata" not in diagram:
+                                diagram["metadata"] = {}
+                            if "post_processing" not in diagram["metadata"]:
+                                diagram["metadata"]["post_processing"] = {}
+
+                            diagram["metadata"]["post_processing"]["optimization"] = {
+                                "applied": True,
+                                "total_changes": result.report.total_changes,
+                                "nodes_removed": result.report.total_nodes_removed,
+                                "connections_modified": result.report.total_connections_modified,
+                            }
+
+        return diagram, metrics
+
+    def preprocess_only(self, session: Any, processing_config: Optional[PipelineConfig] = None):
         """
         Run only the preprocessing phase.
 
         Useful for analyzing sessions or preparing them for custom conversion.
 
         Args:
-            session: Parsed Claude Code session
+            session: Session via port interface
             processing_config: Custom processing configuration
 
         Returns:
-            PreprocessedSession containing processed data
+            PreprocessedData containing processed data
         """
-        return self.preprocessor.preprocess(session, processing_config)
+        # Convert session to DomainSession if needed
+        if hasattr(session, "to_domain_session"):
+            domain_session = session.to_domain_session()
+        else:
+            domain_session = session
+
+        preprocessed_data, report = self.preprocessor.process(domain_session, processing_config)
+        return preprocessed_data
 
     def convert_only(self, preprocessed_session) -> dict[str, Any]:
         """
@@ -108,7 +218,8 @@ class PhaseCoordinator:
         Returns:
             Light format diagram dictionary (without post-processing)
         """
-        return self.converter.convert(preprocessed_session)
+        diagram, report = self.converter.process(preprocessed_session)
+        return diagram
 
     def post_process_only(
         self,
@@ -128,5 +239,51 @@ class PhaseCoordinator:
             Tuple of (optimized diagram, processing report)
         """
         pipeline_config = processing_config or PipelineConfig.from_preset(ProcessingPreset.STANDARD)
-        pipeline = PostProcessingPipeline(pipeline_config)
+        pipeline = PostProcessor(pipeline_config)
         return pipeline.process(diagram)
+
+    def with_error_boundary(
+        self, phase: PipelinePhase, func: callable, *args, **kwargs
+    ) -> PhaseResult:
+        """
+        Execute a function within an error boundary.
+
+        Args:
+            phase: The phase being executed
+            func: The function to execute
+            *args: Positional arguments for func
+            **kwargs: Keyword arguments for func
+
+        Returns:
+            PhaseResult with success/failure information
+        """
+        start_time = datetime.now()
+
+        try:
+            result = func(*args, **kwargs)
+
+            # Handle tuple returns (data, report)
+            if isinstance(result, tuple) and len(result) == 2:
+                data, report = result
+            else:
+                data = result
+                report = None
+
+            return PhaseResult(
+                phase=phase,
+                data=data,
+                success=True,
+                start_time=start_time,
+                end_time=datetime.now(),
+                report=report,
+            )
+
+        except Exception as e:
+            return PhaseResult(
+                phase=phase,
+                data=None,
+                success=False,
+                start_time=start_time,
+                end_time=datetime.now(),
+                error=str(e),
+            )

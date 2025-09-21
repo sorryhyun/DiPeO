@@ -350,7 +350,6 @@ class FrontendIRBuilder(BaseIRBuilder):
         ir_output_path = self.base_dir / "projects/codegen/ir/frontend_ir.json"
         ir_output_path.parent.mkdir(parents=True, exist_ok=True)
         ir_output_path.write_text(json.dumps(ir_dict, indent=2))
-        logger.info(f"Wrote frontend IR to {ir_output_path}")
 
         # Create metadata
         metadata = self.create_metadata(source_data, "frontend")

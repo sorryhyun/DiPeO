@@ -1,0 +1,86 @@
+{
+  "session_id": "3bf495a2-7de0-40ff-8eed-b4500e490da0",
+  "directory_name": "2025-09-20_04-05-48",
+  "converted_at": "2025-09-20T14:24:28.209648",
+  "stats": {
+    "session_id": "3bf495a2-7de0-40ff-8eed-b4500e490da0",
+    "total_events": 261,
+    "user_messages": 89,
+    "assistant_messages": 172,
+    "tool_usage": {
+      "Grep": 12,
+      "Read": 25,
+      "Glob": 3,
+      "Bash": 6,
+      "ExitPlanMode": 1,
+      "TodoWrite": 8,
+      "Write": 1,
+      "Edit": 25
+    },
+    "unique_files_accessed": 10,
+    "bash_commands_executed": 6,
+    "duration_seconds": 996.691,
+    "duration_human": "0:16:36.691000"
+  },
+  "format": "light",
+  "diagrams": {
+    "original": {
+      "file": "diagram.light.yaml",
+      "type": "original",
+      "statistics": {
+        "node_count": 125,
+        "connection_count": 124,
+        "node_types": [
+          "db",
+          "diff_patch",
+          "code_job",
+          "api_job",
+          "person_job",
+          "start"
+        ]
+      }
+    },
+    "optimized": {
+      "file": "optimized.light.yaml",
+      "type": "optimized",
+      "statistics": {
+        "node_count": 110,
+        "connection_count": 120,
+        "node_types": [
+          "db",
+          "diff_patch",
+          "code_job",
+          "api_job",
+          "person_job",
+          "start"
+        ]
+      }
+    },
+    "grouped": {
+      "file": "grouped.light.yaml",
+      "type": "grouped",
+      "statistics": {
+        "node_count": 13,
+        "connection_count": 12,
+        "node_types": [
+          "db",
+          "start",
+          "sub_diagram"
+        ]
+      }
+    }
+  },
+  "file_structure": {
+    "original_session": "original_session.jsonl",
+    "processed_session": "session.jsonl",
+    "original_diagram": "diagram.light.yaml",
+    "optimized_diagram": "optimized.light.yaml",
+    "grouped_diagram": "grouped.light.yaml",
+    "metadata": "metadata.json",
+    "grouped_subdirectory": "grouped/"
+  },
+  "options": {
+    "save_original": true,
+    "timestamp_based_naming": true
+  }
+}

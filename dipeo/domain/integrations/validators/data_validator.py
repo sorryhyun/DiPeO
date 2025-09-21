@@ -4,6 +4,7 @@ from typing import Any
 
 from dipeo.domain.base.exceptions import ValidationError
 from dipeo.domain.base.validator import BaseValidator, Severity, ValidationResult, ValidationWarning
+from dipeo.domain.integrations.db_services import DBOperationsDomainService
 
 
 class DataValidator(BaseValidator):
@@ -67,6 +68,11 @@ class DataValidator(BaseValidator):
 
         if "keys" in config:
             self._validate_db_keys(config["keys"], result)
+
+        if config.get("lines") is not None:
+            self._validate_line_ranges(
+                config["lines"], operation, result, config.get("keys")
+            )
 
         if operation == "update" and not config.get("keys"):
             result.add_error(
@@ -251,6 +257,46 @@ class DataValidator(BaseValidator):
                     )
                 )
 
+    def _validate_line_ranges(
+        self,
+        lines: Any,
+        operation: str,
+        result: ValidationResult,
+        keys: Any = None,
+    ) -> None:
+        if operation != "read":
+            result.add_error(
+                ValidationError(
+                    "The 'lines' option is only supported for read operations",
+                    details={"operation": operation},
+                )
+            )
+            return
+
+        if keys not in (None, "", []):
+            result.add_error(
+                ValidationError(
+                    "Cannot combine 'keys' and 'lines' for database reads",
+                    details={"keys": keys},
+                )
+            )
+            return
+
+        service = DBOperationsDomainService()
+        try:
+            normalized = service.normalize_line_ranges(lines)
+        except ValidationError as exc:
+            result.add_error(exc)
+            return
+
+        if not normalized:
+            result.add_warning(
+                ValidationWarning(
+                    "Lines specification did not resolve to any ranges",
+                    field_name="lines",
+                )
+            )
+
     def _check_sensitive_data(self, data: Any, result: ValidationResult) -> None:
         data_str = str(data).lower()
 
@@ -281,9 +327,16 @@ class DataValidator(BaseValidator):
                 details={"operation": operation, "allowed": allowed_operations},
             )
 
-    def validate_db_operation_input(self, operation: str, value: Any, keys: Any = None) -> None:
+    def validate_db_operation_input(
+        self, operation: str, value: Any, keys: Any = None, lines: Any = None
+    ) -> None:
         """Validate input for database operations (raises exception)."""
-        config = {"operation": operation, "value": value, "keys": keys}
+        config = {
+            "operation": operation,
+            "value": value,
+            "keys": keys,
+            "lines": lines,
+        }
         result = self.validate(config)
 
         if not result.is_valid:

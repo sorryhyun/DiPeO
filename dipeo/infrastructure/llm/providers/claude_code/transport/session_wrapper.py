@@ -93,11 +93,11 @@ class SessionQueryWrapper:
 
             self._session = None
 
-    async def query(self, prompt: str) -> AsyncIterator[Any]:
+    async def query(self, prompt: str | AsyncIterator[dict[str, Any]]) -> AsyncIterator[Any]:
         """Execute query using session.
 
         Args:
-            prompt: The prompt to send
+            prompt: The prompt to send (string or async iterable of message dicts)
 
         Yields:
             Messages from the query response

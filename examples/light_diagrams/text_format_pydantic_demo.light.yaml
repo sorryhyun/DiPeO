@@ -1,7 +1,7 @@
 version: light
 
 name: text_format_pydantic_demo
-description: Demonstrate using Pydantic models for structured outputs with PersonJob node
+description: Demonstrate using Pydantic models for structured outputs with PersonJob node.
 
 persons:
   default:
@@ -13,19 +13,21 @@ nodes:
   - label: start
     type: start
     position: {x: 100, y: 100}
+    props:
+      trigger_mode: manual
 
   - label: extract_person_info
     type: person_job
     position: {x: 300, y: 100}
     props:
       person: default
+      max_iteration: 1
       first_only_prompt: |
         Extract the person's information from the following text:
 
         "John Doe is a 35-year-old software engineer living in San Francisco.
         He has been working at TechCorp for 5 years and specializes in Python and JavaScript.
         His hobbies include hiking, photography, and playing guitar."
-      max_iteration: 1
       text_format: |
         class PersonInfo(BaseModel):
             name: str
@@ -82,12 +84,12 @@ nodes:
     position: {x: 300, y: 250}
     props:
       person: default
+      max_iteration: 1
       first_only_prompt: |
         Generate a user profile card UI component structure for:
         Name: John Doe
         Role: Software Engineer
         Company: TechCorp
-      max_iteration: 1
       text_format: |
         class UIType(str, Enum):
             div = "div"
@@ -123,6 +125,8 @@ nodes:
   - label: endpoint
     type: endpoint
     position: {x: 700, y: 100}
+    props:
+      save_to_file: false
 
 connections:
   - {from: start, to: extract_person_info}

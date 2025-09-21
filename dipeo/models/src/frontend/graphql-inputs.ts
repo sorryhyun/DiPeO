@@ -21,7 +21,6 @@ import type {
 } from '../core/diagram';
 import {CliSessionID} from "../core/cli-session";
 import {FileID} from "../core/file";
-import { TodoSyncMode } from './todo-sync-types';
 
 // Re-export enums for convenience
 export { DiagramFormat, APIServiceType };
@@ -176,19 +175,4 @@ export type RegisterCliSessionInput = {
 
 export type UnregisterCliSessionInput = {
   execution_id: Scalars['ID']['input'];
-};
-
-// TODO Sync inputs
-export type ToggleTodoSyncInput = {
-  session_id: Scalars['String']['input'];
-  enabled: Scalars['Boolean']['input'];
-  trace_id?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type ConfigureTodoSyncInput = {
-  mode: TodoSyncMode;
-  output_dir?: InputMaybe<Scalars['String']['input']>;
-  auto_execute?: InputMaybe<Scalars['Boolean']['input']>;
-  monitor_enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  debounce_seconds?: InputMaybe<Scalars['Float']['input']>;
 };

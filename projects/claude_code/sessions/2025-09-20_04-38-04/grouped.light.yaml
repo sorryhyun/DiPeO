@@ -1,0 +1,271 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 100, y: 100}
+  props:
+    trigger_mode: manual
+    custom_data:
+      session_id: 9c0b38de-fa29-48bf-9846-b35921fce337
+      initial_prompt: |-
+        <command-name>/clear</command-name>
+                    <command-message>clear</command-message>
+                    <command-args></command-args>
+- label: Update TODO 1
+  type: db
+  position: {x: 300, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Analyze the current post-processing pipeline structure
+        status: in_progress
+        activeForm: Analyzing the current post-processing pipeline structure
+      - content: Separate TODO grouping from optimization pipeline
+        status: pending
+        activeForm: Separating TODO grouping from optimization pipeline
+      - content: Create separate grouped.light.yaml output
+        status: pending
+        activeForm: Creating separate grouped.light.yaml output
+      - content: Update dipeocc command to generate both optimized and grouped diagrams
+        status: pending
+        activeForm: Updating dipeocc command to generate both optimized and grouped diagrams
+- label: prev_to_do_sub
+  type: sub_diagram
+  position: {x: 500, y: 100}
+  props:
+    sub_diagram_path: grouped/prev_to_do.light.yaml
+    execution_mode: sequential
+- label: Update TODO 2
+  type: db
+  position: {x: 700, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Analyze the current post-processing pipeline structure
+        status: completed
+        activeForm: Analyzing the current post-processing pipeline structure
+      - content: Separate TODO grouping from optimization pipeline
+        status: pending
+        activeForm: Separating TODO grouping from optimization pipeline
+      - content: Create separate grouped.light.yaml output
+        status: pending
+        activeForm: Creating separate grouped.light.yaml output
+      - content: Update dipeocc command to generate both optimized and grouped diagrams
+        status: pending
+        activeForm: Updating dipeocc command to generate both optimized and grouped diagrams
+- label: to_do_1_sub
+  type: sub_diagram
+  position: {x: 900, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_1.light.yaml
+    execution_mode: sequential
+- label: Update TODO 3
+  type: db
+  position: {x: 1100, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Modify _find_to_do_update_nodes() to extract and track TODO positions
+        status: in_progress
+        activeForm: Modifying _find_to_do_update_nodes() to extract and track TODO positions
+      - content: Update _group_nodes_by_to_dos() to filter TODOs from work nodes
+        status: pending
+        activeForm: Updating _group_nodes_by_to_dos() to filter TODOs from work nodes
+      - content: Enhance _create_node_group() to skip trivial groups and exclude TODO nodes
+        status: pending
+        activeForm: Enhancing _create_node_group() to skip trivial groups and exclude TODO nodes
+      - content: Refactor _create_grouped_diagram() to insert TODO nodes between sub-diagrams
+        status: pending
+        activeForm: Refactoring _create_grouped_diagram() to insert TODO nodes between sub-diagrams
+      - content: Add configuration options for controlling extraction behavior
+        status: pending
+        activeForm: Adding configuration options for controlling extraction behavior
+      - content: Test the new TODO extraction workflow
+        status: pending
+        activeForm: Testing the new TODO extraction workflow
+- label: to_do_4_sub
+  type: sub_diagram
+  position: {x: 1300, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_4.light.yaml
+    execution_mode: sequential
+- label: Update TODO 4
+  type: db
+  position: {x: 1500, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Modify _find_to_do_update_nodes() to extract and track TODO positions
+        status: completed
+        activeForm: Modifying _find_to_do_update_nodes() to extract and track TODO positions
+      - content: Update _group_nodes_by_to_dos() to filter TODOs from work nodes
+        status: in_progress
+        activeForm: Updating _group_nodes_by_to_dos() to filter TODOs from work nodes
+      - content: Enhance _create_node_group() to skip trivial groups and exclude TODO nodes
+        status: pending
+        activeForm: Enhancing _create_node_group() to skip trivial groups and exclude TODO nodes
+      - content: Refactor _create_grouped_diagram() to insert TODO nodes between sub-diagrams
+        status: pending
+        activeForm: Refactoring _create_grouped_diagram() to insert TODO nodes between sub-diagrams
+      - content: Add configuration options for controlling extraction behavior
+        status: pending
+        activeForm: Adding configuration options for controlling extraction behavior
+      - content: Test the new TODO extraction workflow
+        status: pending
+        activeForm: Testing the new TODO extraction workflow
+- label: to_do_7_sub
+  type: sub_diagram
+  position: {x: 1700, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_7.light.yaml
+    execution_mode: sequential
+- label: Update TODO 5
+  type: db
+  position: {x: 1900, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Modify _find_to_do_update_nodes() to extract and track TODO positions
+        status: completed
+        activeForm: Modifying _find_to_do_update_nodes() to extract and track TODO positions
+      - content: Update _group_nodes_by_to_dos() to filter TODOs from work nodes
+        status: completed
+        activeForm: Updating _group_nodes_by_to_dos() to filter TODOs from work nodes
+      - content: Enhance _create_node_group() to skip trivial groups and exclude TODO nodes
+        status: completed
+        activeForm: Enhancing _create_node_group() to skip trivial groups and exclude TODO nodes
+      - content: Refactor _create_grouped_diagram() to insert TODO nodes between sub-diagrams
+        status: in_progress
+        activeForm: Refactoring _create_grouped_diagram() to insert TODO nodes between sub-diagrams
+      - content: Add _create_linear_todo_flow() method for TODO-only workflows
+        status: pending
+        activeForm: Adding _create_linear_todo_flow() method for TODO-only workflows
+      - content: Test the new TODO extraction workflow
+        status: pending
+        activeForm: Testing the new TODO extraction workflow
+- label: Update TODO 6
+  type: db
+  position: {x: 2100, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Modify _find_to_do_update_nodes() to extract and track TODO positions
+        status: completed
+        activeForm: Modifying _find_to_do_update_nodes() to extract and track TODO positions
+      - content: Update _group_nodes_by_to_dos() to filter TODOs from work nodes
+        status: completed
+        activeForm: Updating _group_nodes_by_to_dos() to filter TODOs from work nodes
+      - content: Enhance _create_node_group() to skip trivial groups and exclude TODO nodes
+        status: completed
+        activeForm: Enhancing _create_node_group() to skip trivial groups and exclude TODO nodes
+      - content: Refactor _create_grouped_diagram() to insert TODO nodes between sub-diagrams
+        status: completed
+        activeForm: Refactoring _create_grouped_diagram() to insert TODO nodes between sub-diagrams
+      - content: Add _create_linear_todo_flow() method for TODO-only workflows
+        status: completed
+        activeForm: Adding _create_linear_todo_flow() method for TODO-only workflows
+      - content: Test the new TODO extraction workflow
+        status: in_progress
+        activeForm: Testing the new TODO extraction workflow
+- label: Update TODO 7
+  type: db
+  position: {x: 2300, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Modify _find_to_do_update_nodes() to extract and track TODO positions
+        status: completed
+        activeForm: Modifying _find_to_do_update_nodes() to extract and track TODO positions
+      - content: Update _group_nodes_by_to_dos() to filter TODOs from work nodes
+        status: completed
+        activeForm: Updating _group_nodes_by_to_dos() to filter TODOs from work nodes
+      - content: Enhance _create_node_group() to skip trivial groups and exclude TODO nodes
+        status: completed
+        activeForm: Enhancing _create_node_group() to skip trivial groups and exclude TODO nodes
+      - content: Refactor _create_grouped_diagram() to insert TODO nodes between sub-diagrams
+        status: completed
+        activeForm: Refactoring _create_grouped_diagram() to insert TODO nodes between sub-diagrams
+      - content: Add _create_linear_todo_flow() method for TODO-only workflows
+        status: completed
+        activeForm: Adding _create_linear_todo_flow() method for TODO-only workflows
+      - content: Test the new TODO extraction workflow
+        status: completed
+        activeForm: Testing the new TODO extraction workflow
+connections:
+- {from: Start, to: Update TODO 1, content_type: raw_text}
+- {from: Update TODO 1, to: prev_to_do_sub, content_type: raw_text}
+- {from: prev_to_do_sub, to: Update TODO 2, content_type: raw_text}
+- {from: Update TODO 2, to: to_do_1_sub, content_type: raw_text}
+- {from: to_do_1_sub, to: Update TODO 3, content_type: raw_text}
+- {from: Update TODO 3, to: to_do_4_sub, content_type: raw_text}
+- {from: to_do_4_sub, to: Update TODO 4, content_type: raw_text}
+- {from: Update TODO 4, to: to_do_7_sub, content_type: raw_text}
+- {from: to_do_7_sub, to: Update TODO 5, content_type: raw_text}
+- {from: Update TODO 5, to: Update TODO 6, content_type: raw_text}
+- {from: Update TODO 6, to: Update TODO 7, content_type: raw_text}
+metadata:
+  conversion:
+    total_nodes: 75
+    total_connections: 74
+    total_persons: 0
+    node_types:
+      start: 1
+      person_job: 4
+      db: 25
+      code_job: 4
+      api_job: 25
+      diff_patch: 16
+  deduplication:
+    files_deduplicated: 1
+    total_nodes_removed: 8
+    deduplicated_files:
+      /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/to_do_subdiagram_grouper.py:
+        original_count: 9
+        kept_node: Read File 2
+        removed_nodes:
+        - Read File 8
+        - Read File 15
+        - Read File 18
+        - Read File 20
+        - Read File 21
+        - Read File 24
+        - Read File 25
+        - Read File 32
+  grouped: true
+  original_nodes: 67
+  sub_diagrams: 4
+  extracted_todos: 7
+  grouping_method: todo_updates_with_extraction
+  post_processing:
+    optimization:
+      applied: true
+      total_changes: 30
+      nodes_removed: 8
+      connections_modified: 16
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

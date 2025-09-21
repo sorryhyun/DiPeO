@@ -4,10 +4,12 @@ This module handles the creation and management of connections between
 nodes in the DiPeO diagram during the conversion phase.
 """
 
-from typing import Any
+from typing import Any, Optional
+
+from .builders import BaseConnectionBuilder
 
 
-class ConnectionBuilder:
+class ConnectionBuilder(BaseConnectionBuilder):
     """Builds connections between nodes in DiPeO diagrams."""
 
     def __init__(self):
@@ -52,6 +54,57 @@ class ConnectionBuilder:
         """
         if current_nodes and previous_node:
             self.add_connection(previous_node, current_nodes[0])
+
+    def create_connection(
+        self, source_id: str, target_id: str, props: Optional[dict[str, Any]] = None
+    ) -> dict[str, Any]:
+        """Create a connection between two nodes implementing abstract base.
+
+        Args:
+            source_id: ID of the source node
+            target_id: ID of the target node
+            props: Optional connection properties
+
+        Returns:
+            The created connection
+        """
+        connection = {
+            "from": source_id,
+            "to": target_id,
+            "content_type": props.get("content_type", "raw_text") if props else "raw_text",
+        }
+        if props and "label" in props:
+            connection["label"] = props["label"]
+        self.connections.append(connection)
+        return connection
+
+    def validate_connection(self, source_type: str, target_type: str) -> list[str]:
+        """Validate that a connection between two node types is allowed.
+
+        Args:
+            source_type: Type of the source node
+            target_type: Type of the target node
+
+        Returns:
+            List of validation errors (empty if valid)
+        """
+        # Define allowed connections based on DiPeO node types
+        allowed_connections = {
+            "start": ["person_job", "db", "code_job", "api_job", "diff_patch"],
+            "person_job": ["person_job", "db", "code_job", "api_job", "diff_patch"],
+            "db": ["person_job", "db", "code_job", "api_job", "diff_patch"],
+            "code_job": ["person_job", "db", "code_job", "api_job", "diff_patch"],
+            "api_job": ["person_job", "db", "code_job", "api_job", "diff_patch"],
+            "diff_patch": ["person_job", "db", "code_job", "api_job", "diff_patch"],
+        }
+
+        errors = []
+        if source_type not in allowed_connections:
+            errors.append(f"Unknown source node type: {source_type}")
+        elif target_type not in allowed_connections.get(source_type, []):
+            errors.append(f"Connection not allowed from {source_type} to {target_type}")
+
+        return errors
 
     def get_connections(self) -> list[dict[str, Any]]:
         """Get all connections built so far.

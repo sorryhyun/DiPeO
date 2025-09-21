@@ -11,7 +11,6 @@ from pathlib import Path
 import strawberry
 from strawberry.scalars import JSON
 
-from dipeo.application.graphql.graphql_types.cli_session import CliSession
 from dipeo.application.graphql.graphql_types.provider_types import (
     OperationSchemaType,
     OperationType,

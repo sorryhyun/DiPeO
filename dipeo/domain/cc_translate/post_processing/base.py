@@ -6,8 +6,8 @@ from enum import Enum
 from typing import Any, Optional
 
 
-class ChangeType(Enum):
-    """Types of changes made during post-processing."""
+class DiagramChangeType(Enum):
+    """Types of changes made during diagram post-processing."""
 
     NODE_REMOVED = "node_removed"
     NODE_MERGED = "node_merged"
@@ -19,21 +19,21 @@ class ChangeType(Enum):
 
 
 @dataclass
-class ProcessingChange:
-    """Represents a single change made during processing."""
+class DiagramChange:
+    """Represents a single change made during diagram processing."""
 
-    change_type: ChangeType
+    change_type: DiagramChangeType
     description: str
     target: str  # Node label or connection identifier
     details: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
-class ProcessingReport:
-    """Report of changes made by a processor."""
+class DiagramProcessingReport:
+    """Report of changes made by a diagram processor."""
 
     processor_name: str
-    changes: list[ProcessingChange] = field(default_factory=list)
+    changes: list[DiagramChange] = field(default_factory=list)
     nodes_removed: int = 0
     nodes_modified: int = 0
     connections_removed: int = 0
@@ -42,20 +42,20 @@ class ProcessingReport:
     processing_time_ms: float = 0
     error: Optional[str] = None
 
-    def add_change(self, change: ProcessingChange) -> None:
+    def add_change(self, change: DiagramChange) -> None:
         """Add a change to the report and update counters."""
         self.changes.append(change)
 
         # Update counters based on change type
-        if change.change_type == ChangeType.NODE_REMOVED:
+        if change.change_type == DiagramChangeType.NODE_REMOVED:
             self.nodes_removed += 1
-        elif change.change_type == ChangeType.NODE_MODIFIED:
+        elif change.change_type == DiagramChangeType.NODE_MODIFIED:
             self.nodes_modified += 1
-        elif change.change_type == ChangeType.CONNECTION_REMOVED:
+        elif change.change_type == DiagramChangeType.CONNECTION_REMOVED:
             self.connections_removed += 1
-        elif change.change_type == ChangeType.CONNECTION_MODIFIED:
+        elif change.change_type == DiagramChangeType.CONNECTION_MODIFIED:
             self.connections_modified += 1
-        elif change.change_type == ChangeType.CONNECTION_ADDED:
+        elif change.change_type == DiagramChangeType.CONNECTION_ADDED:
             self.connections_added += 1
 
     @property
@@ -68,8 +68,8 @@ class ProcessingReport:
         return self.total_changes > 0
 
 
-class BaseProcessor(ABC):
-    """Base class for all post-processing processors."""
+class BaseDiagramProcessor(ABC):
+    """Base class for all diagram post-processing processors."""
 
     def __init__(self, config: Optional[dict[str, Any]] = None):
         """Initialize processor with optional configuration."""
@@ -83,7 +83,9 @@ class BaseProcessor(ABC):
         pass
 
     @abstractmethod
-    def process(self, diagram: dict[str, Any]) -> tuple[dict[str, Any], ProcessingReport]:
+    def process_diagram(
+        self, diagram: dict[str, Any]
+    ) -> tuple[dict[str, Any], DiagramProcessingReport]:
         """
         Process the diagram and return modified version with report.
 
@@ -119,14 +121,14 @@ class BaseProcessor(ABC):
 
 
 @dataclass
-class PipelineReport:
-    """Aggregated report from all processors in pipeline."""
+class DiagramPipelineReport:
+    """Aggregated report from all processors in diagram pipeline."""
 
-    processor_reports: list[ProcessingReport] = field(default_factory=list)
+    processor_reports: list[DiagramProcessingReport] = field(default_factory=list)
     total_time_ms: float = 0
     diagram_stats: dict[str, Any] = field(default_factory=dict)
 
-    def add_processor_report(self, report: ProcessingReport) -> None:
+    def add_processor_report(self, report: DiagramProcessingReport) -> None:
         """Add a processor report to the pipeline report."""
         self.processor_reports.append(report)
         self.total_time_ms += report.processing_time_ms
@@ -175,3 +177,31 @@ class PipelineReport:
             lines.append("\nNo changes were made.")
 
         return "\n".join(lines)
+
+
+# Backward compatibility aliases (deprecated)
+ChangeType = DiagramChangeType
+ProcessingChange = DiagramChange
+ProcessingReport = DiagramProcessingReport
+BaseProcessor = BaseDiagramProcessor
+PipelineReport = DiagramPipelineReport
+
+
+class BasePostProcessor(ABC):
+    """Abstract base class for post-processing phase with standard interface."""
+
+    @abstractmethod
+    def process(
+        self, diagram: dict[str, Any], config: Optional[Any] = None
+    ) -> tuple[dict[str, Any], DiagramPipelineReport]:
+        """
+        Standard interface: process a diagram and return optimized diagram with report.
+
+        Args:
+            diagram: The diagram to post-process
+            config: Optional post-processing configuration
+
+        Returns:
+            Tuple of (optimized_diagram, processing_report)
+        """
+        pass

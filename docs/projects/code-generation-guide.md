@@ -255,6 +255,54 @@ The staging directory (`diagram_generated_staged`) serves critical purposes:
    - GraphQL types and operations
    - Validation schemas
 
+### Handler Scaffolding
+
+When adding new node types, DiPeO can automatically generate handler stubs to jumpstart backend implementation:
+
+1. **Add handler metadata to your node spec**:
+   ```typescript
+   // In /dipeo/models/src/nodes/my-node.spec.ts
+   export const myNodeSpec: NodeSpecification = {
+     // ... other fields ...
+
+     handlerMetadata: {
+       modulePath: "dipeo.application.execution.handlers.my_node",
+       className: "MyNodeHandler",
+       mixins: ["LoggingMixin", "ValidationMixin"],
+       serviceKeys: ["LLM_CLIENT", "STATE_STORE"],
+       skipGeneration: false,  // Set to true for custom handlers
+       customImports: []       // Additional imports if needed
+     }
+   };
+   ```
+
+2. **Run code generation**:
+   ```bash
+   cd dipeo/models && pnpm build
+   make codegen
+   ```
+
+3. **Review generated handler stub**:
+   - Location: `/dipeo/diagram_generated_staged/handlers/my-node_handler.py`
+   - Includes proper imports, mixins, service declarations
+   - Contains TODO markers for implementation
+   - Preserves existing handlers (won't overwrite)
+
+4. **Handler metadata fields**:
+   - `modulePath`: Python module path for the handler
+   - `className`: Handler class name
+   - `mixins`: Service mixins to include (e.g., LoggingMixin)
+   - `serviceKeys`: Required services (e.g., LLM_CLIENT, EVENT_BUS)
+   - `skipGeneration`: Skip stub generation for custom handlers
+   - `customImports`: Additional import statements needed
+
+5. **Generated handler includes**:
+   - Proper class inheritance with mixins
+   - Type hints using the node's data model
+   - Service key declarations
+   - Envelope pattern implementation
+   - Examples for common service usage
+
 ### Adding New GraphQL Queries/Mutations
 
 1. **For existing entities**, modify the query generator:

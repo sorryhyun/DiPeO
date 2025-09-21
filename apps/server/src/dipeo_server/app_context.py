@@ -152,7 +152,6 @@ async def create_server_container() -> Container:
 
         logger = logging.getLogger(__name__)
         loaded_providers = provider_registry.list_providers()
-        logger.info(f"Loaded {len(loaded_providers)} providers: {loaded_providers}")
     except Exception as e:
         # Log but don't fail if no providers found
         import logging

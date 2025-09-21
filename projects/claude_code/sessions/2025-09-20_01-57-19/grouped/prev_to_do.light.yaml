@@ -1,0 +1,58 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position:
+    x: 100
+    y: 100
+  props:
+    trigger_mode: manual
+    custom_data:
+      session_id: 2a8d5ab5-ab75-4c32-9c0b-edbe4076b5b3
+      initial_prompt: would you check that are we using @dipeo/domain/cc_translate/models/ enough? think
+- label: Grep Search 8
+  type: code_job
+  position:
+    x: 300
+    y: 250
+  props:
+    language: bash
+    code: rg -n 'cc_translate|ClaudeCodeTranslator' /home/soryhyun/DiPeO/apps/cli
+    tool: Grep
+    description: Grep search operation
+- label: Claude Responds To User 1
+  type: person_job
+  position:
+    x: 350
+    y: 100
+  props:
+    person: claude_code
+    default_prompt: would you check that are we using @dipeo/domain/cc_translate/models/ enough? think
+- label: Read File 2
+  type: db
+  position:
+    x: 350
+    y: 250
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/apps/cli/src/dipeo_cli/commands/claude_code_command.py
+    lines: 1:100
+connections:
+- from: Start
+  to: Claude Responds To User 1
+  content_type: raw_text
+- from: Grep Search 8
+  to: Read File 2
+  content_type: raw_text
+metadata:
+  group_name: prev_to_do
+  node_count: 4
+  connection_count: 2
+  extracted_from: unknown
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

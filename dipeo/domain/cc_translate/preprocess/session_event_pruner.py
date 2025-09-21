@@ -2,15 +2,17 @@
 
 import re
 import time
-from typing import Any, Optional
+from copy import deepcopy
+from typing import Optional
 
-from dipeo.infrastructure.claude_code import ClaudeCodeSession, SessionEvent
+from dipeo.domain.cc_translate.models.event import DomainEvent
+from dipeo.domain.cc_translate.models.session import DomainSession
 
-from ..post_processing.base import BaseProcessor, ChangeType, ProcessingChange, ProcessingReport
-from ..post_processing.config import SessionEventPrunerConfig
+from .base import BaseSessionProcessor, SessionChange, SessionChangeType, SessionProcessingReport
+from .config import SessionEventPrunerConfig
 
 
-class SessionEventPruner(BaseProcessor):
+class SessionEventPruner(BaseSessionProcessor):
     """
     Processor that removes noisy session events before they become diagram nodes.
 
@@ -19,56 +21,19 @@ class SessionEventPruner(BaseProcessor):
     - Error events (configurable)
     - Empty tool results
     - Custom pattern matches
-
-    Unlike other processors that work on diagram dictionaries, this processor
-    modifies the session object before translation to nodes occurs.
     """
 
-    def __init__(self, config: SessionEventPrunerConfig):
+    def __init__(self, config: Optional[SessionEventPrunerConfig] = None):
         """Initialize the session event pruner."""
-        super().__init__()
-        self.config = config
-        self.enabled = config.enabled
+        super().__init__(config)
 
-    @property
-    def name(self) -> str:
-        """Return processor name for reporting."""
-        return "SessionEventPruner"
-
-    def process(self, diagram: dict[str, Any]) -> tuple[dict[str, Any], ProcessingReport]:
-        """
-        Process the diagram by filtering session events.
-
-        Note: This processor is designed to be called before diagram creation,
-        but follows the BaseProcessor interface for consistency. When used in
-        the pipeline, the session should be passed via metadata.
-        """
-        start_time = time.time()
-        report = ProcessingReport(processor_name=self.name)
-
-        # This processor doesn't modify the diagram directly
-        # It's designed to work on session objects before translation
-        # For now, return the diagram unchanged with a note
-
-        if not self.enabled:
-            return diagram, report
-
-        # Add note that this processor needs to be called at session level
-        report.add_change(
-            ProcessingChange(
-                change_type=ChangeType.METADATA_UPDATED,
-                description="Session event pruning should be applied at session level, not diagram level",
-                target="session_metadata",
-                details={"note": "This processor modifies session events before diagram creation"},
-            )
-        )
-
-        report.processing_time_ms = (time.time() - start_time) * 1000
-        return diagram, report
+    def _get_default_config(self) -> SessionEventPrunerConfig:
+        """Get default configuration for this processor."""
+        return SessionEventPrunerConfig()
 
     def process_session(
-        self, session: ClaudeCodeSession
-    ) -> tuple[ClaudeCodeSession, ProcessingReport]:
+        self, session: DomainSession
+    ) -> tuple[DomainSession, SessionProcessingReport]:
         """
         Process a Claude Code session by filtering out noisy events.
 
@@ -79,64 +44,75 @@ class SessionEventPruner(BaseProcessor):
             Tuple of (filtered session, report)
         """
         start_time = time.time()
-        report = ProcessingReport(processor_name=self.name)
+        report = self._create_report(session)
 
-        if not self.enabled:
+        if not self.config.enabled:
+            report.total_events_after = report.total_events_before
             return session, report
 
-        # Get original event count
-        original_count = len(session.events)
+        # Validate session
+        errors = self.validate_session(session)
+        if errors:
+            for error in errors:
+                report.add_error(error)
+            return session, report
+
+        # Deep copy the session to avoid modifying the original
+        filtered_session = deepcopy(session)
 
         # Filter events
         filtered_events = []
-        pruned_count = 0
 
-        for event in session.events:
+        for event in filtered_session.events:
             if self._should_prune_event(event):
-                pruned_count += 1
                 # Add change record
                 report.add_change(
-                    ProcessingChange(
-                        change_type=ChangeType.NODE_REMOVED,  # Conceptually removing a future node
+                    SessionChange(
+                        change_type=SessionChangeType.EVENT_PRUNED,
                         description=f"Pruned {event.type} event: {self._get_prune_reason(event)}",
-                        target=event.uuid,
+                        target=f"event_{event.id}",
                         details={
                             "event_type": event.type,
                             "prune_reason": self._get_prune_reason(event),
-                            "timestamp": event.timestamp.isoformat(),
+                            "timestamp": event.timestamp.isoformat()
+                            if hasattr(event, "timestamp")
+                            else None,
                         },
                     )
                 )
             else:
                 filtered_events.append(event)
 
-        # Create new session with filtered events
-        filtered_session = ClaudeCodeSession(session_id=session.session_id)
+        # Update session with filtered events
         filtered_session.events = filtered_events
-        filtered_session.metadata = session.metadata
 
         # Update metadata with pruning info
-        if self.config.update_metadata and pruned_count > 0:
-            if not hasattr(filtered_session.metadata, "post_processing"):
-                filtered_session.metadata.post_processing = {}
-            filtered_session.metadata.post_processing["session_event_pruning"] = {
-                "events_pruned": pruned_count,
-                "events_remaining": len(filtered_events),
-                "pruning_config": {
-                    "prune_no_matches": self.config.prune_no_matches,
-                    "prune_errors": self.config.prune_errors,
-                    "prune_empty_results": self.config.prune_empty_results,
-                },
+        if self.config.update_metadata and report.events_pruned_count > 0:
+            if not hasattr(filtered_session, "metadata") or filtered_session.metadata is None:
+                filtered_session.metadata = {}
+
+            if not isinstance(filtered_session.metadata, dict):
+                # Convert to dict if it's another type
+                filtered_session.metadata = {"original": filtered_session.metadata}
+
+            filtered_session.metadata["preprocessing"] = {
+                "session_event_pruning": {
+                    "events_pruned": report.events_pruned_count,
+                    "events_remaining": len(filtered_events),
+                    "pruning_config": {
+                        "prune_no_matches": self.config.prune_no_matches,
+                        "prune_errors": self.config.prune_errors,
+                        "prune_empty_results": self.config.prune_empty_results,
+                    },
+                }
             }
 
         report.processing_time_ms = (time.time() - start_time) * 1000
-
-        # Update report counters
-        report.nodes_removed = pruned_count  # Conceptually, these would have become nodes
+        report.total_events_after = len(filtered_events)
 
         return filtered_session, report
 
-    def _should_prune_event(self, event: SessionEvent) -> bool:
+    def _should_prune_event(self, event: DomainEvent) -> bool:
         """
         Determine if an event should be pruned.
 
@@ -164,16 +140,12 @@ class SessionEventPruner(BaseProcessor):
 
         return False
 
-    def _is_no_matches_event(self, event: SessionEvent) -> bool:
+    def _is_no_matches_event(self, event: DomainEvent) -> bool:
         """Check if event is a 'No matches found' tool result."""
         if event.type != "user":
             return False
 
-        message = event.message
-        if "content" not in message:
-            return False
-
-        content = message["content"]
+        content = event.content
         if not isinstance(content, list):
             return False
 
@@ -181,34 +153,26 @@ class SessionEventPruner(BaseProcessor):
             if (
                 isinstance(item, dict)
                 and item.get("type") == "tool_result"
-                and item.get("content") == "No matches found"
+                and item.get("content") in ["No matches found", "Error: File does not exist."]
             ):
                 return True
 
         return False
 
-    def _is_error_event(self, event: SessionEvent) -> bool:
+    def _is_error_event(self, event: DomainEvent) -> bool:
         """Check if event is an error event."""
-        message = event.message
-        if "content" not in message:
-            return False
-
-        content = message["content"]
+        content = event.content
         if not isinstance(content, list):
             return False
 
         return any(isinstance(item, dict) and item.get("is_error") is True for item in content)
 
-    def _is_empty_result_event(self, event: SessionEvent) -> bool:
+    def _is_empty_result_event(self, event: DomainEvent) -> bool:
         """Check if event is a tool result with empty/whitespace-only content."""
         if event.type != "user":
             return False
 
-        message = event.message
-        if "content" not in message:
-            return False
-
-        content = message["content"]
+        content = event.content
         if not isinstance(content, list):
             return False
 
@@ -220,7 +184,7 @@ class SessionEventPruner(BaseProcessor):
 
         return False
 
-    def _matches_custom_patterns(self, event: SessionEvent) -> bool:
+    def _matches_custom_patterns(self, event: DomainEvent) -> bool:
         """Check if event content matches any custom prune patterns."""
         if not self.config.custom_prune_patterns:
             return False
@@ -241,13 +205,9 @@ class SessionEventPruner(BaseProcessor):
 
         return False
 
-    def _extract_event_text(self, event: SessionEvent) -> str:
+    def _extract_event_text(self, event: DomainEvent) -> str:
         """Extract text content from an event for pattern matching."""
-        message = event.message
-        if "content" not in message:
-            return ""
-
-        content = message["content"]
+        content = event.content
 
         # Handle string content
         if isinstance(content, str):
@@ -269,7 +229,7 @@ class SessionEventPruner(BaseProcessor):
 
         return ""
 
-    def _get_prune_reason(self, event: SessionEvent) -> str:
+    def _get_prune_reason(self, event: DomainEvent) -> str:
         """Get human-readable reason why an event was pruned."""
         if self._is_no_matches_event(event):
             return "No matches found result"
@@ -281,11 +241,3 @@ class SessionEventPruner(BaseProcessor):
             return "Custom pattern match"
         else:
             return "Unknown reason"
-
-    def is_applicable(self, diagram: dict[str, Any]) -> bool:
-        """
-        Check if this processor is applicable.
-
-        Note: This processor is designed to work on sessions, not diagrams.
-        """
-        return self.enabled

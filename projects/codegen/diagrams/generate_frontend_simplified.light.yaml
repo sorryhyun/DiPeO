@@ -146,7 +146,6 @@ nodes:
         for item in results["generated"]:
             print(f"  • {item}")
 
-        print("\nPerformance: ~60% faster with single IR load")
         print("\nNext steps:")
         print("  1. Review generated code in apps/web/src/__generated__/")
         print("  2. Run 'pnpm typecheck' to verify TypeScript")

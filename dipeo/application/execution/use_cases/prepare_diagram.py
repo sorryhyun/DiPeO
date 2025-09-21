@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Optional
 from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
 from dipeo.domain.base.mixins import InitializationMixin, LoggingMixin
 from dipeo.domain.diagram.models import ExecutableDiagram
-from dipeo.infrastructure.shared.keys.drivers import APIKeyService as APIKeyDomainService
+from dipeo.infrastructure.security.keys import APIKeyService as APIKeyDomainService
 
 if TYPE_CHECKING:
     from dipeo.application.diagram.use_cases import (

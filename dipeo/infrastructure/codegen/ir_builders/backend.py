@@ -69,6 +69,9 @@ def extract_node_specs(
                     }
                     fields.append(field_def)
 
+                # Extract handler metadata if present
+                handler_metadata = spec_value.get("handlerMetadata", {})
+
                 node_spec = {
                     "node_type": node_type,
                     "node_name": node_name,
@@ -78,6 +81,7 @@ def extract_node_specs(
                     "fields": fields,
                     "icon": spec_value.get("icon", ""),
                     "color": spec_value.get("color", ""),
+                    "handler_metadata": handler_metadata,  # Include handler metadata
                 }
                 node_specs.append(node_spec)
                 break
@@ -592,7 +596,6 @@ class BackendIRBuilder(BaseIRBuilder):
         ir_output_path = self.base_dir / "projects/codegen/ir/backend_ir.json"
         ir_output_path.parent.mkdir(parents=True, exist_ok=True)
         ir_output_path.write_text(json.dumps(ir_dict, indent=2))
-        logger.info(f"Wrote backend IR to {ir_output_path}")
 
         # Create metadata
         metadata = self.create_metadata(source_data, "backend")

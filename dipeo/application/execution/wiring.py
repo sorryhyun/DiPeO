@@ -8,8 +8,10 @@ from dipeo.application.registry.enhanced_service_registry import (
 )
 from dipeo.application.registry.keys import (
     CLI_SESSION_SERVICE,
+    CONVERSATION_REPOSITORY,
     EXECUTE_DIAGRAM_USE_CASE,
     EXECUTION_ORCHESTRATOR,
+    PERSON_REPOSITORY,
     PREPARE_DIAGRAM_USE_CASE,
 )
 
@@ -32,7 +34,22 @@ def wire_execution(registry: ServiceRegistry) -> None:
     # Ensure handlers are auto-registered
     # This import triggers the auto-registration in handlers/__init__.py
     import dipeo.application.execution.handlers
-    from dipeo.application.conversation.wiring import MANAGE_CONVERSATION_USE_CASE
+
+    # Wire conversation repositories (used by ExecutionOrchestrator)
+    from dipeo.infrastructure.storage.conversation import (
+        InMemoryConversationRepository,
+        InMemoryPersonRepository,
+    )
+
+    def create_conversation_repository() -> InMemoryConversationRepository:
+        return InMemoryConversationRepository()
+
+    registry.register(CONVERSATION_REPOSITORY, create_conversation_repository)
+
+    def create_person_repository() -> InMemoryPersonRepository:
+        return InMemoryPersonRepository()
+
+    registry.register(PERSON_REPOSITORY, create_person_repository)
 
     # Wire execution orchestrator
     from dipeo.application.execution.orchestrators.execution_orchestrator import (
@@ -42,14 +59,13 @@ def wire_execution(registry: ServiceRegistry) -> None:
     from dipeo.application.registry.keys import (
         FILESYSTEM_ADAPTER,
         LLM_SERVICE,
-        PERSON_REPOSITORY,
         PROMPT_LOADING_SERVICE,
     )
 
     def create_execution_orchestrator() -> ExecutionOrchestrator:
         """Factory for execution orchestrator with all dependencies."""
         person_repo = registry.resolve(PERSON_REPOSITORY)
-        manage_conversation_use_case = registry.resolve(MANAGE_CONVERSATION_USE_CASE)
+        conversation_repo = registry.resolve(CONVERSATION_REPOSITORY)
 
         # Create PromptLoadingUseCase
         filesystem_adapter = registry.resolve(FILESYSTEM_ADAPTER)
@@ -62,7 +78,7 @@ def wire_execution(registry: ServiceRegistry) -> None:
         # Create orchestrator with all dependencies
         orchestrator = ExecutionOrchestrator(
             person_repository=person_repo,
-            manage_conversation_use_case=manage_conversation_use_case,
+            conversation_repository=conversation_repo,
             prompt_loading_use_case=prompt_loading,
             memory_selector=None,  # No longer using domain adapters
             llm_service=llm_service,

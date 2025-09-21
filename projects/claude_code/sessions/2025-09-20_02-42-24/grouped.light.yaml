@@ -1,0 +1,130 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 100, y: 100}
+  props:
+    trigger_mode: manual
+    custom_data:
+      session_id: 9ef358b6-994c-469d-8e81-2b91348117c5
+      initial_prompt: |-
+        <command-name>/clear</command-name>
+                    <command-message>clear</command-message>
+                    <command-args></command-args>
+- label: Update TODO 1
+  type: db
+  position: {x: 300, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Search for DB node schema to understand lines prop support
+        status: in_progress
+        activeForm: Searching for DB node schema to understand lines prop support
+      - content: Modify create_read_node to extract limit and offset parameters
+        status: pending
+        activeForm: Modifying create_read_node to extract limit and offset parameters
+      - content: Convert limit/offset to lines prop format
+        status: pending
+        activeForm: Converting limit/offset to lines prop format
+      - content: Test the conversion with example Claude Code sessions
+        status: pending
+        activeForm: Testing the conversion with example Claude Code sessions
+- label: prev_to_do_sub
+  type: sub_diagram
+  position: {x: 500, y: 100}
+  props:
+    sub_diagram_path: grouped/prev_to_do.light.yaml
+    execution_mode: sequential
+- label: Update TODO 2
+  type: db
+  position: {x: 700, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Search for DB node schema to understand lines prop support
+        status: completed
+        activeForm: Searching for DB node schema to understand lines prop support
+      - content: Modify create_read_node to extract limit and offset parameters
+        status: in_progress
+        activeForm: Modifying create_read_node to extract limit and offset parameters
+      - content: Convert limit/offset to lines prop format
+        status: pending
+        activeForm: Converting limit/offset to lines prop format
+      - content: Test the conversion with example Claude Code sessions
+        status: pending
+        activeForm: Testing the conversion with example Claude Code sessions
+- label: to_do_2_sub
+  type: sub_diagram
+  position: {x: 900, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_2.light.yaml
+    execution_mode: sequential
+- label: Update TODO 3
+  type: db
+  position: {x: 1100, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Search for DB node schema to understand lines prop support
+        status: completed
+        activeForm: Searching for DB node schema to understand lines prop support
+      - content: Modify create_read_node to extract limit and offset parameters
+        status: completed
+        activeForm: Modifying create_read_node to extract limit and offset parameters
+      - content: Convert limit/offset to lines prop format
+        status: completed
+        activeForm: Converting limit/offset to lines prop format
+      - content: Test the conversion with example Claude Code sessions
+        status: in_progress
+        activeForm: Testing the conversion with example Claude Code sessions
+- label: to_do_3_sub
+  type: sub_diagram
+  position: {x: 1300, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_3.light.yaml
+    execution_mode: sequential
+connections:
+- {from: Start, to: Update TODO 1, content_type: raw_text}
+- {from: Update TODO 1, to: prev_to_do_sub, content_type: raw_text}
+- {from: prev_to_do_sub, to: Update TODO 2, content_type: raw_text}
+- {from: Update TODO 2, to: to_do_2_sub, content_type: raw_text}
+- {from: to_do_2_sub, to: Update TODO 3, content_type: raw_text}
+- {from: Update TODO 3, to: to_do_3_sub, content_type: raw_text}
+metadata:
+  conversion:
+    total_nodes: 39
+    total_connections: 38
+    total_persons: 0
+    node_types:
+      start: 1
+      person_job: 4
+      code_job: 13
+      db: 12
+      api_job: 6
+      diff_patch: 3
+  grouped: true
+  original_nodes: 39
+  sub_diagrams: 3
+  extracted_todos: 3
+  grouping_method: todo_updates_with_extraction
+  post_processing:
+    optimization:
+      applied: true
+      total_changes: 4
+      nodes_removed: 0
+      connections_modified: 0
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

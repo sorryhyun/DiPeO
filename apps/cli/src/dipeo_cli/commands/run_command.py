@@ -31,7 +31,7 @@ class RunCommand:
         timeout: int = 300,
         format_type: str | None = None,
         input_variables: dict[str, Any] | None = None,
-        use_unified: bool = False,
+        use_unified: bool = True,  # Default to unified monitoring
         simple: bool = False,
     ) -> bool:
         """Run a diagram via server."""

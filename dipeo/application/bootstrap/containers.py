@@ -45,7 +45,7 @@ class ApplicationContainer:
             lambda: DiagramValidator(api_key_service=self.registry.resolve(API_KEY_SERVICE)),
         )
 
-        from dipeo.application.utils import PromptBuilder
+        from dipeo.infrastructure.diagram.prompt_templates import PromptBuilder
 
         self.registry.register(
             PROMPT_BUILDER,
@@ -57,13 +57,13 @@ class ApplicationContainer:
         self.registry.register(NODE_REGISTRY, get_global_registry())
 
         from dipeo.domain.integrations.validators import DataValidator
-        from dipeo.infrastructure.shared.database.service import DBOperationsDomainService
+        from dipeo.infrastructure.storage import DBOperationsDomainService
 
         def create_db_operations_service():
             if self.registry.has(FILESYSTEM_ADAPTER):
                 file_system = self.registry.resolve(FILESYSTEM_ADAPTER)
             else:
-                from dipeo.infrastructure.shared.adapters import LocalFileSystemAdapter
+                from dipeo.infrastructure.storage import LocalFileSystemAdapter
 
                 file_system = LocalFileSystemAdapter()
 

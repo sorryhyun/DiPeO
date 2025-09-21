@@ -1,0 +1,430 @@
+version: light
+nodes:
+- label: Claude Responds To User 3
+  type: person_job
+  position:
+    x: 450
+    y: 100
+  props:
+    person: claude_code
+    default_prompt: it seems builders in @dipeo/domain/cc_translate/convert/ are not inheriting the abstract methods in @dipeo/domain/cc_translate/convert/builders.py . why? think and fix
+- label: Edit File 8
+  type: diff_patch
+  position:
+    x: 450
+    y: 250
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builders.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builders.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builders.py\n@@ -1,6 +1,6 @@\n     def create_node(\n         self,\n-        node_type: str,\n+        node_type: NodeType,\n         label: str,\n         props: dict[str, Any],\n         metadata: Optional[dict[str, Any]] = None,"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 11
+  type: api_job
+  position:
+    x: 450
+    y: 550
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 1
+  type: code_job
+  position:
+    x: 500
+    y: 100
+  props:
+    language: bash
+    code: ls -la /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/
+    timeout: 120000
+    description: List all files in convert directory
+- label: tool_result 5
+  type: api_job
+  position:
+    x: 500
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Claude Responds To User 4
+  type: person_job
+  position:
+    x: 500
+    y: 550
+  props:
+    person: claude_code
+    default_prompt: ok and how can we apply `NodeFactory` factory pattern? or, is it unnecessary? think
+- label: Read File 1
+  type: db
+  position:
+    x: 550
+    y: 100
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builders.py
+    lines: 1:100
+- label: Edit File 9
+  type: diff_patch
+  position:
+    x: 550
+    y: 400
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builders.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builders.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builders.py\n@@ -1,6 +1,6 @@\n         node = {\n             \"label\": label,\n-            \"type\": node_type,\n+            \"type\": node_type.value if isinstance(node_type, NodeType) else node_type,\n             \"position\": self.get_position(),\n             \"props\": props,\n         }"
+    format: unified
+    backup: true
+    validate: true
+- label: Grep Search 7
+  type: code_job
+  position:
+    x: 550
+    y: 550
+  props:
+    language: bash
+    code: rg -n 'EventNodeBuilder|create_node_from_event|NodeFactory' /home/soryhyun/DiPeO/dipeo/domain/cc_translate
+    tool: Grep
+    description: Grep search operation
+- label: Read File 2
+  type: db
+  position:
+    x: 600
+    y: 100
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/connection_builder.py
+- label: tool_result 6
+  type: api_job
+  position:
+    x: 600
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Read File 12
+  type: db
+  position:
+    x: 600
+    y: 550
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/builders.py
+    lines: 97:131
+- label: Grep Search 2
+  type: code_job
+  position:
+    x: 650
+    y: 100
+  props:
+    language: bash
+    code: rg -n 'NodeBuilder|ConnectionBuilder' /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert | head -n 30
+    tool: Grep
+    description: Grep search operation
+- label: Grep Search 8
+  type: code_job
+  position:
+    x: 650
+    y: 550
+  props:
+    language: bash
+    code: rg -n -A 1 'node_builder\.|self\.node_builder' /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+    tool: Grep
+    description: Grep search operation
+- label: tool_result 7
+  type: api_job
+  position:
+    x: 700
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 13
+  type: diff_patch
+  position:
+    x: 700
+    y: 700
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builders.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builders.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builders.py\n@@ -1,3 +1,3 @@\n from typing import Any, Optional\n \n-from .builders import BaseNodeBuilder, NodeType\n+from .builders import BaseNodeBuilder, EventNodeBuilder, NodeType"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 1
+  type: api_job
+  position:
+    x: 750
+    y: 100
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 10
+  type: diff_patch
+  position:
+    x: 750
+    y: 400
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/connection_builder.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/connection_builder.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/connection_builder.py\n@@ -4,7 +4,9 @@\n nodes in the DiPeO diagram during the conversion phase.\n \"\"\"\n \n-from typing import Any\n+from typing import Any, Optional\n+\n+from .builders import BaseConnectionBuilder\n \n \n-class ConnectionBuilder:\n+class ConnectionBuilder(BaseConnectionBuilder):"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 12
+  type: api_job
+  position:
+    x: 750
+    y: 700
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 3
+  type: diff_patch
+  position:
+    x: 800
+    y: 250
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builders.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builders.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builders.py\n@@ -2,6 +2,7 @@\n \n from typing import Any, Optional\n \n+from .builders import BaseNodeBuilder\n from ..shared.diff_utils import DiffGenerator\n from ..shared.payload_utils import (\n     classify_payload,\n@@ -18,4 +19,4 @@\n from ..shared.text_utils import TextProcessor\n \n \n-class NodeBuilder:\n+class NodeBuilder(BaseNodeBuilder):"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 8
+  type: api_job
+  position:
+    x: 800
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 14
+  type: diff_patch
+  position:
+    x: 800
+    y: 700
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builders.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builders.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builders.py\n@@ -1,2 +1,6 @@\n class NodeBuilder(BaseNodeBuilder):\n-    \"\"\"Builds different types of nodes for DiPeO diagrams from Claude Code events.\"\"\"\n+    \"\"\"Builds different types of nodes for DiPeO diagrams from Claude Code events.\n+\n+    This class implements both BaseNodeBuilder (abstract base) and satisfies\n+    the EventNodeBuilder protocol for event-driven node creation.\n+    \"\"\""
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 2
+  type: api_job
+  position:
+    x: 850
+    y: 250
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 11
+  type: diff_patch
+  position:
+    x: 850
+    y: 400
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/connection_builder.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/connection_builder.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/connection_builder.py\n@@ -1,3 +1,54 @@\n+    def create_connection(\n+        self, source_id: str, target_id: str, props: Optional[dict[str, Any]] = None\n+    ) -> dict[str, Any]:\n+        \"\"\"Create a connection between two nodes implementing abstract base.\n+\n+        Args:\n+            source_id: ID of the source node\n+            target_id: ID of the target node\n+            props: Optional connection properties\n+\n+        Returns:\n+            The created connection\n+        \"\"\"\n+        connection = {\n+            \"from\": source_id,\n+            \"to\": target_id,\n+            \"content_type\": props.get(\"content_type\", \"raw_text\") if props else \"raw_text\",\n+        }\n+        if props and \"label\" in props:\n+            connection[\"label\"] = props[\"label\"]\n+        self.connections.append(connection)\n+        return connection\n+\n+    def validate_connection(self, source_type: str, target_type: str) -> list[str]:\n+        \"\"\"Validate that a connection between two node types is allowed.\n+\n+        Args:\n+            source_type: Type of the source node\n+            target_type: Type of the target node\n+\n+        Returns:\n+            List of validation errors (empty if valid)\n+        \"\"\"\n+        # Define allowed connections based on DiPeO node types\n+        allowed_connections = {\n+            \"start\": [\"person_job\", \"db\", \"code_job\", \"api_job\", \"diff_patch\"],\n+            \"person_job\": [\"person_job\", \"db\", \"code_job\", \"api_job\", \"diff_patch\"],\n+            \"db\": [\"person_job\", \"db\", \"code_job\", \"api_job\", \"diff_patch\"],\n+            \"code_job\": [\"person_job\", \"db\", \"code_job\", \"api_job\", \"diff_patch\"],\n+            \"api_job\": [\"person_job\", \"db\", \"code_job\", \"api_job\", \"diff_patch\"],\n+            \"diff_patch\": [\"person_job\", \"db\", \"code_job\", \"api_job\", \"diff_patch\"],\n+        }\n+\n+        errors = []\n+        if source_type not in allowed_connections:\n+            errors.append(f\"Unknown source node type: {source_type}\")\n+        elif target_type not in allowed_connections.get(source_type, []):\n+            errors.append(f\"Connection not allowed from {source_type} to {target_type}\")\n+\n+        return errors\n+\n     def get_connections(self) -> list[dict[str, Any]]:\n         \"\"\"Get all connections built so far.\n "
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 13
+  type: api_job
+  position:
+    x: 850
+    y: 700
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 9
+  type: api_job
+  position:
+    x: 900
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 9
+  type: code_job
+  position:
+    x: 900
+    y: 700
+  props:
+    language: bash
+    code: "python -c \"\nfrom typing import cast\nfrom dipeo.domain.cc_translate.convert.node_builders import NodeBuilder\nfrom dipeo.domain.cc_translate.convert.builders import EventNodeBuilder, NodeFactory\n\n# Create a NodeBuilder instance\nbuilder = NodeBuilder()\n\n# Verify it satisfies EventNodeBuilder protocol\n# This is a runtime check - in actual code, type checkers would verify this\nprint('NodeBuilder methods matching EventNodeBuilder protocol:')\nprotocol_methods = ['create_start_node', 'create_user_node', 'create_assistant_node', \n                   'create_tool_node', 'get_nodes', 'get_persons']\nfor method in protocol_methods:\n    has_method = hasattr(builder, method)\n    print(f'  - {method}: {has_method}')\n\n# Test that NodeBuilder can be used with NodeFactory\ntry:\n    # Cast to show it satisfies the protocol\n    event_builder: EventNodeBuilder = cast(EventNodeBuilder, builder)\n    factory = NodeFactory(event_builder)\n    print('\\n✓ NodeBuilder can be used with NodeFactory')\n    \n    # Test creating a node through the factory's validation\n    from dipeo.diagram_generated.enums import NodeType as GenNodeType\n    context = factory.validate_and_create(\n        node_type=GenNodeType.START,\n        label='Test Start',\n        props={'trigger_mode': 'manual'}\n    )\n    print(f'✓ Node validation context created: valid={context.is_valid()}')\n    \nexcept Exception as e:\n    print(f'\\n✗ Error: {e}')\n\""
+    timeout: 120000
+    description: Verify NodeBuilder satisfies EventNodeBuilder protocol
+- label: Bash Command 3
+  type: code_job
+  position:
+    x: 950
+    y: 250
+  props:
+    language: bash
+    code: tail -20 /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builders.py
+    timeout: 120000
+    description: Check end of node_builders.py file
+- label: Claude Responds To User 5
+  type: person_job
+  position:
+    x: 950
+    y: 700
+  props:
+    person: claude_code
+    default_prompt: '[Request interrupted by user]'
+- label: tool_result 10
+  type: api_job
+  position:
+    x: 1000
+    y: 550
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 6
+  type: diff_patch
+  position:
+    x: 1050
+    y: 250
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builders.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builders.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builders.py\n@@ -1,3 +1,81 @@\n             print(f\"Warning: Error creating {tool_name} node: {e}\")\n             # Fallback to generic node on error\n             return self.create_generic_tool_node(tool_name, tool_input)\n+\n+    def create_node(\n+        self,\n+        node_type: str,\n+        label: str,\n+        props: dict[str, Any],\n+        metadata: Optional[dict[str, Any]] = None,\n+    ) -> Optional[dict[str, Any]]:\n+        \"\"\"Generic node creation method implementing abstract base.\n+\n+        Args:\n+            node_type: The type of node to create\n+            label: The label for the node\n+            props: Node properties\n+            metadata: Optional metadata for the node\n+\n+        Returns:\n+            The created node or None if creation failed\n+        \"\"\"\n+        node = {\n+            \"label\": label,\n+            \"type\": node_type,\n+            \"position\": self.get_position(),\n+            \"props\": props,\n+        }\n+        if metadata:\n+            node[\"metadata\"] = metadata\n+        self.nodes.append(node)\n+        return node\n+\n+    def validate_node(self, node: dict[str, Any]) -> list[str]:\n+        \"\"\"Validate a node structure.\n+\n+        Args:\n+            node: The node to validate\n+\n+        Returns:\n+            List of validation errors (empty if valid)\n+        \"\"\"\n+        errors = []\n+\n+        # Check required fields\n+        if \"type\" not in node:\n+            errors.append(\"Missing required field: type\")\n+        if \"label\" not in node:\n+            errors.append(\"Missing required field: label\")\n+        if \"position\" not in node:\n+            errors.append(\"Missing required field: position\")\n+\n+        # Validate position structure\n+        if \"position\" in node:\n+            position = node[\"position\"]\n+            if not isinstance(position, dict):\n+                errors.append(\"Position must be a dictionary\")\n+            elif \"x\" not in position or \"y\" not in position:\n+                errors.append(\"Position must have x and y coordinates\")\n+\n+        # Validate props if present\n+        if \"props\" in node and not isinstance(node[\"props\"], dict):\n+            errors.append(\"Node props must be a dictionary\")\n+\n+        return errors\n+\n+    def get_nodes(self) -> list[dict[str, Any]]:\n+        \"\"\"Get all created nodes.\n+\n+        Returns:\n+            List of all nodes created by this builder\n+        \"\"\"\n+        return self.nodes.copy()\n+\n+    def get_persons(self) -> dict[str, dict[str, Any]]:\n+        \"\"\"Get all registered persons.\n+\n+        Returns:\n+            Dictionary of person configurations\n+        \"\"\"\n+        return self.persons.copy()"
+    format: unified
+    backup: true
+    validate: true
+- label: Bash Command 4
+  type: code_job
+  position:
+    x: 1050
+    y: 550
+  props:
+    language: bash
+    code: python -c "from dipeo.domain.cc_translate.convert import NodeBuilder, ConnectionBuilder; print('NodeBuilder parent classes:', NodeBuilder.__bases__); print('ConnectionBuilder parent classes:', ConnectionBuilder.__bases__)"
+    timeout: 120000
+    description: Test inheritance of builder classes
+connections:
+- from: Claude Responds To User 3
+  to: Bash Command 1
+  content_type: raw_text
+- from: Bash Command 1
+  to: Read File 1
+  content_type: raw_text
+- from: Read File 1
+  to: Read File 2
+  content_type: raw_text
+- from: Read File 2
+  to: Grep Search 2
+  content_type: raw_text
+- from: tool_result 1
+  to: Edit File 3
+  content_type: raw_text
+- from: Edit File 3
+  to: tool_result 2
+  content_type: raw_text
+- from: Edit File 8
+  to: tool_result 5
+  content_type: raw_text
+- from: tool_result 5
+  to: Edit File 9
+  content_type: raw_text
+- from: Edit File 9
+  to: tool_result 6
+  content_type: raw_text
+- from: tool_result 7
+  to: Edit File 10
+  content_type: raw_text
+- from: Edit File 10
+  to: tool_result 8
+  content_type: raw_text
+- from: tool_result 8
+  to: Edit File 11
+  content_type: raw_text
+- from: Edit File 11
+  to: tool_result 9
+  content_type: raw_text
+- from: tool_result 10
+  to: Bash Command 4
+  content_type: raw_text
+- from: tool_result 11
+  to: Claude Responds To User 4
+  content_type: raw_text
+- from: Claude Responds To User 4
+  to: Grep Search 7
+  content_type: raw_text
+- from: Grep Search 7
+  to: Read File 12
+  content_type: raw_text
+- from: Read File 12
+  to: Grep Search 8
+  content_type: raw_text
+- from: Grep Search 8
+  to: Edit File 13
+  content_type: raw_text
+- from: Edit File 13
+  to: tool_result 12
+  content_type: raw_text
+- from: tool_result 12
+  to: Edit File 14
+  content_type: raw_text
+- from: Edit File 14
+  to: tool_result 13
+  content_type: raw_text
+- from: tool_result 13
+  to: Bash Command 9
+  content_type: raw_text
+- from: Bash Command 9
+  to: Claude Responds To User 5
+  content_type: raw_text
+- from: tool_result 2
+  to: Read File 1
+  content_type: raw_text
+- from: Read File 1
+  to: Bash Command 3
+  content_type: raw_text
+- from: Bash Command 3
+  to: Read File 1
+  content_type: raw_text
+- from: Read File 1
+  to: Edit File 6
+  content_type: raw_text
+metadata:
+  group_name: to_do_4
+  node_count: 32
+  connection_count: 28
+  extracted_from: unknown
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

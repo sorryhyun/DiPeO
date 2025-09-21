@@ -1,0 +1,3870 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 100, y: 100}
+  props:
+    trigger_mode: manual
+    custom_data:
+      session_id: 4b49c446-f6b4-4262-9f2f-f6177168ca3e
+      initial_prompt: |-
+        <command-name>/clear</command-name>
+                    <command-message>clear</command-message>
+                    <command-args></command-args>
+- label: Claude Responds To User 1
+  type: person_job
+  position: {x: 350, y: 100}
+  props:
+    person: claude_code
+    default_prompt: |-
+      <command-name>/clear</command-name>
+                  <command-message>clear</command-message>
+                  <command-args></command-args>
+- label: Claude Responds To User 2
+  type: person_job
+  position: {x: 400, y: 100}
+  props:
+    person: claude_code
+    default_prompt: <local-command-stdout></local-command-stdout>
+- label: Claude Responds To User 3
+  type: person_job
+  position: {x: 450, y: 100}
+  props:
+    person: claude_code
+    default_prompt: it seems @dipeo/domain/cc_translate/convert/node_builders.py is quite monolithic and, @dipeo/domain/cc_translate/convert/diagram_assembler.py is not being used it seems. anyway how can we refactor files in @dipeo/domain/cc_translate/convert/ ? think
+- label: Bash Command 1
+  type: code_job
+  position: {x: 500, y: 100}
+  props:
+    language: bash
+    code: find /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert -type f -name "*.py" | head -20
+    timeout: 120000
+    description: Find all Python files in cc_translate/convert directory
+- label: Read File 1
+  type: db
+  position: {x: 550, y: 100}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/builders.py
+- label: Read File 2
+  type: db
+  position: {x: 600, y: 100}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/__init__.py
+- label: Grep Search 2
+  type: code_job
+  position: {x: 650, y: 100}
+  props:
+    language: bash
+    code: rg 'class|def' /home/soryhyun/DiPeO/dipeo/domain/cc_translate/shared | head -n 50
+    tool: Grep
+    description: Grep search operation
+- label: Read File 3
+  type: db
+  position: {x: 700, y: 100}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+    lines: 1:100
+- label: Read File 4
+  type: db
+  position: {x: 750, y: 100}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/connection_builder.py
+    lines: 1:100
+- label: Read File 5
+  type: db
+  position: {x: 800, y: 250}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/base.py
+    lines: 1:100
+- label: ExitPlanMode 1
+  type: api_job
+  position: {x: 850, y: 250}
+  props:
+    endpoint: /tools/ExitPlanMode
+    method: POST
+    body:
+      plan: "## Refactoring Plan for cc_translate/convert Module\n\n### Phase 1: Create Specialized Node Builders\n**Split NodeBuilder into focused node builders using factory pattern:**\n\n1. **node_factories/base_node_builder.py**\n   - Abstract base with common node creation logic\n   - Counter management, position calculation\n   - Basic validation\n\n2. **node_factories/tool_node_factory.py**\n   - Factory for creating tool-based nodes\n   - Delegates to specific builders based on tool type\n\n3. **Individual node builders:**\n   - **start_node_builder.py** - Start node creation\n   - **person_node_builder.py** - User/Assistant nodes  \n   - **file_node_builder.py** - Read/Write/Edit file operations\n   - **code_node_builder.py** - Bash/Search operations\n   - **db_node_builder.py** - Database/TODO operations\n   - **api_node_builder.py** - Generic API nodes\n\n### Phase 2: Extract Cross-Cutting Concerns\n\n4. **position_manager.py**\n   - Node positioning logic\n   - Layout algorithms\n\n5. **person_registry.py**\n   - Person registration and management\n   - Claude/user person configuration\n\n6. **payload_processor.py**\n   - Move payload extraction from node_builders\n   - Centralize tool result processing\n\n### Phase 3: Reorganize Utilities\n\n7. **Move shared utilities into convert module:**\n   - **convert/text_utils.py** (from shared/)\n   - **convert/diff_utils.py** (from shared/)\n   - **convert/payload_utils.py** (from shared/)\n\n### Phase 4: Enhance DiagramAssembler\n\n8. **Expand DiagramAssembler responsibilities:**\n   - Take over person registry management\n   - Add diagram validation\n   - Handle preprocessing metadata integration\n\n### Phase 5: Unify Validation\n\n9. **Use existing validators consistently:**\n   - Remove duplicate validation in node_builders\n   - Use NodeBuilderValidator and ConnectionBuilderValidator from builders.py\n\n### File Structure After Refactoring:\n```\nconvert/\n├── __init__.py\n├── base.py\n├── builders.py (validators)\n├── converter.py (main orchestrator)\n├── connection_builder.py\n├── diagram_assembler.py (enhanced)\n├── position_manager.py (new)\n├── person_registry.py (new)\n├── payload_processor.py (new)\n├── node_factories/\n│   ├── __init__.py\n│   ├── base_node_builder.py\n│   ├── tool_node_factory.py\n│   ├── start_node_builder.py\n│   ├── person_node_builder.py\n│   ├── file_node_builder.py\n│   ├── code_node_builder.py\n│   ├── db_node_builder.py\n│   └── api_node_builder.py\n└── utils/\n    ├── __init__.py\n    ├── text_utils.py (moved from shared/)\n    ├── diff_utils.py (moved from shared/)\n    └── payload_utils.py (moved from shared/)\n```\n\n### Benefits:\n- **Single Responsibility**: Each builder focuses on one node type\n- **Better testability**: Smaller, focused classes\n- **Easier maintenance**: Clear separation of concerns\n- **Extensibility**: Easy to add new node types\n- **Reusability**: Shared utilities properly organized"
+    timeout: 30
+    description: ExitPlanMode operation
+- label: tool_result 2
+  type: api_job
+  position: {x: 900, y: 250}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Update TODO 1
+  type: db
+  position: {x: 950, y: 250}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Create node_factories subdirectory structure
+        status: pending
+        activeForm: Creating node_factories subdirectory structure
+      - content: Extract base_node_builder.py with common logic
+        status: pending
+        activeForm: Extracting base_node_builder.py with common logic
+      - content: Create tool_node_factory.py as main factory
+        status: pending
+        activeForm: Creating tool_node_factory.py as main factory
+      - content: Create specialized node builders (start, person, file, code, db, api)
+        status: pending
+        activeForm: Creating specialized node builders
+      - content: Extract position_manager.py for positioning logic
+        status: pending
+        activeForm: Extracting position_manager.py for positioning logic
+      - content: Extract person_registry.py for person management
+        status: pending
+        activeForm: Extracting person_registry.py for person management
+      - content: Extract payload_processor.py for payload handling
+        status: pending
+        activeForm: Extracting payload_processor.py for payload handling
+      - content: Move shared utilities to convert/utils
+        status: pending
+        activeForm: Moving shared utilities to convert/utils
+      - content: Enhance DiagramAssembler with person registry
+        status: pending
+        activeForm: Enhancing DiagramAssembler with person registry
+      - content: Update converter.py to use new structure
+        status: pending
+        activeForm: Updating converter.py to use new structure
+      - content: Update imports in __init__.py
+        status: pending
+        activeForm: Updating imports in __init__.py
+      - content: Test refactored code with dipeocc
+        status: pending
+        activeForm: Testing refactored code with dipeocc
+- label: tool_result 3
+  type: api_job
+  position: {x: 1000, y: 250}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Update TODO 2
+  type: db
+  position: {x: 1050, y: 250}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Create node_factories subdirectory structure
+        status: in_progress
+        activeForm: Creating node_factories subdirectory structure
+      - content: Extract base_node_builder.py with common logic
+        status: pending
+        activeForm: Extracting base_node_builder.py with common logic
+      - content: Create tool_node_factory.py as main factory
+        status: pending
+        activeForm: Creating tool_node_factory.py as main factory
+      - content: Create specialized node builders (start, person, file, code, db, api)
+        status: pending
+        activeForm: Creating specialized node builders
+      - content: Extract position_manager.py for positioning logic
+        status: pending
+        activeForm: Extracting position_manager.py for positioning logic
+      - content: Extract person_registry.py for person management
+        status: pending
+        activeForm: Extracting person_registry.py for person management
+      - content: Extract payload_processor.py for payload handling
+        status: pending
+        activeForm: Extracting payload_processor.py for payload handling
+      - content: Move shared utilities to convert/utils
+        status: pending
+        activeForm: Moving shared utilities to convert/utils
+      - content: Enhance DiagramAssembler with person registry
+        status: pending
+        activeForm: Enhancing DiagramAssembler with person registry
+      - content: Update converter.py to use new structure
+        status: pending
+        activeForm: Updating converter.py to use new structure
+      - content: Update imports in __init__.py
+        status: pending
+        activeForm: Updating imports in __init__.py
+      - content: Test refactored code with dipeocc
+        status: pending
+        activeForm: Testing refactored code with dipeocc
+- label: tool_result 4
+  type: api_job
+  position: {x: 300, y: 250}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 3
+  type: code_job
+  position: {x: 350, y: 250}
+  props:
+    language: bash
+    code: mkdir -p /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories
+    timeout: 120000
+    description: Create node_factories directory
+- label: Write File 6
+  type: db
+  position: {x: 400, y: 250}
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/position_manager.py
+    content: |-
+      """Position management for nodes in DiPeO diagrams.
+
+      This module handles node positioning logic including layout algorithms
+      and position calculations for diagram visualization.
+      """
+
+      from typing import Optional
+
+
+      class PositionManager:
+          """Manages node positioning for DiPeO diagram layout."""
+
+          def __init__(self, initial_x: int = 100, initial_y: int = 100):
+              """Initialize the position manager.
+
+              Args:
+                  initial_x: Starting X coordinate for nodes
+                  initial_y: Starting Y coordinate for nodes
+              """
+              self.initial_x = initial_x
+              self.initial_y = initial_y
+              self.node_counter = 0
+              self.current_x = initial_x
+              self.current_y = initial_y
+
+          def reset(self):
+              """Reset position manager to initial state."""
+              self.node_counter = 0
+              self.current_x = self.initial_x
+              self.current_y = self.initial_y
+
+          def get_next_position(self) -> dict[str, int]:
+              """Calculate position for the next node.
+
+              Returns:
+                  Dictionary with x and y coordinates
+              """
+              self.node_counter += 1
+
+              # Calculate position with horizontal spread and vertical rows
+              x = 300 + (self.node_counter * 50) % 800
+              y = 100 + (self.node_counter // 10) * 150
+
+              return {"x": x, "y": y}
+
+          def get_start_position(self) -> dict[str, int]:
+              """Get the position for the start node.
+
+              Returns:
+                  Dictionary with x and y coordinates for start node
+              """
+              return {"x": self.initial_x, "y": self.initial_y}
+
+          def get_position_for_index(self, index: int) -> dict[str, int]:
+              """Calculate position for a specific node index.
+
+              Args:
+                  index: The node index to calculate position for
+
+              Returns:
+                  Dictionary with x and y coordinates
+              """
+              x = 300 + (index * 50) % 800
+              y = 100 + (index // 10) * 150
+
+              return {"x": x, "y": y}
+
+          def set_custom_position(self, x: int, y: int):
+              """Set a custom position for special nodes.
+
+              Args:
+                  x: X coordinate
+                  y: Y coordinate
+              """
+              self.current_x = x
+              self.current_y = y
+
+          @property
+          def current_position(self) -> dict[str, int]:
+              """Get the current position without incrementing counter.
+
+              Returns:
+                  Dictionary with current x and y coordinates
+              """
+              return {"x": self.current_x, "y": self.current_y}
+
+          def increment_counter(self) -> int:
+              """Increment and return the node counter.
+
+              Returns:
+                  The incremented node counter
+              """
+              self.node_counter += 1
+              return self.node_counter
+
+
+      class GridPositionManager(PositionManager):
+          """Alternative position manager using grid-based layout."""
+
+          def __init__(
+              self,
+              initial_x: int = 100,
+              initial_y: int = 100,
+              grid_width: int = 5,
+              cell_width: int = 200,
+              cell_height: int = 150,
+          ):
+              """Initialize grid-based position manager.
+
+              Args:
+                  initial_x: Starting X coordinate
+                  initial_y: Starting Y coordinate
+                  grid_width: Number of columns in grid
+                  cell_width: Width of each grid cell
+                  cell_height: Height of each grid cell
+              """
+              super().__init__(initial_x, initial_y)
+              self.grid_width = grid_width
+              self.cell_width = cell_width
+              self.cell_height = cell_height
+
+          def get_next_position(self) -> dict[str, int]:
+              """Calculate position for the next node using grid layout.
+
+              Returns:
+                  Dictionary with x and y coordinates
+              """
+              col = self.node_counter % self.grid_width
+              row = self.node_counter // self.grid_width
+
+              x = self.initial_x + (col * self.cell_width)
+              y = self.initial_y + (row * self.cell_height)
+
+              self.node_counter += 1
+
+              return {"x": x, "y": y}
+- label: tool_result 5
+  type: api_job
+  position: {x: 450, y: 250}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Write File 7
+  type: db
+  position: {x: 500, y: 400}
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/person_registry.py
+    content: |-
+      """Person registry management for Claude Code translation.
+
+      This module manages the registration and configuration of AI agents (persons)
+      that participate in the conversation within DiPeO diagrams.
+      """
+
+      from typing import Any, Optional
+
+
+      class PersonRegistry:
+          """Manages registration of persons (AI agents) in DiPeO diagrams."""
+
+          def __init__(self):
+              """Initialize the person registry."""
+              self.persons: dict[str, dict[str, Any]] = {}
+              self._default_claude_config = {
+                  "service": "anthropic",
+                  "model": "claude-code",
+                  "api_key_id": "APIKEY_CLAUDE",
+                  "system_prompt": "You are Claude Code, an AI assistant helping with software development.",
+              }
+              self._default_user_config = {
+                  "service": "human",
+                  "model": "user",
+                  "api_key_id": None,
+                  "system_prompt": "Human user providing input and feedback.",
+              }
+
+          def reset(self):
+              """Reset the person registry."""
+              self.persons = {}
+
+          def register_claude(
+              self,
+              person_id: str = "claude_code",
+              system_messages: Optional[list[str]] = None,
+              custom_config: Optional[dict[str, Any]] = None,
+          ) -> dict[str, Any]:
+              """Register Claude as a person in the diagram.
+
+              Args:
+                  person_id: Identifier for Claude person
+                  system_messages: Optional system messages to include in prompt
+                  custom_config: Optional custom configuration to override defaults
+
+              Returns:
+                  The registered Claude person configuration
+              """
+              if person_id in self.persons:
+                  return self.persons[person_id]
+
+              # Build system prompt with additional context if provided
+              base_prompt = self._default_claude_config["system_prompt"]
+              if system_messages:
+                  # Add meta/system messages to provide context (limit to first 5)
+                  system_context = "\n\nAdditional context:\n" + "\n".join(
+                      system_messages[:5]
+                  )
+                  full_system_prompt = base_prompt + system_context
+              else:
+                  full_system_prompt = base_prompt
+
+              # Create Claude configuration
+              claude_config = self._default_claude_config.copy()
+              claude_config["system_prompt"] = full_system_prompt
+
+              # Apply any custom configuration
+              if custom_config:
+                  claude_config.update(custom_config)
+
+              self.persons[person_id] = claude_config
+              return claude_config
+
+          def register_user(
+              self,
+              person_id: str = "user",
+              custom_config: Optional[dict[str, Any]] = None,
+          ) -> dict[str, Any]:
+              """Register a human user as a person in the diagram.
+
+              Args:
+                  person_id: Identifier for user person
+                  custom_config: Optional custom configuration to override defaults
+
+              Returns:
+                  The registered user person configuration
+              """
+              if person_id in self.persons:
+                  return self.persons[person_id]
+
+              user_config = self._default_user_config.copy()
+
+              # Apply any custom configuration
+              if custom_config:
+                  user_config.update(custom_config)
+
+              self.persons[person_id] = user_config
+              return user_config
+
+          def register_custom_person(
+              self,
+              person_id: str,
+              service: str,
+              model: str,
+              api_key_id: Optional[str] = None,
+              system_prompt: str = "",
+              **kwargs: Any,
+          ) -> dict[str, Any]:
+              """Register a custom AI agent as a person.
+
+              Args:
+                  person_id: Unique identifier for the person
+                  service: Service provider (e.g., "openai", "anthropic")
+                  model: Model name (e.g., "gpt-5", "claude-code")
+                  api_key_id: Optional API key identifier
+                  system_prompt: System prompt for the agent
+                  **kwargs: Additional configuration parameters
+
+              Returns:
+                  The registered person configuration
+              """
+              if person_id in self.persons:
+                  return self.persons[person_id]
+
+              person_config = {
+                  "service": service,
+                  "model": model,
+                  "api_key_id": api_key_id,
+                  "system_prompt": system_prompt,
+                  **kwargs,
+              }
+
+              self.persons[person_id] = person_config
+              return person_config
+
+          def get_person(self, person_id: str) -> Optional[dict[str, Any]]:
+              """Get a registered person's configuration.
+
+              Args:
+                  person_id: The person identifier
+
+              Returns:
+                  Person configuration if registered, None otherwise
+              """
+              return self.persons.get(person_id)
+
+          def is_registered(self, person_id: str) -> bool:
+              """Check if a person is registered.
+
+              Args:
+                  person_id: The person identifier
+
+              Returns:
+                  True if person is registered, False otherwise
+              """
+              return person_id in self.persons
+
+          def get_all_persons(self) -> dict[str, dict[str, Any]]:
+              """Get all registered persons.
+
+              Returns:
+                  Dictionary of all registered persons
+              """
+              return self.persons.copy()
+
+          def update_person(
+              self, person_id: str, updates: dict[str, Any]
+          ) -> Optional[dict[str, Any]]:
+              """Update an existing person's configuration.
+
+              Args:
+                  person_id: The person identifier
+                  updates: Dictionary of fields to update
+
+              Returns:
+                  Updated person configuration if exists, None otherwise
+              """
+              if person_id not in self.persons:
+                  return None
+
+              self.persons[person_id].update(updates)
+              return self.persons[person_id]
+
+          def ensure_claude_registered(
+              self, system_messages: Optional[list[str]] = None
+          ) -> str:
+              """Ensure Claude is registered and return the person ID.
+
+              Args:
+                  system_messages: Optional system messages to include
+
+              Returns:
+                  The Claude person ID
+              """
+              person_id = "claude_code"
+              if not self.is_registered(person_id):
+                  self.register_claude(person_id, system_messages)
+              return person_id
+- label: tool_result 6
+  type: api_job
+  position: {x: 550, y: 400}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Write File 8
+  type: db
+  position: {x: 600, y: 400}
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/payload_processor.py
+    content: |-
+      """Payload processing for tool results in Claude Code translation.
+
+      This module handles the extraction and processing of tool result payloads
+      to determine the appropriate node creation strategy.
+      """
+
+      from typing import Any, Optional
+
+
+      class PayloadProcessor:
+          """Processes tool result payloads for node creation decisions."""
+
+          def extract_tool_result_payload(
+              self, tool_use_result: Optional[dict[str, Any] | list[Any] | str]
+          ) -> Optional[dict[str, Any]]:
+              """Select the most useful tool result payload for diff generation.
+
+              Args:
+                  tool_use_result: The tool use result from Claude Code
+
+              Returns:
+                  The most useful payload dictionary or None
+              """
+              if not tool_use_result:
+                  return None
+
+              candidates: list[Any]
+              if isinstance(tool_use_result, dict):
+                  candidates = [tool_use_result]
+              elif isinstance(tool_use_result, list):
+                  # Prefer latest results (reverse order)
+                  candidates = [item for item in reversed(tool_use_result)]
+              else:
+                  # Strings or other primitives are not useful for diff reconstruction
+                  return None
+
+              for candidate in candidates:
+                  if not isinstance(candidate, dict):
+                      continue
+
+                  # Ignore explicit errors or empty payloads
+                  if candidate.get("error") or candidate.get("status") == "error":
+                      continue
+
+                  # Check for useful content
+                  has_content = any(
+                      key in candidate
+                      for key in (
+                          "structuredPatch",
+                          "patch",
+                          "diff",
+                          "originalFile",
+                          "originalFileContents",
+                          "content",
+                          "result",
+                      )
+                  )
+                  if not has_content:
+                      continue
+
+                  return candidate
+
+              return None
+
+          def extract_file_content(
+              self, payload: dict[str, Any], key_priority: list[str] | None = None
+          ) -> Optional[str]:
+              """Extract file content from a payload.
+
+              Args:
+                  payload: The payload dictionary
+                  key_priority: Priority list of keys to check (default: common content keys)
+
+              Returns:
+                  The extracted content or None
+              """
+              if not payload:
+                  return None
+
+              # Default priority for content keys
+              if key_priority is None:
+                  key_priority = [
+                      "content",
+                      "file_content",
+                      "fileContent",
+                      "data",
+                      "text",
+                      "body",
+                  ]
+
+              for key in key_priority:
+                  if key in payload:
+                      content = payload[key]
+                      if isinstance(content, str):
+                          return content
+                      elif isinstance(content, dict) and "text" in content:
+                          return content["text"]
+
+              return None
+
+          def extract_error_info(
+              self, payload: dict[str, Any]
+          ) -> tuple[bool, Optional[str]]:
+              """Extract error information from a payload.
+
+              Args:
+                  payload: The payload dictionary
+
+              Returns:
+                  Tuple of (is_error, error_message)
+              """
+              if not payload:
+                  return False, None
+
+              # Check for explicit error fields
+              if payload.get("error"):
+                  error_msg = payload.get("error")
+                  if isinstance(error_msg, str):
+                      return True, error_msg
+                  elif isinstance(error_msg, dict):
+                      return True, error_msg.get("message", str(error_msg))
+                  return True, str(error_msg)
+
+              if payload.get("status") == "error":
+                  return True, payload.get("message", "Unknown error")
+
+              if payload.get("success") is False:
+                  return True, payload.get("message", "Operation failed")
+
+              return False, None
+
+          def extract_file_path(self, payload: dict[str, Any]) -> Optional[str]:
+              """Extract file path from a payload.
+
+              Args:
+                  payload: The payload dictionary
+
+              Returns:
+                  The extracted file path or None
+              """
+              if not payload:
+                  return None
+
+              # Check common file path keys
+              path_keys = ["file_path", "filePath", "path", "file", "target", "filename"]
+
+              for key in path_keys:
+                  if key in payload:
+                      path = payload[key]
+                      if isinstance(path, str):
+                          return path
+
+              return None
+
+          def extract_operation_type(self, payload: dict[str, Any]) -> Optional[str]:
+              """Determine the operation type from a payload.
+
+              Args:
+                  payload: The payload dictionary
+
+              Returns:
+                  The operation type (e.g., "read", "write", "edit") or None
+              """
+              if not payload:
+                  return None
+
+              # Check explicit operation field
+              if "operation" in payload:
+                  return payload["operation"]
+
+              # Infer from content structure
+              if any(
+                  key in payload
+                  for key in ["structuredPatch", "patch", "diff", "old_string", "new_string"]
+              ):
+                  return "edit"
+
+              if any(
+                  key in payload
+                  for key in ["content", "file_content", "write_content", "data"]
+              ):
+                  # Check if it's a read based on other indicators
+                  if payload.get("mode") == "r" or payload.get("action") == "read":
+                      return "read"
+                  return "write"
+
+              if any(key in payload for key in ["command", "code", "script"]):
+                  return "execute"
+
+              if any(key in payload for key in ["query", "search", "pattern"]):
+                  return "search"
+
+              return None
+
+          def should_create_diff_node(self, payload: dict[str, Any]) -> bool:
+              """Determine if a diff_patch node should be created.
+
+              Args:
+                  payload: The payload dictionary
+
+              Returns:
+                  True if a diff_patch node should be created
+              """
+              if not payload:
+                  return False
+
+              # Check for error
+              is_error, _ = self.extract_error_info(payload)
+              if is_error:
+                  return False
+
+              # Check for diff/patch content
+              return any(
+                  key in payload
+                  for key in [
+                      "structuredPatch",
+                      "patch",
+                      "diff",
+                      "originalFile",
+                      "originalFileContents",
+                  ]
+              )
+
+          def should_create_write_node(self, payload: dict[str, Any]) -> bool:
+              """Determine if a write node should be created.
+
+              Args:
+                  payload: The payload dictionary
+
+              Returns:
+                  True if a write node should be created
+              """
+              if not payload:
+                  return False
+
+              # Check for error
+              is_error, _ = self.extract_error_info(payload)
+              if is_error:
+                  return False
+
+              # Must have content but no original/diff info
+              has_content = any(
+                  key in payload for key in ["content", "file_content", "write_content"]
+              )
+
+              has_diff_info = any(
+                  key in payload
+                  for key in [
+                      "structuredPatch",
+                      "patch",
+                      "diff",
+                      "originalFile",
+                      "originalFileContents",
+                  ]
+              )
+
+              return has_content and not has_diff_info
+
+          def merge_payloads(
+              self, primary: dict[str, Any], secondary: dict[str, Any]
+          ) -> dict[str, Any]:
+              """Merge two payloads, with primary taking precedence.
+
+              Args:
+                  primary: Primary payload (takes precedence)
+                  secondary: Secondary payload
+
+              Returns:
+                  Merged payload dictionary
+              """
+              merged = secondary.copy()
+              merged.update(primary)
+              return merged
+- label: tool_result 7
+  type: api_job
+  position: {x: 650, y: 400}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Update TODO 3
+  type: db
+  position: {x: 700, y: 400}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Create node_factories subdirectory structure
+        status: completed
+        activeForm: Creating node_factories subdirectory structure
+      - content: Extract position_manager.py for positioning logic
+        status: completed
+        activeForm: Extracting position_manager.py for positioning logic
+      - content: Extract person_registry.py for person management
+        status: completed
+        activeForm: Extracting person_registry.py for person management
+      - content: Extract payload_processor.py for payload handling
+        status: completed
+        activeForm: Extracting payload_processor.py for payload handling
+      - content: Extract base_node_builder.py with common logic
+        status: in_progress
+        activeForm: Extracting base_node_builder.py with common logic
+      - content: Create tool_node_factory.py as main factory
+        status: pending
+        activeForm: Creating tool_node_factory.py as main factory
+      - content: Create specialized node builders (start, person, file, code, db, api)
+        status: pending
+        activeForm: Creating specialized node builders
+      - content: Move shared utilities to convert/utils
+        status: pending
+        activeForm: Moving shared utilities to convert/utils
+      - content: Enhance DiagramAssembler with person registry
+        status: pending
+        activeForm: Enhancing DiagramAssembler with person registry
+      - content: Update converter.py to use new structure
+        status: pending
+        activeForm: Updating converter.py to use new structure
+      - content: Update imports in __init__.py
+        status: pending
+        activeForm: Updating imports in __init__.py
+      - content: Test refactored code with dipeocc
+        status: pending
+        activeForm: Testing refactored code with dipeocc
+- label: tool_result 8
+  type: api_job
+  position: {x: 750, y: 400}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Write File 9
+  type: db
+  position: {x: 800, y: 400}
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/base_node_builder.py
+    content: |-
+      """Base node builder with common functionality for all node types.
+
+      This module provides the abstract base class and common functionality
+      for all specialized node builders in the DiPeO diagram conversion.
+      """
+
+      from abc import ABC, abstractmethod
+      from typing import Any, Optional
+
+      from ..position_manager import PositionManager
+
+
+      class BaseNodeBuilder(ABC):
+          """Abstract base class for all node builders."""
+
+          def __init__(self, position_manager: Optional[PositionManager] = None):
+              """Initialize the base node builder.
+
+              Args:
+                  position_manager: Optional position manager for node layout
+              """
+              self.position_manager = position_manager or PositionManager()
+              self.nodes: list[dict[str, Any]] = []
+              self._node_counter = 0
+
+          def reset(self):
+              """Reset the builder state."""
+              self.nodes = []
+              self._node_counter = 0
+              self.position_manager.reset()
+
+          def increment_counter(self) -> int:
+              """Increment and return the node counter.
+
+              Returns:
+                  The incremented counter value
+              """
+              self._node_counter += 1
+              return self._node_counter
+
+          def get_position(self) -> dict[str, int]:
+              """Get the position for the next node.
+
+              Returns:
+                  Dictionary with x and y coordinates
+              """
+              return self.position_manager.get_next_position()
+
+          def create_base_node(
+              self,
+              label: str,
+              node_type: str,
+              props: dict[str, Any],
+              position: Optional[dict[str, int]] = None,
+              metadata: Optional[dict[str, Any]] = None,
+          ) -> dict[str, Any]:
+              """Create a base node structure.
+
+              Args:
+                  label: The node label
+                  node_type: The type of node (e.g., "start", "person_job", "db")
+                  props: Node properties
+                  position: Optional position override
+                  metadata: Optional metadata
+
+              Returns:
+                  The created node dictionary
+              """
+              node = {
+                  "label": label,
+                  "type": node_type,
+                  "position": position or self.get_position(),
+                  "props": props,
+              }
+
+              if metadata:
+                  node["metadata"] = metadata
+
+              self.nodes.append(node)
+              return node
+
+          @abstractmethod
+          def can_handle(self, tool_name: str) -> bool:
+              """Check if this builder can handle the given tool.
+
+              Args:
+                  tool_name: Name of the tool
+
+              Returns:
+                  True if this builder can handle the tool
+              """
+              pass
+
+          @abstractmethod
+          def create_node(
+              self,
+              tool_name: str,
+              tool_input: dict[str, Any],
+              tool_result: Optional[dict[str, Any]] = None,
+          ) -> Optional[dict[str, Any]]:
+              """Create a node for the given tool.
+
+              Args:
+                  tool_name: Name of the tool
+                  tool_input: Input parameters for the tool
+                  tool_result: Optional tool execution result
+
+              Returns:
+                  The created node or None if not applicable
+              """
+              pass
+
+          def validate_node(self, node: dict[str, Any]) -> list[str]:
+              """Validate a node structure.
+
+              Args:
+                  node: The node to validate
+
+              Returns:
+                  List of validation errors (empty if valid)
+              """
+              errors = []
+
+              # Check required fields
+              required_fields = ["type", "label", "position"]
+              for field in required_fields:
+                  if field not in node:
+                      errors.append(f"Missing required field: {field}")
+
+              # Validate position structure
+              if "position" in node:
+                  position = node["position"]
+                  if not isinstance(position, dict):
+                      errors.append("Position must be a dictionary")
+                  elif "x" not in position or "y" not in position:
+                      errors.append("Position must have x and y coordinates")
+
+              # Validate props if present
+              if "props" in node and not isinstance(node["props"], dict):
+                  errors.append("Node props must be a dictionary")
+
+              return errors
+
+          def get_nodes(self) -> list[dict[str, Any]]:
+              """Get all created nodes.
+
+              Returns:
+                  List of all nodes created by this builder
+              """
+              return self.nodes.copy()
+
+          def get_node_count(self) -> int:
+              """Get the count of nodes created.
+
+              Returns:
+                  Number of nodes created
+              """
+              return len(self.nodes)
+
+
+      class SimpleNodeBuilder(BaseNodeBuilder):
+          """Simple concrete implementation for basic node types."""
+
+          def __init__(
+              self,
+              supported_tools: list[str],
+              node_type: str,
+              position_manager: Optional[PositionManager] = None,
+          ):
+              """Initialize a simple node builder.
+
+              Args:
+                  supported_tools: List of tool names this builder handles
+                  node_type: The type of node to create
+                  position_manager: Optional position manager
+              """
+              super().__init__(position_manager)
+              self.supported_tools = supported_tools
+              self.node_type = node_type
+
+          def can_handle(self, tool_name: str) -> bool:
+              """Check if this builder can handle the given tool.
+
+              Args:
+                  tool_name: Name of the tool
+
+              Returns:
+                  True if this builder can handle the tool
+              """
+              return tool_name in self.supported_tools
+
+          def create_node(
+              self,
+              tool_name: str,
+              tool_input: dict[str, Any],
+              tool_result: Optional[dict[str, Any]] = None,
+          ) -> Optional[dict[str, Any]]:
+              """Create a node for the given tool.
+
+              Args:
+                  tool_name: Name of the tool
+                  tool_input: Input parameters for the tool
+                  tool_result: Optional tool execution result
+
+              Returns:
+                  The created node or None if not applicable
+              """
+              if not self.can_handle(tool_name):
+                  return None
+
+              label = f"{tool_name} {self.increment_counter()}"
+              props = self._build_props(tool_name, tool_input, tool_result)
+
+              return self.create_base_node(
+                  label=label,
+                  node_type=self.node_type,
+                  props=props,
+              )
+
+          def _build_props(
+              self,
+              tool_name: str,
+              tool_input: dict[str, Any],
+              tool_result: Optional[dict[str, Any]] = None,
+          ) -> dict[str, Any]:
+              """Build node properties.
+
+              Args:
+                  tool_name: Name of the tool
+                  tool_input: Input parameters
+                  tool_result: Optional tool result
+
+              Returns:
+                  Dictionary of node properties
+              """
+              # Default implementation - override in subclasses
+              return {
+                  "tool": tool_name,
+                  **tool_input,
+              }
+- label: tool_result 9
+  type: api_job
+  position: {x: 850, y: 400}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Write File 10
+  type: db
+  position: {x: 900, y: 400}
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/__init__.py
+    content: |-
+      """Node factory module for creating different types of nodes in DiPeO diagrams.
+
+      This module provides specialized node builders for different node types
+      using a factory pattern to maintain separation of concerns.
+      """
+
+      from .base_node_builder import BaseNodeBuilder, SimpleNodeBuilder
+
+      __all__ = ["BaseNodeBuilder", "SimpleNodeBuilder"]
+- label: tool_result 10
+  type: api_job
+  position: {x: 950, y: 400}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Write File 11
+  type: db
+  position: {x: 1000, y: 550}
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/start_node_builder.py
+    content: |-
+      """Start node builder for DiPeO diagrams.
+
+      This module handles the creation of start nodes which initiate
+      diagram execution in Claude Code translations.
+      """
+
+      from typing import Any, Optional
+
+      from .base_node_builder import BaseNodeBuilder
+
+
+      class StartNodeBuilder(BaseNodeBuilder):
+          """Builder for creating start nodes in DiPeO diagrams."""
+
+          def can_handle(self, tool_name: str) -> bool:
+              """Start nodes are not created from tools.
+
+              Args:
+                  tool_name: Name of the tool
+
+              Returns:
+                  Always False as start nodes are not tool-based
+              """
+              return False
+
+          def create_node(
+              self,
+              tool_name: str,
+              tool_input: dict[str, Any],
+              tool_result: Optional[dict[str, Any]] = None,
+          ) -> Optional[dict[str, Any]]:
+              """Start nodes are not created from tool events.
+
+              Args:
+                  tool_name: Name of the tool
+                  tool_input: Input parameters for the tool
+                  tool_result: Optional tool execution result
+
+              Returns:
+                  Always None as start nodes are not tool-based
+              """
+              return None
+
+          def create_start_node(self, session_id: str, initial_prompt: str) -> dict[str, Any]:
+              """Create the start node for the diagram.
+
+              Args:
+                  session_id: The Claude Code session ID
+                  initial_prompt: The initial user prompt that started the session
+
+              Returns:
+                  The created start node
+              """
+              # Start node always at fixed position
+              position = self.position_manager.get_start_position()
+
+              node = {
+                  "label": "Start",
+                  "type": "start",
+                  "position": position,
+                  "props": {
+                      "trigger_mode": "manual",
+                      "custom_data": {
+                          "session_id": session_id,
+                          "initial_prompt": initial_prompt[:200]
+                          if initial_prompt
+                          else "Claude Code Session",
+                      },
+                  },
+              }
+              self.nodes.append(node)
+              return node
+- label: tool_result 11
+  type: api_job
+  position: {x: 1050, y: 550}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Write File 12
+  type: db
+  position: {x: 300, y: 550}
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/person_node_builder.py
+    content: |-
+      """Person node builder for user and assistant interactions.
+
+      This module handles the creation of person_job nodes which represent
+      user inputs and AI assistant responses in DiPeO diagrams.
+      """
+
+      from typing import Any, Optional
+
+      from .base_node_builder import BaseNodeBuilder
+      from ..person_registry import PersonRegistry
+
+
+      class PersonNodeBuilder(BaseNodeBuilder):
+          """Builder for creating person (user/assistant) nodes."""
+
+          def __init__(
+              self,
+              person_registry: PersonRegistry,
+              position_manager: Optional[Any] = None,
+          ):
+              """Initialize the person node builder.
+
+              Args:
+                  person_registry: Registry for managing persons
+                  position_manager: Optional position manager
+              """
+              super().__init__(position_manager)
+              self.person_registry = person_registry
+
+          def can_handle(self, tool_name: str) -> bool:
+              """Person nodes are not created from tools.
+
+              Args:
+                  tool_name: Name of the tool
+
+              Returns:
+                  Always False as person nodes are not tool-based
+              """
+              return False
+
+          def create_node(
+              self,
+              tool_name: str,
+              tool_input: dict[str, Any],
+              tool_result: Optional[dict[str, Any]] = None,
+          ) -> Optional[dict[str, Any]]:
+              """Person nodes are not created from tool events.
+
+              Args:
+                  tool_name: Name of the tool
+                  tool_input: Input parameters for the tool
+                  tool_result: Optional tool execution result
+
+              Returns:
+                  Always None as person nodes are not tool-based
+              """
+              return None
+
+          def create_user_node(self, content: str) -> Optional[dict[str, Any]]:
+              """Create a node for user input that Claude Code will respond to.
+
+              Args:
+                  content: The user's message content
+
+              Returns:
+                  The created user node or None if content is empty
+              """
+              # Skip creating node if content is empty or just whitespace
+              if not content or not content.strip():
+                  return None
+
+              label = f"Claude Responds To User {self.increment_counter()}"
+
+              # Ensure Claude is registered
+              person_id = self.person_registry.ensure_claude_registered()
+
+              node = {
+                  "label": label,
+                  "type": "person_job",
+                  "position": self.get_position(),
+                  "props": {
+                      "person": person_id,  # Claude responds to the user's prompt
+                      "default_prompt": content,  # The user's message that Claude responds to
+                      "max_iteration": 1,
+                  },
+              }
+              self.nodes.append(node)
+              return node
+
+          def create_assistant_node(
+              self, content: str, system_messages: Optional[list[str]] = None
+          ) -> Optional[dict[str, Any]]:
+              """Handle AI assistant response.
+
+              In the Claude Code translation model, assistant responses are outputs
+              of user prompt nodes, so this typically returns None unless special
+              handling is needed.
+
+              Args:
+                  content: The assistant's response content
+                  system_messages: Optional system messages for context
+
+              Returns:
+                  Usually None as responses are outputs of user nodes
+              """
+              # Ensure Claude is registered with any system messages
+              self.person_registry.ensure_claude_registered(system_messages)
+
+              # Claude's responses are already the output from the previous user prompt node
+              # We don't need to create separate nodes for pure text responses
+              return None
+
+          def create_custom_person_node(
+              self,
+              person_id: str,
+              prompt: str,
+              max_iterations: int = 1,
+              system_prompt: Optional[str] = None,
+          ) -> dict[str, Any]:
+              """Create a node for a custom AI agent.
+
+              Args:
+                  person_id: The person identifier
+                  prompt: The prompt for the person
+                  max_iterations: Maximum iterations for the person
+                  system_prompt: Optional system prompt
+
+              Returns:
+                  The created person node
+              """
+              label = f"{person_id} Task {self.increment_counter()}"
+
+              # Ensure person is registered
+              if not self.person_registry.is_registered(person_id):
+                  raise ValueError(f"Person '{person_id}' is not registered")
+
+              # Update system prompt if provided
+              if system_prompt:
+                  self.person_registry.update_person(
+                      person_id, {"system_prompt": system_prompt}
+                  )
+
+              node = {
+                  "label": label,
+                  "type": "person_job",
+                  "position": self.get_position(),
+                  "props": {
+                      "person": person_id,
+                      "default_prompt": prompt,
+                      "max_iteration": max_iterations,
+                  },
+              }
+              self.nodes.append(node)
+              return node
+- label: tool_result 12
+  type: api_job
+  position: {x: 350, y: 550}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Write File 13
+  type: db
+  position: {x: 400, y: 550}
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/file_node_builder.py
+    content: |-
+      """File node builder for file operations.
+
+      This module handles the creation of nodes for file operations including
+      read, write, and edit (diff_patch) operations in DiPeO diagrams.
+      """
+
+      from typing import Any, Optional
+
+      from .base_node_builder import BaseNodeBuilder
+      from ..payload_processor import PayloadProcessor
+
+
+      class FileNodeBuilder(BaseNodeBuilder):
+          """Builder for creating file operation nodes."""
+
+          def __init__(
+              self,
+              payload_processor: Optional[PayloadProcessor] = None,
+              position_manager: Optional[Any] = None,
+          ):
+              """Initialize the file node builder.
+
+              Args:
+                  payload_processor: Processor for handling payloads
+                  position_manager: Optional position manager
+              """
+              super().__init__(position_manager)
+              self.payload_processor = payload_processor or PayloadProcessor()
+              self.supported_tools = ["Read", "Write", "Edit", "MultiEdit"]
+
+          def can_handle(self, tool_name: str) -> bool:
+              """Check if this builder can handle the given tool.
+
+              Args:
+                  tool_name: Name of the tool
+
+              Returns:
+                  True if this builder handles file operations
+              """
+              return tool_name in self.supported_tools
+
+          def create_node(
+              self,
+              tool_name: str,
+              tool_input: dict[str, Any],
+              tool_result: Optional[dict[str, Any]] = None,
+          ) -> Optional[dict[str, Any]]:
+              """Create a file operation node.
+
+              Args:
+                  tool_name: Name of the tool
+                  tool_input: Input parameters for the tool
+                  tool_result: Optional tool execution result
+
+              Returns:
+                  The created node or None if not applicable
+              """
+              if not self.can_handle(tool_name):
+                  return None
+
+              if tool_name == "Read":
+                  return self.create_read_node(tool_input)
+              elif tool_name == "Write":
+                  return self.create_write_node(tool_input, tool_result)
+              elif tool_name in ["Edit", "MultiEdit"]:
+                  return self.create_edit_node(tool_name, tool_input, tool_result)
+
+              return None
+
+          def create_read_node(self, tool_input: dict[str, Any]) -> dict[str, Any]:
+              """Create a DB node for file read operation.
+
+              Args:
+                  tool_input: Input parameters including file path
+
+              Returns:
+                  The created read node
+              """
+              label = f"Read File {self.increment_counter()}"
+              file_path = tool_input.get("file_path", "unknown")
+
+              node = {
+                  "label": label,
+                  "type": "db",
+                  "position": self.get_position(),
+                  "props": {
+                      "operation": "read",
+                      "sub_type": "file",
+                      "file": file_path,
+                  },
+              }
+              self.nodes.append(node)
+              return node
+
+          def create_write_node(
+              self, tool_input: dict[str, Any], tool_result: Optional[dict[str, Any]] = None
+          ) -> dict[str, Any]:
+              """Create a DB node for file write operation.
+
+              Args:
+                  tool_input: Input parameters including file path and content
+                  tool_result: Optional tool execution result
+
+              Returns:
+                  The created write node
+              """
+              label = f"Write File {self.increment_counter()}"
+              file_path = tool_input.get("file_path", "unknown")
+
+              # Try to extract content from tool result first (more reliable)
+              content = None
+              if tool_result:
+                  payload = self.payload_processor.extract_tool_result_payload(tool_result)
+                  if payload:
+                      content = self.payload_processor.extract_file_content(payload)
+
+              # Fall back to tool input if no result content
+              if content is None:
+                  content = tool_input.get("content", "")
+
+              node = {
+                  "label": label,
+                  "type": "db",
+                  "position": self.get_position(),
+                  "props": {
+                      "operation": "write",
+                      "sub_type": "file",
+                      "file": file_path,
+                      "content": content,
+                  },
+              }
+              self.nodes.append(node)
+              return node
+
+          def create_edit_node(
+              self,
+              tool_name: str,
+              tool_input: dict[str, Any],
+              tool_result: Optional[dict[str, Any]] = None,
+          ) -> Optional[dict[str, Any]]:
+              """Create a diff_patch node for file edit operation.
+
+              Args:
+                  tool_name: Either "Edit" or "MultiEdit"
+                  tool_input: Input parameters including file path and changes
+                  tool_result: Optional tool execution result
+
+              Returns:
+                  The created edit node or None if failed
+              """
+              label = f"{tool_name} File {self.increment_counter()}"
+              file_path = tool_input.get("file_path", "unknown")
+
+              # Extract payload and check for errors
+              payload = self.payload_processor.extract_tool_result_payload(tool_result)
+              if payload:
+                  is_error, error_msg = self.payload_processor.extract_error_info(payload)
+                  if is_error:
+                      print(f"Skipping failed {tool_name} for {file_path}: {error_msg}")
+                      return self._create_error_node(tool_name, file_path, error_msg)
+
+              # Determine if we should create a diff_patch or write node
+              if payload and self.payload_processor.should_create_diff_node(payload):
+                  return self._create_diff_patch_node(
+                      label, file_path, tool_name, tool_input, payload
+                  )
+              elif payload and self.payload_processor.should_create_write_node(payload):
+                  # Full write without original - create db write node
+                  content = self.payload_processor.extract_file_content(payload)
+                  if content:
+                      return self._create_write_node_from_edit(file_path, content)
+
+              # Fallback to simple diff from input
+              return self._create_simple_diff_node(label, file_path, tool_name, tool_input)
+
+          def _create_diff_patch_node(
+              self,
+              label: str,
+              file_path: str,
+              tool_name: str,
+              tool_input: dict[str, Any],
+              payload: dict[str, Any],
+          ) -> dict[str, Any]:
+              """Create a diff_patch node with verified payload.
+
+              Args:
+                  label: Node label
+                  file_path: Target file path
+                  tool_name: Tool name
+                  tool_input: Tool input parameters
+                  payload: Verified payload with diff content
+
+              Returns:
+                  The created diff_patch node
+              """
+              # Import diff utilities - will be moved to local utils later
+              from ..shared.diff_utils import DiffGenerator
+
+              diff_generator = DiffGenerator()
+
+              # Try to get patch directly from payload
+              patch_data = payload.get("structuredPatch") or payload.get("patch")
+              if patch_data:
+                  diff_content = diff_generator.accept_provider_patch_verbatim(patch_data)
+              else:
+                  # Generate diff from tool result
+                  diff_content = diff_generator.generate_diff_from_tool_result(
+                      file_path, payload
+                  )
+
+              if not diff_content:
+                  # Fallback to generating from input
+                  diff_content = self._generate_diff_from_input(
+                      file_path, tool_name, tool_input
+                  )
+
+              node = {
+                  "label": label,
+                  "type": "diff_patch",
+                  "position": self.get_position(),
+                  "props": {
+                      "target_path": file_path,
+                      "diff": diff_content,
+                      "format": "unified",
+                      "backup": True,
+                      "validate": True,
+                  },
+              }
+              self.nodes.append(node)
+              return node
+
+          def _create_simple_diff_node(
+              self, label: str, file_path: str, tool_name: str, tool_input: dict[str, Any]
+          ) -> dict[str, Any]:
+              """Create a simple diff_patch node from input only.
+
+              Args:
+                  label: Node label
+                  file_path: Target file path
+                  tool_name: Tool name
+                  tool_input: Tool input parameters
+
+              Returns:
+                  The created diff_patch node
+              """
+              diff_content = self._generate_diff_from_input(file_path, tool_name, tool_input)
+
+              node = {
+                  "label": label,
+                  "type": "diff_patch",
+                  "position": self.get_position(),
+                  "props": {
+                      "target_path": file_path,
+                      "diff": diff_content,
+                      "format": "unified",
+                      "backup": True,
+                      "validate": True,
+                  },
+              }
+              self.nodes.append(node)
+              return node
+
+          def _create_write_node_from_edit(
+              self, file_path: str, content: str
+          ) -> dict[str, Any]:
+              """Create a write node when edit results in full file replacement.
+
+              Args:
+                  file_path: Target file path
+                  content: Full file content
+
+              Returns:
+                  The created write node
+              """
+              label = f"Write {file_path} {self.increment_counter()}"
+
+              node = {
+                  "label": label,
+                  "type": "db",
+                  "position": self.get_position(),
+                  "props": {
+                      "operation": "write",
+                      "sub_type": "file",
+                      "file": file_path,
+                      "content": content,
+                  },
+              }
+              self.nodes.append(node)
+              return node
+
+          def _create_error_node(
+              self, tool_name: str, file_path: str, error_msg: str
+          ) -> dict[str, Any]:
+              """Create a TODO node for failed operations.
+
+              Args:
+                  tool_name: Tool that failed
+                  file_path: Target file path
+                  error_msg: Error message
+
+              Returns:
+                  A TODO node indicating the failure
+              """
+              label = f"Failed {tool_name} {self.increment_counter()}"
+
+              node = {
+                  "label": label,
+                  "type": "db",
+                  "position": self.get_position(),
+                  "props": {
+                      "operation": "write",
+                      "sub_type": "memory",
+                      "query": "UPDATE TODO LIST",
+                      "data": {
+                          "todos": [
+                              {
+                                  "content": f"Failed {tool_name}: {error_msg}",
+                                  "status": "error",
+                                  "file": file_path,
+                              }
+                          ]
+                      },
+                  },
+              }
+              self.nodes.append(node)
+              return node
+
+          def _generate_diff_from_input(
+              self, file_path: str, tool_name: str, tool_input: dict[str, Any]
+          ) -> str:
+              """Generate diff content from tool input.
+
+              Args:
+                  file_path: Target file path
+                  tool_name: Tool name
+                  tool_input: Tool input parameters
+
+              Returns:
+                  Generated diff content
+              """
+              # Import utilities - will be moved to local utils later
+              from ..shared.diff_utils import DiffGenerator
+              from ..shared.text_utils import TextProcessor
+
+              diff_generator = DiffGenerator()
+              text_processor = TextProcessor()
+
+              if tool_name == "Edit":
+                  old_string = tool_input.get("old_string", "")
+                  new_string = tool_input.get("new_string", "")
+
+                  # Unescape strings for proper diff generation
+                  old_string = text_processor.unescape_string(old_string)
+                  new_string = text_processor.unescape_string(new_string)
+
+                  return diff_generator.generate_unified_diff(
+                      file_path, old_string, new_string
+                  )
+
+              elif tool_name == "MultiEdit":
+                  edits = tool_input.get("edits", [])
+                  # Process edits to unescape strings
+                  processed_edits = []
+                  for edit in edits:
+                      if isinstance(edit, dict):
+                          processed_edit = edit.copy()
+                          if "old_string" in processed_edit:
+                              processed_edit["old_string"] = text_processor.unescape_string(
+                                  processed_edit["old_string"]
+                              )
+                          if "new_string" in processed_edit:
+                              processed_edit["new_string"] = text_processor.unescape_string(
+                                  processed_edit["new_string"]
+                              )
+                          processed_edits.append(processed_edit)
+
+                  return diff_generator.generate_multiedit_diff(
+                      file_path, processed_edits, None
+                  )
+
+              return "# Unable to generate diff"
+- label: tool_result 13
+  type: api_job
+  position: {x: 450, y: 550}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Write File 14
+  type: db
+  position: {x: 500, y: 550}
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/code_node_builder.py
+    content: |-
+      """Code node builder for code execution operations.
+
+      This module handles the creation of nodes for code execution including
+      bash commands and search operations in DiPeO diagrams.
+      """
+
+      from typing import Any, Optional
+
+      from .base_node_builder import BaseNodeBuilder
+
+
+      class CodeNodeBuilder(BaseNodeBuilder):
+          """Builder for creating code execution nodes."""
+
+          def __init__(self, position_manager: Optional[Any] = None):
+              """Initialize the code node builder.
+
+              Args:
+                  position_manager: Optional position manager
+              """
+              super().__init__(position_manager)
+              self.supported_tools = ["Bash", "Grep", "Glob", "Search"]
+
+          def can_handle(self, tool_name: str) -> bool:
+              """Check if this builder can handle the given tool.
+
+              Args:
+                  tool_name: Name of the tool
+
+              Returns:
+                  True if this builder handles code execution operations
+              """
+              return tool_name in self.supported_tools
+
+          def create_node(
+              self,
+              tool_name: str,
+              tool_input: dict[str, Any],
+              tool_result: Optional[dict[str, Any]] = None,
+          ) -> Optional[dict[str, Any]]:
+              """Create a code execution node.
+
+              Args:
+                  tool_name: Name of the tool
+                  tool_input: Input parameters for the tool
+                  tool_result: Optional tool execution result
+
+              Returns:
+                  The created node or None if not applicable
+              """
+              if not self.can_handle(tool_name):
+                  return None
+
+              if tool_name == "Bash":
+                  return self.create_bash_node(tool_input)
+              elif tool_name in ["Grep", "Glob", "Search"]:
+                  return self.create_search_node(tool_name, tool_input)
+
+              return None
+
+          def create_bash_node(self, tool_input: dict[str, Any]) -> dict[str, Any]:
+              """Create a code_job node for bash command execution.
+
+              Args:
+                  tool_input: Input parameters including command
+
+              Returns:
+                  The created bash node
+              """
+              label = f"Bash Command {self.increment_counter()}"
+              command = tool_input.get("command", "")
+              description = tool_input.get("description", "Execute command")
+
+              node = {
+                  "label": label,
+                  "type": "code_job",
+                  "position": self.get_position(),
+                  "props": {
+                      "language": "bash",
+                      "code": command,
+                      "timeout": tool_input.get("timeout", 120000),
+                      "description": description,
+                  },
+              }
+              self.nodes.append(node)
+              return node
+
+          def create_search_node(
+              self, tool_name: str, tool_input: dict[str, Any]
+          ) -> dict[str, Any]:
+              """Create a code_job node for search operations.
+
+              Args:
+                  tool_name: Name of the search tool
+                  tool_input: Input parameters for the search
+
+              Returns:
+                  The created search node
+              """
+              label = f"{tool_name} Search {self.increment_counter()}"
+
+              if tool_name == "Grep":
+                  code = self._build_grep_command(tool_input)
+              elif tool_name == "Glob":
+                  code = self._build_glob_command(tool_input)
+              else:
+                  # Fallback for generic search
+                  query = tool_input.get("query", "") or tool_input.get("pattern", "")
+                  code = f"# {tool_name} search for: {query}"
+
+              node = {
+                  "label": label,
+                  "type": "code_job",
+                  "position": self.get_position(),
+                  "props": {
+                      "language": "bash",
+                      "code": code,
+                      "tool": tool_name,
+                      "description": f"{tool_name} search operation",
+                  },
+              }
+              self.nodes.append(node)
+              return node
+
+          def _build_grep_command(self, tool_input: dict[str, Any]) -> str:
+              """Build ripgrep command from Grep tool parameters.
+
+              Args:
+                  tool_input: Grep tool input parameters
+
+              Returns:
+                  The ripgrep command string
+              """
+              pattern = tool_input.get("pattern", "")
+              path = tool_input.get("path", ".")
+
+              # Start with base command
+              cmd_parts = ["rg"]
+
+              # Add flags
+              if tool_input.get("-n"):
+                  cmd_parts.append("-n")
+              if tool_input.get("-i"):
+                  cmd_parts.append("-i")
+              if tool_input.get("-A"):
+                  cmd_parts.append(f"-A {tool_input['-A']}")
+              if tool_input.get("-B"):
+                  cmd_parts.append(f"-B {tool_input['-B']}")
+              if tool_input.get("-C"):
+                  cmd_parts.append(f"-C {tool_input['-C']}")
+              if tool_input.get("multiline"):
+                  cmd_parts.append("-U --multiline-dotall")
+
+              # Add type filter if specified
+              if tool_input.get("type"):
+                  cmd_parts.append(f"--type {tool_input['type']}")
+
+              # Add glob filter if specified
+              if tool_input.get("glob"):
+                  cmd_parts.append(f"--glob '{tool_input['glob']}'")
+
+              # Add output mode handling
+              output_mode = tool_input.get("output_mode", "files_with_matches")
+              if output_mode == "files_with_matches":
+                  cmd_parts.append("-l")
+              elif output_mode == "count":
+                  cmd_parts.append("-c")
+              # "content" is default, no flag needed
+
+              # Add pattern (properly escaped)
+              escaped_pattern = pattern.replace("'", "'\\''")
+              cmd_parts.append(f"'{escaped_pattern}'")
+
+              # Add path
+              cmd_parts.append(path)
+
+              # Add head limit if specified
+              if tool_input.get("head_limit"):
+                  cmd_parts.append(f"| head -n {tool_input['head_limit']}")
+
+              return " ".join(cmd_parts)
+
+          def _build_glob_command(self, tool_input: dict[str, Any]) -> str:
+              """Build find command from Glob tool parameters.
+
+              Args:
+                  tool_input: Glob tool input parameters
+
+              Returns:
+                  The find command string
+              """
+              pattern = tool_input.get("pattern", "")
+              path = tool_input.get("path", ".")
+
+              # Convert glob pattern to find command
+              if "**" in pattern:
+                  # Recursive search
+                  name_pattern = pattern.replace("**/", "")
+                  code = f"find {path} -name '{name_pattern}' -type f"
+              else:
+                  # Simple glob
+                  code = f"find {path} -maxdepth 1 -name '{pattern}' -type f"
+
+              # Sort by modification time (newest first)
+              code += " -printf '%T@ %p\\n' | sort -rn | cut -d' ' -f2-"
+
+              return code
+- label: tool_result 14
+  type: api_job
+  position: {x: 550, y: 550}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Write File 15
+  type: db
+  position: {x: 600, y: 550}
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/db_node_builder.py
+    content: |-
+      """Database node builder for database and memory operations.
+
+      This module handles the creation of nodes for database operations including
+      TODO list updates and other memory/database operations in DiPeO diagrams.
+      """
+
+      from typing import Any, Optional
+
+      from .base_node_builder import BaseNodeBuilder
+
+
+      class DbNodeBuilder(BaseNodeBuilder):
+          """Builder for creating database operation nodes."""
+
+          def __init__(self, position_manager: Optional[Any] = None):
+              """Initialize the database node builder.
+
+              Args:
+                  position_manager: Optional position manager
+              """
+              super().__init__(position_manager)
+              self.supported_tools = ["TodoWrite", "DatabaseQuery", "MemoryUpdate"]
+
+          def can_handle(self, tool_name: str) -> bool:
+              """Check if this builder can handle the given tool.
+
+              Args:
+                  tool_name: Name of the tool
+
+              Returns:
+                  True if this builder handles database operations
+              """
+              return tool_name in self.supported_tools
+
+          def create_node(
+              self,
+              tool_name: str,
+              tool_input: dict[str, Any],
+              tool_result: Optional[dict[str, Any]] = None,
+          ) -> Optional[dict[str, Any]]:
+              """Create a database operation node.
+
+              Args:
+                  tool_name: Name of the tool
+                  tool_input: Input parameters for the tool
+                  tool_result: Optional tool execution result
+
+              Returns:
+                  The created node or None if not applicable
+              """
+              if not self.can_handle(tool_name):
+                  return None
+
+              if tool_name == "TodoWrite":
+                  return self.create_todo_node(tool_input)
+              elif tool_name == "DatabaseQuery":
+                  return self.create_database_query_node(tool_input)
+              elif tool_name == "MemoryUpdate":
+                  return self.create_memory_update_node(tool_input)
+
+              return None
+
+          def create_todo_node(self, tool_input: dict[str, Any]) -> dict[str, Any]:
+              """Create a DB node for TodoWrite operation.
+
+              Args:
+                  tool_input: Input parameters including todos
+
+              Returns:
+                  The created TODO node
+              """
+              label = f"Update TODO {self.increment_counter()}"
+              todos = tool_input.get("todos", [])
+
+              node = {
+                  "label": label,
+                  "type": "db",
+                  "position": self.get_position(),
+                  "props": {
+                      "operation": "write",
+                      "sub_type": "memory",
+                      "query": "UPDATE TODO LIST",
+                      "data": {"todos": todos},
+                  },
+              }
+              self.nodes.append(node)
+              return node
+
+          def create_database_query_node(
+              self, tool_input: dict[str, Any]
+          ) -> dict[str, Any]:
+              """Create a DB node for database query operation.
+
+              Args:
+                  tool_input: Input parameters including query
+
+              Returns:
+                  The created database query node
+              """
+              label = f"Database Query {self.increment_counter()}"
+              query = tool_input.get("query", "")
+              database = tool_input.get("database", "default")
+
+              node = {
+                  "label": label,
+                  "type": "db",
+                  "position": self.get_position(),
+                  "props": {
+                      "operation": "read",
+                      "sub_type": "database",
+                      "query": query,
+                      "database": database,
+                  },
+              }
+              self.nodes.append(node)
+              return node
+
+          def create_memory_update_node(
+              self, tool_input: dict[str, Any]
+          ) -> dict[str, Any]:
+              """Create a DB node for memory update operation.
+
+              Args:
+                  tool_input: Input parameters including memory data
+
+              Returns:
+                  The created memory update node
+              """
+              label = f"Memory Update {self.increment_counter()}"
+              memory_key = tool_input.get("key", "default")
+              memory_value = tool_input.get("value", {})
+
+              node = {
+                  "label": label,
+                  "type": "db",
+                  "position": self.get_position(),
+                  "props": {
+                      "operation": "write",
+                      "sub_type": "memory",
+                      "query": f"UPDATE MEMORY SET value = ? WHERE key = '{memory_key}'",
+                      "data": {"key": memory_key, "value": memory_value},
+                  },
+              }
+              self.nodes.append(node)
+              return node
+- label: tool_result 15
+  type: api_job
+  position: {x: 650, y: 550}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Update TODO 4
+  type: db
+  position: {x: 700, y: 700}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Create node_factories subdirectory structure
+        status: completed
+        activeForm: Creating node_factories subdirectory structure
+      - content: Extract position_manager.py for positioning logic
+        status: completed
+        activeForm: Extracting position_manager.py for positioning logic
+      - content: Extract person_registry.py for person management
+        status: completed
+        activeForm: Extracting person_registry.py for person management
+      - content: Extract payload_processor.py for payload handling
+        status: completed
+        activeForm: Extracting payload_processor.py for payload handling
+      - content: Extract base_node_builder.py with common logic
+        status: completed
+        activeForm: Extracting base_node_builder.py with common logic
+      - content: Create specialized node builders (start, person, file, code, db)
+        status: completed
+        activeForm: Creating specialized node builders
+      - content: Create api_node_builder.py
+        status: in_progress
+        activeForm: Creating api_node_builder.py
+      - content: Create tool_node_factory.py as main factory
+        status: pending
+        activeForm: Creating tool_node_factory.py as main factory
+      - content: Move shared utilities to convert/utils
+        status: pending
+        activeForm: Moving shared utilities to convert/utils
+      - content: Enhance DiagramAssembler with person registry
+        status: pending
+        activeForm: Enhancing DiagramAssembler with person registry
+      - content: Update converter.py to use new structure
+        status: pending
+        activeForm: Updating converter.py to use new structure
+      - content: Update imports in __init__.py
+        status: pending
+        activeForm: Updating imports in __init__.py
+      - content: Test refactored code with dipeocc
+        status: pending
+        activeForm: Testing refactored code with dipeocc
+- label: tool_result 16
+  type: api_job
+  position: {x: 750, y: 700}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Write File 16
+  type: db
+  position: {x: 800, y: 700}
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/api_node_builder.py
+    content: |-
+      """API node builder for API call operations.
+
+      This module handles the creation of nodes for generic API calls and
+      web operations in DiPeO diagrams.
+      """
+
+      from typing import Any, Optional
+
+      from .base_node_builder import BaseNodeBuilder
+
+
+      class ApiNodeBuilder(BaseNodeBuilder):
+          """Builder for creating API call nodes."""
+
+          def __init__(self, position_manager: Optional[Any] = None):
+              """Initialize the API node builder.
+
+              Args:
+                  position_manager: Optional position manager
+              """
+              super().__init__(position_manager)
+              # These are tools that don't fit other categories
+              self.supported_tools = [
+                  "WebFetch",
+                  "WebSearch",
+                  "Task",
+                  "ExitPlanMode",
+                  "BashOutput",
+                  "KillShell",
+              ]
+
+          def can_handle(self, tool_name: str) -> bool:
+              """Check if this builder can handle the given tool.
+
+              Args:
+                  tool_name: Name of the tool
+
+              Returns:
+                  True if this builder handles API operations
+              """
+              # Handle known API tools or any unknown tools as generic API
+              return tool_name in self.supported_tools or not self._is_known_tool(tool_name)
+
+          def create_node(
+              self,
+              tool_name: str,
+              tool_input: dict[str, Any],
+              tool_result: Optional[dict[str, Any]] = None,
+          ) -> Optional[dict[str, Any]]:
+              """Create an API call node.
+
+              Args:
+                  tool_name: Name of the tool
+                  tool_input: Input parameters for the tool
+                  tool_result: Optional tool execution result
+
+              Returns:
+                  The created node or None if not applicable
+              """
+              # Special handling for specific tools
+              if tool_name == "WebFetch":
+                  return self.create_web_fetch_node(tool_input)
+              elif tool_name == "WebSearch":
+                  return self.create_web_search_node(tool_input)
+              elif tool_name == "Task":
+                  return self.create_task_node(tool_input)
+              else:
+                  # Generic API node for unknown tools
+                  return self.create_generic_api_node(tool_name, tool_input)
+
+          def create_web_fetch_node(self, tool_input: dict[str, Any]) -> dict[str, Any]:
+              """Create an API node for web fetch operation.
+
+              Args:
+                  tool_input: Input parameters including URL and prompt
+
+              Returns:
+                  The created web fetch node
+              """
+              label = f"WebFetch {self.increment_counter()}"
+              url = tool_input.get("url", "")
+              prompt = tool_input.get("prompt", "")
+
+              node = {
+                  "label": label,
+                  "type": "api_job",
+                  "position": self.get_position(),
+                  "props": {
+                      "endpoint": url,
+                      "method": "GET",
+                      "body": {"prompt": prompt},
+                      "timeout": 30,
+                      "description": "Fetch and process web content",
+                  },
+              }
+              self.nodes.append(node)
+              return node
+
+          def create_web_search_node(self, tool_input: dict[str, Any]) -> dict[str, Any]:
+              """Create an API node for web search operation.
+
+              Args:
+                  tool_input: Input parameters including query
+
+              Returns:
+                  The created web search node
+              """
+              label = f"WebSearch {self.increment_counter()}"
+              query = tool_input.get("query", "")
+              allowed_domains = tool_input.get("allowed_domains", [])
+              blocked_domains = tool_input.get("blocked_domains", [])
+
+              node = {
+                  "label": label,
+                  "type": "api_job",
+                  "position": self.get_position(),
+                  "props": {
+                      "endpoint": "/search",
+                      "method": "POST",
+                      "body": {
+                          "query": query,
+                          "allowed_domains": allowed_domains,
+                          "blocked_domains": blocked_domains,
+                      },
+                      "timeout": 30,
+                      "description": "Search the web",
+                  },
+              }
+              self.nodes.append(node)
+              return node
+
+          def create_task_node(self, tool_input: dict[str, Any]) -> dict[str, Any]:
+              """Create an API node for Task (agent) invocation.
+
+              Args:
+                  tool_input: Input parameters including subagent type and prompt
+
+              Returns:
+                  The created task node
+              """
+              label = f"Task {self.increment_counter()}"
+              subagent_type = tool_input.get("subagent_type", "general-purpose")
+              prompt = tool_input.get("prompt", "")
+              description = tool_input.get("description", "Launch agent")
+
+              node = {
+                  "label": label,
+                  "type": "api_job",
+                  "position": self.get_position(),
+                  "props": {
+                      "endpoint": f"/agents/{subagent_type}",
+                      "method": "POST",
+                      "body": {"prompt": prompt, "description": description},
+                      "timeout": 600,  # Agents can take longer
+                      "description": f"Launch {subagent_type} agent",
+                  },
+              }
+              self.nodes.append(node)
+              return node
+
+          def create_generic_api_node(
+              self, tool_name: str, tool_input: dict[str, Any]
+          ) -> dict[str, Any]:
+              """Create a generic API node for unknown tools.
+
+              Args:
+                  tool_name: Name of the tool
+                  tool_input: Input parameters
+
+              Returns:
+                  The created generic API node
+              """
+              label = f"{tool_name} {self.increment_counter()}"
+
+              node = {
+                  "label": label,
+                  "type": "api_job",
+                  "position": self.get_position(),
+                  "props": {
+                      "endpoint": f"/tools/{tool_name}",
+                      "method": "POST",
+                      "body": tool_input,
+                      "timeout": 30,
+                      "description": f"{tool_name} operation",
+                  },
+              }
+              self.nodes.append(node)
+              return node
+
+          def _is_known_tool(self, tool_name: str) -> bool:
+              """Check if a tool is known to other builders.
+
+              Args:
+                  tool_name: Name of the tool
+
+              Returns:
+                  True if the tool is handled by another builder
+              """
+              known_tools = [
+                  # File operations
+                  "Read",
+                  "Write",
+                  "Edit",
+                  "MultiEdit",
+                  # Code operations
+                  "Bash",
+                  "Grep",
+                  "Glob",
+                  "Search",
+                  # Database operations
+                  "TodoWrite",
+                  "DatabaseQuery",
+                  "MemoryUpdate",
+              ]
+              return tool_name in known_tools
+- label: tool_result 17
+  type: api_job
+  position: {x: 850, y: 700}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Update TODO 5
+  type: db
+  position: {x: 900, y: 700}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Create node_factories subdirectory structure
+        status: completed
+        activeForm: Creating node_factories subdirectory structure
+      - content: Extract position_manager.py for positioning logic
+        status: completed
+        activeForm: Extracting position_manager.py for positioning logic
+      - content: Extract person_registry.py for person management
+        status: completed
+        activeForm: Extracting person_registry.py for person management
+      - content: Extract payload_processor.py for payload handling
+        status: completed
+        activeForm: Extracting payload_processor.py for payload handling
+      - content: Extract base_node_builder.py with common logic
+        status: completed
+        activeForm: Extracting base_node_builder.py with common logic
+      - content: Create specialized node builders (start, person, file, code, db)
+        status: completed
+        activeForm: Creating specialized node builders
+      - content: Create api_node_builder.py
+        status: completed
+        activeForm: Creating api_node_builder.py
+      - content: Create tool_node_factory.py as main factory
+        status: in_progress
+        activeForm: Creating tool_node_factory.py as main factory
+      - content: Move shared utilities to convert/utils
+        status: pending
+        activeForm: Moving shared utilities to convert/utils
+      - content: Enhance DiagramAssembler with person registry
+        status: pending
+        activeForm: Enhancing DiagramAssembler with person registry
+      - content: Update converter.py to use new structure
+        status: pending
+        activeForm: Updating converter.py to use new structure
+      - content: Update imports in __init__.py
+        status: pending
+        activeForm: Updating imports in __init__.py
+      - content: Test refactored code with dipeocc
+        status: pending
+        activeForm: Testing refactored code with dipeocc
+- label: tool_result 18
+  type: api_job
+  position: {x: 950, y: 700}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Write File 17
+  type: db
+  position: {x: 1000, y: 700}
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/tool_node_factory.py
+    content: |-
+      """Tool node factory for creating nodes based on tool events.
+
+      This module provides a factory that delegates node creation to
+      specialized builders based on the tool type.
+      """
+
+      from typing import Any, Optional
+
+      from .api_node_builder import ApiNodeBuilder
+      from .code_node_builder import CodeNodeBuilder
+      from .db_node_builder import DbNodeBuilder
+      from .file_node_builder import FileNodeBuilder
+      from .person_node_builder import PersonNodeBuilder
+      from .start_node_builder import StartNodeBuilder
+      from ..payload_processor import PayloadProcessor
+      from ..person_registry import PersonRegistry
+      from ..position_manager import PositionManager
+
+
+      class ToolNodeFactory:
+          """Factory for creating nodes based on tool events."""
+
+          def __init__(
+              self,
+              person_registry: Optional[PersonRegistry] = None,
+              position_manager: Optional[PositionManager] = None,
+              payload_processor: Optional[PayloadProcessor] = None,
+          ):
+              """Initialize the tool node factory.
+
+              Args:
+                  person_registry: Optional person registry
+                  position_manager: Optional position manager
+                  payload_processor: Optional payload processor
+              """
+              # Create shared resources
+              self.person_registry = person_registry or PersonRegistry()
+              self.position_manager = position_manager or PositionManager()
+              self.payload_processor = payload_processor or PayloadProcessor()
+
+              # Initialize specialized builders
+              self.start_builder = StartNodeBuilder(self.position_manager)
+              self.person_builder = PersonNodeBuilder(
+                  self.person_registry, self.position_manager
+              )
+              self.file_builder = FileNodeBuilder(
+                  self.payload_processor, self.position_manager
+              )
+              self.code_builder = CodeNodeBuilder(self.position_manager)
+              self.db_builder = DbNodeBuilder(self.position_manager)
+              self.api_builder = ApiNodeBuilder(self.position_manager)
+
+              # Order matters - more specific builders should come first
+              self.builders = [
+                  self.file_builder,
+                  self.code_builder,
+                  self.db_builder,
+                  self.api_builder,  # API builder last as it handles unknown tools
+              ]
+
+              # Track all nodes created
+              self._all_nodes: list[dict[str, Any]] = []
+
+          def reset(self):
+              """Reset all builders and shared resources."""
+              self.person_registry.reset()
+              self.position_manager.reset()
+
+              # Reset all builders
+              for builder in [
+                  self.start_builder,
+                  self.person_builder,
+                  self.file_builder,
+                  self.code_builder,
+                  self.db_builder,
+                  self.api_builder,
+              ]:
+                  builder.reset()
+
+              self._all_nodes = []
+
+          def create_start_node(self, session_id: str, initial_prompt: str) -> dict[str, Any]:
+              """Create the start node for the diagram.
+
+              Args:
+                  session_id: The Claude Code session ID
+                  initial_prompt: The initial user prompt
+
+              Returns:
+                  The created start node
+              """
+              node = self.start_builder.create_start_node(session_id, initial_prompt)
+              self._all_nodes.append(node)
+              return node
+
+          def create_user_node(self, content: str) -> Optional[dict[str, Any]]:
+              """Create a node for user input.
+
+              Args:
+                  content: The user's message content
+
+              Returns:
+                  The created user node or None if content is empty
+              """
+              node = self.person_builder.create_user_node(content)
+              if node:
+                  self._all_nodes.append(node)
+              return node
+
+          def create_assistant_node(
+              self, content: str, system_messages: Optional[list[str]] = None
+          ) -> Optional[dict[str, Any]]:
+              """Handle AI assistant response.
+
+              Args:
+                  content: The assistant's response content
+                  system_messages: Optional system messages for context
+
+              Returns:
+                  Usually None as responses are outputs of user nodes
+              """
+              node = self.person_builder.create_assistant_node(content, system_messages)
+              if node:
+                  self._all_nodes.append(node)
+              return node
+
+          def create_tool_node(
+              self,
+              tool_name: str,
+              tool_input: dict[str, Any],
+              tool_use_result: Optional[dict[str, Any]] = None,
+          ) -> Optional[dict[str, Any]]:
+              """Create appropriate node based on tool name.
+
+              Args:
+                  tool_name: Name of the tool
+                  tool_input: Input parameters for the tool
+                  tool_use_result: Optional tool execution result
+
+              Returns:
+                  The created node or None if not applicable
+              """
+              # Defensive handling for None or missing tool_name
+              if not tool_name:
+                  print("Warning: Missing tool name, skipping node creation")
+                  return None
+
+              # Ensure tool_input is a dict
+              if tool_input is None:
+                  tool_input = {}
+              elif not isinstance(tool_input, dict):
+                  print(f"Warning: Invalid tool_input type for {tool_name}, using empty dict")
+                  tool_input = {}
+
+              try:
+                  # Find the appropriate builder
+                  for builder in self.builders:
+                      if builder.can_handle(tool_name):
+                          node = builder.create_node(tool_name, tool_input, tool_use_result)
+                          if node:
+                              self._all_nodes.append(node)
+                          return node
+
+                  # If no builder handles it, use API builder as fallback
+                  node = self.api_builder.create_generic_api_node(tool_name, tool_input)
+                  if node:
+                      self._all_nodes.append(node)
+                  return node
+
+              except Exception as e:
+                  print(f"Warning: Error creating {tool_name} node: {e}")
+                  # Fallback to generic node on error
+                  node = self.api_builder.create_generic_api_node(tool_name, tool_input)
+                  if node:
+                      self._all_nodes.append(node)
+                  return node
+
+          def get_all_nodes(self) -> list[dict[str, Any]]:
+              """Get all nodes created by the factory.
+
+              Returns:
+                  List of all created nodes
+              """
+              return self._all_nodes.copy()
+
+          def get_persons(self) -> dict[str, dict[str, Any]]:
+              """Get all registered persons.
+
+              Returns:
+                  Dictionary of person configurations
+              """
+              return self.person_registry.get_all_persons()
+
+          def get_node_count(self) -> int:
+              """Get the total count of nodes created.
+
+              Returns:
+                  Number of nodes created
+              """
+              return len(self._all_nodes)
+
+          def increment_counter(self) -> int:
+              """Increment and return the node counter.
+
+              Returns:
+                  The incremented counter value
+              """
+              return self.position_manager.increment_counter()
+- label: tool_result 19
+  type: api_job
+  position: {x: 1050, y: 700}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Update TODO 6
+  type: db
+  position: {x: 300, y: 700}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Create node_factories subdirectory structure
+        status: completed
+        activeForm: Creating node_factories subdirectory structure
+      - content: Extract position_manager.py for positioning logic
+        status: completed
+        activeForm: Extracting position_manager.py for positioning logic
+      - content: Extract person_registry.py for person management
+        status: completed
+        activeForm: Extracting person_registry.py for person management
+      - content: Extract payload_processor.py for payload handling
+        status: completed
+        activeForm: Extracting payload_processor.py for payload handling
+      - content: Extract base_node_builder.py with common logic
+        status: completed
+        activeForm: Extracting base_node_builder.py with common logic
+      - content: Create specialized node builders (start, person, file, code, db)
+        status: completed
+        activeForm: Creating specialized node builders
+      - content: Create api_node_builder.py
+        status: completed
+        activeForm: Creating api_node_builder.py
+      - content: Create tool_node_factory.py as main factory
+        status: completed
+        activeForm: Creating tool_node_factory.py as main factory
+      - content: Move shared utilities to convert/utils
+        status: in_progress
+        activeForm: Moving shared utilities to convert/utils
+      - content: Enhance DiagramAssembler with person registry
+        status: pending
+        activeForm: Enhancing DiagramAssembler with person registry
+      - content: Update converter.py to use new structure
+        status: pending
+        activeForm: Updating converter.py to use new structure
+      - content: Update imports in __init__.py
+        status: pending
+        activeForm: Updating imports in __init__.py
+      - content: Test refactored code with dipeocc
+        status: pending
+        activeForm: Testing refactored code with dipeocc
+- label: tool_result 20
+  type: api_job
+  position: {x: 350, y: 700}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 4
+  type: code_job
+  position: {x: 400, y: 850}
+  props:
+    language: bash
+    code: mkdir -p /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/utils
+    timeout: 120000
+    description: Create utils directory
+- label: Bash Command 5
+  type: code_job
+  position: {x: 450, y: 850}
+  props:
+    language: bash
+    code: cp /home/soryhyun/DiPeO/dipeo/domain/cc_translate/shared/text_utils.py /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/utils/
+    timeout: 120000
+    description: Copy text_utils.py to convert/utils
+- label: Bash Command 6
+  type: code_job
+  position: {x: 500, y: 850}
+  props:
+    language: bash
+    code: cp /home/soryhyun/DiPeO/dipeo/domain/cc_translate/shared/diff_utils.py /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/utils/ && cp /home/soryhyun/DiPeO/dipeo/domain/cc_translate/shared/payload_utils.py /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/utils/
+    timeout: 120000
+    description: Copy diff_utils and payload_utils to convert/utils
+- label: Write File 18
+  type: db
+  position: {x: 550, y: 850}
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/utils/__init__.py
+    content: |-
+      """Utility modules for Claude Code to DiPeO conversion.
+
+      This module contains utility functions used during the conversion process
+      including text processing, diff generation, and payload classification.
+      """
+
+      from .diff_utils import DiffGenerator
+      from .payload_utils import (
+          classify_payload,
+          extract_error_message,
+          extract_original_content,
+          extract_patch_data,
+          extract_write_content,
+          is_error_payload,
+          is_full_write,
+          is_partial_diff,
+          is_rich_diff,
+          should_create_diff_node,
+          should_create_write_node,
+          validate_rich_diff_payload,
+      )
+      from .text_utils import TextProcessor
+
+      __all__ = [
+          # Diff utilities
+          "DiffGenerator",
+          # Payload utilities
+          "classify_payload",
+          "extract_error_message",
+          "extract_original_content",
+          "extract_patch_data",
+          "extract_write_content",
+          "is_error_payload",
+          "is_full_write",
+          "is_partial_diff",
+          "is_rich_diff",
+          "should_create_diff_node",
+          "should_create_write_node",
+          "validate_rich_diff_payload",
+          # Text utilities
+          "TextProcessor",
+      ]
+- label: tool_result 21
+  type: api_job
+  position: {x: 600, y: 850}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Update TODO 7
+  type: db
+  position: {x: 650, y: 850}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Create node_factories subdirectory structure
+        status: completed
+        activeForm: Creating node_factories subdirectory structure
+      - content: Extract position_manager.py for positioning logic
+        status: completed
+        activeForm: Extracting position_manager.py for positioning logic
+      - content: Extract person_registry.py for person management
+        status: completed
+        activeForm: Extracting person_registry.py for person management
+      - content: Extract payload_processor.py for payload handling
+        status: completed
+        activeForm: Extracting payload_processor.py for payload handling
+      - content: Extract base_node_builder.py with common logic
+        status: completed
+        activeForm: Extracting base_node_builder.py with common logic
+      - content: Create specialized node builders (start, person, file, code, db)
+        status: completed
+        activeForm: Creating specialized node builders
+      - content: Create api_node_builder.py
+        status: completed
+        activeForm: Creating api_node_builder.py
+      - content: Create tool_node_factory.py as main factory
+        status: completed
+        activeForm: Creating tool_node_factory.py as main factory
+      - content: Move shared utilities to convert/utils
+        status: completed
+        activeForm: Moving shared utilities to convert/utils
+      - content: Enhance DiagramAssembler with person registry
+        status: in_progress
+        activeForm: Enhancing DiagramAssembler with person registry
+      - content: Update converter.py to use new structure
+        status: pending
+        activeForm: Updating converter.py to use new structure
+      - content: Update imports in __init__.py
+        status: pending
+        activeForm: Updating imports in __init__.py
+      - content: Test refactored code with dipeocc
+        status: pending
+        activeForm: Testing refactored code with dipeocc
+- label: tool_result 22
+  type: api_job
+  position: {x: 700, y: 850}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 19
+  type: diff_patch
+  position: {x: 750, y: 850}
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/diagram_assembler.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/diagram_assembler.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/diagram_assembler.py\n@@ -4,12 +4,18 @@\n into the light format diagram structure.\n \"\"\"\n \n-from typing import Any\n+from typing import Any, Optional\n+\n+from .person_registry import PersonRegistry\n \n \n class DiagramAssembler:\n     \"\"\"Assembles final light format diagram from components.\"\"\"\n \n-    def __init__(self):\n-        \"\"\"Initialize the diagram assembler.\"\"\"\n-        pass\n+    def __init__(self, person_registry: Optional[PersonRegistry] = None):\n+        \"\"\"Initialize the diagram assembler.\n+\n+        Args:\n+            person_registry: Optional person registry for managing persons\n+        \"\"\"\n+        self.person_registry = person_registry"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 23
+  type: api_job
+  position: {x: 800, y: 850}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 20
+  type: diff_patch
+  position: {x: 850, y: 850}
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/diagram_assembler.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/diagram_assembler.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/diagram_assembler.py\n@@ -2,15 +2,15 @@\n         self,\n         nodes: list[dict[str, Any]],\n         connections: list[dict[str, Any]],\n-        persons: dict[str, Any],\n-        metadata: dict[str, Any] | None = None,\n+        persons: Optional[dict[str, Any]] = None,\n+        metadata: Optional[dict[str, Any]] = None,\n     ) -> dict[str, Any]:\n         \"\"\"Assemble components into light format diagram.\n \n         Args:\n             nodes: List of node dictionaries\n             connections: List of connection dictionaries\n-            persons: Dictionary of person configurations\n+            persons: Optional dictionary of person configurations\n             metadata: Optional metadata to include\n \n         Returns:\n@@ -28,8 +28,13 @@\n             diagram[\"connections\"] = connections\n \n         # Add persons section if we have AI agents\n+        # Use provided persons or get from registry\n         if persons:\n             diagram[\"persons\"] = persons\n+        elif self.person_registry:\n+            registry_persons = self.person_registry.get_all_persons()\n+            if registry_persons:\n+                diagram[\"persons\"] = registry_persons\n \n         # Add metadata if provided\n         if metadata:"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 24
+  type: api_job
+  position: {x: 900, y: 1000}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Write File 21
+  type: db
+  position: {x: 950, y: 1000}
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builder_refactored.py
+    content: |-
+      """Refactored node builder using the factory pattern.
+
+      This module provides a simplified NodeBuilder interface that delegates
+      to specialized builders through the ToolNodeFactory.
+      """
+
+      from typing import Any, Optional
+
+      from .node_factories.tool_node_factory import ToolNodeFactory
+      from .person_registry import PersonRegistry
+      from .position_manager import PositionManager
+      from .payload_processor import PayloadProcessor
+
+
+      class NodeBuilder:
+          """Refactored NodeBuilder using factory pattern for better separation of concerns."""
+
+          def __init__(self):
+              """Initialize the refactored node builder."""
+              # Create shared components
+              self.person_registry = PersonRegistry()
+              self.position_manager = PositionManager()
+              self.payload_processor = PayloadProcessor()
+
+              # Create the factory with shared components
+              self.factory = ToolNodeFactory(
+                  person_registry=self.person_registry,
+                  position_manager=self.position_manager,
+                  payload_processor=self.payload_processor,
+              )
+
+              # For compatibility, expose some properties
+              self.node_counter = 0
+              self.persons = {}
+
+              # Import utilities for backward compatibility
+              from .utils import TextProcessor, DiffGenerator
+
+              self.text_processor = TextProcessor()
+              self.diff_generator = DiffGenerator()
+
+          def reset(self):
+              """Reset the node builder state."""
+              self.factory.reset()
+              self.node_counter = 0
+              self.persons = {}
+              self.text_processor = TextProcessor()
+
+          def increment_counter(self) -> int:
+              """Increment and return the node counter.
+
+              Returns:
+                  The incremented counter value
+              """
+              self.node_counter = self.factory.increment_counter()
+              return self.node_counter
+
+          def get_position(self) -> dict[str, int]:
+              """Calculate node position based on current counter.
+
+              Returns:
+                  Dictionary with x and y coordinates
+              """
+              return self.position_manager.get_next_position()
+
+          def create_start_node(self, session_id: str, initial_prompt: str) -> dict[str, Any]:
+              """Create the start node for the diagram.
+
+              Args:
+                  session_id: The Claude Code session ID
+                  initial_prompt: The initial user prompt
+
+              Returns:
+                  The created start node
+              """
+              return self.factory.create_start_node(session_id, initial_prompt)
+
+          def create_user_node(self, content: str) -> Optional[dict[str, Any]]:
+              """Create a node for user input that Claude Code will respond to.
+
+              Args:
+                  content: The user's message content
+
+              Returns:
+                  The created user node or None if content is empty
+              """
+              return self.factory.create_user_node(content)
+
+          def create_assistant_node(
+              self, content: str, system_messages: Optional[list[str]] = None
+          ) -> Optional[dict[str, Any]]:
+              """Handle AI assistant response.
+
+              Args:
+                  content: The assistant's response content
+                  system_messages: Optional system messages for context
+
+              Returns:
+                  Usually None as responses are outputs of user nodes
+              """
+              return self.factory.create_assistant_node(content, system_messages)
+
+          def create_tool_node(
+              self,
+              tool_name: str,
+              tool_input: dict[str, Any],
+              tool_use_result: Optional[dict[str, Any]] = None,
+          ) -> Optional[dict[str, Any]]:
+              """Create appropriate node based on tool name.
+
+              Args:
+                  tool_name: Name of the tool
+                  tool_input: Input parameters for the tool
+                  tool_use_result: Optional tool execution result
+
+              Returns:
+                  The created node or None if not applicable
+              """
+              # Track the tool being used (for compatibility)
+              self.text_processor.set_last_tool(tool_name)
+
+              return self.factory.create_tool_node(tool_name, tool_input, tool_use_result)
+
+          # Compatibility methods for direct access
+          def create_read_node(self, tool_input: dict[str, Any]) -> dict[str, Any]:
+              """Create a DB node for file read operation."""
+              return self.factory.create_tool_node("Read", tool_input)
+
+          def create_write_node(
+              self, tool_input: dict[str, Any], tool_use_result: Optional[dict[str, Any]] = None
+          ) -> dict[str, Any]:
+              """Create a DB node for file write operation."""
+              return self.factory.create_tool_node("Write", tool_input, tool_use_result)
+
+          def create_edit_node(
+              self, tool_name: str, tool_input: dict[str, Any], original_content: Optional[str] = None
+          ) -> dict[str, Any]:
+              """Create a diff_patch node for file edit operation."""
+              # For compatibility with original interface
+              return self.factory.create_tool_node(tool_name, tool_input)
+
+          def create_edit_node_with_result(
+              self,
+              tool_name: str,
+              tool_input: dict[str, Any],
+              tool_use_result: Optional[dict[str, Any]] = None,
+          ) -> Optional[dict[str, Any]]:
+              """Create a diff_patch node using tool_use_result for better diff generation."""
+              return self.factory.create_tool_node(tool_name, tool_input, tool_use_result)
+
+          def create_bash_node(self, tool_input: dict[str, Any]) -> dict[str, Any]:
+              """Create a code_job node for bash command execution."""
+              return self.factory.create_tool_node("Bash", tool_input)
+
+          def create_todo_node(self, tool_input: dict[str, Any]) -> dict[str, Any]:
+              """Create a DB node for TodoWrite operation."""
+              return self.factory.create_tool_node("TodoWrite", tool_input)
+
+          def create_search_node(self, tool_name: str, tool_input: dict[str, Any]) -> dict[str, Any]:
+              """Create a code_job node for search operations."""
+              return self.factory.create_tool_node(tool_name, tool_input)
+
+          def create_generic_tool_node(
+              self, tool_name: str, tool_input: dict[str, Any]
+          ) -> dict[str, Any]:
+              """Create a generic API node for unknown tools."""
+              return self.factory.create_tool_node(tool_name, tool_input)
+
+          def get_nodes(self) -> list[dict[str, Any]]:
+              """Get all created nodes.
+
+              Returns:
+                  List of all nodes created by this builder
+              """
+              return self.factory.get_all_nodes()
+
+          def get_persons(self) -> dict[str, dict[str, Any]]:
+              """Get all registered persons.
+
+              Returns:
+                  Dictionary of person configurations
+              """
+              self.persons = self.factory.get_persons()
+              return self.persons
+
+          # Property for backward compatibility
+          @property
+          def nodes(self) -> list[dict[str, Any]]:
+              """Property for backward compatibility with direct nodes access."""
+              return self.factory.get_all_nodes()
+- label: tool_result 25
+  type: api_job
+  position: {x: 1000, y: 1000}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Grep Search 7
+  type: code_job
+  position: {x: 1050, y: 1000}
+  props:
+    language: bash
+    code: rg -n 'NodeBuilder|node_builder' /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+    tool: Grep
+    description: Grep search operation
+- label: Update TODO 8
+  type: db
+  position: {x: 300, y: 1000}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Create node_factories subdirectory structure
+        status: completed
+        activeForm: Creating node_factories subdirectory structure
+      - content: Extract position_manager.py for positioning logic
+        status: completed
+        activeForm: Extracting position_manager.py for positioning logic
+      - content: Extract person_registry.py for person management
+        status: completed
+        activeForm: Extracting person_registry.py for person management
+      - content: Extract payload_processor.py for payload handling
+        status: completed
+        activeForm: Extracting payload_processor.py for payload handling
+      - content: Extract base_node_builder.py with common logic
+        status: completed
+        activeForm: Extracting base_node_builder.py with common logic
+      - content: Create specialized node builders (start, person, file, code, db)
+        status: completed
+        activeForm: Creating specialized node builders
+      - content: Create api_node_builder.py
+        status: completed
+        activeForm: Creating api_node_builder.py
+      - content: Create tool_node_factory.py as main factory
+        status: completed
+        activeForm: Creating tool_node_factory.py as main factory
+      - content: Move shared utilities to convert/utils
+        status: completed
+        activeForm: Moving shared utilities to convert/utils
+      - content: Enhance DiagramAssembler with person registry
+        status: completed
+        activeForm: Enhancing DiagramAssembler with person registry
+      - content: Update converter.py to use new structure
+        status: in_progress
+        activeForm: Updating converter.py to use new structure
+      - content: Update imports in __init__.py
+        status: pending
+        activeForm: Updating imports in __init__.py
+      - content: Test refactored code with dipeocc
+        status: pending
+        activeForm: Testing refactored code with dipeocc
+- label: tool_result 26
+  type: api_job
+  position: {x: 350, y: 1000}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 22
+  type: diff_patch
+  position: {x: 400, y: 1000}
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py\n@@ -13,7 +13,9 @@\n from .base import BaseConverter, ConversionContext, ConversionReport, ConversionStatus\n from .connection_builder import ConnectionBuilder\n from .diagram_assembler import DiagramAssembler\n-from .node_builders import NodeBuilder\n+\n+# Use refactored NodeBuilder\n+from .node_builder_refactored import NodeBuilder\n \n \n class Converter(BaseConverter):\n@@ -23,5 +25,6 @@\n         \"\"\"Initialize the converter.\"\"\"\n         self.node_builder = NodeBuilder()\n         self.connection_builder = ConnectionBuilder()\n-        self.assembler = DiagramAssembler()\n+        # Pass person registry to assembler for better integration\n+        self.assembler = DiagramAssembler(self.node_builder.person_registry)\n         self.node_map: dict[str, str] = {}  # Maps event UUID to node label"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 27
+  type: api_job
+  position: {x: 450, y: 1000}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 23
+  type: diff_patch
+  position: {x: 500, y: 1000}
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/__init__.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/__init__.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/__init__.py\n@@ -9,6 +9,22 @@\n from .connection_builder import ConnectionBuilder\n from .converter import Converter\n from .diagram_assembler import DiagramAssembler\n-from .node_builders import NodeBuilder\n \n-__all__ = [\"ConnectionBuilder\", \"Converter\", \"DiagramAssembler\", \"NodeBuilder\"]\n+# Export refactored NodeBuilder as the main NodeBuilder\n+from .node_builder_refactored import NodeBuilder\n+\n+# Also export new components for direct access if needed\n+from .person_registry import PersonRegistry\n+from .position_manager import PositionManager, GridPositionManager\n+from .payload_processor import PayloadProcessor\n+\n+__all__ = [\n+    \"ConnectionBuilder\",\n+    \"Converter\",\n+    \"DiagramAssembler\",\n+    \"NodeBuilder\",\n+    \"PersonRegistry\",\n+    \"PositionManager\",\n+    \"GridPositionManager\",\n+    \"PayloadProcessor\",\n+]"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 28
+  type: api_job
+  position: {x: 550, y: 1000}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 24
+  type: diff_patch
+  position: {x: 600, y: 1150}
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/__init__.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/__init__.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/__init__.py\n@@ -5,5 +5,22 @@\n \"\"\"\n \n from .base_node_builder import BaseNodeBuilder, SimpleNodeBuilder\n+from .tool_node_factory import ToolNodeFactory\n+from .start_node_builder import StartNodeBuilder\n+from .person_node_builder import PersonNodeBuilder\n+from .file_node_builder import FileNodeBuilder\n+from .code_node_builder import CodeNodeBuilder\n+from .db_node_builder import DbNodeBuilder\n+from .api_node_builder import ApiNodeBuilder\n \n-__all__ = [\"BaseNodeBuilder\", \"SimpleNodeBuilder\"]\n+__all__ = [\n+    \"BaseNodeBuilder\",\n+    \"SimpleNodeBuilder\",\n+    \"ToolNodeFactory\",\n+    \"StartNodeBuilder\",\n+    \"PersonNodeBuilder\",\n+    \"FileNodeBuilder\",\n+    \"CodeNodeBuilder\",\n+    \"DbNodeBuilder\",\n+    \"ApiNodeBuilder\",\n+]"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 29
+  type: api_job
+  position: {x: 650, y: 1150}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 25
+  type: diff_patch
+  position: {x: 700, y: 1150}
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/file_node_builder.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/file_node_builder.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/file_node_builder.py\n@@ -1,4 +1,4 @@\n-        # Import diff utilities - will be moved to local utils later\n-        from ..shared.diff_utils import DiffGenerator\n+        # Import diff utilities\n+        from ..utils.diff_utils import DiffGenerator\n \n         diff_generator = DiffGenerator()"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 30
+  type: api_job
+  position: {x: 750, y: 1150}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 26
+  type: diff_patch
+  position: {x: 800, y: 1150}
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/file_node_builder.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/file_node_builder.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/file_node_builder.py\n@@ -1,6 +1,6 @@\n-        # Import utilities - will be moved to local utils later\n-        from ..shared.diff_utils import DiffGenerator\n-        from ..shared.text_utils import TextProcessor\n+        # Import utilities\n+        from ..utils.diff_utils import DiffGenerator\n+        from ..utils.text_utils import TextProcessor\n \n         diff_generator = DiffGenerator()\n         text_processor = TextProcessor()"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 31
+  type: api_job
+  position: {x: 850, y: 1150}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Update TODO 9
+  type: db
+  position: {x: 900, y: 1150}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Create node_factories subdirectory structure
+        status: completed
+        activeForm: Creating node_factories subdirectory structure
+      - content: Extract position_manager.py for positioning logic
+        status: completed
+        activeForm: Extracting position_manager.py for positioning logic
+      - content: Extract person_registry.py for person management
+        status: completed
+        activeForm: Extracting person_registry.py for person management
+      - content: Extract payload_processor.py for payload handling
+        status: completed
+        activeForm: Extracting payload_processor.py for payload handling
+      - content: Extract base_node_builder.py with common logic
+        status: completed
+        activeForm: Extracting base_node_builder.py with common logic
+      - content: Create specialized node builders (start, person, file, code, db)
+        status: completed
+        activeForm: Creating specialized node builders
+      - content: Create api_node_builder.py
+        status: completed
+        activeForm: Creating api_node_builder.py
+      - content: Create tool_node_factory.py as main factory
+        status: completed
+        activeForm: Creating tool_node_factory.py as main factory
+      - content: Move shared utilities to convert/utils
+        status: completed
+        activeForm: Moving shared utilities to convert/utils
+      - content: Enhance DiagramAssembler with person registry
+        status: completed
+        activeForm: Enhancing DiagramAssembler with person registry
+      - content: Update converter.py to use new structure
+        status: completed
+        activeForm: Updating converter.py to use new structure
+      - content: Update imports in __init__.py
+        status: completed
+        activeForm: Updating imports in __init__.py
+      - content: Test refactored code with dipeocc
+        status: in_progress
+        activeForm: Testing refactored code with dipeocc
+- label: tool_result 32
+  type: api_job
+  position: {x: 950, y: 1150}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 8
+  type: code_job
+  position: {x: 1000, y: 1150}
+  props:
+    language: bash
+    code: dipeocc stats --latest
+    timeout: 120000
+    description: Test dipeocc stats with refactored code
+- label: Bash Command 9
+  type: code_job
+  position: {x: 1050, y: 1150}
+  props:
+    language: bash
+    code: dipeocc list
+    timeout: 120000
+    description: List recent Claude Code sessions
+- label: Bash Command 10
+  type: code_job
+  position: {x: 300, y: 1300}
+  props:
+    language: bash
+    code: dipeocc convert 4ad614ca-a513-432c-b600-d598c4816336 --output-dir /tmp/dipeo-test
+    timeout: 120000
+    description: Test dipeocc convert with a small session
+- label: Bash Command 11
+  type: code_job
+  position: {x: 350, y: 1300}
+  props:
+    language: bash
+    code: ls -la /tmp/dipeo-test/sessions/2025-09-19_12-45-21/
+    timeout: 120000
+    description: List generated files to check conversion worked
+- label: Read File 27
+  type: db
+  position: {x: 400, y: 1300}
+  props:
+    operation: read
+    sub_type: file
+    file: /tmp/dipeo-test/sessions/2025-09-19_12-45-21/diagram.light.yaml
+- label: Claude Responds To User 4
+  type: person_job
+  position: {x: 450, y: 1300}
+  props:
+    person: claude_code
+    default_prompt: '[Request interrupted by user]'
+- label: Claude Responds To User 5
+  type: person_job
+  position: {x: 500, y: 1300}
+  props:
+    person: claude_code
+    default_prompt: you can use `dipeocc convert --latest`. think
+- label: Update TODO 10
+  type: db
+  position: {x: 550, y: 1300}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Test refactored code with dipeocc
+        status: completed
+        activeForm: Testing refactored code with dipeocc
+      - content: Debug empty diagram issue
+        status: in_progress
+        activeForm: Debugging empty diagram issue
+      - content: Fix node creation in refactored code
+        status: pending
+        activeForm: Fixing node creation in refactored code
+      - content: Verify dipeocc works with refactored structure
+        status: pending
+        activeForm: Verifying dipeocc works with refactored structure
+- label: tool_result 33
+  type: api_job
+  position: {x: 600, y: 1300}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 12
+  type: code_job
+  position: {x: 650, y: 1300}
+  props:
+    language: bash
+    code: python -c "from dipeo.domain.cc_translate.convert import NodeBuilder; nb = NodeBuilder(); nb.create_start_node('test', 'hello'); print(len(nb.nodes))"
+    timeout: 120000
+    description: Test if refactored NodeBuilder is creating nodes
+- label: Bash Command 13
+  type: code_job
+  position: {x: 700, y: 1300}
+  props:
+    language: bash
+    code: dipeocc convert --latest --debug 2>&1 | head -100
+    timeout: 120000
+    description: Test dipeocc convert with latest session in debug mode
+- label: Bash Command 14
+  type: code_job
+  position: {x: 750, y: 1300}
+  props:
+    language: bash
+    code: dipeocc convert --latest
+    timeout: 120000
+    description: Test dipeocc convert with latest session
+- label: Bash Command 15
+  type: code_job
+  position: {x: 800, y: 1450}
+  props:
+    language: bash
+    code: head -20 projects/claude_code/sessions/2025-09-20_02-18-06/diagram.light.yaml
+    timeout: 120000
+    description: Check if generated diagram has nodes
+- label: Bash Command 16
+  type: code_job
+  position: {x: 850, y: 1450}
+  props:
+    language: bash
+    code: grep -c "^- label:" projects/claude_code/sessions/2025-09-20_02-18-06/diagram.light.yaml
+    timeout: 120000
+    description: Count nodes in generated diagram
+- label: Bash Command 17
+  type: code_job
+  position: {x: 900, y: 1450}
+  props:
+    language: bash
+    code: grep -A 2 "^connections:" projects/claude_code/sessions/2025-09-20_02-18-06/diagram.light.yaml | head -10
+    timeout: 120000
+    description: Check connections in diagram
+- label: Bash Command 18
+  type: code_job
+  position: {x: 950, y: 1450}
+  props:
+    language: bash
+    code: grep -A 5 "^persons:" projects/claude_code/sessions/2025-09-20_02-18-06/diagram.light.yaml
+    timeout: 120000
+    description: Check persons section in diagram
+- label: Update TODO 11
+  type: db
+  position: {x: 1000, y: 1450}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Test refactored code with dipeocc
+        status: completed
+        activeForm: Testing refactored code with dipeocc
+      - content: Debug empty diagram issue
+        status: completed
+        activeForm: Debugging empty diagram issue
+      - content: Fix node creation in refactored code
+        status: completed
+        activeForm: Fixing node creation in refactored code
+      - content: Verify dipeocc works with refactored structure
+        status: completed
+        activeForm: Verifying dipeocc works with refactored structure
+- label: tool_result 34
+  type: api_job
+  position: {x: 1050, y: 1450}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 19
+  type: code_job
+  position: {x: 300, y: 1450}
+  props:
+    language: bash
+    code: dipeo run projects/claude_code/latest.light.yaml --dry-run
+    timeout: 120000
+    description: Test executing generated diagram in dry-run mode
+- label: Grep Search 20
+  type: code_job
+  position: {x: 350, y: 1450}
+  props:
+    language: bash
+    code: rg -l 'from.*\.shared\.' /home/soryhyun/DiPeO/dipeo/domain/cc_translate
+    tool: Grep
+    description: Grep search operation
+- label: Grep Search 21
+  type: code_job
+  position: {x: 400, y: 1450}
+  props:
+    language: bash
+    code: rg -l '\.\.shared' /home/soryhyun/DiPeO/dipeo/domain/cc_translate
+    tool: Grep
+    description: Grep search operation
+- label: Grep Search 22
+  type: code_job
+  position: {x: 450, y: 1450}
+  props:
+    language: bash
+    code: rg -n 'from dipeo.domain.cc_translate.shared' /home/soryhyun/DiPeO
+    tool: Grep
+    description: Grep search operation
+- label: Bash Command 23
+  type: code_job
+  position: {x: 500, y: 1600}
+  props:
+    language: bash
+    code: ls -la /home/soryhyun/DiPeO/dipeo/domain/cc_translate/shared/
+    timeout: 120000
+    description: Check what files are in shared directory
+- label: Read File 28
+  type: db
+  position: {x: 550, y: 1600}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/shared/__init__.py
+- label: Grep Search 24
+  type: code_job
+  position: {x: 600, y: 1600}
+  props:
+    language: bash
+    code: rg -l 'cc_translate.shared' /home/soryhyun/DiPeO
+    tool: Grep
+    description: Grep search operation
+- label: Grep Search 25
+  type: code_job
+  position: {x: 650, y: 1600}
+  props:
+    language: bash
+    code: rg --glob '*.py' -l 'from.*shared import|import.*shared' /home/soryhyun/DiPeO/dipeo/domain/cc_translate
+    tool: Grep
+    description: Grep search operation
+- label: Grep Search 26
+  type: code_job
+  position: {x: 700, y: 1600}
+  props:
+    language: bash
+    code: rg -n 'from.*shared import|import.*shared' /home/soryhyun/DiPeO/dipeo/domain/cc_translate/__init__.py
+    tool: Grep
+    description: Grep search operation
+- label: Read File 29
+  type: db
+  position: {x: 750, y: 1600}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/__init__.py
+- label: Grep Search 27
+  type: code_job
+  position: {x: 800, y: 1600}
+  props:
+    language: bash
+    code: rg --glob '*.py' -l 'from dipeo.domain.cc_translate.shared|from dipeo.domain.cc_translate import.*shared' /home/soryhyun/DiPeO
+    tool: Grep
+    description: Grep search operation
+- label: Claude Responds To User 6
+  type: person_job
+  position: {x: 850, y: 1600}
+  props:
+    person: claude_code
+    default_prompt: '[Request interrupted by user]'
+connections:
+- {from: Start, to: Claude Responds To User 1, content_type: raw_text}
+- {from: Claude Responds To User 1, to: Claude Responds To User 2, content_type: raw_text}
+- {from: Claude Responds To User 2, to: Claude Responds To User 3, content_type: raw_text}
+- {from: Claude Responds To User 3, to: Bash Command 1, content_type: raw_text}
+- {from: Bash Command 1, to: Read File 1, content_type: raw_text}
+- {from: Read File 1, to: Read File 2, content_type: raw_text}
+- {from: Read File 2, to: Grep Search 2, content_type: raw_text}
+- {from: Grep Search 2, to: Read File 3, content_type: raw_text}
+- {from: Read File 3, to: Read File 4, content_type: raw_text}
+- {from: Read File 4, to: Read File 5, content_type: raw_text}
+- {from: Read File 5, to: ExitPlanMode 1, content_type: raw_text}
+- {from: ExitPlanMode 1, to: tool_result 2, content_type: raw_text}
+- {from: tool_result 2, to: Update TODO 1, content_type: raw_text}
+- {from: Update TODO 1, to: tool_result 3, content_type: raw_text}
+- {from: tool_result 3, to: Update TODO 2, content_type: raw_text}
+- {from: Update TODO 2, to: tool_result 4, content_type: raw_text}
+- {from: tool_result 4, to: Bash Command 3, content_type: raw_text}
+- {from: Bash Command 3, to: Write File 6, content_type: raw_text}
+- {from: Write File 6, to: tool_result 5, content_type: raw_text}
+- {from: tool_result 5, to: Write File 7, content_type: raw_text}
+- {from: Write File 7, to: tool_result 6, content_type: raw_text}
+- {from: tool_result 6, to: Write File 8, content_type: raw_text}
+- {from: Write File 8, to: tool_result 7, content_type: raw_text}
+- {from: tool_result 7, to: Update TODO 3, content_type: raw_text}
+- {from: Update TODO 3, to: tool_result 8, content_type: raw_text}
+- {from: tool_result 8, to: Write File 9, content_type: raw_text}
+- {from: Write File 9, to: tool_result 9, content_type: raw_text}
+- {from: tool_result 9, to: Write File 10, content_type: raw_text}
+- {from: Write File 10, to: tool_result 10, content_type: raw_text}
+- {from: tool_result 10, to: Write File 11, content_type: raw_text}
+- {from: Write File 11, to: tool_result 11, content_type: raw_text}
+- {from: tool_result 11, to: Write File 12, content_type: raw_text}
+- {from: Write File 12, to: tool_result 12, content_type: raw_text}
+- {from: tool_result 12, to: Write File 13, content_type: raw_text}
+- {from: Write File 13, to: tool_result 13, content_type: raw_text}
+- {from: tool_result 13, to: Write File 14, content_type: raw_text}
+- {from: Write File 14, to: tool_result 14, content_type: raw_text}
+- {from: tool_result 14, to: Write File 15, content_type: raw_text}
+- {from: Write File 15, to: tool_result 15, content_type: raw_text}
+- {from: tool_result 15, to: Update TODO 4, content_type: raw_text}
+- {from: Update TODO 4, to: tool_result 16, content_type: raw_text}
+- {from: tool_result 16, to: Write File 16, content_type: raw_text}
+- {from: Write File 16, to: tool_result 17, content_type: raw_text}
+- {from: tool_result 17, to: Update TODO 5, content_type: raw_text}
+- {from: Update TODO 5, to: tool_result 18, content_type: raw_text}
+- {from: tool_result 18, to: Write File 17, content_type: raw_text}
+- {from: Write File 17, to: tool_result 19, content_type: raw_text}
+- {from: tool_result 19, to: Update TODO 6, content_type: raw_text}
+- {from: Update TODO 6, to: tool_result 20, content_type: raw_text}
+- {from: tool_result 20, to: Bash Command 4, content_type: raw_text}
+- {from: Bash Command 4, to: Bash Command 5, content_type: raw_text}
+- {from: Bash Command 5, to: Bash Command 6, content_type: raw_text}
+- {from: Bash Command 6, to: Write File 18, content_type: raw_text}
+- {from: Write File 18, to: tool_result 21, content_type: raw_text}
+- {from: tool_result 21, to: Update TODO 7, content_type: raw_text}
+- {from: Update TODO 7, to: tool_result 22, content_type: raw_text}
+- {from: tool_result 22, to: Edit File 19, content_type: raw_text}
+- {from: Edit File 19, to: tool_result 23, content_type: raw_text}
+- {from: tool_result 23, to: Edit File 20, content_type: raw_text}
+- {from: Edit File 20, to: tool_result 24, content_type: raw_text}
+- {from: tool_result 24, to: Write File 21, content_type: raw_text}
+- {from: Write File 21, to: tool_result 25, content_type: raw_text}
+- {from: tool_result 25, to: Grep Search 7, content_type: raw_text}
+- {from: Grep Search 7, to: Update TODO 8, content_type: raw_text}
+- {from: Update TODO 8, to: tool_result 26, content_type: raw_text}
+- {from: tool_result 26, to: Edit File 22, content_type: raw_text}
+- {from: Edit File 22, to: tool_result 27, content_type: raw_text}
+- {from: tool_result 27, to: Edit File 23, content_type: raw_text}
+- {from: Edit File 23, to: tool_result 28, content_type: raw_text}
+- {from: tool_result 28, to: Edit File 24, content_type: raw_text}
+- {from: Edit File 24, to: tool_result 29, content_type: raw_text}
+- {from: tool_result 29, to: Edit File 25, content_type: raw_text}
+- {from: Edit File 25, to: tool_result 30, content_type: raw_text}
+- {from: tool_result 30, to: Edit File 26, content_type: raw_text}
+- {from: Edit File 26, to: tool_result 31, content_type: raw_text}
+- {from: tool_result 31, to: Update TODO 9, content_type: raw_text}
+- {from: Update TODO 9, to: tool_result 32, content_type: raw_text}
+- {from: tool_result 32, to: Bash Command 8, content_type: raw_text}
+- {from: Bash Command 8, to: Bash Command 9, content_type: raw_text}
+- {from: Bash Command 9, to: Bash Command 10, content_type: raw_text}
+- {from: Bash Command 10, to: Bash Command 11, content_type: raw_text}
+- {from: Bash Command 11, to: Read File 27, content_type: raw_text}
+- {from: Read File 27, to: Claude Responds To User 4, content_type: raw_text}
+- {from: Claude Responds To User 4, to: Claude Responds To User 5, content_type: raw_text}
+- {from: Claude Responds To User 5, to: Update TODO 10, content_type: raw_text}
+- {from: Update TODO 10, to: tool_result 33, content_type: raw_text}
+- {from: tool_result 33, to: Bash Command 12, content_type: raw_text}
+- {from: Bash Command 12, to: Bash Command 13, content_type: raw_text}
+- {from: Bash Command 13, to: Bash Command 14, content_type: raw_text}
+- {from: Bash Command 14, to: Bash Command 15, content_type: raw_text}
+- {from: Bash Command 15, to: Bash Command 16, content_type: raw_text}
+- {from: Bash Command 16, to: Bash Command 17, content_type: raw_text}
+- {from: Bash Command 17, to: Bash Command 18, content_type: raw_text}
+- {from: Bash Command 18, to: Update TODO 11, content_type: raw_text}
+- {from: Update TODO 11, to: tool_result 34, content_type: raw_text}
+- {from: tool_result 34, to: Bash Command 19, content_type: raw_text}
+- {from: Bash Command 19, to: Grep Search 20, content_type: raw_text}
+- {from: Grep Search 20, to: Grep Search 21, content_type: raw_text}
+- {from: Grep Search 21, to: Grep Search 22, content_type: raw_text}
+- {from: Grep Search 22, to: Bash Command 23, content_type: raw_text}
+- {from: Bash Command 23, to: Read File 28, content_type: raw_text}
+- {from: Read File 28, to: Grep Search 24, content_type: raw_text}
+- {from: Grep Search 24, to: Grep Search 25, content_type: raw_text}
+- {from: Grep Search 25, to: Grep Search 26, content_type: raw_text}
+- {from: Grep Search 26, to: Read File 29, content_type: raw_text}
+- {from: Read File 29, to: Grep Search 27, content_type: raw_text}
+- {from: Grep Search 27, to: Claude Responds To User 6, content_type: raw_text}
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.
+metadata:
+  conversion:
+    total_nodes: 108
+    total_connections: 107
+    total_persons: 0
+    node_types:
+      start: 1
+      person_job: 6
+      code_job: 27
+      db: 33
+      api_job: 34
+      diff_patch: 7

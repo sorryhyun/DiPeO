@@ -46,7 +46,6 @@ class ParserService(
         This method is called during service startup and ensures
         the TypeScript parser is ready for immediate use.
         """
-        logger.debug("Initializing TypeScript parser")
         self._ts_parser = TypeScriptParser(
             project_root=self._project_root, cache_enabled=self._cache_enabled
         )

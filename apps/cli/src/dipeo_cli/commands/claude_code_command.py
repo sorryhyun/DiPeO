@@ -9,9 +9,11 @@ from typing import Any, Optional
 
 import yaml
 
-from dipeo.domain.cc_translate import ClaudeCodeTranslator
+from dipeo.domain.cc_translate import PhaseCoordinator
 from dipeo.domain.cc_translate.post_processing import PipelineConfig, ProcessingPreset
-from dipeo.infrastructure.claude_code.session_parser import (
+from dipeo.infrastructure.cc_translate import (
+    SessionAdapter,
+    SessionSerializer,
     extract_session_timestamp,
     find_session_files,
     format_timestamp_for_directory,
@@ -27,7 +29,8 @@ class ClaudeCodeCommand:
         self.server_manager = server_manager
         self.base_dir = Path.home() / ".claude" / "projects" / "-home-soryhyun-DiPeO"
         self.output_base = Path("projects/claude_code")
-        self.translator = ClaudeCodeTranslator()
+        self.coordinator = PhaseCoordinator()
+        self.session_serializer = SessionSerializer()
 
     def execute(self, action: str, **kwargs) -> bool:
         """Execute the Claude Code command based on action."""
@@ -154,16 +157,17 @@ class ClaudeCodeCommand:
 
                 print("\n🔄 Translating to DiPeO diagram...")
 
-                # Generate both original and optimized diagrams (always)
-                original_diagram_data = self._generate_original_diagram(session)
-                optimized_diagram_data = self._generate_optimized_diagram(session)
-
-                # Setup output directory
+                # Setup output directory first (needed for sub-diagram grouping)
                 output_dir_path = self._setup_output_directory(
                     current_session_id, output_dir, session_file
                 )
 
-                # Save both diagrams with new naming convention
+                # Generate original, optimized, and grouped diagrams
+                original_diagram_data = self._generate_original_diagram(session)
+                optimized_diagram_data = self._generate_optimized_diagram(session)
+                grouped_diagram_data = self._generate_grouped_diagram(session, output_dir_path)
+
+                # Save all three diagrams
                 file_extension = "yaml" if format_type == "light" else "json"
 
                 # Save original diagram as 'diagram.light.yaml'
@@ -171,10 +175,15 @@ class ClaudeCodeCommand:
                 self._save_diagram(original_diagram_data, original_file, format_type)
                 print(f"📄 Original diagram saved to: {original_file}")
 
-                # Save optimized diagram as 'optimized.light.yaml'
+                # Save optimized diagram as 'optimized.light.yaml' (without TODO grouping)
                 optimized_file = output_dir_path / f"optimized.{format_type}.{file_extension}"
                 self._save_diagram(optimized_diagram_data, optimized_file, format_type)
                 print(f"✅ Optimized diagram saved to: {optimized_file}")
+
+                # Save grouped diagram as 'grouped.light.yaml' (with TODO grouping + optimizations)
+                grouped_file = output_dir_path / f"grouped.{format_type}.{file_extension}"
+                self._save_diagram(grouped_diagram_data, grouped_file, format_type)
+                print(f"🗂️  Grouped diagram saved to: {grouped_file}")
 
                 # Create diagrams info for metadata
                 diagrams_info = {
@@ -188,6 +197,11 @@ class ClaudeCodeCommand:
                         "type": "optimized",
                         "statistics": self._get_diagram_stats(optimized_diagram_data),
                     },
+                    "grouped": {
+                        "file": f"grouped.{format_type}.{file_extension}",
+                        "type": "grouped",
+                        "statistics": self._get_diagram_stats(grouped_diagram_data),
+                    },
                 }
 
                 # Create metadata
@@ -200,9 +214,9 @@ class ClaudeCodeCommand:
                     json.dump(metadata, f, indent=2)
                 print(f"📊 Metadata saved to: {metadata_file}")
 
-                # Create latest symlink for single conversions (point to optimized version)
+                # Create latest symlink for single conversions (point to grouped version)
                 if len(sessions_to_convert) == 1:
-                    self._create_latest_symlink(optimized_file, format_type)
+                    self._create_latest_symlink(grouped_file, format_type)
 
                 successful_conversions += 1
                 if len(sessions_to_convert) == 1:
@@ -247,19 +261,49 @@ class ClaudeCodeCommand:
         return session
 
     def _generate_optimized_diagram(self, session: Any) -> dict[str, Any]:
-        """Generate optimized diagram using standard post-processing."""
+        """Generate optimized diagram without structural changes."""
         print("   ⚡ Generating optimized diagram...")
 
-        # Use standard preset for optimization
-        config = PipelineConfig.from_preset(ProcessingPreset.STANDARD)
-        return self.translator.translate(session, post_process=True, processing_config=config)
+        # Adapt infrastructure session to domain port
+        session_adapter = SessionAdapter(session)
+
+        # Use optimization-only preset (no TO_DO grouping)
+        config = PipelineConfig.from_preset(ProcessingPreset.OPTIMIZATION_ONLY)
+
+        diagram, _ = self.coordinator.translate(
+            session_adapter, post_process=True, processing_config=config
+        )
+        return diagram
+
+    def _generate_grouped_diagram(self, session: Any, output_dir_path: Path) -> dict[str, Any]:
+        """Generate grouped diagram with TO_DO subdiagram grouping and optimizations."""
+        print("   🗂️  Generating grouped diagram...")
+
+        # Adapt infrastructure session to domain port
+        session_adapter = SessionAdapter(session)
+
+        # Use grouping preset (includes TO_DO grouping + optimizations)
+        config = PipelineConfig.from_preset(ProcessingPreset.GROUPING)
+        config.todo_subdiagram_grouper.output_subdirectory = "grouped"
+
+        diagram, _ = self.coordinator.translate(
+            session_adapter,
+            post_process=True,
+            processing_config=config,
+            output_base_path=str(output_dir_path),
+        )
+        return diagram
 
     def _generate_original_diagram(self, session: Any) -> dict[str, Any]:
         """Generate original diagram with minimal post-processing."""
         print("   📄 Generating original diagram...")
 
+        # Adapt infrastructure session to domain port
+        session_adapter = SessionAdapter(session)
+
         # Use minimal processing for original
-        return self.translator.translate(session)
+        diagram, _ = self.coordinator.translate(session_adapter)
+        return diagram
 
     def _save_diagram(
         self, diagram_data: dict[str, Any], file_path: Path, format_type: str
@@ -334,15 +378,40 @@ class ClaudeCodeCommand:
         output_dir_path = output_dir_path / "sessions" / dir_name
         output_dir_path.mkdir(parents=True, exist_ok=True)
 
-        # Copy original session JSONL file as 'original_session.jsonl'
+        # Copy original session JSONL file as 'original_session.jsonl' (exact copy)
         original_session_dest = output_dir_path / "original_session.jsonl"
         shutil.copy2(session_file, original_session_dest)
         print(f"📄 Original session JSONL saved to: {original_session_dest}")
 
-        # Copy as 'session.jsonl' for processed version (same content for now)
+        # Create pruned version as 'session.jsonl'
         session_jsonl_dest = output_dir_path / "session.jsonl"
-        shutil.copy2(session_file, session_jsonl_dest)
-        print(f"📄 Session JSONL saved to: {session_jsonl_dest}")
+
+        # Parse the session for pruning
+        session = parse_session_file(session_file)
+
+        # Create a SessionAdapter to convert to domain model
+        session_adapter = SessionAdapter(session)
+
+        # Preprocess the session to prune unnecessary fields
+        preprocessed_data = self.coordinator.preprocess_only(session_adapter)
+
+        # Use SessionSerializer to convert preprocessed session to JSONL
+        bytes_written = self.session_serializer.to_jsonl_file(
+            preprocessed_data.session, session_jsonl_dest
+        )
+
+        # Calculate size difference for display
+        original_size = session_file.stat().st_size
+        size_reduction_pct = (
+            ((original_size - bytes_written) / original_size * 100) if original_size > 0 else 0
+        )
+
+        print(f"📄 Preprocessed session JSONL saved to: {session_jsonl_dest}")
+        if size_reduction_pct > 0:
+            print(
+                f"   ↳ Size reduction: {size_reduction_pct:.1f}% "
+                f"({original_size:,} → {bytes_written:,} bytes)"
+            )
 
         return output_dir_path
 
@@ -373,7 +442,11 @@ class ClaudeCodeCommand:
                 "optimized_diagram": f"optimized.{format_type}.yaml"
                 if format_type == "light"
                 else f"optimized.{format_type}.json",
+                "grouped_diagram": f"grouped.{format_type}.yaml"
+                if format_type == "light"
+                else f"grouped.{format_type}.json",
                 "metadata": "metadata.json",
+                "grouped_subdirectory": "grouped/",
             },
             "options": {
                 "save_original": True,  # Always save both versions now

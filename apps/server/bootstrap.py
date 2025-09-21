@@ -79,7 +79,6 @@ def wire_messaging_services(registry: ServiceRegistry) -> None:
             )
 
             router = RedisMessageRouter()
-            logger.info("Using RedisMessageRouter for multi-worker subscription support")
         except ImportError:
             router = MessageRouter()
             logger.info("Using in-memory MessageRouter")
@@ -115,7 +114,7 @@ def wire_api_services(registry: ServiceRegistry) -> None:
 
 def wire_storage_services(registry: ServiceRegistry) -> None:
     """Wire storage services."""
-    from dipeo.infrastructure.shared.adapters import (
+    from dipeo.infrastructure.storage import (
         LocalBlobAdapter,
         LocalFileSystemAdapter,
     )
@@ -123,7 +122,7 @@ def wire_storage_services(registry: ServiceRegistry) -> None:
     storage_backend = os.getenv("DIPEO_STORAGE_BACKEND", "local").lower()
 
     if storage_backend == "s3":
-        from dipeo.infrastructure.shared.adapters import S3Adapter
+        from dipeo.infrastructure.storage import S3Adapter
 
         bucket = os.getenv("DIPEO_S3_BUCKET", "dipeo-storage")
         region = os.getenv("DIPEO_S3_REGION", "us-east-1")
@@ -149,7 +148,9 @@ def wire_template_services(registry: ServiceRegistry) -> None:
     """Wire template and processing services for code generation and prompt processing."""
     from dipeo.infrastructure.codegen.parsers.parser_service import ParserService
     from dipeo.infrastructure.codegen.templates.drivers.factory import get_template_service
-    from dipeo.infrastructure.template.simple_processor import SimpleTemplateProcessor
+    from dipeo.infrastructure.diagram.prompt_templates.simple_processor import (
+        SimpleTemplateProcessor,
+    )
 
     # Create the codegen template service for the TEMPLATE_RENDERER port
     template_service = get_template_service(template_dirs=[])
@@ -264,13 +265,12 @@ def bootstrap_services(registry: ServiceRegistry, redis_client: object | None = 
         registry: The service registry to wire services into
         redis_client: Optional Redis client for distributed state
     """
-    from dipeo.application.conversation.wiring import wire_conversation
     from dipeo.application.diagram.wiring import (
         wire_diagram_port,
         wire_diagram_use_cases,
     )
     from dipeo.application.execution.wiring import wire_execution
-    from dipeo.infrastructure.shared.keys.drivers.api_key_service import APIKeyService
+    from dipeo.infrastructure.security.keys import APIKeyService
 
     # Core services (always required)
     wire_state_services(registry, redis_client)
@@ -298,16 +298,11 @@ def bootstrap_services(registry: ServiceRegistry, redis_client: object | None = 
     wire_diagram_port(registry)
     wire_diagram_use_cases(registry)
 
-    # Execution services
+    # Execution services (includes conversation repositories)
     wire_execution(registry)
-
-    # Conversation services
-    wire_conversation(registry)
 
     # Event services must be last to connect everything
     wire_event_services(registry)
-
-    logger.info("All services bootstrapped successfully")
 
 
 async def execute_event_subscriptions(registry: ServiceRegistry) -> None:

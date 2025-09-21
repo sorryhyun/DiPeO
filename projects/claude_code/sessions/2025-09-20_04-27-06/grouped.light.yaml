@@ -1,0 +1,323 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 100, y: 100}
+  props:
+    trigger_mode: manual
+    custom_data:
+      session_id: 3f81d7ab-e41e-43a8-809a-a08036bdbe02
+      initial_prompt: |-
+        <command-name>/clear</command-name>
+                    <command-message>clear</command-message>
+                    <command-args></command-args>
+- label: Update TODO 1
+  type: db
+  position: {x: 300, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Examine the post_processor.py file and TODO diagram processing
+        status: in_progress
+        activeForm: Examining post_processor.py and TODO diagram processing
+      - content: Investigate dipeocc conversion system
+        status: pending
+        activeForm: Investigating dipeocc conversion system
+      - content: Identify why To_Do_Subdiagram_Grouper is not working
+        status: pending
+        activeForm: Identifying why To_Do_Subdiagram_Grouper is not working
+      - content: Fix the TODO diagram processing issue
+        status: pending
+        activeForm: Fixing the TODO diagram processing issue
+- label: prev_to_do_sub
+  type: sub_diagram
+  position: {x: 500, y: 100}
+  props:
+    sub_diagram_path: grouped/prev_to_do.light.yaml
+    execution_mode: sequential
+- label: Update TODO 2
+  type: db
+  position: {x: 700, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Examine the post_processor.py file and TODO diagram processing
+        status: completed
+        activeForm: Examining post_processor.py and TODO diagram processing
+      - content: Investigate dipeocc conversion system
+        status: in_progress
+        activeForm: Investigating dipeocc conversion system
+      - content: Identify why To_Do_Subdiagram_Grouper is not working
+        status: pending
+        activeForm: Identifying why To_Do_Subdiagram_Grouper is not working
+      - content: Fix the TODO diagram processing issue
+        status: pending
+        activeForm: Fixing the TODO diagram processing issue
+- label: to_do_1_sub
+  type: sub_diagram
+  position: {x: 900, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_1.light.yaml
+    execution_mode: sequential
+- label: Update TODO 3
+  type: db
+  position: {x: 1100, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Examine the post_processor.py file and TODO diagram processing
+        status: completed
+        activeForm: Examining post_processor.py and TODO diagram processing
+      - content: Investigate dipeocc conversion system
+        status: completed
+        activeForm: Investigating dipeocc conversion system
+      - content: Identify why To_Do_Subdiagram_Grouper is not working
+        status: in_progress
+        activeForm: Identifying why To_Do_Subdiagram_Grouper is not working
+      - content: Fix the TODO diagram processing issue
+        status: pending
+        activeForm: Fixing the TODO diagram processing issue
+- label: to_do_2_sub
+  type: sub_diagram
+  position: {x: 1300, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_2.light.yaml
+    execution_mode: sequential
+- label: Update TODO 4
+  type: db
+  position: {x: 1500, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Examine the post_processor.py file and TODO diagram processing
+        status: completed
+        activeForm: Examining post_processor.py and TODO diagram processing
+      - content: Investigate dipeocc conversion system
+        status: completed
+        activeForm: Investigating dipeocc conversion system
+      - content: Identify why To_Do_Subdiagram_Grouper is not working
+        status: completed
+        activeForm: Identifying why To_Do_Subdiagram_Grouper is not working
+      - content: Fix the TODO diagram processing issue
+        status: in_progress
+        activeForm: Fixing the TODO diagram processing issue
+- label: to_do_4_sub
+  type: sub_diagram
+  position: {x: 1700, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_4.light.yaml
+    execution_mode: sequential
+- label: Update TODO 5
+  type: db
+  position: {x: 1900, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Examine the post_processor.py file and TODO diagram processing
+        status: completed
+        activeForm: Examining post_processor.py and TODO diagram processing
+      - content: Investigate dipeocc conversion system
+        status: completed
+        activeForm: Investigating dipeocc conversion system
+      - content: Identify why To_Do_Subdiagram_Grouper is not working
+        status: completed
+        activeForm: Identifying why To_Do_Subdiagram_Grouper is not working
+      - content: Fix the TODO diagram processing issue
+        status: completed
+        activeForm: Fixing the TODO diagram processing issue
+- label: to_do_5_sub
+  type: sub_diagram
+  position: {x: 2100, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_5.light.yaml
+    execution_mode: sequential
+- label: Update TODO 6
+  type: db
+  position: {x: 2300, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Analyze the current post-processing pipeline structure
+        status: in_progress
+        activeForm: Analyzing the current post-processing pipeline structure
+      - content: Separate TODO grouping from optimization pipeline
+        status: pending
+        activeForm: Separating TODO grouping from optimization pipeline
+      - content: Create separate grouped.light.yaml output
+        status: pending
+        activeForm: Creating separate grouped.light.yaml output
+      - content: Update dipeocc command to generate both optimized and grouped diagrams
+        status: pending
+        activeForm: Updating dipeocc command to generate both optimized and grouped diagrams
+- label: to_do_7_sub
+  type: sub_diagram
+  position: {x: 2500, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_7.light.yaml
+    execution_mode: sequential
+- label: Update TODO 7
+  type: db
+  position: {x: 2700, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Analyze the current post-processing pipeline structure
+        status: completed
+        activeForm: Analyzing the current post-processing pipeline structure
+      - content: Create separate config for optimization vs grouping
+        status: in_progress
+        activeForm: Creating separate config for optimization vs grouping
+      - content: Update dipeocc command to generate both optimized and grouped diagrams
+        status: pending
+        activeForm: Updating dipeocc command to generate both optimized and grouped diagrams
+      - content: Test the fix
+        status: pending
+        activeForm: Testing the fix
+- label: to_do_8_sub
+  type: sub_diagram
+  position: {x: 2900, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_8.light.yaml
+    execution_mode: sequential
+- label: Update TODO 8
+  type: db
+  position: {x: 3100, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Create separate config for optimization vs grouping
+        status: completed
+        activeForm: Creating separate config for optimization vs grouping
+      - content: Simplify presets to just OPTIMIZATION_ONLY and GROUPING
+        status: in_progress
+        activeForm: Simplifying presets to just OPTIMIZATION_ONLY and GROUPING
+      - content: Update dipeocc command to generate both optimized and grouped diagrams
+        status: pending
+        activeForm: Updating dipeocc command to generate both optimized and grouped diagrams
+      - content: Test the fix
+        status: pending
+        activeForm: Testing the fix
+- label: to_do_11_sub
+  type: sub_diagram
+  position: {x: 3300, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_11.light.yaml
+    execution_mode: sequential
+- label: Update TODO 9
+  type: db
+  position: {x: 3500, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Simplify presets to just OPTIMIZATION_ONLY and GROUPING
+        status: completed
+        activeForm: Simplifying presets to just OPTIMIZATION_ONLY and GROUPING
+      - content: Update dipeocc command to generate both optimized and grouped diagrams
+        status: in_progress
+        activeForm: Updating dipeocc command to generate both optimized and grouped diagrams
+      - content: Test the fix
+        status: pending
+        activeForm: Testing the fix
+- label: Update TODO 10
+  type: db
+  position: {x: 3700, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Update dipeocc command to generate both optimized and grouped diagrams
+        status: completed
+        activeForm: Updating dipeocc command to generate both optimized and grouped diagrams
+      - content: Test the fix
+        status: in_progress
+        activeForm: Testing the fix
+- label: Update TODO 11
+  type: db
+  position: {x: 3900, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Test the fix
+        status: completed
+        activeForm: Testing the fix
+connections:
+- {from: Start, to: Update TODO 1, content_type: raw_text}
+- {from: Update TODO 1, to: prev_to_do_sub, content_type: raw_text}
+- {from: prev_to_do_sub, to: Update TODO 2, content_type: raw_text}
+- {from: Update TODO 2, to: to_do_1_sub, content_type: raw_text}
+- {from: to_do_1_sub, to: Update TODO 3, content_type: raw_text}
+- {from: Update TODO 3, to: to_do_2_sub, content_type: raw_text}
+- {from: to_do_2_sub, to: Update TODO 4, content_type: raw_text}
+- {from: Update TODO 4, to: to_do_4_sub, content_type: raw_text}
+- {from: to_do_4_sub, to: Update TODO 5, content_type: raw_text}
+- {from: Update TODO 5, to: to_do_5_sub, content_type: raw_text}
+- {from: to_do_5_sub, to: Update TODO 6, content_type: raw_text}
+- {from: Update TODO 6, to: to_do_7_sub, content_type: raw_text}
+- {from: to_do_7_sub, to: Update TODO 7, content_type: raw_text}
+- {from: Update TODO 7, to: to_do_8_sub, content_type: raw_text}
+- {from: to_do_8_sub, to: Update TODO 8, content_type: raw_text}
+- {from: Update TODO 8, to: to_do_11_sub, content_type: raw_text}
+- {from: to_do_11_sub, to: Update TODO 9, content_type: raw_text}
+- {from: Update TODO 9, to: Update TODO 10, content_type: raw_text}
+- {from: Update TODO 10, to: Update TODO 11, content_type: raw_text}
+metadata:
+  conversion:
+    total_nodes: 67
+    total_connections: 66
+    total_persons: 0
+    node_types:
+      start: 1
+      person_job: 8
+      db: 17
+      api_job: 21
+      code_job: 10
+      diff_patch: 10
+  grouped: true
+  original_nodes: 67
+  sub_diagrams: 8
+  extracted_todos: 11
+  grouping_method: todo_updates_with_extraction
+  post_processing:
+    optimization:
+      applied: true
+      total_changes: 9
+      nodes_removed: 0
+      connections_modified: 0
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

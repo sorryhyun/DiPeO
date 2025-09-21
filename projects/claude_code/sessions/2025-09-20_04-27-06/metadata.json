@@ -1,0 +1,84 @@
+{
+  "session_id": "3f81d7ab-e41e-43a8-809a-a08036bdbe02",
+  "directory_name": "2025-09-20_04-27-06",
+  "converted_at": "2025-09-20T14:24:27.949618",
+  "stats": {
+    "session_id": "3f81d7ab-e41e-43a8-809a-a08036bdbe02",
+    "total_events": 127,
+    "user_messages": 46,
+    "assistant_messages": 81,
+    "tool_usage": {
+      "TodoWrite": 11,
+      "Read": 6,
+      "Grep": 2,
+      "Glob": 2,
+      "Edit": 10,
+      "Bash": 6
+    },
+    "unique_files_accessed": 6,
+    "bash_commands_executed": 6,
+    "duration_seconds": 629.374,
+    "duration_human": "0:10:29.374000"
+  },
+  "format": "light",
+  "diagrams": {
+    "original": {
+      "file": "diagram.light.yaml",
+      "type": "original",
+      "statistics": {
+        "node_count": 67,
+        "connection_count": 66,
+        "node_types": [
+          "db",
+          "diff_patch",
+          "code_job",
+          "api_job",
+          "person_job",
+          "start"
+        ]
+      }
+    },
+    "optimized": {
+      "file": "optimized.light.yaml",
+      "type": "optimized",
+      "statistics": {
+        "node_count": 67,
+        "connection_count": 66,
+        "node_types": [
+          "db",
+          "diff_patch",
+          "code_job",
+          "api_job",
+          "person_job",
+          "start"
+        ]
+      }
+    },
+    "grouped": {
+      "file": "grouped.light.yaml",
+      "type": "grouped",
+      "statistics": {
+        "node_count": 20,
+        "connection_count": 19,
+        "node_types": [
+          "db",
+          "start",
+          "sub_diagram"
+        ]
+      }
+    }
+  },
+  "file_structure": {
+    "original_session": "original_session.jsonl",
+    "processed_session": "session.jsonl",
+    "original_diagram": "diagram.light.yaml",
+    "optimized_diagram": "optimized.light.yaml",
+    "grouped_diagram": "grouped.light.yaml",
+    "metadata": "metadata.json",
+    "grouped_subdirectory": "grouped/"
+  },
+  "options": {
+    "save_original": true,
+    "timestamp_based_naming": true
+  }
+}

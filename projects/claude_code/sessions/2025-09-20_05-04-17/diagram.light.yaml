@@ -1,0 +1,529 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 100, y: 100}
+  props:
+    trigger_mode: manual
+    custom_data:
+      session_id: 01341680-feb2-49e4-a5c2-7f069600e540
+      initial_prompt: |-
+        <command-name>/clear</command-name>
+                    <command-message>clear</command-message>
+                    <command-args></command-args>
+- label: Claude Responds To User 1
+  type: person_job
+  position: {x: 350, y: 100}
+  props:
+    person: claude_code
+    default_prompt: |-
+      <command-name>/clear</command-name>
+                  <command-message>clear</command-message>
+                  <command-args></command-args>
+- label: Claude Responds To User 2
+  type: person_job
+  position: {x: 400, y: 100}
+  props:
+    person: claude_code
+    default_prompt: <local-command-stdout></local-command-stdout>
+- label: Claude Responds To User 3
+  type: person_job
+  position: {x: 450, y: 100}
+  props:
+    person: claude_code
+    default_prompt: it seems the result of memory_selection in claude code adapter, are being appended as a single message, not the actual multiple messages. you can read some of diagrams in `direct_exec/` to see what happened actually. how can we make claude_code adapter to get actual messages? here, you can take a look at doc in `https://docs.claude.com/en/docs/claude-code/sdk/sdk-python`. think harder
+- label: Glob Search 1
+  type: code_job
+  position: {x: 500, y: 100}
+  props:
+    language: bash
+    code: find . -name 'projects/claude_code/sessions/direct_exec/*.yaml' -type f -printf '%T@ %p\n' | sort -rn | cut -d' ' -f2-
+    tool: Glob
+    description: Glob search operation
+- label: Read File 1
+  type: db
+  position: {x: 550, y: 100}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/projects/claude_code/sessions/direct_exec/2025-09-20_03-41-05/diagram.light.yaml
+- label: WebFetch 1
+  type: api_job
+  position: {x: 600, y: 100}
+  props:
+    endpoint: https://docs.claude.com/en/docs/claude-code/sdk/sdk-python
+    method: GET
+    body:
+      prompt: How do I properly get actual individual messages from a Claude Code session using the Python SDK? What's the correct way to access conversation history and individual messages?
+    timeout: 30
+    description: Fetch and process web content
+- label: WebFetch 2
+  type: api_job
+  position: {x: 650, y: 100}
+  props:
+    endpoint: https://docs.claude.com/en/docs/claude-code/sdk/sdk-python
+    method: GET
+    body:
+      prompt: How do I access existing conversation history, memory, and individual messages from a Claude Code session? What's the memory_selection functionality and how to properly extract individual messages rather than concatenated text?
+    timeout: 30
+    description: Fetch and process web content
+- label: Grep Search 2
+  type: code_job
+  position: {x: 700, y: 100}
+  props:
+    language: bash
+    code: rg -l 'claude_code' .
+    tool: Grep
+    description: Grep search operation
+- label: Grep Search 3
+  type: code_job
+  position: {x: 750, y: 100}
+  props:
+    language: bash
+    code: rg -l 'class.*[Cc]laude.*[Cc]ode|class.*LLM.*[Cc]lient' .
+    tool: Grep
+    description: Grep search operation
+- label: Read File 2
+  type: db
+  position: {x: 800, y: 250}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/unified_client.py
+- label: Read File 3
+  type: db
+  position: {x: 850, y: 250}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/message_processor.py
+- label: Read File 4
+  type: db
+  position: {x: 900, y: 250}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/tools.py
+- label: Grep Search 4
+  type: code_job
+  position: {x: 950, y: 250}
+  props:
+    language: bash
+    code: rg -l 'memory.*selection' .
+    tool: Grep
+    description: Grep search operation
+- label: Read File 5
+  type: db
+  position: {x: 1000, y: 250}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/conversation/memory_strategies.py
+- label: Grep Search 5
+  type: code_job
+  position: {x: 1050, y: 250}
+  props:
+    language: bash
+    code: rg -l 'complete_memory_selection' .
+    tool: Grep
+    description: Grep search operation
+- label: Read File 6
+  type: db
+  position: {x: 300, y: 250}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/infrastructure/llm/drivers/service.py
+    lines: 1:100
+- label: Read File 7
+  type: db
+  position: {x: 350, y: 250}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/infrastructure/llm/drivers/service.py
+- label: Read File 8
+  type: db
+  position: {x: 400, y: 250}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/response_parser.py
+- label: Read File 9
+  type: db
+  position: {x: 450, y: 250}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/transport/session_wrapper.py
+- label: WebFetch 3
+  type: api_job
+  position: {x: 500, y: 400}
+  props:
+    endpoint: https://docs.claude.com/en/docs/claude-code/sdk/sdk-python
+    method: GET
+    body:
+      prompt: How do I access conversation history and individual messages from an existing Claude Code session? What's the proper way to get historical conversation messages instead of having them concatenated into a single text?
+    timeout: 30
+    description: Fetch and process web content
+- label: ExitPlanMode 4
+  type: api_job
+  position: {x: 550, y: 400}
+  props:
+    endpoint: /tools/ExitPlanMode
+    method: POST
+    body:
+      plan: |-
+        ## Fix Claude Code Memory Selection to Get Individual Messages
+
+        ### Problem
+        The Claude Code adapter is concatenating conversation messages into a single text blob instead of providing access to individual messages during memory selection. This causes the memory selection result to be a large concatenated string rather than actual individual messages.
+
+        ### Root Cause
+        - In `complete_memory_selection()`, messages are formatted as text snippets in a single prompt
+        - The code doesn't use Claude Code SDK's conversation history access methods
+        - MCP tools work with text representations instead of actual message objects
+
+        ### Solution Plan
+
+        1. **Update Message Processor** (`/dipeo/infrastructure/llm/providers/claude_code/message_processor.py`)
+           - Modify `prepare_message()` to handle memory selection differently
+           - For memory selection phase, prepare to work with conversation history instead of candidate message text
+
+        2. **Enhance Unified Client** (`/dipeo/infrastructure/llm/providers/claude_code/unified_client.py`)
+           - Add conversation history access using Claude Code SDK's `receive_messages()` method
+           - Modify memory selection logic to present individual messages to Claude
+           - Update MCP tool integration to work with actual message objects
+
+        3. **Update MCP Tools** (`/dipeo/infrastructure/llm/providers/claude_code/tools.py`)
+           - Enhance `select_memory_messages` tool to work with conversation message objects
+           - Ensure proper message ID tracking and selection
+
+        4. **Fix Session Wrapper** (`/dipeo/infrastructure/llm/providers/claude_code/transport/session_wrapper.py`)
+           - Add method to access conversation history from active session
+           - Implement proper message iteration using Claude Code SDK
+
+        5. **Update Response Parser** (`/dipeo/infrastructure/llm/providers/claude_code/response_parser.py`)
+           - Ensure proper handling of individual message selection results
+           - Update structured output parsing for actual message objects
+
+        ### Expected Outcome
+        - Memory selection will work with individual conversation messages
+        - Selected memories will be actual message objects, not concatenated text
+        - Claude Code adapter will properly leverage SDK conversation history features
+        - DiPeO diagrams will receive properly structured individual messages instead of text blobs
+    timeout: 30
+    description: ExitPlanMode operation
+- label: tool_result 5
+  type: api_job
+  position: {x: 600, y: 400}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Claude Responds To User 4
+  type: person_job
+  position: {x: 650, y: 400}
+  props:
+    person: claude_code
+    default_prompt: '[Request interrupted by user for tool use]'
+- label: Claude Responds To User 5
+  type: person_job
+  position: {x: 700, y: 400}
+  props:
+    person: claude_code
+    default_prompt: hmm, you should understand how `memory_selection` phase actually works. we can get necessary messages to keep. what we're in trouble is 'how to format them well'. think
+- label: Claude Responds To User 6
+  type: person_job
+  position: {x: 750, y: 400}
+  props:
+    person: claude_code
+    default_prompt: yeah, I think you got it. let's dig in. think
+- label: Claude Responds To User 7
+  type: person_job
+  position: {x: 800, y: 400}
+  props:
+    person: claude_code
+    default_prompt: hmm, ok at first, I think we should remove flattening logics. think
+- label: Claude Responds To User 8
+  type: person_job
+  position: {x: 850, y: 400}
+  props:
+    person: claude_code
+    default_prompt: go ahead. think
+- label: Update TODO 1
+  type: db
+  position: {x: 900, y: 400}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Remove flattening logic in ClaudeCodeMessageProcessor
+        status: in_progress
+        activeForm: Removing flattening logic in ClaudeCodeMessageProcessor
+      - content: Test memory selection with individual messages
+        status: pending
+        activeForm: Testing memory selection with individual messages
+      - content: Verify Claude Code adapter receives separate messages
+        status: pending
+        activeForm: Verifying Claude Code adapter receives separate messages
+- label: tool_result 6
+  type: api_job
+  position: {x: 950, y: 400}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Read File 10
+  type: db
+  position: {x: 1000, y: 550}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/message_processor.py
+    lines: 125:174
+- label: MultiEdit File 11
+  type: diff_patch
+  position: {x: 1050, y: 550}
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/message_processor.py
+    diff: "# MultiEdit diff for /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/message_processor.py\n# Total edits: 1\n\n# Edit 1/1\n--- /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/message_processor.py\n+++ /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/message_processor.py\n@@ -5,14 +5,16 @@\n             return raw_content.strip()\n \n         if isinstance(raw_content, list):\n-            parts: list[str] = []\n-            for item in raw_content:\n-                if isinstance(item, dict) and item.get(\"type\") == \"text\":\n-                    parts.append(str(item.get(\"text\", \"\")))\n-                else:\n-                    parts.append(str(item))\n-            return \"\n+            # Don't automatically flatten lists - they might be separate messages\n+            # Only flatten if all items are text content blocks within a single message\n+            if all(isinstance(item, dict) and item.get(\"type\") == \"text\" for item in raw_content):\n+                parts = [str(item.get(\"text\", \"\")) for item in raw_content]\n+                return \"\n \".join(parts).strip()\n+            else:\n+                # If mixed types or not all text blocks, preserve as is\n+                # This prevents flattening of separate messages\n+                return str(raw_content)\n \n         if isinstance(raw_content, dict):\n             if \"content\" in raw_content and isinstance(raw_content[\"content\"], list):\n"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 7
+  type: api_job
+  position: {x: 300, y: 550}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: MultiEdit File 12
+  type: diff_patch
+  position: {x: 350, y: 550}
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/message_processor.py
+    diff: "# MultiEdit diff for /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/message_processor.py\n# Total edits: 1\n\n# Edit 1/1\n--- /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/message_processor.py\n+++ /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/message_processor.py\n@@ -2,13 +2,22 @@\n     def _build_sdk_content(raw_content: Any) -> list[dict[str, Any]]:\n         \"\"\"Convert message content into Claude SDK block format.\"\"\"\n         if isinstance(raw_content, list):\n-            blocks: list[dict[str, Any]] = []\n-            for item in raw_content:\n-                if isinstance(item, dict) and item.get(\"type\"):\n-                    blocks.append(item)\n-                else:\n-                    blocks.append({\"type\": \"text\", \"text\": str(item)})\n-            return blocks\n+            # Only flatten if all items are content blocks (have 'type' field)\n+            # This prevents flattening of separate messages into a single content array\n+            if all(isinstance(item, dict) and item.get(\"type\") for item in raw_content):\n+                return raw_content  # Already in proper block format\n+            elif all(isinstance(item, dict) and not item.get(\"type\") for item in raw_content):\n+                # Convert plain dicts to text blocks\n+                blocks = []\n+                for item in raw_content:\n+                    if \"text\" in item:\n+                        blocks.append({\"type\": \"text\", \"text\": str(item[\"text\"])})\n+                    else:\n+                        blocks.append({\"type\": \"text\", \"text\": str(item)})\n+                return blocks\n+            else:\n+                # Mixed types - don't flatten, treat as single text content\n+                return [{\"type\": \"text\", \"text\": str(raw_content)}]\n \n         if isinstance(raw_content, dict):\n             if raw_content.get(\"type\"):\n"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 8
+  type: api_job
+  position: {x: 400, y: 550}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Update TODO 2
+  type: db
+  position: {x: 450, y: 550}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Remove flattening logic in ClaudeCodeMessageProcessor
+        status: completed
+        activeForm: Removed flattening logic in ClaudeCodeMessageProcessor
+      - content: Test memory selection with individual messages
+        status: in_progress
+        activeForm: Testing memory selection with individual messages
+      - content: Verify Claude Code adapter receives separate messages
+        status: pending
+        activeForm: Verifying Claude Code adapter receives separate messages
+- label: tool_result 9
+  type: api_job
+  position: {x: 500, y: 550}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Claude Responds To User 9
+  type: person_job
+  position: {x: 550, y: 550}
+  props:
+    person: claude_code
+    default_prompt: '[Request interrupted by user]'
+- label: Claude Responds To User 10
+  type: person_job
+  position: {x: 600, y: 550}
+  props:
+    person: claude_code
+    default_prompt: ok and actually i'm wondering that, do we need those methods? think
+- label: Claude Responds To User 11
+  type: person_job
+  position: {x: 650, y: 550}
+  props:
+    person: claude_code
+    default_prompt: at least I think we can remove `_normalize_text`. think
+- label: Claude Responds To User 12
+  type: person_job
+  position: {x: 700, y: 700}
+  props:
+    person: claude_code
+    default_prompt: go ahead. think
+- label: MultiEdit File 13
+  type: diff_patch
+  position: {x: 750, y: 700}
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/message_processor.py
+    diff: |
+      # MultiEdit diff for /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/message_processor.py
+      # Total edits: 2
+
+      # Edit 1/2
+      --- /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/message_processor.py
+      +++ /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/message_processor.py
+      @@ -1,3 +1,3 @@
+                   if role == "system":
+      -                system_messages.append(ClaudeCodeMessageProcessor._normalize_text(raw_content))
+      +                system_messages.append(str(raw_content).strip() if raw_content else "")
+                       continue
+
+      # Edit 2/2
+      --- /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/message_processor.py
+      +++ /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/message_processor.py
+      @@ -1,25 +0,0 @@
+      -    @staticmethod
+      -    def _normalize_text(raw_content: Any) -> str:
+      -        """Convert various message content shapes into plain text."""
+      -        if isinstance(raw_content, str):
+      -            return raw_content.strip()
+      -
+      -        if isinstance(raw_content, list):
+      -            # Don't automatically flatten lists - they might be separate messages
+      -            # Only flatten if all items are text content blocks within a single message
+      -            if all(isinstance(item, dict) and item.get("type") == "text" for item in raw_content):
+      -                parts = [str(item.get("text", "")) for item in raw_content]
+      -                return "
+      -".join(parts).strip()
+      -            else:
+      -                # If mixed types or not all text blocks, preserve as is
+      -                # This prevents flattening of separate messages
+      -                return str(raw_content)
+      -
+      -        if isinstance(raw_content, dict):
+      -            if "content" in raw_content and isinstance(raw_content["content"], list):
+      -                return ClaudeCodeMessageProcessor._normalize_text(raw_content["content"])
+      -            if "text" in raw_content:
+      -                return str(raw_content.get("text", "")).strip()
+      -
+      -        return str(raw_content).strip()
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 10
+  type: api_job
+  position: {x: 800, y: 700}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Update TODO 3
+  type: db
+  position: {x: 850, y: 700}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Remove flattening logic in ClaudeCodeMessageProcessor
+        status: completed
+        activeForm: Removed flattening logic in ClaudeCodeMessageProcessor
+      - content: Test memory selection with individual messages
+        status: pending
+        activeForm: Testing memory selection with individual messages
+      - content: Verify Claude Code adapter receives separate messages
+        status: pending
+        activeForm: Verifying Claude Code adapter receives separate messages
+      - content: Consider simplifying _build_sdk_content method
+        status: pending
+        activeForm: Considering simplifying _build_sdk_content method
+- label: tool_result 11
+  type: api_job
+  position: {x: 900, y: 700}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+connections:
+- {from: Start, to: Claude Responds To User 1, content_type: raw_text}
+- {from: Claude Responds To User 1, to: Claude Responds To User 2, content_type: raw_text}
+- {from: Claude Responds To User 2, to: Claude Responds To User 3, content_type: raw_text}
+- {from: Claude Responds To User 3, to: Glob Search 1, content_type: raw_text}
+- {from: Glob Search 1, to: Read File 1, content_type: raw_text}
+- {from: Read File 1, to: WebFetch 1, content_type: raw_text}
+- {from: WebFetch 1, to: WebFetch 2, content_type: raw_text}
+- {from: WebFetch 2, to: Grep Search 2, content_type: raw_text}
+- {from: Grep Search 2, to: Grep Search 3, content_type: raw_text}
+- {from: Grep Search 3, to: Read File 2, content_type: raw_text}
+- {from: Read File 2, to: Read File 3, content_type: raw_text}
+- {from: Read File 3, to: Read File 4, content_type: raw_text}
+- {from: Read File 4, to: Grep Search 4, content_type: raw_text}
+- {from: Grep Search 4, to: Read File 5, content_type: raw_text}
+- {from: Read File 5, to: Grep Search 5, content_type: raw_text}
+- {from: Grep Search 5, to: Read File 6, content_type: raw_text}
+- {from: Read File 6, to: Read File 7, content_type: raw_text}
+- {from: Read File 7, to: Read File 8, content_type: raw_text}
+- {from: Read File 8, to: Read File 9, content_type: raw_text}
+- {from: Read File 9, to: WebFetch 3, content_type: raw_text}
+- {from: WebFetch 3, to: ExitPlanMode 4, content_type: raw_text}
+- {from: ExitPlanMode 4, to: tool_result 5, content_type: raw_text}
+- {from: tool_result 5, to: Claude Responds To User 4, content_type: raw_text}
+- {from: Claude Responds To User 4, to: Claude Responds To User 5, content_type: raw_text}
+- {from: Claude Responds To User 5, to: Claude Responds To User 6, content_type: raw_text}
+- {from: Claude Responds To User 6, to: Claude Responds To User 7, content_type: raw_text}
+- {from: Claude Responds To User 7, to: Claude Responds To User 8, content_type: raw_text}
+- {from: Claude Responds To User 8, to: Update TODO 1, content_type: raw_text}
+- {from: Update TODO 1, to: tool_result 6, content_type: raw_text}
+- {from: tool_result 6, to: Read File 10, content_type: raw_text}
+- {from: Read File 10, to: MultiEdit File 11, content_type: raw_text}
+- {from: MultiEdit File 11, to: tool_result 7, content_type: raw_text}
+- {from: tool_result 7, to: MultiEdit File 12, content_type: raw_text}
+- {from: MultiEdit File 12, to: tool_result 8, content_type: raw_text}
+- {from: tool_result 8, to: Update TODO 2, content_type: raw_text}
+- {from: Update TODO 2, to: tool_result 9, content_type: raw_text}
+- {from: tool_result 9, to: Claude Responds To User 9, content_type: raw_text}
+- {from: Claude Responds To User 9, to: Claude Responds To User 10, content_type: raw_text}
+- {from: Claude Responds To User 10, to: Claude Responds To User 11, content_type: raw_text}
+- {from: Claude Responds To User 11, to: Claude Responds To User 12, content_type: raw_text}
+- {from: Claude Responds To User 12, to: MultiEdit File 13, content_type: raw_text}
+- {from: MultiEdit File 13, to: tool_result 10, content_type: raw_text}
+- {from: tool_result 10, to: Update TODO 3, content_type: raw_text}
+- {from: Update TODO 3, to: tool_result 11, content_type: raw_text}
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.
+metadata:
+  conversion:
+    total_nodes: 45
+    total_connections: 44
+    total_persons: 0
+    node_types:
+      start: 1
+      person_job: 12
+      code_job: 5
+      db: 13
+      api_job: 11
+      diff_patch: 3

@@ -1,0 +1,82 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 100, y: 100}
+  props:
+    trigger_mode: manual
+    custom_data:
+      session_id: dd4f5616-9320-4201-a1dd-1c0555b951c3
+      initial_prompt: |-
+        <command-name>/mcp</command-name>
+                    <command-message>mcp</command-message>
+                    <command-args></command-args>
+- label: Claude Responds To User 1
+  type: person_job
+  position: {x: 350, y: 100}
+  props:
+    person: claude_code
+    default_prompt: |-
+      <command-name>/mcp</command-name>
+                  <command-message>mcp</command-message>
+                  <command-args></command-args>
+- label: Claude Responds To User 2
+  type: person_job
+  position: {x: 400, y: 100}
+  props:
+    person: claude_code
+    default_prompt: <local-command-stdout>No MCP servers configured. Please run /doctor if this is unexpected. Otherwise, run `claude mcp` or visit https://docs.claude.com/en/docs/claude-code/mcp to learn more.</local-command-stdout>
+- label: Claude Responds To User 3
+  type: person_job
+  position: {x: 450, y: 100}
+  props:
+    person: claude_code
+    default_prompt: |-
+      <command-name>/agents</command-name>
+                  <command-message>agents</command-message>
+                  <command-args></command-args>
+- label: Claude Responds To User 4
+  type: person_job
+  position: {x: 500, y: 100}
+  props:
+    person: claude_code
+    default_prompt: <local-command-stdout>(no content)</local-command-stdout>
+- label: Claude Responds To User 5
+  type: person_job
+  position: {x: 550, y: 100}
+  props:
+    person: claude_code
+    default_prompt: |-
+      <command-name>/memory</command-name>
+                  <command-message>memory</command-message>
+                  <command-args></command-args>
+- label: Claude Responds To User 6
+  type: person_job
+  position: {x: 600, y: 100}
+  props:
+    person: claude_code
+    default_prompt: |-
+      <local-command-stdout>Opened memory file at ~/.claude/CLAUDE.md
+
+      > To use a different editor, set the $EDITOR or $VISUAL environment variable.</local-command-stdout>
+connections:
+- {from: Start, to: Claude Responds To User 1, content_type: raw_text}
+- {from: Claude Responds To User 1, to: Claude Responds To User 2, content_type: raw_text}
+- {from: Claude Responds To User 2, to: Claude Responds To User 3, content_type: raw_text}
+- {from: Claude Responds To User 3, to: Claude Responds To User 4, content_type: raw_text}
+- {from: Claude Responds To User 4, to: Claude Responds To User 5, content_type: raw_text}
+- {from: Claude Responds To User 5, to: Claude Responds To User 6, content_type: raw_text}
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.
+metadata:
+  conversion:
+    total_nodes: 7
+    total_connections: 6
+    total_persons: 0
+    node_types:
+      start: 1
+      person_job: 6

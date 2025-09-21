@@ -51,9 +51,7 @@ def setup_bundled_paths():
         # Debug logging
         print(f"[BUNDLED] Executable directory: {exe_dir}")
         print(f"[BUNDLED] DIPEO_BASE_DIR set to: {os.environ['DIPEO_BASE_DIR']}")
-        print(
-            f"[BUNDLED] Expected database path: {exe_dir / '.data' / 'dipeo_state.db'}"
-        )
+        print(f"[BUNDLED] Expected database path: {exe_dir / '.data' / 'dipeo_state.db'}")
 
         # Add the bundled packages to Python path
         sys.path.insert(0, str(bundle_dir))
@@ -68,20 +66,14 @@ setup_bundled_paths()
 load_dotenv()
 
 # Suppress non-critical warnings
-warnings.filterwarnings(
-    "ignore", message="_type_definition is deprecated", category=UserWarning
-)
+warnings.filterwarnings("ignore", message="_type_definition is deprecated", category=UserWarning)
 warnings.filterwarnings(
     "ignore",
     message="The config `workers` has no affect when using serve",
     category=Warning,
 )
-warnings.filterwarnings(
-    "ignore", message="Pydantic serializer warnings", category=UserWarning
-)
-warnings.filterwarnings(
-    "ignore", message="Field name.*shadows an attribute", category=UserWarning
-)
+warnings.filterwarnings("ignore", message="Pydantic serializer warnings", category=UserWarning)
+warnings.filterwarnings("ignore", message="Field name.*shadows an attribute", category=UserWarning)
 
 # Setup logging with file output to .logs/
 log_level = os.environ.get("LOG_LEVEL", "INFO")
@@ -151,7 +143,7 @@ def start():
 
     config.workers = int(os.environ.get("WORKERS", "4"))
 
-    redis_url = os.environ.get("REDIS_URL")
+    redis_url = os.environ.get("DIPEO_REDIS_URL") or os.environ.get("REDIS_URL")
     if config.workers > 1 and not redis_url:
         logger.warning(
             "Running with multiple workers without Redis. "

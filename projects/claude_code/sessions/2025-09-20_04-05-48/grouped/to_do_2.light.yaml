@@ -1,0 +1,527 @@
+version: light
+nodes:
+- label: tool_result 18
+  type: api_job
+  position:
+    x: 400
+    y: 1000
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Grep Search 15
+  type: code_job
+  position:
+    x: 400
+    y: 1300
+  props:
+    language: bash
+    code: rg -c 'UPDATE TODO LIST' projects/claude_code/sessions/2025-09-20_04-05-48/optimized.light.yaml
+    tool: Grep
+    description: Grep search operation
+- label: Read File 46
+  type: db
+  position:
+    x: 400
+    y: 1750
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/todo_subdiagram_grouper.py
+    lines: 126:165
+- label: Read File 1
+  type: db
+  position:
+    x: 450
+    y: 100
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/apps/cli/src/dipeo_cli/__main__.py
+- label: tool_result 4
+  type: api_job
+  position:
+    x: 450
+    y: 250
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 24
+  type: diff_patch
+  position:
+    x: 450
+    y: 850
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/todo_subdiagram_grouper.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/todo_subdiagram_grouper.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/todo_subdiagram_grouper.py\n@@ -7,9 +7,10 @@\n             report: Processing report to update\n         \"\"\"\n         try:\n-            # Determine output directory relative to current working directory\n-            output_dir = Path(self.output_subdirectory)\n-            output_dir.mkdir(exist_ok=True)\n+            # Get output base path from config, default to current directory\n+            output_base = self.config.get(\"output_base_path\", \".\")\n+            output_dir = Path(output_base) / self.output_subdirectory\n+            output_dir.mkdir(parents=True, exist_ok=True)\n \n             # Save sub-diagram file\n             file_path = output_dir / f\"{group['name']}.light.yaml\""
+    format: unified
+    backup: true
+    validate: true
+- label: Edit File 31
+  type: diff_patch
+  position:
+    x: 450
+    y: 1000
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/post_processor.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/post_processor.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/post_processor.py\n@@ -1,3 +1,3 @@\n     def process(\n-        self, diagram: dict[str, Any], config: Optional[Any] = None\n+        self, diagram: dict[str, Any], config: Optional[Any] = None, **kwargs\n     ) -> tuple[dict[str, Any], DiagramPipelineReport]:"
+    format: unified
+    backup: true
+    validate: true
+- label: Grep Search 16
+  type: code_job
+  position:
+    x: 450
+    y: 1300
+  props:
+    language: bash
+    code: rg -c 'UPDATE TODO LIST' projects/claude_code/sessions/2025-09-20_04-05-48/diagram.light.yaml
+    tool: Grep
+    description: Grep search operation
+- label: tool_result 26
+  type: api_job
+  position:
+    x: 450
+    y: 1450
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 47
+  type: diff_patch
+  position:
+    x: 450
+    y: 1750
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/todo_subdiagram_grouper.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/todo_subdiagram_grouper.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/todo_subdiagram_grouper.py\n@@ -1,9 +1,9 @@\n         \"\"\"\n-        Group nodes into segments based on to-do update boundaries.\n+        Group nodes into segments based to-do update boundaries.\n \n         Args:\n             diagram: The full diagram\n-            todo_nodes: List of to-do update nodes\n+            to_do_nodes: List of to-do update nodes\n \n         Returns:\n             List of node groups, each containing nodes and connections for that segment"
+    format: unified
+    backup: true
+    validate: true
+- label: Glob Search 2
+  type: code_job
+  position:
+    x: 500
+    y: 100
+  props:
+    language: bash
+    code: find . -name 'commands*' -type f -printf '%T@ %p\n' | sort -rn | cut -d' ' -f2-
+    tool: Glob
+    description: Glob search operation
+- label: Read File 7
+  type: db
+  position:
+    x: 500
+    y: 400
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/base.py
+- label: Edit File 17
+  type: diff_patch
+  position:
+    x: 500
+    y: 550
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/config.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/config.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/config.py\n@@ -1,6 +1,12 @@\n             \"node_simplifier\": {\n                 \"enabled\": self.node_simplifier.enabled,\n                 \"remove_empty_nodes\": self.node_simplifier.remove_empty_nodes,\n+            },\n+            \"todo_subdiagram_grouper\": {\n+                \"enabled\": self.todo_subdiagram_grouper.enabled,\n+                \"output_subdirectory\": self.todo_subdiagram_grouper.output_subdirectory,\n+                \"preserve_connections\": self.todo_subdiagram_grouper.preserve_connections,\n+                \"naming_convention\": self.todo_subdiagram_grouper.naming_convention,\n             },\n             \"global\": {\n                 \"preserve_original\": self.preserve_original,"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 16
+  type: api_job
+  position:
+    x: 500
+    y: 850
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 19
+  type: api_job
+  position:
+    x: 500
+    y: 1000
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Grep Search 17
+  type: code_job
+  position:
+    x: 500
+    y: 1300
+  props:
+    language: bash
+    code: rg -c 'TODO' projects/claude_code/sessions/2025-09-20_04-05-48/diagram.light.yaml
+    tool: Grep
+    description: Grep search operation
+- label: Edit File 40
+  type: diff_patch
+  position:
+    x: 500
+    y: 1600
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/todo_subdiagram_grouper.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/todo_subdiagram_grouper.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/todo_subdiagram_grouper.py\n@@ -1,4 +1,4 @@\n-class TodoSubdiagramGrouper(BaseDiagramProcessor):\n+class ToDoSubdiagramGrouper(BaseDiagramProcessor):\n     \"\"\"\n     Groups diagram nodes based on to-do updates into hierarchical sub-diagrams.\n \n@@ -9,5 +9,5 @@\n     to-do update nodes are identified as db nodes with:\n     - operation: write\n     - sub_type: memory\n-    - query: UPDATE to-do LIST\n+    - query: UPDATE TODO LIST\n     \"\"\""
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 33
+  type: api_job
+  position:
+    x: 500
+    y: 1750
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Glob Search 3
+  type: code_job
+  position:
+    x: 550
+    y: 100
+  props:
+    language: bash
+    code: find . -name 'apps/cli/commands/**' -type f -printf '%T@ %p\n' | sort -rn | cut -d' ' -f2-
+    tool: Glob
+    description: Glob search operation
+- label: Read File 8
+  type: db
+  position:
+    x: 550
+    y: 400
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/read_deduplicator.py
+- label: tool_result 10
+  type: api_job
+  position:
+    x: 550
+    y: 550
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Grep Search 7
+  type: code_job
+  position:
+    x: 550
+    y: 850
+  props:
+    language: bash
+    code: rg -l 'class PhaseCoordinator' dipeo/domain/cc_translate
+    tool: Grep
+    description: Grep search operation
+- label: Edit File 32
+  type: diff_patch
+  position:
+    x: 550
+    y: 1000
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/post_processor.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/post_processor.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/post_processor.py\n@@ -1,9 +1,9 @@\n         # Add TodoSubdiagramGrouper if enabled (should be last as it's structural)\n         if self.config.todo_subdiagram_grouper.enabled:\n-            grouper_config = {\n+            self._grouper_config_base = {\n                 \"enabled\": self.config.todo_subdiagram_grouper.enabled,\n                 \"output_subdirectory\": self.config.todo_subdiagram_grouper.output_subdirectory,\n                 \"preserve_connections\": self.config.todo_subdiagram_grouper.preserve_connections,\n                 \"naming_convention\": self.config.todo_subdiagram_grouper.naming_convention,\n             }\n-            self._processors.append(TodoSubdiagramGrouper(grouper_config))\n+            # Note: We'll create the actual grouper instance in process() with output_base_path"
+    format: unified
+    backup: true
+    validate: true
+- label: Read File 38
+  type: db
+  position:
+    x: 550
+    y: 1300
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/projects/claude_code/sessions/2025-09-20_04-05-48/diagram.light.yaml
+    lines: '1:30'
+- label: tool_result 27
+  type: api_job
+  position:
+    x: 550
+    y: 1600
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 48
+  type: diff_patch
+  position:
+    x: 550
+    y: 1750
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/todo_subdiagram_grouper.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/todo_subdiagram_grouper.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/todo_subdiagram_grouper.py\n@@ -1,30 +1,30 @@\n         # Find to-do node positions in sorted order\n-        todo_positions = []\n-        for todo_node in todo_nodes:\n+        to_do_positions = []\n+        for to_do_node in to_do_nodes:\n             for i, node in enumerate(sorted_nodes):\n-                if node[\"label\"] == todo_node[\"label\"]:\n-                    todo_positions.append(i)\n+                if node[\"label\"] == to_do_node[\"label\"]:\n+                    to_do_positions.append(i)\n                     break\n \n         # Create groups based on to-do boundaries\n         groups = []\n         start_idx = 0\n \n-        for i, todo_pos in enumerate(todo_positions):\n-            # Create group from start_idx to todo_pos (inclusive)\n-            group_nodes = sorted_nodes[start_idx:todo_pos + 1]\n+        for i, to_do_pos in enumerate(to_do_positions):\n+            # Create group from start_idx to to_do_pos (inclusive)\n+            group_nodes = sorted_nodes[start_idx:to_do_pos + 1]\n \n             if group_nodes:\n-                group_name = \"prev_todo\" if i == 0 else f\"todo_{i}\"\n+                group_name = \"prev_to_do\" if i == 0 else f\"to_do_{i}\"\n                 group = self._create_node_group(group_name, group_nodes, all_connections, diagram)\n                 groups.append(group)\n \n-            start_idx = todo_pos + 1\n+            start_idx = to_do_pos + 1\n \n         # Handle remaining nodes after last to-do\n         if start_idx < len(sorted_nodes):\n             remaining_nodes = sorted_nodes[start_idx:]\n             if remaining_nodes:\n-                group_name = f\"todo_{len(todo_positions)}\"\n+                group_name = f\"to_do_{len(to_do_positions)}\"\n                 group = self._create_node_group(group_name, remaining_nodes, all_connections, diagram)\n                 groups.append(group)"
+    format: unified
+    backup: true
+    validate: true
+- label: Read File 2
+  type: db
+  position:
+    x: 600
+    y: 100
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/apps/cli/src/dipeo_cli/commands/claude_code_command.py
+- label: Write File 9
+  type: db
+  position:
+    x: 600
+    y: 400
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/todo_subdiagram_grouper.py
+    content: "\"\"\"Processor to group diagram nodes by TODO updates into sub-diagrams.\"\"\"\n\nimport os\nimport time\nimport yaml\nfrom pathlib import Path\nfrom typing import Any, Dict, List, Optional, Tuple\n\nfrom .base import BaseDiagramProcessor, DiagramChange, DiagramChangeType, DiagramProcessingReport\n\n\nclass TodoSubdiagramGrouper(BaseDiagramProcessor):\n    \"\"\"\n    Groups diagram nodes based on TODO updates into hierarchical sub-diagrams.\n\n    This processor analyzes a diagram for TODO update nodes and creates:\n    1. Individual sub-diagram files for each TODO group\n    2. A main grouped diagram with sequential sub_diagram nodes\n\n    TODO update nodes are identified as db nodes with:\n    - operation: write\n    - sub_type: memory\n    - query: UPDATE TODO LIST\n    \"\"\"\n\n    def __init__(self, config: Optional[Dict[str, Any]] = None):\n        \"\"\"Initialize with configuration.\"\"\"\n        super().__init__(config)\n        self.output_subdirectory = self.config.get(\"output_subdirectory\", \"grouped\")\n        self.preserve_connections = self.config.get(\"preserve_connections\", True)\n        self.naming_convention = self.config.get(\"naming_convention\", \"todo\")\n\n    @property\n    def name(self) -> str:\n        \"\"\"Return processor name.\"\"\"\n        return \"TodoSubdiagramGrouper\"\n\n    def process_diagram(\n        self, diagram: Dict[str, Any]\n    ) -> Tuple[Dict[str, Any], DiagramProcessingReport]:\n        \"\"\"\n        Process diagram to group nodes by TODO updates.\n\n        Args:\n            diagram: The diagram to process\n\n        Returns:\n            Tuple of (grouped diagram, report)\n        \"\"\"\n        start_time = time.time()\n        report = DiagramProcessingReport(processor_name=self.name)\n\n        # Check applicability\n        if not self.is_applicable(diagram):\n            return diagram, report\n\n        try:\n            # Clone diagram for processing\n            processed = self._clone_diagram(diagram)\n\n            # Find TODO update nodes\n            todo_nodes = self._find_todo_update_nodes(processed[\"nodes\"])\n\n            if not todo_nodes:\n                # No TODO updates found, return original\n                report.processing_time_ms = (time.time() - start_time) * 1000\n                return diagram, report\n\n            # Group nodes by TODO updates\n            node_groups = self._group_nodes_by_todos(processed, todo_nodes)\n\n            if len(node_groups) <= 1:\n                # Not enough groups to warrant sub-diagram creation\n                report.processing_time_ms = (time.time() - start_time) * 1000\n                return diagram, report\n\n            # Create sub-diagrams and main grouped diagram\n            grouped_diagram = self._create_grouped_diagram(processed, node_groups, report)\n\n            report.add_change(\n                DiagramChange(\n                    change_type=DiagramChangeType.METADATA_UPDATED,\n                    description=f\"Created {len(node_groups)} sub-diagrams based on TODO updates\",\n                    target=\"diagram_structure\",\n                    details={\n                        \"original_nodes\": len(processed[\"nodes\"]),\n                        \"grouped_nodes\": len(grouped_diagram[\"nodes\"]),\n                        \"sub_diagrams_created\": len(node_groups)\n                    }\n                )\n            )\n\n        except Exception as e:\n            report.error = f\"Error during TODO grouping: {e!s}\"\n            return diagram, report\n\n        finally:\n            report.processing_time_ms = (time.time() - start_time) * 1000\n\n        return grouped_diagram, report\n\n    def _find_todo_update_nodes(self, nodes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:\n        \"\"\"\n        Find all TODO update nodes in the diagram.\n\n        Args:\n            nodes: List of nodes to analyze\n\n        Returns:\n            List of TODO update nodes in order of appearance\n        \"\"\"\n        todo_nodes = []\n\n        for node in nodes:\n\
+      \            if (node.get(\"type\") == \"db\" and\n                node.get(\"props\", {}).get(\"operation\") == \"write\" and\n                node.get(\"props\", {}).get(\"sub_type\") == \"memory\" and\n                node.get(\"props\", {}).get(\"query\") == \"UPDATE TODO LIST\"):\n                todo_nodes.append(node)\n\n        return todo_nodes\n\n    def _group_nodes_by_todos(\n        self, diagram: Dict[str, Any], todo_nodes: List[Dict[str, Any]]\n    ) -> List[Dict[str, Any]]:\n        \"\"\"\n        Group nodes into segments based on TODO update boundaries.\n\n        Args:\n            diagram: The full diagram\n            todo_nodes: List of TODO update nodes\n\n        Returns:\n            List of node groups, each containing nodes and connections for that segment\n        \"\"\"\n        all_nodes = diagram.get(\"nodes\", [])\n        all_connections = diagram.get(\"connections\", [])\n\n        # Create position-based ordering of nodes\n        node_positions = {}\n        for i, node in enumerate(all_nodes):\n            # Use position for ordering, fallback to index\n            pos = node.get(\"position\", {})\n            x, y = pos.get(\"x\", i * 100), pos.get(\"y\", 100)\n            node_positions[node[\"label\"]] = (x, y, i)\n\n        # Sort nodes by position (left to right, top to bottom)\n        sorted_nodes = sorted(all_nodes, key=lambda n: node_positions[n[\"label\"]])\n\n        # Find TODO node positions in sorted order\n        todo_positions = []\n        for todo_node in todo_nodes:\n            for i, node in enumerate(sorted_nodes):\n                if node[\"label\"] == todo_node[\"label\"]:\n                    todo_positions.append(i)\n                    break\n\n        # Create groups based on TODO boundaries\n        groups = []\n        start_idx = 0\n\n        for i, todo_pos in enumerate(todo_positions):\n            # Create group from start_idx to todo_pos (inclusive)\n            group_nodes = sorted_nodes[start_idx:todo_pos + 1]\n\n            if group_nodes:\n                group_name = \"prev_todo\" if i == 0 else f\"todo_{i}\"\n                group = self._create_node_group(group_name, group_nodes, all_connections, diagram)\n                groups.append(group)\n\n            start_idx = todo_pos + 1\n\n        # Handle remaining nodes after last TODO\n        if start_idx < len(sorted_nodes):\n            remaining_nodes = sorted_nodes[start_idx:]\n            if remaining_nodes:\n                group_name = f\"todo_{len(todo_positions)}\"\n                group = self._create_node_group(group_name, remaining_nodes, all_connections, diagram)\n                groups.append(group)\n\n        return groups\n\n    def _create_node_group(\n        self,\n        group_name: str,\n        nodes: List[Dict[str, Any]],\n        all_connections: List[Dict[str, Any]],\n        original_diagram: Dict[str, Any]\n    ) -> Dict[str, Any]:\n        \"\"\"\n        Create a node group with its contained nodes and relevant connections.\n\n        Args:\n            group_name: Name of the group\n            nodes: Nodes in this group\n            all_connections: All connections from original diagram\n            original_diagram: Original diagram for metadata\n\n        Returns:\n            Dictionary representing the node group\n        \"\"\"\n        node_labels = {node[\"label\"] for node in nodes}\n\n        # Find connections within this group\n        internal_connections = []\n        for conn in all_connections:\n            if conn.get(\"from\") in node_labels and conn.get(\"to\") in node_labels:\n                internal_connections.append(conn)\n\n        # Create sub-diagram structure\n        sub_diagram = {\n            \"version\": \"light\",\n            \"nodes\": nodes,\n            \"connections\": internal_connections,\n            \"metadata\": {\n                \"group_name\": group_name,\n                \"node_count\": len(nodes),\n                \"connection_count\": len(internal_connections),\n                \"extracted_from\": original_diagram.get(\"\
+      metadata\", {}).get(\"session_id\", \"unknown\")\n            }\n        }\n\n        # Copy persons if they exist in original\n        if \"persons\" in original_diagram:\n            sub_diagram[\"persons\"] = original_diagram[\"persons\"]\n\n        return {\n            \"name\": group_name,\n            \"sub_diagram\": sub_diagram,\n            \"node_labels\": node_labels\n        }\n\n    def _create_grouped_diagram(\n        self,\n        original_diagram: Dict[str, Any],\n        node_groups: List[Dict[str, Any]],\n        report: DiagramProcessingReport\n    ) -> Dict[str, Any]:\n        \"\"\"\n        Create the main grouped diagram with sub_diagram nodes.\n\n        Args:\n            original_diagram: Original diagram\n            node_groups: List of node groups\n            report: Processing report\n\n        Returns:\n            New grouped diagram\n        \"\"\"\n        # Create start node\n        start_node = {\n            \"label\": \"Start\",\n            \"type\": \"start\",\n            \"position\": {\"x\": 100, \"y\": 100},\n            \"props\": {\n                \"trigger_mode\": \"manual\",\n                \"custom_data\": original_diagram.get(\"nodes\", [{}])[0].get(\"props\", {}).get(\"custom_data\", {})\n            }\n        }\n\n        # Create sub_diagram nodes for each group\n        grouped_nodes = [start_node]\n        grouped_connections = []\n\n        x_pos = 300\n        y_pos = 100\n        x_spacing = 200\n\n        prev_label = \"Start\"\n\n        for i, group in enumerate(node_groups):\n            sub_diagram_label = f\"{group['name']}_sub\"\n\n            # Create sub_diagram node\n            sub_node = {\n                \"label\": sub_diagram_label,\n                \"type\": \"sub_diagram\",\n                \"position\": {\"x\": x_pos, \"y\": y_pos},\n                \"props\": {\n                    \"sub_diagram_path\": f\"{self.output_subdirectory}/{group['name']}.light.yaml\",\n                    \"execution_mode\": \"sequential\"\n                }\n            }\n\n            grouped_nodes.append(sub_node)\n\n            # Create connection from previous node\n            connection = {\n                \"from\": prev_label,\n                \"to\": sub_diagram_label,\n                \"content_type\": \"raw_text\"\n            }\n            grouped_connections.append(connection)\n\n            # Save sub-diagram file\n            self._save_sub_diagram(group, report)\n\n            prev_label = sub_diagram_label\n            x_pos += x_spacing\n\n        # Create the grouped diagram\n        grouped_diagram = {\n            \"version\": \"light\",\n            \"nodes\": grouped_nodes,\n            \"connections\": grouped_connections,\n            \"metadata\": {\n                **original_diagram.get(\"metadata\", {}),\n                \"grouped\": True,\n                \"original_nodes\": len(original_diagram.get(\"nodes\", [])),\n                \"sub_diagrams\": len(node_groups),\n                \"grouping_method\": \"todo_updates\"\n            }\n        }\n\n        # Copy persons if they exist\n        if \"persons\" in original_diagram:\n            grouped_diagram[\"persons\"] = original_diagram[\"persons\"]\n\n        return grouped_diagram\n\n    def _save_sub_diagram(self, group: Dict[str, Any], report: DiagramProcessingReport) -> None:\n        \"\"\"\n        Save a sub-diagram to file.\n\n        Args:\n            group: Node group containing sub-diagram data\n            report: Processing report to update\n        \"\"\"\n        try:\n            # Determine output directory relative to current working directory\n            output_dir = Path(self.output_subdirectory)\n            output_dir.mkdir(exist_ok=True)\n\n            # Save sub-diagram file\n            file_path = output_dir / f\"{group['name']}.light.yaml\"\n\n            with open(file_path, 'w', encoding='utf-8') as f:\n                yaml.dump(\n                    group['sub_diagram'],\n                    f,\n                    default_flow_style=False,\n\
+      \                    sort_keys=False,\n                    allow_unicode=True,\n                    width=4096\n                )\n\n            report.add_change(\n                DiagramChange(\n                    change_type=DiagramChangeType.METADATA_UPDATED,\n                    description=f\"Created sub-diagram file: {file_path}\",\n                    target=str(file_path),\n                    details={\n                        \"nodes\": len(group['sub_diagram']['nodes']),\n                        \"connections\": len(group['sub_diagram']['connections'])\n                    }\n                )\n            )\n\n        except Exception as e:\n            report.add_change(\n                DiagramChange(\n                    change_type=DiagramChangeType.METADATA_UPDATED,\n                    description=f\"Failed to save sub-diagram {group['name']}: {e}\",\n                    target=group['name'],\n                    details={\"error\": str(e)}\n                )\n            )\n\n    def is_applicable(self, diagram: Dict[str, Any]) -> bool:\n        \"\"\"\n        Check if this processor is applicable to the given diagram.\n\n        Args:\n            diagram: The diagram to check\n\n        Returns:\n            True if the diagram has TODO update nodes\n        \"\"\"\n        if not super().is_applicable(diagram):\n            return False\n\n        # Must have at least one TODO update node\n        todo_nodes = self._find_todo_update_nodes(diagram.get(\"nodes\", []))\n        return len(todo_nodes) > 0"
+- label: Grep Search 8
+  type: code_job
+  position:
+    x: 600
+    y: 850
+  props:
+    language: bash
+    code: rg -A 10 'def translate"' /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py
+    tool: Grep
+    description: Grep search operation
+- label: tool_result 20
+  type: api_job
+  position:
+    x: 600
+    y: 1150
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 18
+  type: code_job
+  position:
+    x: 600
+    y: 1300
+  props:
+    language: bash
+    code: dipeocc convert 2025-09-20_03-13-54
+    timeout: 120000
+    description: Test the TODO grouping with a session that contains TODO updates
+- label: Claude Responds To User 6
+  type: person_job
+  position:
+    x: 600
+    y: 1600
+  props:
+    person: claude_code
+    default_prompt: '[Request interrupted by user]'
+- label: tool_result 34
+  type: api_job
+  position:
+    x: 600
+    y: 1750
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 4
+  type: code_job
+  position:
+    x: 650
+    y: 100
+  props:
+    language: bash
+    code: find /home/soryhyun/DiPeO/dipeo/domain/cc_translate -type f -name "*.py" | head -10
+    timeout: 120000
+    description: List files in cc_translate domain
+- label: tool_result 5
+  type: api_job
+  position:
+    x: 650
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: tool_result 11
+  type: api_job
+  position:
+    x: 650
+    y: 550
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Read File 25
+  type: db
+  position:
+    x: 650
+    y: 850
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py
+    lines: '1:50'
+- label: Bash Command 19
+  type: code_job
+  position:
+    x: 650
+    y: 1300
+  props:
+    language: bash
+    code: dipeocc list | head -20
+    timeout: 120000
+    description: List available sessions to find one with TODO updates
+- label: Claude Responds To User 7
+  type: person_job
+  position:
+    x: 650
+    y: 1600
+  props:
+    person: claude_code
+    default_prompt: oh wait, it's happening again. I guess we should name class into `To_Do_...` although it violates some conventions though. think
+- label: Glob Search 5
+  type: code_job
+  position:
+    x: 700
+    y: 100
+  props:
+    language: bash
+    code: find . -name 'dipeo/domain/cc_translate/post_processing/**' -type f -printf '%T@ %p\n' | sort -rn | cut -d' ' -f2-
+    tool: Glob
+    description: Glob search operation
+connections:
+- from: Read File 1
+  to: Glob Search 2
+  content_type: raw_text
+- from: Glob Search 2
+  to: Glob Search 3
+  content_type: raw_text
+- from: Glob Search 3
+  to: Read File 2
+  content_type: raw_text
+- from: Read File 2
+  to: Bash Command 4
+  content_type: raw_text
+- from: Bash Command 4
+  to: Glob Search 5
+  content_type: raw_text
+- from: tool_result 4
+  to: Read File 7
+  content_type: raw_text
+- from: Read File 7
+  to: Read File 8
+  content_type: raw_text
+- from: Read File 8
+  to: Write File 9
+  content_type: raw_text
+- from: Write File 9
+  to: tool_result 5
+  content_type: raw_text
+- from: Edit File 17
+  to: tool_result 10
+  content_type: raw_text
+- from: Edit File 24
+  to: tool_result 16
+  content_type: raw_text
+- from: tool_result 16
+  to: Grep Search 7
+  content_type: raw_text
+- from: Grep Search 7
+  to: Grep Search 8
+  content_type: raw_text
+- from: Grep Search 8
+  to: Read File 25
+  content_type: raw_text
+- from: tool_result 18
+  to: Edit File 31
+  content_type: raw_text
+- from: Edit File 31
+  to: tool_result 19
+  content_type: raw_text
+- from: tool_result 19
+  to: Edit File 32
+  content_type: raw_text
+- from: Edit File 32
+  to: tool_result 20
+  content_type: raw_text
+- from: Grep Search 15
+  to: Grep Search 16
+  content_type: raw_text
+- from: Grep Search 16
+  to: Grep Search 17
+  content_type: raw_text
+- from: Grep Search 17
+  to: Read File 38
+  content_type: raw_text
+- from: Read File 38
+  to: Bash Command 18
+  content_type: raw_text
+- from: Bash Command 18
+  to: Bash Command 19
+  content_type: raw_text
+- from: tool_result 26
+  to: Edit File 40
+  content_type: raw_text
+- from: Edit File 40
+  to: tool_result 27
+  content_type: raw_text
+- from: tool_result 27
+  to: Claude Responds To User 6
+  content_type: raw_text
+- from: Claude Responds To User 6
+  to: Claude Responds To User 7
+  content_type: raw_text
+- from: Read File 46
+  to: Edit File 47
+  content_type: raw_text
+- from: Edit File 47
+  to: tool_result 33
+  content_type: raw_text
+- from: tool_result 33
+  to: Edit File 48
+  content_type: raw_text
+- from: Edit File 48
+  to: tool_result 34
+  content_type: raw_text
+- from: Read File 2
+  to: Edit File 24
+  content_type: raw_text
+- from: tool_result 34
+  to: Read File 46
+  content_type: raw_text
+metadata:
+  group_name: to_do_2
+  node_count: 40
+  connection_count: 33
+  extracted_from: unknown
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

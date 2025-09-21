@@ -131,5 +131,13 @@ export const hookSpec: NodeSpecification = {
     }
   ],
 
-  primaryDisplayField: "hook_type"
+  primaryDisplayField: "hook_type",
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.hook",
+    className: "HookHandler",
+    mixins: ["LoggingMixin", "ValidationMixin", "ConfigurationMixin"],
+    serviceKeys: ["HTTP_CLIENT", "STATE_STORE", "EVENT_BUS"],
+    skipGeneration: true  // Already has custom handler
+  }
 };

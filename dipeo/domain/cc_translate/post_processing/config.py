@@ -9,9 +9,9 @@ class ProcessingPreset(Enum):
     """Pre-defined processing configurations."""
 
     NONE = "none"  # No processing
-    MINIMAL = "minimal"  # Only essential optimizations
-    STANDARD = "standard"  # Recommended optimizations
-    AGGRESSIVE = "aggressive"  # All optimizations
+    OPTIMIZATION_ONLY = "optimization_only"  # Optimizations without structural changes
+    GROUPING = "grouping"  # TODO subdiagram grouping with optimizations
+    STANDARD = "standard"  # Recommended optimizations (for backward compatibility)
     CUSTOM = "custom"  # User-defined configuration
 
 
@@ -60,21 +60,18 @@ class NodeSimplifierConfig:
 
 
 @dataclass
-class SessionEventPrunerConfig:
-    """Configuration for SessionEventPruner processor.
+class To_Do_Subdiagram_Grouper_Config:
+    """Configuration for To_Do_Subdiagram_Grouper processor."""
 
-    Note: SessionEventPruner has been moved to preprocess phase but
-    config remains here since it's used by PipelineConfig.
-    """
+    enabled: bool = True  # Enabled by default for dipeocc
+    output_subdirectory: str = "grouped"  # Directory name for sub-diagrams
+    preserve_connections: bool = True  # Maintain inter-group connections
+    naming_convention: str = "to_do"  # Naming pattern for sub-diagrams
 
-    enabled: bool = False  # Disabled by default for backward compatibility
-    prune_no_matches: bool = True  # Remove "No matches found" tool results
-    prune_errors: bool = False  # Remove error events (more aggressive)
-    prune_empty_results: bool = True  # Remove tool results with empty content
-    custom_prune_patterns: list[str] = field(
-        default_factory=list
-    )  # Custom content patterns to prune
-    update_metadata: bool = True  # Add metadata about pruned events
+    # New configuration options for TODO extraction
+    extract_todos_to_main: bool = True  # Extract TODO nodes to main diagram
+    min_nodes_for_subdiagram: int = 3  # Minimum nodes required to create sub-diagram
+    skip_trivial_subdiagrams: bool = True  # Skip sub-diagrams with too few nodes
 
 
 @dataclass
@@ -84,13 +81,16 @@ class PipelineConfig:
     preset: ProcessingPreset = ProcessingPreset.STANDARD
 
     # Individual processor configs
-    session_event_pruner: SessionEventPrunerConfig = field(default_factory=SessionEventPrunerConfig)
+    # Note: Session-level processors have been moved to preprocess phase
     read_deduplicator: ReadDeduplicatorConfig = field(default_factory=ReadDeduplicatorConfig)
     consecutive_merger: ConsecutiveMergerConfig = field(default_factory=ConsecutiveMergerConfig)
     connection_optimizer: ConnectionOptimizerConfig = field(
         default_factory=ConnectionOptimizerConfig
     )
     node_simplifier: NodeSimplifierConfig = field(default_factory=NodeSimplifierConfig)
+    todo_subdiagram_grouper: To_Do_Subdiagram_Grouper_Config = field(
+        default_factory=To_Do_Subdiagram_Grouper_Config
+    )
 
     # Global settings
     preserve_original: bool = False  # Keep copy of original diagram
@@ -105,46 +105,31 @@ class PipelineConfig:
 
         if preset == ProcessingPreset.NONE:
             # Disable all processors
-            config.session_event_pruner.enabled = False
             config.read_deduplicator.enabled = False
             config.consecutive_merger.enabled = False
             config.connection_optimizer.enabled = False
             config.node_simplifier.enabled = False
+            config.todo_subdiagram_grouper.enabled = False
 
-        elif preset == ProcessingPreset.MINIMAL:
-            # Only essential optimizations
-            config.session_event_pruner.enabled = False  # Preserve existing behavior in minimal
-            config.read_deduplicator.enabled = True
-            config.consecutive_merger.enabled = False
-            config.connection_optimizer.enabled = True
-            config.node_simplifier.enabled = False
-
-        elif preset == ProcessingPreset.STANDARD:
-            # Recommended optimizations (default)
-            config.session_event_pruner.enabled = True
-            config.session_event_pruner.prune_no_matches = True
-            config.session_event_pruner.prune_errors = False  # Conservative approach
+        elif preset in (ProcessingPreset.OPTIMIZATION_ONLY, ProcessingPreset.STANDARD):
+            # Optimizations without structural changes
             config.read_deduplicator.enabled = True
             config.consecutive_merger.enabled = True
             config.consecutive_merger.merge_writes = False
             config.consecutive_merger.merge_edits = False
             config.connection_optimizer.enabled = True
             config.node_simplifier.enabled = False
+            config.todo_subdiagram_grouper.enabled = False  # No structural changes
 
-        elif preset == ProcessingPreset.AGGRESSIVE:
-            # All optimizations enabled
-            config.session_event_pruner.enabled = True
-            config.session_event_pruner.prune_no_matches = True
-            config.session_event_pruner.prune_errors = True  # Aggressive: also prune errors
-            config.read_deduplicator.enabled = True
+        elif preset == ProcessingPreset.GROUPING:
+            # TODO subdiagram grouping WITH optimizations
+            config.read_deduplicator.enabled = True  # Still want deduplication
             config.consecutive_merger.enabled = True
-            config.consecutive_merger.merge_writes = True
-            config.consecutive_merger.merge_edits = True
+            config.consecutive_merger.merge_writes = False
+            config.consecutive_merger.merge_edits = False
             config.connection_optimizer.enabled = True
-            config.node_simplifier.enabled = True
-            config.max_iterations = 2  # Run twice for maximum optimization
-
-        # CUSTOM preset uses whatever settings are provided
+            config.node_simplifier.enabled = False
+            config.todo_subdiagram_grouper.enabled = True  # Enable grouping
 
         return config
 
@@ -152,13 +137,6 @@ class PipelineConfig:
         """Convert configuration to dictionary."""
         return {
             "preset": self.preset.value,
-            "session_event_pruner": {
-                "enabled": self.session_event_pruner.enabled,
-                "prune_no_matches": self.session_event_pruner.prune_no_matches,
-                "prune_errors": self.session_event_pruner.prune_errors,
-                "prune_empty_results": self.session_event_pruner.prune_empty_results,
-                "custom_prune_patterns": self.session_event_pruner.custom_prune_patterns,
-            },
             "read_deduplicator": {
                 "enabled": self.read_deduplicator.enabled,
                 "merge_distance": self.read_deduplicator.merge_distance,
@@ -180,6 +158,15 @@ class PipelineConfig:
             "node_simplifier": {
                 "enabled": self.node_simplifier.enabled,
                 "remove_empty_nodes": self.node_simplifier.remove_empty_nodes,
+            },
+            "todo_subdiagram_grouper": {
+                "enabled": self.todo_subdiagram_grouper.enabled,
+                "output_subdirectory": self.todo_subdiagram_grouper.output_subdirectory,
+                "preserve_connections": self.todo_subdiagram_grouper.preserve_connections,
+                "naming_convention": self.todo_subdiagram_grouper.naming_convention,
+                "extract_todos_to_main": self.todo_subdiagram_grouper.extract_todos_to_main,
+                "min_nodes_for_subdiagram": self.todo_subdiagram_grouper.min_nodes_for_subdiagram,
+                "skip_trivial_subdiagrams": self.todo_subdiagram_grouper.skip_trivial_subdiagrams,
             },
             "global": {
                 "preserve_original": self.preserve_original,

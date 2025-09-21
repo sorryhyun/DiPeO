@@ -59,11 +59,13 @@ class ClaudeCodeMessageProcessor:
         return None
 
     @staticmethod
-    def prepare_message(messages: list[Message]) -> tuple[str | None, str]:
+    def prepare_message(messages: list[Message]) -> tuple[str | None, list[dict[str, Any]]]:
         """Prepare messages for Claude Code format.
 
-        Returns a tuple of system prompt text and serialized structured
-        messages expected by the Claude Code SDK.
+        Returns a tuple of system prompt text and a list of formatted
+        messages expected by the Claude Code SDK. Each formatted message
+        is a dictionary containing the message type and a JSON string
+        payload so the SDK never receives raw Python objects.
         """
         system_messages: list[str] = []
         formatted_messages: list[dict[str, Any]] = []
@@ -73,6 +75,18 @@ class ClaudeCodeMessageProcessor:
                 role = msg.get("role")
                 raw_content = msg.get("content", "")
                 message_type = msg.get("message_type")
+
+                # Memory selector may provide nested message objects under the
+                # "message" key. Use them as the authoritative source when
+                # present so we can convert them into Claude-friendly strings.
+                if (not raw_content or raw_content == "") and "message" in msg:
+                    nested = msg["message"]
+                    if isinstance(nested, dict):
+                        role = role or nested.get("role")
+                        raw_content = nested.get("content", raw_content)
+                    else:
+                        role = role or getattr(nested, "role", None)
+                        raw_content = getattr(nested, "content", raw_content)
             else:
                 role = getattr(msg, "role", None)
                 raw_content = getattr(msg, "content", "")
@@ -89,7 +103,11 @@ class ClaudeCodeMessageProcessor:
                     role = "user"
 
             if role == "system":
-                system_messages.append(ClaudeCodeMessageProcessor._normalize_text(raw_content))
+                system_messages.append(
+                    ClaudeCodeMessageProcessor._stringify_content(raw_content).strip()
+                    if raw_content
+                    else ""
+                )
                 continue
 
             message_payload = {
@@ -98,62 +116,80 @@ class ClaudeCodeMessageProcessor:
             }
 
             if role == "assistant":
-                formatted_messages.append({"type": "assistant", "message": message_payload})
+                formatted_messages.append(
+                    {
+                        "type": "assistant",
+                        "message": ClaudeCodeMessageProcessor._stringify_payload(
+                            message_payload
+                        ),
+                    }
+                )
             else:
-                formatted_messages.append({"type": "user", "message": message_payload})
+                formatted_messages.append(
+                    {
+                        "type": "user",
+                        "message": ClaudeCodeMessageProcessor._stringify_payload(
+                            message_payload
+                        ),
+                    }
+                )
 
         system_message = "\n".join([msg for msg in system_messages if msg]) or None
 
         if not formatted_messages:
             fallback_text = system_message or "Please respond"
+            fallback_payload = {
+                "role": "user",
+                "content": ClaudeCodeMessageProcessor._build_sdk_content(fallback_text),
+            }
             formatted_messages.append(
                 {
                     "type": "user",
-                    "message": {
-                        "role": "user",
-                        "content": ClaudeCodeMessageProcessor._build_sdk_content(fallback_text),
-                    },
+                    "message": ClaudeCodeMessageProcessor._stringify_payload(
+                        fallback_payload
+                    ),
                 }
             )
 
-        serialized_messages = json.dumps(formatted_messages)
-
-        return system_message, serialized_messages
-
-    @staticmethod
-    def _normalize_text(raw_content: Any) -> str:
-        """Convert various message content shapes into plain text."""
-        if isinstance(raw_content, str):
-            return raw_content.strip()
-
-        if isinstance(raw_content, list):
-            parts: list[str] = []
-            for item in raw_content:
-                if isinstance(item, dict) and item.get("type") == "text":
-                    parts.append(str(item.get("text", "")))
-                else:
-                    parts.append(str(item))
-            return "\n".join(parts).strip()
-
-        if isinstance(raw_content, dict):
-            if "content" in raw_content and isinstance(raw_content["content"], list):
-                return ClaudeCodeMessageProcessor._normalize_text(raw_content["content"])
-            if "text" in raw_content:
-                return str(raw_content.get("text", "")).strip()
-
-        return str(raw_content).strip()
+        return system_message, formatted_messages
 
     @staticmethod
     def _build_sdk_content(raw_content: Any) -> list[dict[str, Any]]:
         """Convert message content into Claude SDK block format."""
         if isinstance(raw_content, list):
-            blocks: list[dict[str, Any]] = []
-            for item in raw_content:
-                if isinstance(item, dict) and item.get("type"):
-                    blocks.append(item)
-                else:
-                    blocks.append({"type": "text", "text": str(item)})
-            return blocks
+            # Only flatten if all items are content blocks (have 'type' field)
+            # This prevents flattening of separate messages into a single content array
+            if all(isinstance(item, dict) and item.get("type") for item in raw_content):
+                return raw_content  # Already in proper block format
+            elif all(isinstance(item, dict) and not item.get("type") for item in raw_content):
+                # Convert plain dicts to text blocks
+                blocks = []
+                for item in raw_content:
+                    if "text" in item:
+                        blocks.append(
+                            {
+                                "type": "text",
+                                "text": ClaudeCodeMessageProcessor._stringify_content(
+                                    item["text"]
+                                ),
+                            }
+                        )
+                    else:
+                        blocks.append(
+                            {
+                                "type": "text",
+                                "text": ClaudeCodeMessageProcessor._stringify_content(item),
+                            }
+                        )
+                return blocks
+            else:
+                # Mixed types - don't flatten, treat as single text content
+                return [
+                    {
+                        "type": "text",
+                        "text": ClaudeCodeMessageProcessor._stringify_content(raw_content),
+                    }
+                ]
 
         if isinstance(raw_content, dict):
             if raw_content.get("type"):
@@ -161,7 +197,50 @@ class ClaudeCodeMessageProcessor:
             if "content" in raw_content and isinstance(raw_content["content"], list):
                 return ClaudeCodeMessageProcessor._build_sdk_content(raw_content["content"])
 
-        return [{"type": "text", "text": str(raw_content)}]
+        return [
+            {
+                "type": "text",
+                "text": ClaudeCodeMessageProcessor._stringify_content(raw_content),
+            }
+        ]
+
+    @staticmethod
+    def _stringify_payload(payload: dict[str, Any]) -> str:
+        """Convert payload to JSON string for Claude SDK ingestion."""
+
+        try:
+            return json.dumps(payload, ensure_ascii=False, default=str)
+        except (TypeError, ValueError):
+            return json.dumps(str(payload), ensure_ascii=False)
+
+    @staticmethod
+    def _stringify_content(raw_content: Any) -> str:
+        """Convert arbitrary content into a Claude-friendly string."""
+
+        if raw_content is None:
+            return ""
+
+        if isinstance(raw_content, str):
+            return raw_content
+
+        if hasattr(raw_content, "model_dump_json"):
+            try:
+                return raw_content.model_dump_json()
+            except Exception:  # pragma: no cover - fallback for unexpected models
+                pass
+
+        if hasattr(raw_content, "model_dump"):
+            try:
+                return json.dumps(
+                    raw_content.model_dump(), ensure_ascii=False, default=str
+                )
+            except (TypeError, ValueError):
+                return str(raw_content)
+
+        try:
+            return json.dumps(raw_content, ensure_ascii=False, default=str)
+        except (TypeError, ValueError):
+            return str(raw_content)
 
     @staticmethod
     def create_tool_options(

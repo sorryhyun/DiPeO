@@ -1,0 +1,106 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 100, y: 100}
+  props:
+    trigger_mode: manual
+    custom_data:
+      session_id: 4ad614ca-a513-432c-b600-d598c4816336
+      initial_prompt: |-
+        <command-name>/clear</command-name>
+                    <command-message>clear</command-message>
+                    <command-args></command-args>
+- label: Update TODO 1
+  type: db
+  position: {x: 300, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Rename diagram_converter.py to converter.py in convert/
+        activeForm: Renaming diagram_converter.py to converter.py
+        status: pending
+      - content: Rename pipeline.py to post_processor.py in post_processing/
+        activeForm: Renaming pipeline.py to post_processor.py
+        status: pending
+      - content: Rename session_orchestrator.py to preprocessor.py in preprocess/
+        activeForm: Renaming session_orchestrator.py to preprocessor.py
+        status: pending
+      - content: Update all import statements across the codebase
+        activeForm: Updating all import statements
+        status: pending
+      - content: Update __init__.py files to reflect new names
+        activeForm: Updating __init__.py files
+        status: pending
+- label: prev_to_do_sub
+  type: sub_diagram
+  position: {x: 500, y: 100}
+  props:
+    sub_diagram_path: grouped/prev_to_do.light.yaml
+    execution_mode: sequential
+- label: Update TODO 2
+  type: db
+  position: {x: 700, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Rename diagram_converter.py to converter.py and DiagramConverter class to Converter
+        activeForm: Renaming diagram_converter.py to converter.py
+        status: in_progress
+      - content: Rename pipeline.py to post_processor.py and PostProcessingPipeline class to PostProcessor
+        activeForm: Renaming pipeline.py to post_processor.py
+        status: pending
+      - content: Rename session_orchestrator.py to preprocessor.py and SessionOrchestrator class to Preprocessor
+        activeForm: Renaming session_orchestrator.py to preprocessor.py
+        status: pending
+      - content: Update all import statements across the codebase
+        activeForm: Updating all import statements
+        status: pending
+      - content: Update __init__.py files to reflect new names
+        activeForm: Updating __init__.py files
+        status: pending
+- label: to_do_1_sub
+  type: sub_diagram
+  position: {x: 900, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_1.light.yaml
+    execution_mode: sequential
+connections:
+- {from: Start, to: Update TODO 1, content_type: raw_text}
+- {from: Update TODO 1, to: prev_to_do_sub, content_type: raw_text}
+- {from: prev_to_do_sub, to: Update TODO 2, content_type: raw_text}
+- {from: Update TODO 2, to: to_do_1_sub, content_type: raw_text}
+metadata:
+  conversion:
+    total_nodes: 20
+    total_connections: 19
+    total_persons: 0
+    node_types:
+      start: 1
+      person_job: 6
+      code_job: 6
+      db: 5
+      api_job: 2
+  grouped: true
+  original_nodes: 20
+  sub_diagrams: 2
+  extracted_todos: 2
+  grouping_method: todo_updates_with_extraction
+  post_processing:
+    optimization:
+      applied: true
+      total_changes: 3
+      nodes_removed: 0
+      connections_modified: 0
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

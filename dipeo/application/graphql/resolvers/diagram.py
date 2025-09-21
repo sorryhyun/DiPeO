@@ -93,7 +93,7 @@ class DiagramResolver:
                             f"Failed to create minimal diagram for {info.id}: {fallback_error}"
                         )
                         # Continue to next diagram without adding anything to the list
-                    continue
+                        continue
 
             return diagrams
 

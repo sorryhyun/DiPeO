@@ -14,7 +14,6 @@ __pycache__/
 **/.mypy_cache/
 apikeys.json
 output.txt
-AGENTS.md
 *.db-shm
 *.db-wal
 *.db
@@ -101,9 +100,9 @@ server/__pycache__/
 server/src/__pycache__/
 server/src/*/__pycache__/
 web/dist/
-# Project file storage - consolidated under files/
-.data/
-**/.data/
+# DiPeO runtime directory - all generated/runtime data
+.dipeo/
+**/.dipeo/
 
 # GraphQL codegen
 web/src/generated/
@@ -116,7 +115,6 @@ CLAUDE.local.md
 # Temporary files
 *.tmp
 *.temp
-.cache/
 
 # OS files
 .DS_Store

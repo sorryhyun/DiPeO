@@ -79,6 +79,16 @@ export const dbSpec: NodeSpecification = {
       }
     },
     {
+      name: "lines",
+      type: "any",
+      required: false,
+      description: "Line selection or ranges to read (e.g., 1:120 or ['10:20'])",
+      uiConfig: {
+        inputType: "text",
+        placeholder: "e.g., 1:120 or 5,10:20"
+      }
+    },
+    {
       name: "data",
       type: "object",
       required: false,

@@ -81,7 +81,7 @@ class DiPeOCLI:
         timeout: int = 300,
         format_type: str | None = None,
         input_variables: dict[str, Any] | None = None,
-        use_unified: bool = False,
+        use_unified: bool = True,  # Default to unified monitoring
         simple: bool = False,
     ):
         """Run a diagram via server."""
@@ -209,11 +209,6 @@ def main():
         type=int,
         default=300,
         help="Execution timeout in seconds (default: 300)",
-    )
-    run_parser.add_argument(
-        "--legacy",
-        action="store_true",
-        help="Use legacy monitoring architecture (deprecated)",
     )
     run_parser.add_argument(
         "--simple",
@@ -362,6 +357,7 @@ def main():
     list_parser.add_argument(
         "--limit", type=int, default=50, help="Maximum number of sessions to list (default: 50)"
     )
+    list_parser.add_argument("--debug", action="store_true", help="(Ignored for dipeocc commands)")
 
     # Convert subcommand
     convert_parser = dipeocc_subparsers.add_parser(
@@ -387,6 +383,9 @@ def main():
         default="light",
         help="Output format (default: light)",
     )
+    convert_parser.add_argument(
+        "--debug", action="store_true", help="(Ignored for dipeocc commands)"
+    )
 
     # Watch subcommand
     watch_parser = dipeocc_subparsers.add_parser(
@@ -395,12 +394,16 @@ def main():
     watch_parser.add_argument(
         "--interval", type=int, default=30, help="Check interval in seconds (default: 30)"
     )
+    watch_parser.add_argument("--debug", action="store_true", help="(Ignored for dipeocc commands)")
 
     # Stats subcommand
     stats_cc_parser = dipeocc_subparsers.add_parser(
         "stats", help="Show detailed session statistics"
     )
     stats_cc_parser.add_argument("session_id", help="Session ID to analyze")
+    stats_cc_parser.add_argument(
+        "--debug", action="store_true", help="(Ignored for dipeocc commands)"
+    )
 
     args = parser.parse_args()
 
@@ -465,7 +468,7 @@ def main():
                 args.timeout,
                 format_type,
                 input_variables,
-                not args.legacy,  # Use unified by default, legacy only if flag is set
+                True,  # Always use unified monitoring
                 args.simple,  # Use simple display if flag is set
             )
             # Use os._exit for forced termination to ensure all threads/subprocesses are killed

@@ -2,7 +2,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-19T17:28:43.378161
+Generated at: 2025-09-21T20:14:14.580250
 """
 
 import strawberry
@@ -320,6 +320,10 @@ class CreateDbInput:
     
     
     
+    lines: Optional[str] = None  # Line selection or ranges to read (e.g., 1:120 or ['10:20'])
+    
+    
+    
     data: Optional[strawberry.scalars.JSON] = None  # Data configuration
     
     
@@ -363,6 +367,10 @@ class UpdateDbInput:
     
     
     keys: Optional[str] = None  # Single key or list of dot-separated keys to target within the JSON payload
+    
+    
+    
+    lines: Optional[str] = None  # Line selection or ranges to read (e.g., 1:120 or ['10:20'])
     
     
     
@@ -2137,108 +2145,6 @@ class NodeMutations:
         service = registry.resolve(PERSON_REPOSITORY)
         result = await service.handle_mutation("DeletePerson", variables)
 
-        
-
-        return result
-
-
-    @strawberry.mutation
-    async def toggle_todo_sync(
-        self,
-        info: Info,
-        
-        
-        input: ToggleTodoSyncInput
-        
-        
-    ) -> Any:  # Return type will be determined by the resolver
-        """ToggleTodoSync - TodoSync mutation"""
-        registry: ServiceRegistry = info.context["registry"]
-
-        # Build variables dict
-        variables = {
-            
-            
-            "input": input
-            
-            
-        }
-
-        # Determine service and execute mutation based on type
-        mutation_lower = "ToggleTodoSync".lower()
-
-        
-        # Default to DIAGRAM_PORT
-        service = registry.resolve(DIAGRAM_PORT)
-        result = await service.handle_mutation("ToggleTodoSync", variables)
-        
-
-        return result
-
-
-    @strawberry.mutation
-    async def configure_todo_sync(
-        self,
-        info: Info,
-        
-        
-        input: ConfigureTodoSyncInput
-        
-        
-    ) -> Any:  # Return type will be determined by the resolver
-        """ConfigureTodoSync - TodoSync mutation"""
-        registry: ServiceRegistry = info.context["registry"]
-
-        # Build variables dict
-        variables = {
-            
-            
-            "input": input
-            
-            
-        }
-
-        # Determine service and execute mutation based on type
-        mutation_lower = "ConfigureTodoSync".lower()
-
-        
-        # Default to DIAGRAM_PORT
-        service = registry.resolve(DIAGRAM_PORT)
-        result = await service.handle_mutation("ConfigureTodoSync", variables)
-        
-
-        return result
-
-
-    @strawberry.mutation
-    async def trigger_todo_sync(
-        self,
-        info: Info,
-        
-        
-        session_id: str
-        
-        
-    ) -> Any:  # Return type will be determined by the resolver
-        """TriggerTodoSync - TodoSync mutation"""
-        registry: ServiceRegistry = info.context["registry"]
-
-        # Build variables dict
-        variables = {
-            
-            
-            "session_id": session_id
-            
-            
-        }
-
-        # Determine service and execute mutation based on type
-        mutation_lower = "TriggerTodoSync".lower()
-
-        
-        # Default to DIAGRAM_PORT
-        service = registry.resolve(DIAGRAM_PORT)
-        result = await service.handle_mutation("TriggerTodoSync", variables)
         
 
         return result

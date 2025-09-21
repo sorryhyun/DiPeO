@@ -5,7 +5,6 @@ import contextlib
 import logging
 from collections import defaultdict
 from collections.abc import Callable
-from typing import Any
 from uuid import uuid4
 
 from dipeo.domain.events import (
@@ -48,14 +47,6 @@ class InMemoryEventBus(EventBus):
         self._enable_event_store = enable_event_store
         self._event_store: list[DomainEvent] = []
         self._running = False
-
-    async def _handle_legacy_event(self, event: Any) -> None:
-        """Handle legacy event types."""
-        for subscription in self._subscriptions.values():
-            try:
-                await subscription.handler.handle(event)
-            except Exception as e:
-                logger.error(f"Error handling legacy event: {e}")
 
     async def publish(self, event: DomainEvent) -> None:
         """Publish a domain event."""

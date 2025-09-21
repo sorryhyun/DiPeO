@@ -11,8 +11,18 @@ from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.execution.handlers.core.base import TypedNodeHandler
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.diagram_generated.generated_nodes import NodeType
-from dipeo.diagram_generated.models.{{ node_type }}_model import {{ data_model_name }}
+from dipeo.diagram_generated.unified_nodes.{{ node_type }}_node import {{ data_model_name }}
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+{% if handler_metadata and handler_metadata.get('mixins') %}
+{% for mixin in handler_metadata['mixins'] %}
+from dipeo.application.execution.handlers.core.mixins import {{ mixin }}
+{% endfor %}
+{% endif %}
+{% if handler_metadata and handler_metadata.get('customImports') %}
+{% for import in handler_metadata['customImports'] %}
+{{ import }}
+{% endfor %}
+{% endif %}
 
 if TYPE_CHECKING:
     pass
@@ -21,14 +31,17 @@ logger = logging.getLogger(__name__)
 
 
 @register_handler
-class {{ handler_class_name }}(TypedNodeHandler[{{ data_model_name }}]):
+class {{ handler_class_name }}({% if handler_metadata and handler_metadata.get('mixins') %}{% for mixin in handler_metadata['mixins'] %}{{ mixin }}, {% endfor %}{% endif %}TypedNodeHandler[{{ data_model_name }}]):
     """Handler for {{ display_name }} node.
 
     {{ description }}
 
     Category: {{ category }}
-    {% if services %}
-    Required Services: {{ services | join(', ') }}
+    {% if handler_metadata and handler_metadata.get('serviceKeys') %}
+    Required Services: {{ handler_metadata['serviceKeys'] | join(', ') }}
+    {% endif %}
+    {% if handler_metadata and handler_metadata.get('mixins') %}
+    Mixins: {{ handler_metadata['mixins'] | join(', ') }}
     {% endif %}
     {% if timeout %}
     Timeout: {{ timeout }}ms
@@ -48,8 +61,8 @@ class {{ handler_class_name }}(TypedNodeHandler[{{ data_model_name }}]):
     @property
     def requires_services(self) -> list[str]:
         """Return list of required services for this handler."""
-        {% if services %}
-        return {{ services }}
+        {% if handler_metadata and handler_metadata.get('serviceKeys') %}
+        return {{ handler_metadata['serviceKeys'] }}
         {% else %}
         return []
         {% endif %}
@@ -81,15 +94,27 @@ class {{ handler_class_name }}(TypedNodeHandler[{{ data_model_name }}]):
         #     result = await self.process_field(node_data.some_field)
 
         # Example of using services (if configured):
-        {% if 'llm' in services %}
-        # llm_service = self.services.get('llm')
-        # if llm_service:
-        #     response = await llm_service.complete(prompt)
+        {% if handler_metadata and handler_metadata.get('serviceKeys') %}
+        {% if 'LLM_CLIENT' in handler_metadata.get('serviceKeys', []) %}
+        # llm_client = self.services.get('LLM_CLIENT')
+        # if llm_client:
+        #     response = await llm_client.complete(prompt)
         {% endif %}
-        {% if 'kvStore' in services %}
-        # kv_store = self.services.get('kvStore')
-        # if kv_store:
-        #     value = await kv_store.get(key)
+        {% if 'STATE_STORE' in handler_metadata.get('serviceKeys', []) %}
+        # state_store = self.services.get('STATE_STORE')
+        # if state_store:
+        #     state = await state_store.get_state(request.execution_id)
+        {% endif %}
+        {% if 'HTTP_CLIENT' in handler_metadata.get('serviceKeys', []) %}
+        # http_client = self.services.get('HTTP_CLIENT')
+        # if http_client:
+        #     response = await http_client.request(method, url, **kwargs)
+        {% endif %}
+        {% if 'EVENT_BUS' in handler_metadata.get('serviceKeys', []) %}
+        # event_bus = self.services.get('EVENT_BUS')
+        # if event_bus:
+        #     await event_bus.emit(event_name, event_data)
+        {% endif %}
         {% endif %}
 
         # Example of creating output envelope:
@@ -100,6 +125,6 @@ class {{ handler_class_name }}(TypedNodeHandler[{{ data_model_name }}]):
         # return EnvelopeFactory.create_single(result)
 
         raise NotImplementedError(
-            f"Handler for {{ display_name }} ({ node_type }) not yet implemented. "
+            f"Handler for {{ display_name }} ({{ node_type }}) not yet implemented. "
             f"Please implement the business logic in this execute_request method."
         )

@@ -1,0 +1,256 @@
+version: light
+nodes:
+- label: tool_result 7
+  type: api_job
+  position:
+    x: 450
+    y: 550
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 1
+  type: code_job
+  position:
+    x: 500
+    y: 100
+  props:
+    language: bash
+    code: find /home/soryhyun/DiPeO/dipeo/domain/cc_translate -type f -name "*.py" | head -20
+    timeout: 120000
+    description: List Python files in cc_translate directory
+- label: tool_result 2
+  type: api_job
+  position:
+    x: 500
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Claude Responds To User 8
+  type: person_job
+  position:
+    x: 500
+    y: 550
+  props:
+    person: claude_code
+    default_prompt: '[Request interrupted by user]'
+- label: Bash Command 2
+  type: code_job
+  position:
+    x: 550
+    y: 100
+  props:
+    language: bash
+    code: find /home/soryhyun/DiPeO/dipeo/domain/cc_translate -type f -name "*.py" | grep -E "(coordinator|orchestrator|manager)" | head -10
+    timeout: 120000
+    description: Find coordinator/orchestrator/manager files
+- label: Read File 1
+  type: db
+  position:
+    x: 600
+    y: 100
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/phase_coordinator.py
+- label: Read File 9
+  type: db
+  position:
+    x: 600
+    y: 400
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/pipeline.py
+    lines: 1:100
+- label: Read File 2
+  type: db
+  position:
+    x: 650
+    y: 100
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/pipeline/base.py
+- label: Grep Search 5
+  type: code_job
+  position:
+    x: 650
+    y: 400
+  props:
+    language: bash
+    code: rg 'class.*Report' /home/soryhyun/DiPeO/dipeo/domain/cc_translate
+    tool: Grep
+    description: Grep search operation
+- label: Read File 3
+  type: db
+  position:
+    x: 700
+    y: 100
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/session_orchestrator.py
+    lines: 1:100
+- label: Read File 4
+  type: db
+  position:
+    x: 750
+    y: 100
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/base.py
+    lines: 1:100
+- label: Read File 5
+  type: db
+  position:
+    x: 800
+    y: 250
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/post_processing/base.py
+    lines: 1:100
+- label: ExitPlanMode 3
+  type: api_job
+  position:
+    x: 800
+    y: 400
+  props:
+    endpoint: /tools/ExitPlanMode
+    method: POST
+    body:
+      plan: "## Refactor cc_translate to Simplify with Phase-Specific Base Classes\n\n### Problem Analysis\nThe current cc_translate implementation has become overly complex with:\n- Complex orchestration logic in PhaseCoordinator with different handling for each phase\n- Inconsistent interfaces between phases (different return types, report structures)\n- Too much error handling boilerplate with `with_error_boundary`\n- Redundant abstractions in `pipeline/base.py` with protocols that aren't properly used\n\n### Proposed Solution: Separate Base Classes per Phase\n\n#### 1. **Create BasePreprocessor** (`preprocess/base.py`)\n```python\nclass BasePreprocessor(ABC):\n    @abstractmethod\n    def process(self, session: DomainSession, config=None) -> tuple[PreprocessedData, SessionProcessingReport]:\n        \"\"\"Standard interface: returns (data, report)\"\"\"\n        pass\n```\n\n#### 2. **Enhance BaseConverter** (`convert/base.py`)\n```python\nclass BaseConverter(ABC):\n    @abstractmethod\n    def process(self, data: PreprocessedData, config=None) -> tuple[dict, ConversionReport]:\n        \"\"\"Standard interface: returns (diagram, report)\"\"\"\n        pass\n```\n\n#### 3. **Create BasePostProcessor** (`post_processing/base.py`)\n```python\nclass BasePostProcessor(ABC):\n    @abstractmethod\n    def process(self, diagram: dict, config=None) -> tuple[dict, DiagramPipelineReport]:\n        \"\"\"Standard interface: returns (diagram, report)\"\"\"\n        pass\n```\n\n#### 4. **Simplify PhaseCoordinator**\n```python\nclass PhaseCoordinator:\n    def __init__(self):\n        self.preprocessor = SessionOrchestrator()  # extends BasePreprocessor\n        self.converter = DiagramConverter()        # extends BaseConverter\n        self.postprocessor = PostProcessingPipeline()  # extends BasePostProcessor\n    \n    def translate(self, session, skip_phases=None, **kwargs):\n        # Simple flow - just call process() on each phase\n        if PREPROCESS not in skip_phases:\n            data, report = self.preprocessor.process(session, kwargs.get('preprocess_config'))\n            \n        if CONVERT not in skip_phases:\n            diagram, report = self.converter.process(data, kwargs.get('convert_config'))\n            \n        if POST_PROCESS not in skip_phases:\n            diagram, report = self.postprocessor.process(diagram, kwargs.get('postprocess_config'))\n            \n        return diagram, metrics\n```\n\n### Key Changes\n\n1. **Standardize interfaces**: All phases have `process()` returning `(output, report)`\n2. **Move error handling into each phase**: Remove `with_error_boundary` from coordinator\n3. **Simplify PhaseCoordinator**: Just orchestrates by calling standard methods\n4. **Remove redundant abstractions**: Delete complex protocols in `pipeline/base.py`\n5. **Each phase owns its complexity**: Internal details stay within each phase\n\n### Benefits\n- **Simpler to understand**: Clear separation of concerns\n- **Easier to extend**: Add new phases by implementing base class\n- **Less coupling**: PhaseCoordinator doesn't know internal details\n- **Consistent interface**: All phases work the same way\n- **Better testability**: Each phase can be tested independently\n\n### Implementation Steps\n1. Update `preprocess/base.py` with `BasePreprocessor` class\n2. Update `convert/base.py` to standardize `BaseConverter.process()` \n3. Update `post_processing/base.py` with `BasePostProcessor` class\n4. Refactor `SessionOrchestrator` to extend `BasePreprocessor`\n5. Refactor `DiagramConverter` to extend `BaseConverter` with standard interface\n6. Refactor `PostProcessingPipeline` to extend `BasePostProcessor`\n7. Simplify `PhaseCoordinator` to just call `process()` methods\n8. Remove complex abstractions from `pipeline/base.py`\n9. Test the refactored pipeline"
+    timeout: 30
+    description: ExitPlanMode operation
+- label: Read File 6
+  type: db
+  position:
+    x: 850
+    y: 250
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/diagram_converter.py
+    lines: 1:100
+- label: tool_result 4
+  type: api_job
+  position:
+    x: 850
+    y: 400
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Read File 7
+  type: db
+  position:
+    x: 900
+    y: 250
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/base.py
+    lines: 1:100
+- label: Claude Responds To User 6
+  type: person_job
+  position:
+    x: 900
+    y: 400
+  props:
+    person: claude_code
+    default_prompt: '[Request interrupted by user]'
+- label: Claude Responds To User 7
+  type: person_job
+  position:
+    x: 950
+    y: 400
+  props:
+    person: claude_code
+    default_prompt: ok would you write this plan in `TODO.md`? and I think we can just consolidate pipeline/base.py to phase_coordinator, and then make each phase base to implement those abstract methods. think
+- label: tool_result 1
+  type: api_job
+  position:
+    x: 1000
+    y: 250
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+connections:
+- from: Bash Command 1
+  to: Bash Command 2
+  content_type: raw_text
+- from: Bash Command 2
+  to: Read File 1
+  content_type: raw_text
+- from: Read File 1
+  to: Read File 2
+  content_type: raw_text
+- from: Read File 2
+  to: Read File 3
+  content_type: raw_text
+- from: Read File 3
+  to: Read File 4
+  content_type: raw_text
+- from: Read File 4
+  to: Read File 5
+  content_type: raw_text
+- from: Read File 5
+  to: Read File 6
+  content_type: raw_text
+- from: Read File 6
+  to: Read File 7
+  content_type: raw_text
+- from: Read File 9
+  to: Grep Search 5
+  content_type: raw_text
+- from: ExitPlanMode 3
+  to: tool_result 4
+  content_type: raw_text
+- from: tool_result 4
+  to: Claude Responds To User 6
+  content_type: raw_text
+- from: Claude Responds To User 6
+  to: Claude Responds To User 7
+  content_type: raw_text
+- from: tool_result 7
+  to: Claude Responds To User 8
+  content_type: raw_text
+- from: Read File 1
+  to: ExitPlanMode 3
+  content_type: raw_text
+- from: tool_result 2
+  to: Read File 4
+  content_type: raw_text
+- from: Read File 4
+  to: Read File 9
+  content_type: raw_text
+- from: Grep Search 5
+  to: Read File 5
+  content_type: raw_text
+- from: Read File 5
+  to: Read File 1
+  content_type: raw_text
+metadata:
+  group_name: to_do_2
+  node_count: 19
+  connection_count: 18
+  extracted_from: unknown
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

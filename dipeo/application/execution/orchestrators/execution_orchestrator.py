@@ -5,10 +5,9 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.diagram_generated import ApiKeyID, Message, PersonID, PersonLLMConfig
 from dipeo.domain.conversation import Person
-from dipeo.domain.conversation.ports import PersonRepository
+from dipeo.domain.conversation.ports import ConversationRepository, PersonRepository
 
 if TYPE_CHECKING:
-    from dipeo.application.conversation.use_cases import ManageConversationUseCase
     from dipeo.application.execution.use_cases.prompt_loading import PromptLoadingUseCase
     from dipeo.domain.integrations.ports import LLMService as LLMServicePort
 
@@ -21,13 +20,13 @@ class ExecutionOrchestrator:
     def __init__(
         self,
         person_repository: PersonRepository,
-        manage_conversation_use_case: Optional["ManageConversationUseCase"] = None,
+        conversation_repository: Optional[ConversationRepository] = None,
         prompt_loading_use_case: Optional["PromptLoadingUseCase"] = None,
         memory_selector: Any = None,  # No longer using domain adapters
         llm_service: Optional["LLMServicePort"] = None,
     ):
         self._person_repo = person_repository
-        self._manage_conversation_use_case = manage_conversation_use_case
+        self._conversation_repo = conversation_repository
         self._prompt_loading_use_case = prompt_loading_use_case
         self._memory_selector = memory_selector
         self._llm_service = llm_service
@@ -72,17 +71,15 @@ class ExecutionOrchestrator:
         return self._llm_service
 
     def get_conversation(self):
-        if self._manage_conversation_use_case:
-            return self._manage_conversation_use_case.get_global_conversation()
+        if self._conversation_repo:
+            return self._conversation_repo.get_global_conversation()
         return None
 
     def add_message(self, message: Message, execution_id: str, node_id: str | None = None) -> None:
         self._current_execution_id = execution_id
 
-        if self._manage_conversation_use_case:
-            self._manage_conversation_use_case.add_message_with_context(
-                message, execution_id, node_id
-            )
+        if self._conversation_repo:
+            self._conversation_repo.add_message(message, execution_id, node_id)
 
         if execution_id not in self._execution_logs:
             self._execution_logs[execution_id] = []
@@ -104,10 +101,8 @@ class ExecutionOrchestrator:
         if not self._person_repo.exists(person_id_obj):
             return []
 
-        if self._manage_conversation_use_case:
-            history = self._manage_conversation_use_case.get_person_conversation_history(
-                person_id_obj
-            )
+        if self._conversation_repo:
+            history = self._conversation_repo.get_conversation_history(person_id_obj)
         else:
             history = []
 
@@ -118,8 +113,8 @@ class ExecutionOrchestrator:
         return history
 
     def clear_all_conversations(self) -> None:
-        if self._manage_conversation_use_case:
-            self._manage_conversation_use_case.clear_conversation()
+        if self._conversation_repo:
+            self._conversation_repo.clear()
 
         for _person_id, person in self._person_repo.get_all().items():
             person.set_memory_limit(-1)

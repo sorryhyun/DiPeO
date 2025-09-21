@@ -2,12 +2,38 @@
 
 This phase handles session-level processing and preparation including:
 - Session event pruning and filtering
+- Field pruning and cleanup
 - Metadata extraction
-- Conversation flow analysis
-- System message collection
+- Session orchestration
 """
 
+from .base import (
+    BaseSessionProcessor,
+    SessionChange,
+    SessionChangeType,
+    SessionProcessingReport,
+)
+from .config import (
+    PreprocessConfig,
+    SessionEventPrunerConfig,
+    SessionFieldPrunerConfig,
+)
+from .preprocessor import Preprocessor
 from .session_event_pruner import SessionEventPruner
-from .session_preprocessor import PreprocessedSession, SessionPreprocessor
+from .session_field_pruner import SessionFieldPruner
 
-__all__ = ["PreprocessedSession", "SessionEventPruner", "SessionPreprocessor"]
+__all__ = [
+    # Base classes
+    "BaseSessionProcessor",
+    # Configuration
+    "PreprocessConfig",
+    "Preprocessor",
+    "SessionChange",
+    "SessionChangeType",
+    # Processors
+    "SessionEventPruner",
+    "SessionEventPrunerConfig",
+    "SessionFieldPruner",
+    "SessionFieldPrunerConfig",
+    "SessionProcessingReport",
+]

@@ -1,0 +1,919 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 100, y: 100}
+  props:
+    trigger_mode: manual
+    custom_data:
+      session_id: 175ead61-5a29-43f8-8ccb-7a9243b339fd
+      initial_prompt: |-
+        <command-name>/clear</command-name>
+                    <command-message>clear</command-message>
+                    <command-args></command-args>
+- label: Claude Responds To User 1
+  type: person_job
+  position: {x: 350, y: 100}
+  props:
+    person: claude_code
+    default_prompt: |-
+      <command-name>/clear</command-name>
+                  <command-message>clear</command-message>
+                  <command-args></command-args>
+- label: Claude Responds To User 2
+  type: person_job
+  position: {x: 400, y: 100}
+  props:
+    person: claude_code
+    default_prompt: <local-command-stdout></local-command-stdout>
+- label: Claude Responds To User 3
+  type: person_job
+  position: {x: 450, y: 100}
+  props:
+    person: claude_code
+    default_prompt: I think when the previous node type is tool_use and its name is Read or Grep, then we should ignore the next tool_result node. in DiPeO, the result of the file read or command automatically appended to next node. would you enhance logic in @dipeo/domain/cc_translate/ ? think
+- label: Bash Command 1
+  type: code_job
+  position: {x: 500, y: 100}
+  props:
+    language: bash
+    code: find /home/soryhyun/DiPeO/dipeo/domain -type d -name "cc_translate" | head -5
+    timeout: 120000
+    description: Find cc_translate directory
+- label: Bash Command 2
+  type: code_job
+  position: {x: 550, y: 100}
+  props:
+    language: bash
+    code: ls -la /home/soryhyun/DiPeO/dipeo/domain/cc_translate/
+    timeout: 120000
+    description: List files in cc_translate directory
+- label: Bash Command 3
+  type: code_job
+  position: {x: 600, y: 100}
+  props:
+    language: bash
+    code: ls -la /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/
+    timeout: 120000
+    description: List files in convert directory
+- label: Read File 1
+  type: db
+  position: {x: 650, y: 100}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+- label: Read File 2
+  type: db
+  position: {x: 700, y: 100}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_builder_refactored.py
+- label: Read File 3
+  type: db
+  position: {x: 750, y: 100}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/tool_node_factory.py
+- label: Grep Search 4
+  type: code_job
+  position: {x: 800, y: 250}
+  props:
+    language: bash
+    code: rg -n -A 3 -B 3 'TOOL_RESULT|tool_result|process_event_turn' /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+    tool: Grep
+    description: Grep search operation
+- label: Read File 4
+  type: db
+  position: {x: 850, y: 250}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/models/event.py
+- label: Read File 5
+  type: db
+  position: {x: 900, y: 250}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/__init__.py
+- label: Update TODO 1
+  type: db
+  position: {x: 950, y: 250}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Analyze the current tool event processing flow
+        status: completed
+        activeForm: Analyzing the current tool event processing flow
+      - content: Modify converter to track previous tool use
+        status: pending
+        activeForm: Modifying converter to track previous tool use
+      - content: Update event processing to skip Read/Grep results
+        status: pending
+        activeForm: Updating event processing to skip Read/Grep results
+      - content: Test the enhancement with debug output
+        status: pending
+        activeForm: Testing the enhancement with debug output
+- label: tool_result 1
+  type: api_job
+  position: {x: 1000, y: 250}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Update TODO 2
+  type: db
+  position: {x: 1050, y: 250}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Analyze the current tool event processing flow
+        status: completed
+        activeForm: Analyzing the current tool event processing flow
+      - content: Modify converter to track previous tool use
+        status: in_progress
+        activeForm: Modifying converter to track previous tool use
+      - content: Update event processing to skip Read/Grep results
+        status: pending
+        activeForm: Updating event processing to skip Read/Grep results
+      - content: Test the enhancement with debug output
+        status: pending
+        activeForm: Testing the enhancement with debug output
+- label: tool_result 2
+  type: api_job
+  position: {x: 300, y: 250}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 6
+  type: diff_patch
+  position: {x: 350, y: 250}
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py\n@@ -6,6 +6,9 @@\n \n         # Extract system messages from preprocessed data\n         system_messages = self._extract_system_messages(preprocessed_data)\n+\n+        # Track previous event to handle Read/Grep result skipping\n+        previous_event = None\n \n         for event in turn_events:\n             if event.is_user_event():\n@@ -30,7 +33,23 @@\n                         node_labels.append(assistant_node_label)\n \n             elif event.type == EventType.TOOL_USE or event.type == EventType.TOOL_RESULT:\n-                tool_node_labels = self._create_tool_nodes_from_event(event)\n-                node_labels.extend(tool_node_labels)\n+                # Check if this is a TOOL_RESULT event following a Read or Grep TOOL_USE\n+                if event.type == EventType.TOOL_RESULT and previous_event:\n+                    # Check if the previous event was a TOOL_USE with Read or Grep\n+                    if (previous_event.type == EventType.TOOL_USE and\n+                        previous_event.tool_info and\n+                        previous_event.tool_info.name in [\"Read\", \"Grep\"]):\n+                        # Skip creating a node for this TOOL_RESULT\n+                        # In DiPeO, Read/Grep results are automatically appended to the next node\n+                        pass\n+                    else:\n+                        tool_node_labels = self._create_tool_nodes_from_event(event)\n+                        node_labels.extend(tool_node_labels)\n+                else:\n+                    tool_node_labels = self._create_tool_nodes_from_event(event)\n+                    node_labels.extend(tool_node_labels)\n+\n+            # Update previous event\n+            previous_event = event\n \n         return node_labels"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 3
+  type: api_job
+  position: {x: 400, y: 250}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Update TODO 3
+  type: db
+  position: {x: 450, y: 250}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Analyze the current tool event processing flow
+        status: completed
+        activeForm: Analyzing the current tool event processing flow
+      - content: Modify converter to track previous tool use
+        status: completed
+        activeForm: Modifying converter to track previous tool use
+      - content: Update event processing to skip Read/Grep results
+        status: in_progress
+        activeForm: Updating event processing to skip Read/Grep results
+      - content: Test the enhancement with debug output
+        status: pending
+        activeForm: Testing the enhancement with debug output
+- label: tool_result 4
+  type: api_job
+  position: {x: 500, y: 400}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 7
+  type: diff_patch
+  position: {x: 550, y: 400}
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+    diff: |-
+      --- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+      +++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+      @@ -7,6 +7,7 @@
+                               previous_event.tool_info.name in ["Read", "Grep"]):
+                               # Skip creating a node for this TOOL_RESULT
+                               # In DiPeO, Read/Grep results are automatically appended to the next node
+      +                        print(f"Skipping TOOL_RESULT node creation for {previous_event.tool_info.name} - results will be appended to next node")
+                               pass
+                           else:
+                               tool_node_labels = self._create_tool_nodes_from_event(event)
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 5
+  type: api_job
+  position: {x: 600, y: 400}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Update TODO 4
+  type: db
+  position: {x: 650, y: 400}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Analyze the current tool event processing flow
+        status: completed
+        activeForm: Analyzing the current tool event processing flow
+      - content: Modify converter to track previous tool use
+        status: completed
+        activeForm: Modifying converter to track previous tool use
+      - content: Update event processing to skip Read/Grep results
+        status: completed
+        activeForm: Updating event processing to skip Read/Grep results
+      - content: Test the enhancement with debug output
+        status: in_progress
+        activeForm: Testing the enhancement with debug output
+- label: tool_result 6
+  type: api_job
+  position: {x: 700, y: 400}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 8
+  type: diff_patch
+  position: {x: 750, y: 400}
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+    diff: |-
+      --- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+      +++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+      @@ -1,10 +1,15 @@
+                       # Check if this is a TOOL_RESULT event following a Read or Grep TOOL_USE
+                       if event.type == EventType.TOOL_RESULT and previous_event:
+      -                    # Check if the previous event was a TOOL_USE with Read or Grep
+      +                    # Check if the previous event was a TOOL_USE with Read, Grep, or similar tools
+      +                    # These tools have their results automatically appended to the next node in DiPeO
+      +                    tools_with_auto_appended_results = [
+      +                        "Read", "Grep", "Glob", "NotebookRead",
+      +                        "BashOutput", "WebFetch", "WebSearch"
+      +                    ]
+                           if (previous_event.type == EventType.TOOL_USE and
+                               previous_event.tool_info and
+      -                        previous_event.tool_info.name in ["Read", "Grep"]):
+      +                        previous_event.tool_info.name in tools_with_auto_appended_results):
+                               # Skip creating a node for this TOOL_RESULT
+      -                        # In DiPeO, Read/Grep results are automatically appended to the next node
+      +                        # In DiPeO, these tools' results are automatically appended to the next node
+                               print(f"Skipping TOOL_RESULT node creation for {previous_event.tool_info.name} - results will be appended to next node")
+                               pass
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 7
+  type: api_job
+  position: {x: 800, y: 400}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 5
+  type: code_job
+  position: {x: 850, y: 400}
+  props:
+    language: bash
+    code: dipeocc list | head -5
+    timeout: 120000
+    description: List recent Claude Code sessions
+- label: Bash Command 6
+  type: code_job
+  position: {x: 900, y: 400}
+  props:
+    language: bash
+    code: dipeocc convert --latest --output-dir /tmp/test_conversion 2>&1 | grep -A5 -B5 "Skipping TOOL_RESULT"
+    timeout: 120000
+    description: Test conversion with grep for our new skip logic
+- label: Bash Command 7
+  type: code_job
+  position: {x: 950, y: 400}
+  props:
+    language: bash
+    code: "python -c \"\nfrom dipeo.domain.cc_translate.phase_coordinator import PhaseCoordinator\nfrom dipeo.infrastructure.cc_translate.session_loader import SessionLoader\nimport json\n\n# Load a session\nloader = SessionLoader()\nsessions = loader.list_sessions(limit=1)\nif sessions:\n    session_path = sessions[0]\n    session_data = loader.load_session(session_path)\n    \n    # Run conversion\n    coordinator = PhaseCoordinator()\n    result = coordinator.process_session(session_data)\n    \n    print('Conversion completed successfully' if result.success else 'Conversion failed')\n\""
+    timeout: 120000
+    description: Test the conversion directly with Python
+- label: Grep Search 8
+  type: code_job
+  position: {x: 1000, y: 550}
+  props:
+    language: bash
+    code: rg --glob '**/*.py' -l 'SessionLoader' /home/soryhyun/DiPeO | head -n 10
+    tool: Grep
+    description: Grep search operation
+- label: Read File 9
+  type: db
+  position: {x: 1050, y: 550}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/application/cli/cc_translate.py
+    lines: 1:100
+- label: Grep Search 9
+  type: code_job
+  position: {x: 300, y: 550}
+  props:
+    language: bash
+    code: rg --glob '**/*.py' -l 'dipeocc' /home/soryhyun/DiPeO | head -n 10
+    tool: Grep
+    description: Grep search operation
+- label: Claude Responds To User 4
+  type: person_job
+  position: {x: 350, y: 550}
+  props:
+    person: claude_code
+    default_prompt: '[Request interrupted by user]'
+- label: Claude Responds To User 5
+  type: person_job
+  position: {x: 400, y: 550}
+  props:
+    person: claude_code
+    default_prompt: ok it worked! but it should also ignore when the name is 'Bash'. think
+- label: Update TODO 5
+  type: db
+  position: {x: 450, y: 550}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Analyze the current tool event processing flow
+        status: completed
+        activeForm: Analyzing the current tool event processing flow
+      - content: Modify converter to track previous tool use
+        status: completed
+        activeForm: Modifying converter to track previous tool use
+      - content: Update event processing to skip Read/Grep results
+        status: completed
+        activeForm: Updating event processing to skip Read/Grep results
+      - content: Add Bash to the list of tools with auto-appended results
+        status: in_progress
+        activeForm: Adding Bash to the list of tools with auto-appended results
+- label: tool_result 8
+  type: api_job
+  position: {x: 500, y: 550}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 10
+  type: diff_patch
+  position: {x: 550, y: 550}
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+    diff: |-
+      --- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+      +++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+      @@ -1,6 +1,6 @@
+      -                    # Check if the previous event was a TOOL_USE with Read, Grep, or similar tools
+      +                    # Check if the previous event was a TOOL_USE with Read, Grep, Bash, or similar tools
+                           # These tools have their results automatically appended to the next node in DiPeO
+                           tools_with_auto_appended_results = [
+      -                        "Read", "Grep", "Glob", "NotebookRead",
+      +                        "Bash", "Read", "Grep", "Glob", "NotebookRead",
+                               "BashOutput", "WebFetch", "WebSearch"
+                           ]
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 9
+  type: api_job
+  position: {x: 600, y: 550}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Update TODO 6
+  type: db
+  position: {x: 650, y: 550}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Analyze the current tool event processing flow
+        status: completed
+        activeForm: Analyzing the current tool event processing flow
+      - content: Modify converter to track previous tool use
+        status: completed
+        activeForm: Modifying converter to track previous tool use
+      - content: Update event processing to skip Read/Grep results
+        status: completed
+        activeForm: Updating event processing to skip Read/Grep results
+      - content: Add Bash to the list of tools with auto-appended results
+        status: completed
+        activeForm: Adding Bash to the list of tools with auto-appended results
+- label: tool_result 10
+  type: api_job
+  position: {x: 700, y: 700}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Claude Responds To User 6
+  type: person_job
+  position: {x: 750, y: 700}
+  props:
+    person: claude_code
+    default_prompt: hmm, but I think it's not applied well. think
+- label: Update TODO 7
+  type: db
+  position: {x: 800, y: 700}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Investigate why Read results are appearing in person_job nodes
+        status: in_progress
+        activeForm: Investigating why Read results are appearing in person_job nodes
+      - content: Check how person_job nodes are created with content
+        status: pending
+        activeForm: Checking how person_job nodes are created with content
+      - content: Fix the logic to prevent file content in prompts
+        status: pending
+        activeForm: Fixing the logic to prevent file content in prompts
+- label: tool_result 11
+  type: api_job
+  position: {x: 850, y: 700}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Read File 11
+  type: db
+  position: {x: 900, y: 700}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/node_factories/person_node_builder.py
+- label: Read File 12
+  type: db
+  position: {x: 950, y: 700}
+  props:
+    operation: read
+    sub_type: file
+    file: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+    lines: 219:258
+- label: Update TODO 8
+  type: db
+  position: {x: 1000, y: 700}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Investigate why Read results are appearing in person_job nodes
+        status: completed
+        activeForm: Investigating why Read results are appearing in person_job nodes
+      - content: Check how person_job nodes are created with content
+        status: completed
+        activeForm: Checking how person_job nodes are created with content
+      - content: Track assistant responses after Read/Grep/Bash tools
+        status: in_progress
+        activeForm: Tracking assistant responses after Read/Grep/Bash tools
+      - content: Skip creating person_job nodes with tool results as prompts
+        status: pending
+        activeForm: Skipping person_job nodes with tool results as prompts
+- label: tool_result 12
+  type: api_job
+  position: {x: 1050, y: 700}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 13
+  type: diff_patch
+  position: {x: 300, y: 700}
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+    diff: "--- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py\n+++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py\n@@ -7,7 +7,14 @@\n         # Extract system messages from preprocessed data\n         system_messages = self._extract_system_messages(preprocessed_data)\n \n-        # Track previous event to handle Read/Grep result skipping\n+        # Track previous event and tool usage to handle Read/Grep result skipping\n         previous_event = None\n+        last_tool_with_auto_append = None  # Track tools whose results are auto-appended\n+\n+        # Tools whose results are automatically appended to the next node\n+        tools_with_auto_appended_results = [\n+            \"Bash\", \"Read\", \"Grep\", \"Glob\", \"NotebookRead\",\n+            \"BashOutput\", \"WebFetch\", \"WebSearch\"\n+        ]\n \n         for event in turn_events:"
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 13
+  type: api_job
+  position: {x: 350, y: 700}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 14
+  type: diff_patch
+  position: {x: 400, y: 850}
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+    diff: |-
+      --- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+      +++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+      @@ -3,11 +3,20 @@
+                       if event.has_tool_use():
+                           tool_node_labels = self._create_tool_nodes_from_event(event)
+                           node_labels.extend(tool_node_labels)
+      +
+      +                    # Track if this tool's results will be auto-appended
+      +                    if event.tool_info and event.tool_info.name in tools_with_auto_appended_results:
+      +                        last_tool_with_auto_append = event.tool_info.name
+                       else:
+      -                    # Pure assistant responses don't create nodes (they're outputs of user prompts)
+      -                    # Still call create_assistant_node to register the claude_code person if needed
+      -                    assistant_node_label = self._create_assistant_node_from_event(
+      -                        event, system_messages
+      -                    )
+      -                    if assistant_node_label:
+      -                        node_labels.append(assistant_node_label)
+      +                    # Skip assistant responses that are just displaying results from Read/Grep/Bash
+      +                    if last_tool_with_auto_append:
+      +                        print(f"Skipping assistant response after {last_tool_with_auto_append} - content is auto-appended")
+      +                        last_tool_with_auto_append = None  # Reset after skipping
+      +                    else:
+      +                        # Pure assistant responses don't create nodes (they're outputs of user prompts)
+      +                        # Still call create_assistant_node to register the claude_code person if needed
+      +                        assistant_node_label = self._create_assistant_node_from_event(
+      +                            event, system_messages
+      +                        )
+      +                        if assistant_node_label:
+      +                            node_labels.append(assistant_node_label)
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 14
+  type: api_job
+  position: {x: 450, y: 850}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Edit File 15
+  type: diff_patch
+  position: {x: 500, y: 850}
+  props:
+    target_path: /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+    diff: |-
+      --- /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+      +++ /home/soryhyun/DiPeO/dipeo/domain/cc_translate/convert/converter.py
+      @@ -1,22 +1,24 @@
+                   elif event.type == EventType.TOOL_USE or event.type == EventType.TOOL_RESULT:
+      -                # Check if this is a TOOL_RESULT event following a Read or Grep TOOL_USE
+      -                if event.type == EventType.TOOL_RESULT and previous_event:
+      -                    # Check if the previous event was a TOOL_USE with Read, Grep, Bash, or similar tools
+      -                    # These tools have their results automatically appended to the next node in DiPeO
+      -                    tools_with_auto_appended_results = [
+      -                        "Bash", "Read", "Grep", "Glob", "NotebookRead",
+      -                        "BashOutput", "WebFetch", "WebSearch"
+      -                    ]
+      -                    if (previous_event.type == EventType.TOOL_USE and
+      -                        previous_event.tool_info and
+      -                        previous_event.tool_info.name in tools_with_auto_appended_results):
+      -                        # Skip creating a node for this TOOL_RESULT
+      -                        # In DiPeO, these tools' results are automatically appended to the next node
+      -                        print(f"Skipping TOOL_RESULT node creation for {previous_event.tool_info.name} - results will be appended to next node")
+      -                        pass
+      +                if event.type == EventType.TOOL_USE:
+      +                    # Create the tool node
+      +                    tool_node_labels = self._create_tool_nodes_from_event(event)
+      +                    node_labels.extend(tool_node_labels)
+      +
+      +                    # Track if this tool's results will be auto-appended
+      +                    if event.tool_info and event.tool_info.name in tools_with_auto_appended_results:
+      +                        last_tool_with_auto_append = event.tool_info.name
+      +
+      +                elif event.type == EventType.TOOL_RESULT:
+      +                    # Check if this is a TOOL_RESULT event following a Read or Grep TOOL_USE
+      +                    if previous_event and previous_event.type == EventType.TOOL_USE:
+      +                        if (previous_event.tool_info and
+      +                            previous_event.tool_info.name in tools_with_auto_appended_results):
+      +                            # Skip creating a node for this TOOL_RESULT
+      +                            # In DiPeO, these tools' results are automatically appended to the next node
+      +                            print(f"Skipping TOOL_RESULT node creation for {previous_event.tool_info.name} - results will be appended to next node")
+      +                        else:
+      +                            tool_node_labels = self._create_tool_nodes_from_event(event)
+      +                            node_labels.extend(tool_node_labels)
+                           else:
+                               tool_node_labels = self._create_tool_nodes_from_event(event)
+                               node_labels.extend(tool_node_labels)
+      -                else:
+      -                    tool_node_labels = self._create_tool_nodes_from_event(event)
+      -                    node_labels.extend(tool_node_labels)
+    format: unified
+    backup: true
+    validate: true
+- label: tool_result 15
+  type: api_job
+  position: {x: 550, y: 850}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Update TODO 9
+  type: db
+  position: {x: 600, y: 850}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Investigate why Read results are appearing in person_job nodes
+        status: completed
+        activeForm: Investigating why Read results are appearing in person_job nodes
+      - content: Check how person_job nodes are created with content
+        status: completed
+        activeForm: Checking how person_job nodes are created with content
+      - content: Track assistant responses after Read/Grep/Bash tools
+        status: completed
+        activeForm: Tracking assistant responses after Read/Grep/Bash tools
+      - content: Debug and verify the fix works correctly
+        status: in_progress
+        activeForm: Debugging and verifying the fix works correctly
+- label: tool_result 16
+  type: api_job
+  position: {x: 650, y: 850}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Write File 16
+  type: db
+  position: {x: 700, y: 850}
+  props:
+    operation: write
+    sub_type: file
+    file: /home/soryhyun/DiPeO/test_cc_convert.py
+    content: |-
+      #!/usr/bin/env python3
+      """Test script to verify Claude Code conversion handles Read/Grep/Bash results correctly."""
+
+      import json
+      from datetime import datetime
+      from dipeo.domain.cc_translate.phase_coordinator import PhaseCoordinator
+      from dipeo.domain.cc_translate.models.session import Session
+      from dipeo.domain.cc_translate.models.event import DomainEvent, EventType, EventContent, ToolInfo
+
+      # Create a mock session with Read tool usage
+      session_data = {
+          "uuid": "test-session",
+          "name": "Test Session",
+          "created_at": datetime.now().isoformat(),
+          "updated_at": datetime.now().isoformat(),
+          "project_path": "/test/project",
+          "conversation": {
+              "messages": [
+                  {
+                      "uuid": "msg-1",
+                      "type": "user",
+                      "content": {"text": "Read the converter.py file"},
+                      "timestamp": datetime.now().isoformat()
+                  },
+                  {
+                      "uuid": "msg-2",
+                      "type": "tool_use",
+                      "tool_info": {
+                          "name": "Read",
+                          "input_params": {"file_path": "/path/to/converter.py"}
+                      },
+                      "timestamp": datetime.now().isoformat()
+                  },
+                  {
+                      "uuid": "msg-3",
+                      "type": "tool_result",
+                      "tool_info": {
+                          "name": "Read",
+                          "results": [{"content": "File contents here..."}]
+                      },
+                      "timestamp": datetime.now().isoformat()
+                  },
+                  {
+                      "uuid": "msg-4",
+                      "type": "assistant",
+                      "content": {"text": "I've read the file. Here are the contents:\n\nFile contents here..."},
+                      "timestamp": datetime.now().isoformat()
+                  },
+                  {
+                      "uuid": "msg-5",
+                      "type": "user",
+                      "content": {"text": "Now run ls command"},
+                      "timestamp": datetime.now().isoformat()
+                  },
+                  {
+                      "uuid": "msg-6",
+                      "type": "tool_use",
+                      "tool_info": {
+                          "name": "Bash",
+                          "input_params": {"command": "ls -la"}
+                      },
+                      "timestamp": datetime.now().isoformat()
+                  },
+                  {
+                      "uuid": "msg-7",
+                      "type": "tool_result",
+                      "tool_info": {
+                          "name": "Bash",
+                          "results": [{"content": "total 48\ndrwxr-xr-x  2 user user 4096..."}]
+                      },
+                      "timestamp": datetime.now().isoformat()
+                  },
+                  {
+                      "uuid": "msg-8",
+                      "type": "assistant",
+                      "content": {"text": "Here are the directory contents:\n\ntotal 48\ndrwxr-xr-x  2 user user 4096..."},
+                      "timestamp": datetime.now().isoformat()
+                  }
+              ]
+          }
+      }
+
+      # Process the session
+      coordinator = PhaseCoordinator()
+      result = coordinator.process_session(session_data)
+
+      if result.success:
+          print("✅ Conversion successful!")
+
+          # Check the generated diagram
+          diagram = result.diagram
+          if diagram:
+              print(f"\n📊 Generated diagram has {len(diagram.get('nodes', []))} nodes")
+
+              # Look for problematic nodes
+              for node in diagram.get('nodes', []):
+                  if node.get('type') == 'person_job':
+                      props = node.get('props', {})
+                      prompt = props.get('default_prompt', '')
+
+                      # Check if file contents or command output appears in prompts
+                      if 'File contents here' in prompt or 'drwxr-xr-x' in prompt:
+                          print(f"\n⚠️  Found tool output in person_job prompt!")
+                          print(f"   Node: {node.get('label')}")
+                          print(f"   Prompt preview: {prompt[:100]}...")
+                      else:
+                          print(f"\n✅ Node '{node.get('label')}' looks correct")
+
+              # Save the diagram for inspection
+              with open('/tmp/test_diagram.yaml', 'w') as f:
+                  import yaml
+                  yaml.dump(diagram, f, default_flow_style=False)
+              print("\n💾 Diagram saved to /tmp/test_diagram.yaml")
+      else:
+          print("❌ Conversion failed!")
+          print(f"Errors: {result.errors}")
+
+      print("\n🔍 Debug output from conversion should appear above")
+- label: tool_result 17
+  type: api_job
+  position: {x: 750, y: 850}
+  props:
+    endpoint: /tools/tool_result
+    method: POST
+    body: {}
+    timeout: 30
+    description: tool_result operation
+- label: Bash Command 10
+  type: code_job
+  position: {x: 800, y: 850}
+  props:
+    language: bash
+    code: python test_cc_convert.py
+    timeout: 120000
+    description: Run the test script
+- label: Claude Responds To User 7
+  type: person_job
+  position: {x: 850, y: 850}
+  props:
+    person: claude_code
+    default_prompt: '[Request interrupted by user for tool use]'
+connections:
+- {from: Start, to: Claude Responds To User 1, content_type: raw_text}
+- {from: Claude Responds To User 1, to: Claude Responds To User 2, content_type: raw_text}
+- {from: Claude Responds To User 2, to: Claude Responds To User 3, content_type: raw_text}
+- {from: Claude Responds To User 3, to: Bash Command 1, content_type: raw_text}
+- {from: Bash Command 1, to: Bash Command 2, content_type: raw_text}
+- {from: Bash Command 2, to: Bash Command 3, content_type: raw_text}
+- {from: Bash Command 3, to: Read File 1, content_type: raw_text}
+- {from: Read File 1, to: Read File 2, content_type: raw_text}
+- {from: Read File 2, to: Read File 3, content_type: raw_text}
+- {from: Read File 3, to: Grep Search 4, content_type: raw_text}
+- {from: Grep Search 4, to: Read File 4, content_type: raw_text}
+- {from: Read File 4, to: Read File 5, content_type: raw_text}
+- {from: Read File 5, to: Update TODO 1, content_type: raw_text}
+- {from: Update TODO 1, to: tool_result 1, content_type: raw_text}
+- {from: tool_result 1, to: Update TODO 2, content_type: raw_text}
+- {from: Update TODO 2, to: tool_result 2, content_type: raw_text}
+- {from: tool_result 2, to: Edit File 6, content_type: raw_text}
+- {from: Edit File 6, to: tool_result 3, content_type: raw_text}
+- {from: tool_result 3, to: Update TODO 3, content_type: raw_text}
+- {from: Update TODO 3, to: tool_result 4, content_type: raw_text}
+- {from: tool_result 4, to: Edit File 7, content_type: raw_text}
+- {from: Edit File 7, to: tool_result 5, content_type: raw_text}
+- {from: tool_result 5, to: Update TODO 4, content_type: raw_text}
+- {from: Update TODO 4, to: tool_result 6, content_type: raw_text}
+- {from: tool_result 6, to: Edit File 8, content_type: raw_text}
+- {from: Edit File 8, to: tool_result 7, content_type: raw_text}
+- {from: tool_result 7, to: Bash Command 5, content_type: raw_text}
+- {from: Bash Command 5, to: Bash Command 6, content_type: raw_text}
+- {from: Bash Command 6, to: Bash Command 7, content_type: raw_text}
+- {from: Bash Command 7, to: Grep Search 8, content_type: raw_text}
+- {from: Grep Search 8, to: Read File 9, content_type: raw_text}
+- {from: Read File 9, to: Grep Search 9, content_type: raw_text}
+- {from: Grep Search 9, to: Claude Responds To User 4, content_type: raw_text}
+- {from: Claude Responds To User 4, to: Claude Responds To User 5, content_type: raw_text}
+- {from: Claude Responds To User 5, to: Update TODO 5, content_type: raw_text}
+- {from: Update TODO 5, to: tool_result 8, content_type: raw_text}
+- {from: tool_result 8, to: Edit File 10, content_type: raw_text}
+- {from: Edit File 10, to: tool_result 9, content_type: raw_text}
+- {from: tool_result 9, to: Update TODO 6, content_type: raw_text}
+- {from: Update TODO 6, to: tool_result 10, content_type: raw_text}
+- {from: tool_result 10, to: Claude Responds To User 6, content_type: raw_text}
+- {from: Claude Responds To User 6, to: Update TODO 7, content_type: raw_text}
+- {from: Update TODO 7, to: tool_result 11, content_type: raw_text}
+- {from: tool_result 11, to: Read File 11, content_type: raw_text}
+- {from: Read File 11, to: Read File 12, content_type: raw_text}
+- {from: Read File 12, to: Update TODO 8, content_type: raw_text}
+- {from: Update TODO 8, to: tool_result 12, content_type: raw_text}
+- {from: tool_result 12, to: Edit File 13, content_type: raw_text}
+- {from: Edit File 13, to: tool_result 13, content_type: raw_text}
+- {from: tool_result 13, to: Edit File 14, content_type: raw_text}
+- {from: Edit File 14, to: tool_result 14, content_type: raw_text}
+- {from: tool_result 14, to: Edit File 15, content_type: raw_text}
+- {from: Edit File 15, to: tool_result 15, content_type: raw_text}
+- {from: tool_result 15, to: Update TODO 9, content_type: raw_text}
+- {from: Update TODO 9, to: tool_result 16, content_type: raw_text}
+- {from: tool_result 16, to: Write File 16, content_type: raw_text}
+- {from: Write File 16, to: tool_result 17, content_type: raw_text}
+- {from: tool_result 17, to: Bash Command 10, content_type: raw_text}
+- {from: Bash Command 10, to: Claude Responds To User 7, content_type: raw_text}
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.
+metadata:
+  conversion:
+    total_nodes: 60
+    total_connections: 59
+    total_persons: 0
+    node_types:
+      start: 1
+      person_job: 7
+      code_job: 10
+      db: 18
+      api_job: 17
+      diff_patch: 7

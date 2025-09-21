@@ -2,20 +2,11 @@
 Generated Strawberry GraphQL enum definitions for DiPeO.
 Avoid editing THIS FILE DIRECTLY.
 
-Generated at: 2025-09-19T17:28:43.378161
+Generated at: 2025-09-21T20:14:14.580250
 """
 
 from enum import Enum
 import strawberry
-
-
-@strawberry.enum
-class TodoSyncModeGraphQL(Enum):
-    """GraphQL enum for TodoSyncMode"""
-    OFF = "off"
-    MANUAL = "manual"
-    AUTO = "auto"
-    WATCH = "watch"
 
 
 @strawberry.enum
@@ -287,7 +278,6 @@ class EventPriorityGraphQL(Enum):
 
 # Export all GraphQL enums
 __all__ = [
-    "TodoSyncModeGraphQL",
     "DataTypeGraphQL",
     "ContentTypeGraphQL",
     "HandleDirectionGraphQL",
@@ -317,29 +307,6 @@ __all__ = [
 ]
 
 # Mapping functions for conversion between Python and GraphQL enums
-
-def convert_todosyncmode_to_graphql(python_enum):
-    """Convert Python TodoSyncMode enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import TodoSyncMode
-    mapping = {
-        TodoSyncMode.OFF: TodoSyncModeGraphQL.OFF,
-        TodoSyncMode.MANUAL: TodoSyncModeGraphQL.MANUAL,
-        TodoSyncMode.AUTO: TodoSyncModeGraphQL.AUTO,
-        TodoSyncMode.WATCH: TodoSyncModeGraphQL.WATCH,
-    }
-    return mapping.get(python_enum)
-
-def convert_todosyncmode_from_graphql(graphql_enum):
-    """Convert GraphQL TodoSyncMode enum to Python enum."""
-    from dipeo.diagram_generated.enums import TodoSyncMode
-    mapping = {
-        TodoSyncModeGraphQL.OFF: TodoSyncMode.OFF,
-        TodoSyncModeGraphQL.MANUAL: TodoSyncMode.MANUAL,
-        TodoSyncModeGraphQL.AUTO: TodoSyncMode.AUTO,
-        TodoSyncModeGraphQL.WATCH: TodoSyncMode.WATCH,
-    }
-    return mapping.get(graphql_enum)
-
 
 def convert_datatype_to_graphql(python_enum):
     """Convert Python DataType enum to GraphQL enum."""

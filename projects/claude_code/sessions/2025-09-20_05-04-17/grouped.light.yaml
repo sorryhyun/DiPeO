@@ -1,0 +1,138 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 100, y: 100}
+  props:
+    trigger_mode: manual
+    custom_data:
+      session_id: 01341680-feb2-49e4-a5c2-7f069600e540
+      initial_prompt: |-
+        <command-name>/clear</command-name>
+                    <command-message>clear</command-message>
+                    <command-args></command-args>
+- label: Update TODO 1
+  type: db
+  position: {x: 300, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Remove flattening logic in ClaudeCodeMessageProcessor
+        status: in_progress
+        activeForm: Removing flattening logic in ClaudeCodeMessageProcessor
+      - content: Test memory selection with individual messages
+        status: pending
+        activeForm: Testing memory selection with individual messages
+      - content: Verify Claude Code adapter receives separate messages
+        status: pending
+        activeForm: Verifying Claude Code adapter receives separate messages
+- label: prev_to_do_sub
+  type: sub_diagram
+  position: {x: 500, y: 100}
+  props:
+    sub_diagram_path: grouped/prev_to_do.light.yaml
+    execution_mode: sequential
+- label: Update TODO 2
+  type: db
+  position: {x: 700, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Remove flattening logic in ClaudeCodeMessageProcessor
+        status: completed
+        activeForm: Removed flattening logic in ClaudeCodeMessageProcessor
+      - content: Test memory selection with individual messages
+        status: in_progress
+        activeForm: Testing memory selection with individual messages
+      - content: Verify Claude Code adapter receives separate messages
+        status: pending
+        activeForm: Verifying Claude Code adapter receives separate messages
+- label: to_do_2_sub
+  type: sub_diagram
+  position: {x: 900, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_2.light.yaml
+    execution_mode: sequential
+- label: Update TODO 3
+  type: db
+  position: {x: 1100, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Remove flattening logic in ClaudeCodeMessageProcessor
+        status: completed
+        activeForm: Removed flattening logic in ClaudeCodeMessageProcessor
+      - content: Test memory selection with individual messages
+        status: pending
+        activeForm: Testing memory selection with individual messages
+      - content: Verify Claude Code adapter receives separate messages
+        status: pending
+        activeForm: Verifying Claude Code adapter receives separate messages
+      - content: Consider simplifying _build_sdk_content method
+        status: pending
+        activeForm: Considering simplifying _build_sdk_content method
+- label: to_do_3_sub
+  type: sub_diagram
+  position: {x: 1300, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_3.light.yaml
+    execution_mode: sequential
+connections:
+- {from: Start, to: Update TODO 1, content_type: raw_text}
+- {from: Update TODO 1, to: prev_to_do_sub, content_type: raw_text}
+- {from: prev_to_do_sub, to: Update TODO 2, content_type: raw_text}
+- {from: Update TODO 2, to: to_do_2_sub, content_type: raw_text}
+- {from: to_do_2_sub, to: Update TODO 3, content_type: raw_text}
+- {from: Update TODO 3, to: to_do_3_sub, content_type: raw_text}
+metadata:
+  conversion:
+    total_nodes: 45
+    total_connections: 44
+    total_persons: 0
+    node_types:
+      start: 1
+      person_job: 12
+      code_job: 5
+      db: 13
+      api_job: 11
+      diff_patch: 3
+  deduplication:
+    files_deduplicated: 2
+    total_nodes_removed: 2
+    deduplicated_files:
+      /home/soryhyun/DiPeO/dipeo/infrastructure/llm/providers/claude_code/message_processor.py:
+        original_count: 2
+        kept_node: Read File 3
+        removed_nodes:
+        - Read File 10
+      /home/soryhyun/DiPeO/dipeo/infrastructure/llm/drivers/service.py:
+        original_count: 2
+        kept_node: Read File 6
+        removed_nodes:
+        - Read File 7
+  grouped: true
+  original_nodes: 43
+  sub_diagrams: 3
+  extracted_todos: 3
+  grouping_method: todo_updates_with_extraction
+  post_processing:
+    optimization:
+      applied: true
+      total_changes: 11
+      nodes_removed: 2
+      connections_modified: 4
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

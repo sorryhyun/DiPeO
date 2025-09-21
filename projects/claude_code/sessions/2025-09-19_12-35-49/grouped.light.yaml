@@ -1,0 +1,636 @@
+version: light
+nodes:
+- label: Start
+  type: start
+  position: {x: 100, y: 100}
+  props:
+    trigger_mode: manual
+    custom_data:
+      session_id: 1fa6a29b-2d64-40c6-922d-a2651bbcbdae
+      initial_prompt: |-
+        <command-name>/clear</command-name>
+                    <command-message>clear</command-message>
+                    <command-args></command-args>
+- label: Update TODO 1
+  type: db
+  position: {x: 300, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Consolidate pipeline/base.py into phase_coordinator.py
+        activeForm: Consolidating pipeline/base.py into phase_coordinator.py
+        status: pending
+      - content: Update preprocess/base.py with BasePreprocessor abstract class
+        activeForm: Updating preprocess/base.py with BasePreprocessor abstract class
+        status: pending
+      - content: Update convert/base.py to add process() method
+        activeForm: Updating convert/base.py to add process() method
+        status: pending
+      - content: Update post_processing/base.py with BasePostProcessor
+        activeForm: Updating post_processing/base.py with BasePostProcessor
+        status: pending
+      - content: Refactor SessionOrchestrator to extend BasePreprocessor
+        activeForm: Refactoring SessionOrchestrator to extend BasePreprocessor
+        status: pending
+      - content: Refactor DiagramConverter to implement process() method
+        activeForm: Refactoring DiagramConverter to implement process() method
+        status: pending
+      - content: Refactor PostProcessingPipeline to extend BasePostProcessor
+        activeForm: Refactoring PostProcessingPipeline to extend BasePostProcessor
+        status: pending
+      - content: Simplify PhaseCoordinator implementation
+        activeForm: Simplifying PhaseCoordinator implementation
+        status: pending
+      - content: Delete pipeline directory and update imports
+        activeForm: Deleting pipeline directory and updating imports
+        status: pending
+      - content: Test the refactored pipeline
+        activeForm: Testing the refactored pipeline
+        status: pending
+- label: prev_to_do_sub
+  type: sub_diagram
+  position: {x: 500, y: 100}
+  props:
+    sub_diagram_path: grouped/prev_to_do.light.yaml
+    execution_mode: sequential
+- label: Update TODO 2
+  type: db
+  position: {x: 700, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Consolidate pipeline/base.py into phase_coordinator.py
+        activeForm: Consolidating pipeline/base.py into phase_coordinator.py
+        status: in_progress
+      - content: Update preprocess/base.py with BasePreprocessor abstract class
+        activeForm: Updating preprocess/base.py with BasePreprocessor abstract class
+        status: pending
+      - content: Update convert/base.py to add process() method
+        activeForm: Updating convert/base.py to add process() method
+        status: pending
+      - content: Update post_processing/base.py with BasePostProcessor
+        activeForm: Updating post_processing/base.py with BasePostProcessor
+        status: pending
+      - content: Refactor SessionOrchestrator to extend BasePreprocessor
+        activeForm: Refactoring SessionOrchestrator to extend BasePreprocessor
+        status: pending
+      - content: Refactor DiagramConverter to implement process() method
+        activeForm: Refactoring DiagramConverter to implement process() method
+        status: pending
+      - content: Refactor PostProcessingPipeline to extend BasePostProcessor
+        activeForm: Refactoring PostProcessingPipeline to extend BasePostProcessor
+        status: pending
+      - content: Simplify PhaseCoordinator implementation
+        activeForm: Simplifying PhaseCoordinator implementation
+        status: pending
+      - content: Delete pipeline directory and update imports
+        activeForm: Deleting pipeline directory and updating imports
+        status: pending
+      - content: Test the refactored pipeline
+        activeForm: Testing the refactored pipeline
+        status: pending
+- label: to_do_1_sub
+  type: sub_diagram
+  position: {x: 900, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_1.light.yaml
+    execution_mode: sequential
+- label: Update TODO 3
+  type: db
+  position: {x: 1100, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Consolidate pipeline/base.py into phase_coordinator.py
+        activeForm: Consolidating pipeline/base.py into phase_coordinator.py
+        status: completed
+      - content: Update preprocess/base.py with BasePreprocessor abstract class
+        activeForm: Updating preprocess/base.py with BasePreprocessor abstract class
+        status: in_progress
+      - content: Update convert/base.py to add process() method
+        activeForm: Updating convert/base.py to add process() method
+        status: pending
+      - content: Update post_processing/base.py with BasePostProcessor
+        activeForm: Updating post_processing/base.py with BasePostProcessor
+        status: pending
+      - content: Refactor SessionOrchestrator to extend BasePreprocessor
+        activeForm: Refactoring SessionOrchestrator to extend BasePreprocessor
+        status: pending
+      - content: Refactor DiagramConverter to implement process() method
+        activeForm: Refactoring DiagramConverter to implement process() method
+        status: pending
+      - content: Refactor PostProcessingPipeline to extend BasePostProcessor
+        activeForm: Refactoring PostProcessingPipeline to extend BasePostProcessor
+        status: pending
+      - content: Simplify PhaseCoordinator implementation
+        activeForm: Simplifying PhaseCoordinator implementation
+        status: pending
+      - content: Delete pipeline directory and update imports
+        activeForm: Deleting pipeline directory and updating imports
+        status: pending
+      - content: Test the refactored pipeline
+        activeForm: Testing the refactored pipeline
+        status: pending
+- label: to_do_3_sub
+  type: sub_diagram
+  position: {x: 1300, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_3.light.yaml
+    execution_mode: sequential
+- label: Update TODO 4
+  type: db
+  position: {x: 1500, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Consolidate pipeline/base.py into phase_coordinator.py
+        activeForm: Consolidating pipeline/base.py into phase_coordinator.py
+        status: completed
+      - content: Check existing abstract classes in each phase
+        activeForm: Checking existing abstract classes in each phase
+        status: in_progress
+      - content: Update convert/base.py to add process() method
+        activeForm: Updating convert/base.py to add process() method
+        status: pending
+      - content: Update post_processing/base.py with BasePostProcessor
+        activeForm: Updating post_processing/base.py with BasePostProcessor
+        status: pending
+      - content: Refactor SessionOrchestrator to extend BasePreprocessor
+        activeForm: Refactoring SessionOrchestrator to extend BasePreprocessor
+        status: pending
+      - content: Refactor DiagramConverter to implement process() method
+        activeForm: Refactoring DiagramConverter to implement process() method
+        status: pending
+      - content: Refactor PostProcessingPipeline to extend BasePostProcessor
+        activeForm: Refactoring PostProcessingPipeline to extend BasePostProcessor
+        status: pending
+      - content: Simplify PhaseCoordinator implementation
+        activeForm: Simplifying PhaseCoordinator implementation
+        status: pending
+      - content: Delete pipeline directory and update imports
+        activeForm: Deleting pipeline directory and updating imports
+        status: pending
+      - content: Test the refactored pipeline
+        activeForm: Testing the refactored pipeline
+        status: pending
+- label: to_do_5_sub
+  type: sub_diagram
+  position: {x: 1700, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_5.light.yaml
+    execution_mode: sequential
+- label: Update TODO 5
+  type: db
+  position: {x: 1900, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Consolidate pipeline/base.py into phase_coordinator.py
+        activeForm: Consolidating pipeline/base.py into phase_coordinator.py
+        status: completed
+      - content: Check existing abstract classes in each phase
+        activeForm: Checking existing abstract classes in each phase
+        status: completed
+      - content: Add process() method wrapper to BaseConverter
+        activeForm: Adding process() method wrapper to BaseConverter
+        status: in_progress
+      - content: Add BasePostProcessor with process() to post_processing/base.py
+        activeForm: Adding BasePostProcessor with process() to post_processing/base.py
+        status: pending
+      - content: Refactor SessionOrchestrator to implement process()
+        activeForm: Refactoring SessionOrchestrator to implement process()
+        status: pending
+      - content: Refactor DiagramConverter to implement process() method
+        activeForm: Refactoring DiagramConverter to implement process() method
+        status: pending
+      - content: Refactor PostProcessingPipeline to implement process()
+        activeForm: Refactoring PostProcessingPipeline to implement process()
+        status: pending
+      - content: Simplify PhaseCoordinator implementation
+        activeForm: Simplifying PhaseCoordinator implementation
+        status: pending
+      - content: Delete pipeline directory and update imports
+        activeForm: Deleting pipeline directory and updating imports
+        status: pending
+      - content: Test the refactored pipeline
+        activeForm: Testing the refactored pipeline
+        status: pending
+- label: to_do_6_sub
+  type: sub_diagram
+  position: {x: 2100, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_6.light.yaml
+    execution_mode: sequential
+- label: Update TODO 6
+  type: db
+  position: {x: 2300, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Consolidate pipeline/base.py into phase_coordinator.py
+        activeForm: Consolidating pipeline/base.py into phase_coordinator.py
+        status: completed
+      - content: Check existing abstract classes in each phase
+        activeForm: Checking existing abstract classes in each phase
+        status: completed
+      - content: Add process() method wrapper to BaseConverter
+        activeForm: Adding process() method wrapper to BaseConverter
+        status: completed
+      - content: Add BasePostProcessor with process() to post_processing/base.py
+        activeForm: Adding BasePostProcessor with process() to post_processing/base.py
+        status: in_progress
+      - content: Refactor SessionOrchestrator to implement process()
+        activeForm: Refactoring SessionOrchestrator to implement process()
+        status: pending
+      - content: Refactor DiagramConverter to implement process() method
+        activeForm: Refactoring DiagramConverter to implement process() method
+        status: pending
+      - content: Refactor PostProcessingPipeline to implement process()
+        activeForm: Refactoring PostProcessingPipeline to implement process()
+        status: pending
+      - content: Simplify PhaseCoordinator implementation
+        activeForm: Simplifying PhaseCoordinator implementation
+        status: pending
+      - content: Delete pipeline directory and update imports
+        activeForm: Deleting pipeline directory and updating imports
+        status: pending
+      - content: Test the refactored pipeline
+        activeForm: Testing the refactored pipeline
+        status: pending
+- label: to_do_8_sub
+  type: sub_diagram
+  position: {x: 2500, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_8.light.yaml
+    execution_mode: sequential
+- label: Update TODO 7
+  type: db
+  position: {x: 2700, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Consolidate pipeline/base.py into phase_coordinator.py
+        activeForm: Consolidating pipeline/base.py into phase_coordinator.py
+        status: completed
+      - content: Check existing abstract classes in each phase
+        activeForm: Checking existing abstract classes in each phase
+        status: completed
+      - content: Add process() method wrapper to BaseConverter
+        activeForm: Adding process() method wrapper to BaseConverter
+        status: completed
+      - content: Add BasePostProcessor with process() to post_processing/base.py
+        activeForm: Adding BasePostProcessor with process() to post_processing/base.py
+        status: completed
+      - content: Refactor SessionOrchestrator to implement process()
+        activeForm: Refactoring SessionOrchestrator to implement process()
+        status: in_progress
+      - content: Refactor DiagramConverter to implement process() method
+        activeForm: Refactoring DiagramConverter to implement process() method
+        status: pending
+      - content: Refactor PostProcessingPipeline to implement process()
+        activeForm: Refactoring PostProcessingPipeline to implement process()
+        status: pending
+      - content: Simplify PhaseCoordinator implementation
+        activeForm: Simplifying PhaseCoordinator implementation
+        status: pending
+      - content: Delete pipeline directory and update imports
+        activeForm: Deleting pipeline directory and updating imports
+        status: pending
+      - content: Test the refactored pipeline
+        activeForm: Testing the refactored pipeline
+        status: pending
+- label: to_do_11_sub
+  type: sub_diagram
+  position: {x: 2900, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_11.light.yaml
+    execution_mode: sequential
+- label: Update TODO 8
+  type: db
+  position: {x: 3100, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Consolidate pipeline/base.py into phase_coordinator.py
+        activeForm: Consolidating pipeline/base.py into phase_coordinator.py
+        status: completed
+      - content: Check existing abstract classes in each phase
+        activeForm: Checking existing abstract classes in each phase
+        status: completed
+      - content: Add process() method wrapper to BaseConverter
+        activeForm: Adding process() method wrapper to BaseConverter
+        status: completed
+      - content: Add BasePostProcessor with process() to post_processing/base.py
+        activeForm: Adding BasePostProcessor with process() to post_processing/base.py
+        status: completed
+      - content: Refactor SessionOrchestrator to implement process()
+        activeForm: Refactoring SessionOrchestrator to implement process()
+        status: completed
+      - content: Check if DiagramConverter already inherits from BaseConverter
+        activeForm: Checking if DiagramConverter already inherits from BaseConverter
+        status: in_progress
+      - content: Refactor PostProcessingPipeline to implement process()
+        activeForm: Refactoring PostProcessingPipeline to implement process()
+        status: pending
+      - content: Simplify PhaseCoordinator implementation
+        activeForm: Simplifying PhaseCoordinator implementation
+        status: pending
+      - content: Delete pipeline directory and update imports
+        activeForm: Deleting pipeline directory and updating imports
+        status: pending
+      - content: Test the refactored pipeline
+        activeForm: Testing the refactored pipeline
+        status: pending
+- label: to_do_12_sub
+  type: sub_diagram
+  position: {x: 3300, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_12.light.yaml
+    execution_mode: sequential
+- label: Update TODO 9
+  type: db
+  position: {x: 3500, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Consolidate pipeline/base.py into phase_coordinator.py
+        activeForm: Consolidating pipeline/base.py into phase_coordinator.py
+        status: completed
+      - content: Check existing abstract classes in each phase
+        activeForm: Checking existing abstract classes in each phase
+        status: completed
+      - content: Add process() method wrapper to BaseConverter
+        activeForm: Adding process() method wrapper to BaseConverter
+        status: completed
+      - content: Add BasePostProcessor with process() to post_processing/base.py
+        activeForm: Adding BasePostProcessor with process() to post_processing/base.py
+        status: completed
+      - content: Refactor SessionOrchestrator to implement process()
+        activeForm: Refactoring SessionOrchestrator to implement process()
+        status: completed
+      - content: Check if DiagramConverter already inherits from BaseConverter
+        activeForm: Checking if DiagramConverter already inherits from BaseConverter
+        status: completed
+      - content: Check PostProcessingPipeline and add process() if needed
+        activeForm: Checking PostProcessingPipeline and adding process() if needed
+        status: in_progress
+      - content: Simplify PhaseCoordinator implementation
+        activeForm: Simplifying PhaseCoordinator implementation
+        status: pending
+      - content: Delete pipeline directory and update imports
+        activeForm: Deleting pipeline directory and updating imports
+        status: pending
+      - content: Test the refactored pipeline
+        activeForm: Testing the refactored pipeline
+        status: pending
+- label: to_do_13_sub
+  type: sub_diagram
+  position: {x: 3700, y: 100}
+  props:
+    sub_diagram_path: grouped/to_do_13.light.yaml
+    execution_mode: sequential
+- label: Update TODO 10
+  type: db
+  position: {x: 3900, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Consolidate pipeline/base.py into phase_coordinator.py
+        activeForm: Consolidating pipeline/base.py into phase_coordinator.py
+        status: completed
+      - content: Check existing abstract classes in each phase
+        activeForm: Checking existing abstract classes in each phase
+        status: completed
+      - content: Add process() method wrapper to BaseConverter
+        activeForm: Adding process() method wrapper to BaseConverter
+        status: completed
+      - content: Add BasePostProcessor with process() to post_processing/base.py
+        activeForm: Adding BasePostProcessor with process() to post_processing/base.py
+        status: completed
+      - content: Refactor SessionOrchestrator to implement process()
+        activeForm: Refactoring SessionOrchestrator to implement process()
+        status: completed
+      - content: Check if DiagramConverter already inherits from BaseConverter
+        activeForm: Checking if DiagramConverter already inherits from BaseConverter
+        status: completed
+      - content: Check PostProcessingPipeline and add process() if needed
+        activeForm: Checking PostProcessingPipeline and adding process() if needed
+        status: completed
+      - content: Simplify PhaseCoordinator implementation
+        activeForm: Simplifying PhaseCoordinator implementation
+        status: in_progress
+      - content: Delete pipeline directory and update imports
+        activeForm: Deleting pipeline directory and updating imports
+        status: pending
+      - content: Test the refactored pipeline
+        activeForm: Testing the refactored pipeline
+        status: pending
+- label: Update TODO 11
+  type: db
+  position: {x: 4100, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Consolidate pipeline/base.py into phase_coordinator.py
+        activeForm: Consolidating pipeline/base.py into phase_coordinator.py
+        status: completed
+      - content: Check existing abstract classes in each phase
+        activeForm: Checking existing abstract classes in each phase
+        status: completed
+      - content: Add process() method wrapper to BaseConverter
+        activeForm: Adding process() method wrapper to BaseConverter
+        status: completed
+      - content: Add BasePostProcessor with process() to post_processing/base.py
+        activeForm: Adding BasePostProcessor with process() to post_processing/base.py
+        status: completed
+      - content: Refactor SessionOrchestrator to implement process()
+        activeForm: Refactoring SessionOrchestrator to implement process()
+        status: completed
+      - content: Check if DiagramConverter already inherits from BaseConverter
+        activeForm: Checking if DiagramConverter already inherits from BaseConverter
+        status: completed
+      - content: Check PostProcessingPipeline and add process() if needed
+        activeForm: Checking PostProcessingPipeline and adding process() if needed
+        status: completed
+      - content: Simplify PhaseCoordinator implementation
+        activeForm: Simplifying PhaseCoordinator implementation
+        status: completed
+      - content: Delete pipeline directory and update imports
+        activeForm: Deleting pipeline directory and updating imports
+        status: in_progress
+      - content: Test the refactored pipeline
+        activeForm: Testing the refactored pipeline
+        status: pending
+- label: Update TODO 12
+  type: db
+  position: {x: 4300, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Consolidate pipeline/base.py into phase_coordinator.py
+        activeForm: Consolidating pipeline/base.py into phase_coordinator.py
+        status: completed
+      - content: Check existing abstract classes in each phase
+        activeForm: Checking existing abstract classes in each phase
+        status: completed
+      - content: Add process() method wrapper to BaseConverter
+        activeForm: Adding process() method wrapper to BaseConverter
+        status: completed
+      - content: Add BasePostProcessor with process() to post_processing/base.py
+        activeForm: Adding BasePostProcessor with process() to post_processing/base.py
+        status: completed
+      - content: Refactor SessionOrchestrator to implement process()
+        activeForm: Refactoring SessionOrchestrator to implement process()
+        status: completed
+      - content: Check if DiagramConverter already inherits from BaseConverter
+        activeForm: Checking if DiagramConverter already inherits from BaseConverter
+        status: completed
+      - content: Check PostProcessingPipeline and add process() if needed
+        activeForm: Checking PostProcessingPipeline and adding process() if needed
+        status: completed
+      - content: Simplify PhaseCoordinator implementation
+        activeForm: Simplifying PhaseCoordinator implementation
+        status: completed
+      - content: Delete pipeline directory and update imports
+        activeForm: Deleting pipeline directory and updating imports
+        status: completed
+      - content: Test the refactored pipeline
+        activeForm: Testing the refactored pipeline
+        status: in_progress
+- label: Update TODO 13
+  type: db
+  position: {x: 4500, y: 100}
+  props:
+    operation: write
+    sub_type: memory
+    query: UPDATE TODO LIST
+    data:
+      todos:
+      - content: Consolidate pipeline/base.py into phase_coordinator.py
+        activeForm: Consolidating pipeline/base.py into phase_coordinator.py
+        status: completed
+      - content: Check existing abstract classes in each phase
+        activeForm: Checking existing abstract classes in each phase
+        status: completed
+      - content: Add process() method wrapper to BaseConverter
+        activeForm: Adding process() method wrapper to BaseConverter
+        status: completed
+      - content: Add BasePostProcessor with process() to post_processing/base.py
+        activeForm: Adding BasePostProcessor with process() to post_processing/base.py
+        status: completed
+      - content: Refactor SessionOrchestrator to implement process()
+        activeForm: Refactoring SessionOrchestrator to implement process()
+        status: completed
+      - content: Check if DiagramConverter already inherits from BaseConverter
+        activeForm: Checking if DiagramConverter already inherits from BaseConverter
+        status: completed
+      - content: Check PostProcessingPipeline and add process() if needed
+        activeForm: Checking PostProcessingPipeline and adding process() if needed
+        status: completed
+      - content: Simplify PhaseCoordinator implementation
+        activeForm: Simplifying PhaseCoordinator implementation
+        status: completed
+      - content: Delete pipeline directory and update imports
+        activeForm: Deleting pipeline directory and updating imports
+        status: completed
+      - content: Test the refactored pipeline
+        activeForm: Testing the refactored pipeline
+        status: completed
+connections:
+- {from: Start, to: Update TODO 1, content_type: raw_text}
+- {from: Update TODO 1, to: prev_to_do_sub, content_type: raw_text}
+- {from: prev_to_do_sub, to: Update TODO 2, content_type: raw_text}
+- {from: Update TODO 2, to: to_do_1_sub, content_type: raw_text}
+- {from: to_do_1_sub, to: Update TODO 3, content_type: raw_text}
+- {from: Update TODO 3, to: to_do_3_sub, content_type: raw_text}
+- {from: to_do_3_sub, to: Update TODO 4, content_type: raw_text}
+- {from: Update TODO 4, to: to_do_5_sub, content_type: raw_text}
+- {from: to_do_5_sub, to: Update TODO 5, content_type: raw_text}
+- {from: Update TODO 5, to: to_do_6_sub, content_type: raw_text}
+- {from: to_do_6_sub, to: Update TODO 6, content_type: raw_text}
+- {from: Update TODO 6, to: to_do_8_sub, content_type: raw_text}
+- {from: to_do_8_sub, to: Update TODO 7, content_type: raw_text}
+- {from: Update TODO 7, to: to_do_11_sub, content_type: raw_text}
+- {from: to_do_11_sub, to: Update TODO 8, content_type: raw_text}
+- {from: Update TODO 8, to: to_do_12_sub, content_type: raw_text}
+- {from: to_do_12_sub, to: Update TODO 9, content_type: raw_text}
+- {from: Update TODO 9, to: to_do_13_sub, content_type: raw_text}
+- {from: to_do_13_sub, to: Update TODO 10, content_type: raw_text}
+- {from: Update TODO 10, to: Update TODO 11, content_type: raw_text}
+- {from: Update TODO 11, to: Update TODO 12, content_type: raw_text}
+- {from: Update TODO 12, to: Update TODO 13, content_type: raw_text}
+metadata:
+  conversion:
+    total_nodes: 97
+    total_connections: 96
+    total_persons: 0
+    node_types:
+      start: 1
+      person_job: 6
+      db: 28
+      api_job: 34
+      code_job: 7
+      diff_patch: 21
+  deduplication:
+    files_deduplicated: 1
+    total_nodes_removed: 2
+    deduplicated_files:
+      /home/soryhyun/DiPeO/dipeo/domain/cc_translate/preprocess/session_orchestrator.py:
+        original_count: 3
+        kept_node: Read File 17
+        removed_nodes:
+        - Read File 18
+        - Read File 19
+  grouped: true
+  original_nodes: 95
+  sub_diagrams: 9
+  extracted_todos: 13
+  grouping_method: todo_updates_with_extraction
+  post_processing:
+    optimization:
+      applied: true
+      total_changes: 17
+      nodes_removed: 2
+      connections_modified: 4
+persons:
+  claude_code:
+    service: anthropic
+    model: claude-code
+    api_key_id: APIKEY_CLAUDE
+    system_prompt: You are Claude Code, an AI assistant helping with software development.

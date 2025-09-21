@@ -1,0 +1,84 @@
+{
+  "session_id": "add8d7d7-93ab-44ef-adc9-17abf33f1ec1",
+  "directory_name": "2025-09-20_02-59-45",
+  "converted_at": "2025-09-20T14:24:28.565579",
+  "stats": {
+    "session_id": "add8d7d7-93ab-44ef-adc9-17abf33f1ec1",
+    "total_events": 258,
+    "user_messages": 89,
+    "assistant_messages": 169,
+    "tool_usage": {
+      "Glob": 7,
+      "Grep": 18,
+      "Read": 22,
+      "TodoWrite": 8,
+      "Bash": 14,
+      "Edit": 8
+    },
+    "unique_files_accessed": 13,
+    "bash_commands_executed": 14,
+    "duration_seconds": 802.635,
+    "duration_human": "0:13:22.635000"
+  },
+  "format": "light",
+  "diagrams": {
+    "original": {
+      "file": "diagram.light.yaml",
+      "type": "original",
+      "statistics": {
+        "node_count": 105,
+        "connection_count": 104,
+        "node_types": [
+          "db",
+          "diff_patch",
+          "code_job",
+          "api_job",
+          "person_job",
+          "start"
+        ]
+      }
+    },
+    "optimized": {
+      "file": "optimized.light.yaml",
+      "type": "optimized",
+      "statistics": {
+        "node_count": 96,
+        "connection_count": 102,
+        "node_types": [
+          "db",
+          "diff_patch",
+          "code_job",
+          "api_job",
+          "person_job",
+          "start"
+        ]
+      }
+    },
+    "grouped": {
+      "file": "grouped.light.yaml",
+      "type": "grouped",
+      "statistics": {
+        "node_count": 15,
+        "connection_count": 14,
+        "node_types": [
+          "db",
+          "start",
+          "sub_diagram"
+        ]
+      }
+    }
+  },
+  "file_structure": {
+    "original_session": "original_session.jsonl",
+    "processed_session": "session.jsonl",
+    "original_diagram": "diagram.light.yaml",
+    "optimized_diagram": "optimized.light.yaml",
+    "grouped_diagram": "grouped.light.yaml",
+    "metadata": "metadata.json",
+    "grouped_subdirectory": "grouped/"
+  },
+  "options": {
+    "save_original": true,
+    "timestamp_based_naming": true
+  }
+}
