@@ -371,119 +371,15 @@ export function useExecutionUpdates({
     }
   }, [executionUpdates, handleNodeStart, handleNodeComplete, completeExecution, errorExecution, executionActions, showThrottledToast, onUpdate, executionIdRef, updateNodeState, addSkippedNode, incrementCompletedNodes, setCurrentNode]);
 
-  // Process node subscription updates - DEPRECATED
-  // Node updates are now handled through executionUpdates with event_type NODE_STARTED/NODE_COMPLETED
+  // Runtime assertion for deprecated nodeUpdates format
+  // All node updates should now come through executionUpdates with event_type NODE_STARTED/NODE_COMPLETED
   useEffect(() => {
-    if (!nodeUpdates) return;
-
-    // This code path is deprecated - nodeUpdates is always undefined
-    // Node events are now processed in the executionUpdates effect above
-    console.warn('[useExecutionUpdates] Deprecated nodeUpdates path - this should not be reached');
-
-    // The nodeUpdates might be the data directly or wrapped in a data field
-    const updateData = nodeUpdates.data || nodeUpdates;
-    const status = updateData.status || '';
-    const nodeIdStr = updateData.node_id || '';
-
-    // console.log('[useExecutionUpdates] Node update received (deprecated path):', { status, nodeIdStr, updateData });
-
-    if (status === 'RUNNING' && nodeIdStr) {
-      handleNodeStart(nodeIdStr, updateData.node_type);
-    } else if ((status === 'COMPLETED' || status === 'MAXITER_REACHED') && nodeIdStr) {
-      handleNodeComplete(nodeIdStr, updateData.tokens_used || undefined, updateData.output);
-
-      // Check if all nodes are done and we should complete the execution
-      if (status === 'MAXITER_REACHED') {
-        const totalNodes = state.execution.totalNodes;
-        const completedNodes = state.execution.completedNodes + 1; // +1 for the current node
-
-        if (completedNodes >= totalNodes && state.execution.isRunning) {
-          // All nodes done, complete the execution
-          completeExecution();
-          executionActions.stopExecution();
-
-          showThrottledToast('execution-maxiter', 'success', 'Execution completed (max iterations reached)');
-
-          onUpdate?.({
-            type: EventType.EXECUTION_COMPLETED,
-            execution_id: executionId(executionIdRef.current!),
-            timestamp: new Date().toISOString()
-          });
-        }
-      }
-    } else if (status === 'FAILED' && nodeIdStr) {
-      updateNodeState(nodeIdStr, {
-        status: 'error',
-        endTime: new Date(),
-        error: updateData.error || 'Unknown error'
-      });
-
-      executionActions.updateNodeExecution(nodeId(nodeIdStr), {
-        status: Status.FAILED,
-        timestamp: Date.now(),
-        error: updateData.error ?? undefined
-      });
-
-      showThrottledToast(`node-error-${nodeIdStr}`, 'error', `Node ${nodeIdStr.slice(0, 8)}... failed: ${updateData.error}`);
-
-      onUpdate?.({
-        type: EventType.EXECUTION_ERROR,
-        execution_id: executionId(executionIdRef.current!),
-        node_id: nodeId(nodeIdStr),
-        error: updateData.error || undefined,
-        status: Status.FAILED,
-        timestamp: new Date().toISOString()
-      });
-    } else if (status === 'SKIPPED' && nodeIdStr) {
-      incrementCompletedNodes();
-
-      updateNodeState(nodeIdStr, {
-        status: 'skipped',
-        endTime: new Date(),
-      });
-
-      addSkippedNode(nodeIdStr, 'Skipped');
-      executionActions.updateNodeExecution(nodeId(nodeIdStr), {
-        status: Status.SKIPPED,
-        timestamp: Date.now()
-      });
-
-      onUpdate?.({
-        type: EventType.EXECUTION_LOG,
-        execution_id: executionId(executionIdRef.current!),
-        node_id: nodeId(nodeIdStr),
-        status: Status.SKIPPED,
-        timestamp: new Date().toISOString()
-      });
-    } else if (status === 'PAUSED' && nodeIdStr) {
-      updateNodeState(nodeIdStr, {
-        status: 'paused'
-      });
-
-      onUpdate?.({
-        type: EventType.NODE_STARTED,
-        execution_id: executionId(executionIdRef.current!),
-        node_id: nodeId(nodeIdStr),
-        status: Status.PAUSED,
-        timestamp: new Date().toISOString()
-      });
+    if (nodeUpdates) {
+      console.error('[useExecutionUpdates] Unexpected legacy nodeUpdates format detected. Node events should be delivered through executionUpdates with event_type NODE_STARTED/NODE_COMPLETED');
+      // Log the unexpected event shape for debugging
+      console.error('Legacy nodeUpdates shape:', nodeUpdates);
     }
-
-    // Handle progress updates
-    if (updateData.progress && nodeIdStr) {
-      updateNodeState(nodeIdStr, {
-        progress: updateData.progress
-      });
-
-      onUpdate?.({
-        type: EventType.NODE_OUTPUT,
-        execution_id: executionId(executionIdRef.current!),
-        node_id: nodeId(nodeIdStr),
-        status: Status.RUNNING,
-        timestamp: new Date().toISOString()
-      });
-    }
-  }, [nodeUpdates, handleNodeStart, handleNodeComplete, updateNodeState, incrementCompletedNodes, addSkippedNode, executionActions, showThrottledToast, onUpdate, executionIdRef, state, completeExecution]);
+  }, [nodeUpdates]);
 
   // Process interactive prompt updates
   useEffect(() => {

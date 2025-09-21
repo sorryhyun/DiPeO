@@ -365,20 +365,15 @@ This directory contains API integration manifests for DiPeO.
                 print(f"\n   Testing: {op_name}")
                 op_def = manifest.operations[op_name]
 
-                # In a real implementation, this would:
-                # 1. Create a GenericHTTPProvider instance
-                # 2. Execute the operation with test config
-                # 3. Record/replay if configured
-                # 4. Validate response
-
-                # For now, just show what would be tested
+                # TODO: Implement actual test execution
+                # This will create a GenericHTTPProvider instance and execute the operation
                 print(f"      Method: {op_def.method}")
                 print(f"      Path: {op_def.path}")
                 if test_config:
                     print(f"      Config: {json.dumps(test_config, indent=8)}")
 
-                # Simulate test result
-                print("      ✅ Test passed (simulated)")
+                # Placeholder for future implementation
+                print("      ⚠️  Test execution not yet implemented")
 
             print()
             if all_passed:
@@ -401,15 +396,13 @@ This directory contains API integration manifests for DiPeO.
         debounce: float = 2.0,
         timeout: int | None = None,
     ) -> bool:
-        """Manage Claude Code integration (TODO sync has been deprecated)."""
-        print("⚠️  TODO sync functionality has been deprecated and removed.")
-        print("   Claude Code integration is no longer available.")
-        print("   Please use the core DiPeO CLI commands for diagram execution.")
+        """Manage Claude Code integration."""
+        print("⚠️  Claude Code TODO sync functionality has been deprecated.")
+        print("   Please use 'dipeocc' command for Claude Code session conversion.")
         return False
 
     def execute(self, action: str, **kwargs) -> bool:
         """Execute an integrations command."""
-        print(f"DEBUG: IntegrationsCommand.execute called with action={action}, kwargs={kwargs}")
         if action == "init":
             return self.init(kwargs.get("path"))
         elif action == "validate":

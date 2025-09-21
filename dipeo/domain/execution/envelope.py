@@ -140,6 +140,7 @@ class EnvelopeFactory:
             DeprecationWarning,
             stacklevel=2,
         )
+        _fallback_counters["text"] += 1
         meta = kwargs.pop("meta", {})
         meta["timestamp"] = meta.get("timestamp", time.time())
 
@@ -157,6 +158,7 @@ class EnvelopeFactory:
             DeprecationWarning,
             stacklevel=2,
         )
+        _fallback_counters["json"] += 1
         meta = kwargs.pop("meta", {})
         meta["timestamp"] = meta.get("timestamp", time.time())
 
@@ -174,6 +176,7 @@ class EnvelopeFactory:
             DeprecationWarning,
             stacklevel=2,
         )
+        _fallback_counters["conversation"] += 1
         meta = kwargs.pop("meta", {})
         meta["timestamp"] = meta.get("timestamp", time.time())
 
@@ -211,6 +214,7 @@ class EnvelopeFactory:
             DeprecationWarning,
             stacklevel=2,
         )
+        _fallback_counters["binary"] += 1
         meta = kwargs.pop("meta", {})
         meta["timestamp"] = meta.get("timestamp", time.time())
 
@@ -231,6 +235,7 @@ class EnvelopeFactory:
             DeprecationWarning,
             stacklevel=2,
         )
+        _fallback_counters["error"] += 1
         meta = kwargs.pop("meta", {})
         meta["timestamp"] = meta.get("timestamp", time.time())
         meta["error"] = error_msg

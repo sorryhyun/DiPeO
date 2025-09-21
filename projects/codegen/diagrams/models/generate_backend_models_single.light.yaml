@@ -196,13 +196,13 @@ nodes:
       template_path: projects/codegen/templates/backend/unified_node_model.j2
       output_path: dipeo/diagram_generated_staged/unified_nodes/{{ node_type }}_node.py
 
-  - label: Generate handler stub
-    type: template_job
-    position: {x: 900, y: 300}
-    props:
-      engine: jinja2
-      template_path: projects/codegen/templates/models/handler_stub.j2
-      output_path: dipeo/diagram_generated_staged/handlers/{{ node_type }}_node.py
+#  - label: Generate handler stub
+#    type: template_job
+#    position: {x: 900, y: 300}
+#    props:
+#      engine: jinja2
+#      template_path: projects/codegen/templates/models/handler_stub.j2
+#      output_path: dipeo/diagram_generated_staged/handlers/{{ node_type }}_node.py
 
   # End node to complete the diagram
   - label: End
@@ -230,6 +230,6 @@ connections:
 
   # Pass context to template_job nodes
   - {from: Prepare Context, to: Generate Unified Model, content_type: object}
-  - {from: Prepare Context, to: Generate handler stub, content_type: object}
-  - {from: Generate handler stub, to: End}
+#  - {from: Prepare Context, to: Generate handler stub, content_type: object}
+#  - {from: Generate handler stub, to: End}
   - {from: Generate Unified Model, to: End}

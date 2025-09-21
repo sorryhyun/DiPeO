@@ -81,7 +81,7 @@ class DiPeOCLI:
         timeout: int = 300,
         format_type: str | None = None,
         input_variables: dict[str, Any] | None = None,
-        use_unified: bool = False,
+        use_unified: bool = True,  # Default to unified monitoring
         simple: bool = False,
     ):
         """Run a diagram via server."""
@@ -209,11 +209,6 @@ def main():
         type=int,
         default=300,
         help="Execution timeout in seconds (default: 300)",
-    )
-    run_parser.add_argument(
-        "--legacy",
-        action="store_true",
-        help="Use legacy monitoring architecture (deprecated)",
     )
     run_parser.add_argument(
         "--simple",
@@ -473,7 +468,7 @@ def main():
                 args.timeout,
                 format_type,
                 input_variables,
-                not args.legacy,  # Use unified by default, legacy only if flag is set
+                True,  # Always use unified monitoring
                 args.simple,  # Use simple display if flag is set
             )
             # Use os._exit for forced termination to ensure all threads/subprocesses are killed

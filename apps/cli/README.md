@@ -109,8 +109,6 @@ dipeo run diagram.yaml --debug --browser
 # Custom timeout
 dipeo run long_running --timeout 600
 
-# Legacy monitoring (deprecated)
-dipeo run diagram --legacy
 ```
 
 **Options:**
@@ -122,7 +120,6 @@ dipeo run diagram --legacy
 - `--timeout N`: Execution timeout in seconds (default: 300)
 - `--input-data JSON`: Inline JSON input variables
 - `--inputs FILE`: Input variables from JSON file
-- `--legacy`: Use legacy monitoring architecture
 
 ### dipeo convert
 
