@@ -1,5 +1,7 @@
 # DiPeO, Diagrammed People (agents) & Organizations (agent system)
 
+* The whole codebase was created by vibe-coding, with Claude code & Codex.
+
 > Start with `dipeo ask --to "the command you want to ask" --and-run`
 
 ![Watch Demo](./docs/pics/ad.webp)
