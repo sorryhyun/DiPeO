@@ -32,10 +32,35 @@ SESSION_GRACE_PERIOD = float(
 SESSION_DISCONNECT_GRACE = float(os.getenv("DIPEO_SESSION_DISCONNECT_GRACE", "0.25"))
 SESSION_TERM_TIMEOUT = float(os.getenv("DIPEO_SESSION_TERM_TIMEOUT", "2.0"))
 
+# fork_session feature detection/configuration
+_FORK_SESSION_MODE = os.getenv("DIPEO_CLAUDE_FORK_SESSION", "auto").lower()
+if _FORK_SESSION_MODE not in {"auto", "true", "false"}:
+    logger.warning(
+        "[SessionPool] Invalid DIPEO_CLAUDE_FORK_SESSION=%s, defaulting to 'auto'",
+        _FORK_SESSION_MODE,
+    )
+    _FORK_SESSION_MODE = "auto"
+
+FORK_SESSION_SUPPORTED = "fork_session" in getattr(
+    ClaudeCodeOptions, "__dataclass_fields__", {}
+)
+
+if not FORK_SESSION_SUPPORTED and _FORK_SESSION_MODE == "true":
+    logger.warning(
+        "[SessionPool] fork_session requested but the installed claude_code_sdk "
+        "does not expose the option."
+    )
+
+FORK_SESSION_ENABLED = FORK_SESSION_SUPPORTED and (
+    _FORK_SESSION_MODE == "true"
+    or (_FORK_SESSION_MODE == "auto" and SESSION_POOL_ENABLED)
+)
+
 logger.info(
     f"[SessionPool] Configuration: ENABLED={SESSION_POOL_ENABLED}, "
     f"REUSE_LIMIT={SESSION_REUSE_LIMIT}, IDLE_TTL={SESSION_IDLE_TTL}s, "
-    f"MAX_POOLS={SESSION_MAX_POOLS}"
+    f"MAX_POOLS={SESSION_MAX_POOLS}, FORK_SUPPORTED={FORK_SESSION_SUPPORTED}, "
+    f"FORK_ENABLED={FORK_SESSION_ENABLED}, FORK_MODE={_FORK_SESSION_MODE}"
 )
 
 
@@ -72,13 +97,28 @@ class SessionClient:
     subprocess_pid: int | None = None
     owner_task: asyncio.Task | None = None
     is_reserved: bool = False
+    logical_session_id: str = field(init=False)
+
+    def __post_init__(self) -> None:
+        # Preserve the logical session identifier derived from the pool key so we
+        # can continue to correlate sessions even if Claude returns a forked
+        # runtime session ID.
+        self.logical_session_id = self.session_id
+
+    def display_id(self) -> str:
+        """Return a human-friendly representation of the session identifier."""
+        if self.session_id != self.logical_session_id:
+            return f"{self.session_id} (alias={self.logical_session_id})"
+        return self.session_id
 
     def reserve(self) -> None:
         """Reserve the session so it cannot be borrowed concurrently."""
         if self.is_busy:
-            raise RuntimeError(f"Session {self.session_id} is already processing a query")
+            raise RuntimeError(
+                f"Session {self.display_id()} is already processing a query"
+            )
         if self.is_reserved:
-            raise RuntimeError(f"Session {self.session_id} is already reserved")
+            raise RuntimeError(f"Session {self.display_id()} is already reserved")
         self.is_reserved = True
 
     def release_reservation(self) -> None:
@@ -109,7 +149,11 @@ class SessionClient:
                     logger.debug(f"[SessionClient] Could not get subprocess PID: {e}")
 
         except Exception as e:
-            logger.error(f"[SessionClient] Failed to connect session {self.session_id}: {e}")
+            logger.error(
+                "[SessionClient] Failed to connect session %s: %s",
+                self.display_id(),
+                e,
+            )
             raise
 
     async def query(self, prompt: str | AsyncIterator[dict[str, Any]]):
@@ -122,10 +166,12 @@ class SessionClient:
             Messages from the response
         """
         if not self.is_connected:
-            raise RuntimeError(f"Session {self.session_id} not connected")
+            raise RuntimeError(f"Session {self.display_id()} not connected")
 
         if self.is_busy:
-            raise RuntimeError(f"Session {self.session_id} is already processing a query")
+            raise RuntimeError(
+                f"Session {self.display_id()} is already processing a query"
+            )
 
         # Update timestamp immediately when query starts (before marking busy)
         self.last_used_at = datetime.now()
@@ -141,6 +187,18 @@ class SessionClient:
             # Stream responses with cancellation support
             try:
                 async for message in self.client.receive_messages():
+                    # If the SDK returns a new session identifier (e.g. when the
+                    # fork_session feature is active), update our tracking so
+                    # subsequent queries use the correct session ID.
+                    new_session_id = getattr(message, "session_id", None)
+                    if new_session_id and new_session_id != self.session_id:
+                        logger.debug(
+                            "[SessionClient] Session %s forked to %s",
+                            self.logical_session_id,
+                            new_session_id,
+                        )
+                        self.session_id = new_session_id
+
                     yield message
 
                     # Check for completion
@@ -148,7 +206,7 @@ class SessionClient:
                         break
             except asyncio.CancelledError:
                 logger.warning(
-                    f"[SessionClient] Query cancelled for session {self.session_id} (query {self.query_count})"
+                    f"[SessionClient] Query cancelled for session {self.display_id()} (query {self.query_count})"
                 )
                 # Re-raise to propagate cancellation
                 raise
@@ -175,12 +233,12 @@ class SessionClient:
                 return
             except TimeoutError:
                 logger.warning(
-                    f"[SessionClient] Disconnect timed out for session {self.session_id}"
+                    f"[SessionClient] Disconnect timed out for session {self.display_id()}"
                 )
                 # Fall through to raise error
             except Exception as e:
                 logger.warning(
-                    f"[SessionClient] Error disconnecting session {self.session_id}: {e}"
+                    f"[SessionClient] Error disconnecting session {self.display_id()}: {e}"
                 )
                 # Fall through to raise error
 
@@ -194,12 +252,12 @@ class SessionClient:
         # Check if we should proceed with disconnect
         if self.is_busy:
             logger.warning(
-                f"[SessionClient] Attempted to force disconnect busy session {self.session_id} - skipping"
+                f"[SessionClient] Attempted to force disconnect busy session {self.display_id()} - skipping"
             )
             return
 
         logger.warning(
-            f"[SessionClient] Force disconnecting session {self.session_id} "
+            f"[SessionClient] Force disconnecting session {self.display_id()} "
             f"(connected={self.is_connected}, queries={self.query_count}/{self.max_queries})"
         )
 
@@ -221,7 +279,7 @@ class SessionClient:
                     term_timeout = SESSION_TERM_TIMEOUT
                     kill_pg = os.getenv("DIPEO_SESSION_KILL_PG", "false").lower() == "true"
                     logger.warning(
-                        f"[SessionClient] Terminating PID {pid} for session {self.session_id} "
+                        f"[SessionClient] Terminating PID {pid} for session {self.display_id()} "
                         f"(timeout={term_timeout}s)"
                     )
                     try:
@@ -393,6 +451,15 @@ class SessionPool:
             # always have the same session IDs
             session_id = self.pool_key
 
+            if FORK_SESSION_ENABLED and getattr(self.options, "fork_session", None) is not True:
+                # Enable fork_session so resumed logical sessions clone instead of
+                # mutating the original session. This keeps long-lived logical
+                # sessions isolated across diagram executions.
+                self.options.fork_session = True
+                logger.debug(
+                    "[SessionPool] Enabled fork_session for pool '%s'", self.pool_key
+                )
+
             # Create session client (not connected yet)
             session = SessionClient(
                 client=ClaudeSDKClient(options=self.options),
@@ -456,7 +523,11 @@ class SessionPool:
         try:
             await session.disconnect()
         except Exception as e:
-            logger.warning(f"[SessionPool] Error disconnecting session {session.session_id}: {e}")
+            logger.warning(
+                "[SessionPool] Error disconnecting session %s: %s",
+                session.display_id(),
+                e,
+            )
 
     async def remove_session(self, session: SessionClient) -> None:
         """Remove a specific session from the pool (e.g., on timeout)."""
@@ -464,8 +535,12 @@ class SessionPool:
             if session in self._sessions:
                 self._sessions.remove(session)
                 logger.warning(
-                    f"[SessionPool] Forcefully removed session {session.session_id} from pool '{self.pool_key}' "
-                    f"(was_busy={session.is_busy}, query_count={session.query_count})"
+                    "[SessionPool] Forcefully removed session %s from pool '%s' "
+                    "(was_busy=%s, query_count=%s)",
+                    session.display_id(),
+                    self.pool_key,
+                    session.is_busy,
+                    session.query_count,
                 )
                 # Mark session as not busy to allow force disconnect
                 session.is_busy = False
@@ -473,8 +548,9 @@ class SessionPool:
                 await session.force_disconnect()
             else:
                 logger.debug(
-                    f"[SessionPool] Session {session.session_id} not found in pool '{self.pool_key}' "
-                    f"(may have been already cleaned up)"
+                    "[SessionPool] Session %s not found in pool '%s' (may have been already cleaned up)",
+                    session.display_id(),
+                    self.pool_key,
                 )
 
     async def shutdown(self) -> None:
@@ -523,6 +599,7 @@ class SessionPool:
             "total_reused": self._stats.total_reused,
             "expired_sessions": self._stats.expired_sessions,
             "failed_creates": self._stats.failed_creates,
+            "fork_session_enabled": FORK_SESSION_ENABLED,
             "avg_queries_per_session": round(self._stats.avg_queries_per_session, 2),
         }
 
