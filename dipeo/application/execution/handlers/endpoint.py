@@ -50,8 +50,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         services = request.services
 
         if node.save_to_file:
-            filesystem_adapter = request.get_optional_service(FILESYSTEM_ADAPTER)
-            if not filesystem_adapter:
+            if not self._filesystem_adapter:
                 return EnvelopeFactory.create(
                     body={
                         "error": "Filesystem adapter is required when save_to_file is enabled",
@@ -81,8 +80,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
 
     def validate(self, request: ExecutionRequest[EndpointNode]) -> str | None:
         node = request.node
-        filesystem_adapter = request.get_optional_service(FILESYSTEM_ADAPTER)
-        if node.save_to_file and not filesystem_adapter:
+        if node.save_to_file and not self._filesystem_adapter:
             return "Filesystem adapter is required when save_to_file is enabled"
 
         return None
@@ -112,11 +110,8 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
 
         if self._current_save_enabled:
             file_name = self._current_filename
-            filesystem_adapter = (
-                request.get_optional_service(FILESYSTEM_ADAPTER) or self._filesystem_adapter
-            )
 
-            if filesystem_adapter:
+            if self._filesystem_adapter:
                 try:
                     if isinstance(result_data, dict):
                         content = json.dumps(result_data, indent=2)
@@ -125,10 +120,10 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
 
                     file_path = Path(file_name)
                     parent_dir = file_path.parent
-                    if parent_dir != Path() and not filesystem_adapter.exists(parent_dir):
-                        filesystem_adapter.mkdir(parent_dir, parents=True)
+                    if parent_dir != Path() and not self._filesystem_adapter.exists(parent_dir):
+                        self._filesystem_adapter.mkdir(parent_dir, parents=True)
 
-                    with filesystem_adapter.open(file_path, "wb") as f:
+                    with self._filesystem_adapter.open(file_path, "wb") as f:
                         f.write(content.encode("utf-8"))
 
                     return {"data": result_data, "saved_to": file_name, "save_success": True}

@@ -91,8 +91,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                     },
                     produced_by=str(node.id),
                 )
-            filesystem_adapter = request.get_optional_service(FILESYSTEM_ADAPTER)
-            if not filesystem_adapter:
+            if not self._filesystem_adapter:
                 return EnvelopeFactory.create(
                     body={
                         "error": "Filesystem adapter is required for file hooks",
@@ -117,9 +116,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
             except ValueError:
                 prepared_inputs[key] = envelope.as_text()
 
-        if request.node.hook_type == HookType.FILE:
-            filesystem_adapter = request.get_optional_service(FILESYSTEM_ADAPTER)
-            self._temp_filesystem_adapter = filesystem_adapter
+        # No need to set temp filesystem adapter, use injected service
 
         return prepared_inputs
 
@@ -361,13 +358,12 @@ print(json.dumps(result))
 
         try:
             path = Path(file_path)
-            filesystem_adapter = getattr(self, "_temp_filesystem_adapter", None)
-            if not filesystem_adapter:
+            if not self._filesystem_adapter:
                 raise NodeExecutionError("Filesystem adapter not available")
 
             parent_dir = path.parent
-            if parent_dir != Path() and not filesystem_adapter.exists(parent_dir):
-                filesystem_adapter.mkdir(parent_dir, parents=True)
+            if parent_dir != Path() and not self._filesystem_adapter.exists(parent_dir):
+                self._filesystem_adapter.mkdir(parent_dir, parents=True)
 
             if format_type == "json":
                 content = json.dumps(data, indent=2)
@@ -378,7 +374,7 @@ print(json.dumps(result))
             else:  # text
                 content = str(data)
 
-            with filesystem_adapter.open(path, "wb") as f:
+            with self._filesystem_adapter.open(path, "wb") as f:
                 f.write(content.encode("utf-8"))
 
             return {"status": "success", "file": str(path)}
