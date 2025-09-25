@@ -18,7 +18,7 @@ from dipeo.application.registry.keys import TEMPLATE_PROCESSOR
 from dipeo.config.paths import BASE_DIR
 from dipeo.diagram_generated.enums import NodeType
 from dipeo.diagram_generated.unified_nodes.db_node import DbNode
-from dipeo.domain.execution.envelope import Envelope, get_envelope_factory
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
     pass
@@ -59,18 +59,17 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
         # Validate operation type
         valid_operations = ["read", "write", "append", "update"]
         if node.operation not in valid_operations:
-            factory = get_envelope_factory()
-            return factory.error(
-                f"Invalid operation: {node.operation}. Valid operations: {', '.join(valid_operations)}",
-                error_type="ValueError",
+            return EnvelopeFactory.create(
+                body={
+                    "error": f"Invalid operation: {node.operation}. Valid operations: {', '.join(valid_operations)}",
+                    "type": "ValueError"
+                },
                 produced_by=str(node.id),
             )
 
         if node.operation == "update" and not getattr(node, "keys", None):
-            factory = get_envelope_factory()
-            return factory.error(
-                "Update operation requires one or more keys",
-                error_type="ValueError",
+            return EnvelopeFactory.create(
+                body={"error": "Update operation requires one or more keys", "type": "ValueError"},
                 produced_by=str(node.id),
             )
 
@@ -90,28 +89,22 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
         lines_specified = _has_lines_spec(lines_value)
 
         if lines_specified and node.operation != "read":
-            factory = get_envelope_factory()
-            return factory.error(
-                "The 'lines' option is only supported for read operations",
-                error_type="ValueError",
+            return EnvelopeFactory.create(
+                body={"error": "The 'lines' option is only supported for read operations", "type": "ValueError"},
                 produced_by=str(node.id),
             )
 
         if lines_specified and getattr(node, "keys", None):
-            factory = get_envelope_factory()
-            return factory.error(
-                "Cannot combine 'lines' and 'keys' for database reads",
-                error_type="ValueError",
+            return EnvelopeFactory.create(
+                body={"error": "Cannot combine 'lines' and 'keys' for database reads", "type": "ValueError"},
                 produced_by=str(node.id),
             )
 
         # Validate file paths are provided
         file_paths = node.file
         if not file_paths:
-            factory = get_envelope_factory()
-            return factory.error(
-                "No file paths specified for database operation",
-                error_type="ValueError",
+            return EnvelopeFactory.create(
+                body={"error": "No file paths specified for database operation", "type": "ValueError"},
                 produced_by=str(node.id),
             )
 
@@ -406,7 +399,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
         """Custom serialization for DB results."""
         node = request.node
         trace_id = request.execution_id or ""
-        factory = get_envelope_factory()
         operation = node.operation
 
         # Handle multiple files result
@@ -415,7 +407,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
             results = result["results"]
 
             # Create envelope with results as body
-            envelope = factory.create(body=results, produced_by=node.id, trace_id=trace_id)
+            envelope = EnvelopeFactory.create(body=results, produced_by=node.id, trace_id=trace_id)
 
             # Add metadata about the operation
             envelope = envelope.with_meta(
@@ -449,7 +441,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                 body = output_value
 
             # Create envelope
-            envelope = factory.create(body=body, produced_by=node.id, trace_id=trace_id)
+            envelope = EnvelopeFactory.create(body=body, produced_by=node.id, trace_id=trace_id)
 
             # Add metadata
             envelope = envelope.with_meta(
@@ -464,7 +456,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
             return envelope
 
         # Fallback for unexpected result format
-        envelope = factory.create(body=result, produced_by=node.id, trace_id=trace_id)
+        envelope = EnvelopeFactory.create(body=result, produced_by=node.id, trace_id=trace_id)
 
         envelope = envelope.with_meta(operation=operation)
 
