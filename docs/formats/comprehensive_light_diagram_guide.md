@@ -1599,3 +1599,26 @@ Key takeaways:
 6. **Test thoroughly** with different input scenarios
 
 The examples and patterns shown here are derived from DiPeO's own code generation system, demonstrating that Light format can handle sophisticated real-world workflows while remaining readable and maintainable.
+
+## Complete Node Types Reference
+
+DiPeO currently supports **16 node types**:
+
+1. **START** - Entry point for diagram execution
+2. **ENDPOINT** - Save results to files
+3. **PERSON_JOB** - LLM/AI agent interactions
+4. **CODE_JOB** - Execute code in various languages
+5. **CONDITION** - Control flow based on conditions
+6. **API_JOB** - HTTP API requests
+7. **DB** - File system and database operations
+8. **USER_RESPONSE** - Interactive user input
+9. **HOOK** - External hooks and commands
+10. **TEMPLATE_JOB** - Template rendering with Jinja2
+11. **SUB_DIAGRAM** - Execute other diagrams as nodes
+12. **JSON_SCHEMA_VALIDATOR** - Validate JSON against schemas
+13. **TYPESCRIPT_AST** - Parse and analyze TypeScript code
+14. **INTEGRATED_API** - Pre-configured API integrations
+15. **IR_BUILDER** - Build intermediate representation for codegen
+16. **DIFF_PATCH** - Apply diff patches to modify files
+
+Each node type is fully documented in the sections above with their current properties and usage examples.
