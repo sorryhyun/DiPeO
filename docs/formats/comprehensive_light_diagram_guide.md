@@ -1,14 +1,6 @@
 # Comprehensive DiPeO Light Diagram Guide
 
 > **Last Updated**: January 2025
-> 
-> **Recent Updates**:
-> - Added `llm_decision` condition type for AI-powered binary decisions
-> - Added missing node types: `HOOK`, `INTEGRATED_API`, `JSON_SCHEMA_VALIDATOR`, `TYPESCRIPT_AST`, `PERSON_BATCH_JOB`
-> - Documented `CUSTOM` memory profile for person_job nodes
-> - Clarified field mapping for backward compatibility (`source_details` ⟷ `file`, `language` ⟷ `code_type`)
-> - Updated default model references to `gpt-5-nano-2025-08-07`
-> - Added memory_settings view options documentation
 
 ## Table of Contents
 
@@ -75,7 +67,6 @@ DiPeO provides backward compatibility through automatic field mapping:
 |-----------|-------------------|-------|
 | `code_job` | `language` ⟷ `code_type` | Both work interchangeably |
 | `db` | `file` ⟷ `source_details` | Both work for file paths |
-| `person_job` | Memory profiles: `FULL`, `FOCUSED`, `MINIMAL`, `GOLDFISH`, `CUSTOM` | `CUSTOM` requires `memory_settings` |
 
 These mappings ensure existing diagrams continue to work while supporting newer field names.
 
@@ -151,23 +142,19 @@ Executes prompts with LLM agents, supporting iteration and memory management.
     first_only_prompt: 'Start analysis of {{data}}'  # First iteration only
     prompt_file: code-review.txt    # Load prompt from /files/prompts/ (optional)
     max_iteration: 5
-    memory_profile: FOCUSED         # Memory management strategy
-    tools:                          # Optional LLM tools
-      - type: web_search_preview
-        enabled: true
-    memory_settings:                # Advanced memory control (with CUSTOM profile)
-      view: conversation_pairs       # Options: all_involved, sent_by_me, sent_to_me, 
-                                     # system_and_me, conversation_pairs, all_messages
-      max_messages: 20
-      preserve_system: true
+    memorize_to: "requirements, API keys"  # Memory selection criteria
+    at_most: 20                    # Maximum messages to keep
+    ignore_person: "assistant2"    # Exclude specific persons from memory
+    tools: websearch               # Optional LLM tools (none, image, websearch)
 ```
 
-**Memory Profiles:**
-- `FULL`: Complete conversation history
-- `FOCUSED`: Recent 20 conversation pairs (default for analysis)
-- `MINIMAL`: System + recent 5 messages
-- `GOLDFISH`: Only last 2 messages, no system preservation
-- `CUSTOM`: User-defined memory settings via `memory_settings` property
+**Memory Management:**
+- `memorize_to`: Criteria for selecting relevant messages (comma-separated)
+  - Use specific criteria like "requirements", "API keys", "test results"
+  - Use "GOLDFISH" for goldfish mode (minimal memory)
+  - Leave empty to memorize all messages
+- `at_most`: Maximum number of messages to keep (1-500)
+- `ignore_person`: Comma-separated list of person IDs to exclude from memory
 
 **Prompt Templates:**
 - `first_only_prompt`: Used only on first iteration
@@ -634,21 +621,6 @@ Parse and analyze TypeScript code using Abstract Syntax Tree.
       - exports
 ```
 
-### 15. PERSON_BATCH_JOB Node
-
-Process multiple items through the same person configuration in batch.
-
-```yaml
-- label: Batch Analysis
-  type: person_batch_job
-  position: {x: 400, y: 200}
-  props:
-    person: Analyst
-    batch_input_key: items
-    batch_parallel: true
-    default_prompt: "Analyze this item: {{item}}"
-    max_iteration: 1
-```
 
 ## Data Flow and Variable Resolution
 
@@ -776,7 +748,8 @@ nodes:
       first_only_prompt: 'Propose a solution for: {{problem}}'
       default_prompt: 'Refine your proposal based on criticism'
       max_iteration: 3
-      memory_profile: FOCUSED
+      memorize_to: "proposal, feedback"
+      at_most: 20
       
   - label: Critical Review
     type: person_job
@@ -788,7 +761,7 @@ nodes:
         
         Identify strengths and weaknesses.
       max_iteration: 3
-      memory_profile: GOLDFISH  # Fresh perspective each time
+      memorize_to: "GOLDFISH"  # Fresh perspective each time
       
   - label: Synthesize
     type: person_job
@@ -801,7 +774,7 @@ nodes:
         
         Create a balanced synthesis.
       max_iteration: 1
-      memory_profile: FULL
+      # No memorize_to = keep all messages
 ```
 
 ### 3. LLM-Based Quality Control
@@ -1599,3 +1572,27 @@ Key takeaways:
 6. **Test thoroughly** with different input scenarios
 
 The examples and patterns shown here are derived from DiPeO's own code generation system, demonstrating that Light format can handle sophisticated real-world workflows while remaining readable and maintainable.
+
+## Complete Node Types Reference
+
+DiPeO currently supports **15 node types**:
+
+1. **START** - Entry point for diagram execution
+2. **ENDPOINT** - Save results to files
+3. **PERSON_JOB** - LLM/AI agent interactions
+4. **CODE_JOB** - Execute code in various languages
+5. **CONDITION** - Control flow based on conditions
+6. **API_JOB** - HTTP API requests
+7. **DB** - File system and database operations
+8. **USER_RESPONSE** - Interactive user input
+9. **HOOK** - External hooks and commands
+10. **TEMPLATE_JOB** - Template rendering with Jinja2
+11. **SUB_DIAGRAM** - Execute other diagrams as nodes
+12. **JSON_SCHEMA_VALIDATOR** - Validate JSON against schemas
+13. **TYPESCRIPT_AST** - Parse and analyze TypeScript code
+14. **INTEGRATED_API** - Pre-configured API integrations
+15. **IR_BUILDER** - Build intermediate representation for codegen
+
+Additionally, **DIFF_PATCH** node type is available for applying diff patches to modify files.
+
+Each node type is fully documented in the sections above with their current properties and usage examples.
