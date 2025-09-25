@@ -33,6 +33,17 @@ persons:
     max_turns: 5  # Maximum conversation turns
 ```
 
+### Session Pooling Environment Variables
+
+- `DIPEO_CLAUDE_FORK_SESSION` – Controls how the Claude Code session pool
+  leverages the SDK's **fork session** capability when reconnecting to a logical
+  session ID.
+  - `auto` *(default)* – Enable forking when `DIPEO_SESSION_POOL_ENABLED=true`.
+  - `true` – Always request forking (requires an updated Claude Code SDK).
+  - `false` – Never request forking, keeping legacy behaviour.
+  This prevents pooled sessions from inheriting stale state when the SDK
+  reconnects to an existing logical session identifier.
+
 ## Supported Models
 
 - `claude-code` - Default Claude Code model
