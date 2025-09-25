@@ -50,7 +50,13 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         services = request.services
 
         if node.save_to_file:
-            if not self._filesystem_adapter:
+            filesystem_adapter = getattr(self, "_filesystem_adapter", None)
+            if filesystem_adapter is None:
+                filesystem_adapter = request.get_optional_service(FILESYSTEM_ADAPTER)
+                if filesystem_adapter is not None:
+                    self._filesystem_adapter = filesystem_adapter
+
+            if not filesystem_adapter:
                 return EnvelopeFactory.create(
                     body={
                         "error": "Filesystem adapter is required when save_to_file is enabled",
@@ -80,7 +86,13 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
 
     def validate(self, request: ExecutionRequest[EndpointNode]) -> str | None:
         node = request.node
-        if node.save_to_file and not self._filesystem_adapter:
+        filesystem_adapter = getattr(self, "_filesystem_adapter", None)
+        if filesystem_adapter is None:
+            filesystem_adapter = request.get_optional_service(FILESYSTEM_ADAPTER)
+            if filesystem_adapter is not None:
+                self._filesystem_adapter = filesystem_adapter
+
+        if node.save_to_file and not filesystem_adapter:
             return "Filesystem adapter is required when save_to_file is enabled"
 
         return None

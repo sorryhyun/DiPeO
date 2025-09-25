@@ -91,7 +91,13 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                     },
                     produced_by=str(node.id),
                 )
-            if not self._filesystem_adapter:
+            filesystem_adapter = getattr(self, "_filesystem_adapter", None)
+            if filesystem_adapter is None:
+                filesystem_adapter = request.get_optional_service(FILESYSTEM_ADAPTER)
+                if filesystem_adapter is not None:
+                    self._filesystem_adapter = filesystem_adapter
+
+            if not filesystem_adapter:
                 return EnvelopeFactory.create(
                     body={
                         "error": "Filesystem adapter is required for file hooks",

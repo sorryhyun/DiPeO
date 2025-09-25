@@ -63,9 +63,17 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         elif request.runtime and hasattr(request.runtime, "execution_id"):
             execution_id = request.runtime.execution_id
 
-        # Use injected state_store service
-        if execution_id and self._state_store:
-            execution_state = await self._state_store.get_state(execution_id)
+        # Use injected state_store service when available. Service injection
+        # happens when ``run`` executes, so fall back to the request container
+        # during pre-execution to avoid AttributeError on the first invocation.
+        state_store = getattr(self, "_state_store", None)
+        if state_store is None:
+            state_store = request.get_optional_service(STATE_STORE)
+            if state_store is not None:
+                self._state_store = state_store
+
+        if execution_id and state_store:
+            execution_state = await state_store.get_state(execution_id)
             if execution_state and execution_state.variables:
                 self._current_input_variables = execution_state.variables
 

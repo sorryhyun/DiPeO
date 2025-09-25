@@ -407,7 +407,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
             results = result["results"]
 
             # Create envelope with results as body
-            envelope = factory.create(body=results, produced_by=node.id, trace_id=trace_id)
+            envelope = EnvelopeFactory.create(body=results, produced_by=node.id, trace_id=trace_id)
 
             # Add metadata about the operation
             envelope = envelope.with_meta(
@@ -441,7 +441,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                 body = output_value
 
             # Create envelope
-            envelope = factory.create(body=body, produced_by=node.id, trace_id=trace_id)
+            envelope = EnvelopeFactory.create(body=body, produced_by=node.id, trace_id=trace_id)
 
             # Add metadata
             envelope = envelope.with_meta(
@@ -456,7 +456,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
             return envelope
 
         # Fallback for unexpected result format
-        envelope = factory.create(body=result, produced_by=node.id, trace_id=trace_id)
+        envelope = EnvelopeFactory.create(body=result, produced_by=node.id, trace_id=trace_id)
 
         envelope = envelope.with_meta(operation=operation)
 

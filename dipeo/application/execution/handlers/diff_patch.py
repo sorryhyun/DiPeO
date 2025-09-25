@@ -43,121 +43,133 @@ class DiffPatchHandler(TypedNodeHandler[DiffPatchNode]):
     def description(self) -> str:
         return "Applies diff patches to files with validation and safety controls"
 
-    async def run(self, inputs: dict[str, Any], request: ExecutionRequest[DiffPatchNode]) -> dict[str, Any]:
+    async def run(self, inputs: dict[str, Any], request: ExecutionRequest[DiffPatchNode]) -> Envelope:
         """Apply a diff patch to a file with validation and safety features."""
-        # Extract node from request
         node = request.node
-
-        # Extract node configuration
         target_path = Path(node.target_path)
-        diff_content = node.diff
-        format_type = node.format or "unified"
-        apply_mode = node.apply_mode or "normal"
-        create_backup = node.backup if node.backup is not None else True
-        validate_patch = node.validate_patch if node.validate_patch is not None else True
-        backup_dir = Path(node.backup_dir) if node.backup_dir else None
-        strip_level = node.strip_level or 1
-        fuzz_factor = node.fuzz_factor or 2
-        reject_file_path = Path(node.reject_file) if node.reject_file else None
-        ignore_whitespace = node.ignore_whitespace or False
-        create_missing = node.create_missing or False
 
-        log.info(f"Applying {format_type} diff to {target_path}")
-        log.debug(f"Mode: {apply_mode}, Backup: {create_backup}, Validate: {validate_patch}")
+        try:
+            # Extract node configuration
+            diff_content = node.diff
+            format_type = node.format or "unified"
+            apply_mode = node.apply_mode or "normal"
+            create_backup = node.backup if node.backup is not None else True
+            validate_patch = node.validate_patch if node.validate_patch is not None else True
+            backup_dir = Path(node.backup_dir) if node.backup_dir else None
+            strip_level = node.strip_level or 1
+            fuzz_factor = node.fuzz_factor or 2
+            reject_file_path = Path(node.reject_file) if node.reject_file else None
+            ignore_whitespace = node.ignore_whitespace or False
+            create_missing = node.create_missing or False
 
-        # Initialize result tracking
-        result = {
-            "status": "pending",
-            "target_path": str(target_path),
-            "applied_hunks": 0,
-            "rejected_hunks": [],
-            "backup_path": None,
-            "file_hash": None,
-            "dry_run": apply_mode == "dry_run",
-            "errors": [],
-        }
+            log.info(f"Applying {format_type} diff to {target_path}")
+            log.debug(f"Mode: {apply_mode}, Backup: {create_backup}, Validate: {validate_patch}")
 
-        # Check if target file exists
-        if not target_path.exists():
-            if create_missing:
-                log.info(f"Creating missing file: {target_path}")
-                target_path.parent.mkdir(parents=True, exist_ok=True)
-                target_path.write_text("")
-            else:
-                error_msg = f"Target file does not exist: {target_path}"
-                log.error(error_msg)
-                result["status"] = "error"
-                result["errors"].append(error_msg)
-                return result
+            # Initialize result tracking
+            result = {
+                "status": "pending",
+                "target_path": str(target_path),
+                "applied_hunks": 0,
+                "rejected_hunks": [],
+                "backup_path": None,
+                "file_hash": None,
+                "dry_run": apply_mode == "dry_run",
+                "errors": [],
+            }
 
-        # Read original file content
-        original_content = target_path.read_text()
-        original_lines = original_content.splitlines(keepends=True)
+            # Check if target file exists
+            if not target_path.exists():
+                if create_missing:
+                    log.info(f"Creating missing file: {target_path}")
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    target_path.write_text("")
+                else:
+                    error_msg = f"Target file does not exist: {target_path}"
+                    log.error(error_msg)
+                    result["status"] = "error"
+                    result["errors"].append(error_msg)
+                    return self.serialize_output(result, request)
 
-        # Create backup if requested
-        backup_path = None
-        if create_backup and apply_mode != "dry_run":
-            backup_path = self._create_backup(target_path, backup_dir)
-            result["backup_path"] = str(backup_path)
-            log.info(f"Created backup at: {backup_path}")
+            # Read original file content
+            original_content = target_path.read_text()
+            original_lines = original_content.splitlines(keepends=True)
 
-        # Parse and validate the diff
-        if validate_patch:
-            validation_errors = self._validate_diff(diff_content, format_type)
-            if validation_errors:
-                result["status"] = "invalid"
-                result["errors"].extend(validation_errors)
-                log.error(f"Diff validation failed: {validation_errors}")
-                return result
+            # Create backup if requested
+            backup_path = None
+            if create_backup and apply_mode != "dry_run":
+                backup_path = self._create_backup(target_path, backup_dir)
+                result["backup_path"] = str(backup_path)
+                log.info(f"Created backup at: {backup_path}")
 
-        # Apply the diff based on format and mode
-        if apply_mode == "reverse":
-            # Reverse the diff before applying
-            diff_content = self._reverse_diff(diff_content, format_type)
+            # Parse and validate the diff
+            if validate_patch:
+                validation_errors = self._validate_diff(diff_content, format_type)
+                if validation_errors:
+                    result["status"] = "invalid"
+                    result["errors"].extend(validation_errors)
+                    log.error(f"Diff validation failed: {validation_errors}")
+                    return self.serialize_output(result, request)
 
-        # Apply the patch
-        patched_lines, rejected_hunks = self._apply_diff(
-            original_lines,
-            diff_content,
-            format_type,
-            strip_level,
-            fuzz_factor,
-            ignore_whitespace,
-        )
+            # Apply the diff based on format and mode
+            if apply_mode == "reverse":
+                # Reverse the diff before applying
+                diff_content = self._reverse_diff(diff_content, format_type)
 
-        result["applied_hunks"] = len(self._parse_hunks(diff_content)) - len(rejected_hunks)
-        result["rejected_hunks"] = rejected_hunks
+            # Apply the patch
+            patched_lines, rejected_hunks = self._apply_diff(
+                original_lines,
+                diff_content,
+                format_type,
+                strip_level,
+                fuzz_factor,
+                ignore_whitespace,
+            )
 
-        # Handle rejected hunks
-        if rejected_hunks:
-            log.warning(f"Rejected {len(rejected_hunks)} hunks")
-            if reject_file_path:
-                self._save_rejected_hunks(reject_file_path, rejected_hunks)
-                log.info(f"Saved rejected hunks to: {reject_file_path}")
+            result["applied_hunks"] = len(self._parse_hunks(diff_content)) - len(rejected_hunks)
+            result["rejected_hunks"] = rejected_hunks
 
-            if apply_mode == "force":
-                log.warning("Force mode: Continuing despite rejected hunks")
-            elif apply_mode != "dry_run":
-                # In normal mode, fail if there are rejected hunks
-                result["status"] = "partial"
-                if backup_path:
-                    log.info("Restoring from backup due to rejected hunks")
-                    shutil.copy2(backup_path, target_path)
-                return result
+            # Handle rejected hunks
+            if rejected_hunks:
+                log.warning(f"Rejected {len(rejected_hunks)} hunks")
+                if reject_file_path:
+                    self._save_rejected_hunks(reject_file_path, rejected_hunks)
+                    log.info(f"Saved rejected hunks to: {reject_file_path}")
 
-        # Write the patched content (unless dry run)
-        patched_content = "".join(patched_lines)
-        if apply_mode != "dry_run":
-            target_path.write_text(patched_content)
-            log.info(f"Successfully patched {target_path}")
+                if apply_mode == "force":
+                    log.warning("Force mode: Continuing despite rejected hunks")
+                elif apply_mode != "dry_run":
+                    # In normal mode, fail if there are rejected hunks
+                    result["status"] = "partial"
+                    if backup_path:
+                        log.info("Restoring from backup due to rejected hunks")
+                        shutil.copy2(backup_path, target_path)
+                    return self.serialize_output(result, request)
 
-        # Calculate file hash for verification
-        file_hash = hashlib.sha256(patched_content.encode()).hexdigest()
-        result["file_hash"] = file_hash
-        result["status"] = "success" if not rejected_hunks else "partial"
+            # Write the patched content (unless dry run)
+            patched_content = "".join(patched_lines)
+            if apply_mode != "dry_run":
+                target_path.write_text(patched_content)
+                log.info(f"Successfully patched {target_path}")
 
-        # Return result
-        return result
+            # Calculate file hash for verification
+            file_hash = hashlib.sha256(patched_content.encode()).hexdigest()
+            result["file_hash"] = file_hash
+            result["status"] = "success" if not rejected_hunks else "partial"
+
+            return self.serialize_output(result, request)
+
+        except Exception as exc:
+            log.exception("Failed to apply diff patch for %s", target_path)
+            error_result = {
+                "status": "error",
+                "target_path": str(target_path),
+                "errors": [str(exc)],
+            }
+            return EnvelopeFactory.create(
+                body=error_result,
+                produced_by=str(node.id),
+                trace_id=request.execution_id or "",
+            )
 
     async def prepare_inputs(
         self, request: ExecutionRequest[DiffPatchNode], inputs: dict[str, Envelope]
