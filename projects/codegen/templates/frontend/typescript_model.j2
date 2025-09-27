@@ -1,4 +1,4 @@
-// Auto-generated TypeScript model for {{ nodeType }} node
+// Auto-generated TypeScript model for {{ node_type }} node
 import { z } from 'zod';
 {%- set enum_imports = fields | get_enum_imports %}
 {%- if enum_imports %}
@@ -8,14 +8,14 @@ import { {{ enum_imports | join(', ') }} } from '@dipeo/models';
 import { createOptionsSchema } from '@/core/utils/schema';
 {%- endif %}
 
-export interface {{ nodeType | pascal_case }}NodeData {
+export interface {{ node_type | pascal_case }}NodeData {
 {%- for field in fields %}
   {{ field['name'] }}{% if not field.get('required') %}?{% endif %}: {{ field | typescript_type }};
 {%- endfor %}
 }
 
 // Zod schema for validation
-export const {{ nodeType | pascal_case }}NodeDataSchema = z.object({
+export const {{ node_type | pascal_case }}NodeDataSchema = z.object({
 {%- for field in fields %}
   {{ field['name'] }}: {{ field | zod_schema }},
 {%- endfor %}

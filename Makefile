@@ -88,6 +88,8 @@ codegen: parse-typescript
 	else \
 		python -m dipeo_cli run projects/codegen/diagrams/generate_all --light --debug --timeout=35; \
 	fi
+	PYTHONPATH="$(shell pwd):$$PYTHONPATH" DIPEO_BASE_DIR="$(shell pwd)" \
+		python projects/codegen/scripts/render_templates.py
 	@echo "✓ Code generation complete. Next: make apply-test→ make graphql-schema"
 
 # Automatic code generation with auto-apply (DANGEROUS - use with caution!)
@@ -99,6 +101,8 @@ codegen-auto: parse-typescript
 	else \
 		python -m dipeo_cli run projects/codegen/diagrams/generate_all --light --timeout=45; \
 	fi
+	PYTHONPATH="$(shell pwd):$$PYTHONPATH" DIPEO_BASE_DIR="$(shell pwd)" \
+		python projects/codegen/scripts/render_templates.py
 	@sleep 1
 	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
 		echo "Error: No staged directory found."; \

@@ -40,24 +40,24 @@ def extract_frontend_node_data(ast_data: dict, node_type: str) -> dict:
     else:
         actual_node_type = raw_node_type
 
-    # Return spec data with minimal additions
-    result = {
-        **spec_data,
-        'nodeType': actual_node_type,
-        'node_name': snake_to_pascal(actual_node_type),  # For output path interpolation
+    # Build normalized structure with snake_case keys for templates
+    normalized = {
+        'node_type': actual_node_type,
+        'node_name': snake_to_pascal(actual_node_type),
+        'display_name': spec_data.get('displayName', actual_node_type.replace('_', ' ').title()),
+        'icon': spec_data.get('icon', '📦'),
+        'color': spec_data.get('color', '#6366f1'),
+        'category': spec_data.get('category', 'utility'),
+        'description': spec_data.get('description', ''),
+        'fields': spec_data.get('fields', []) or [],
+        'handles': spec_data.get('handles', {}) or {},
+        'defaults': spec_data.get('defaults', {}) or {},
+        'primary_display_field': spec_data.get('primaryDisplayField', ''),
+        # Preserve the original specification for consumers that still rely on it
+        'raw_spec': spec_data,
     }
 
-    # Set defaults for missing fields
-    result.setdefault('displayName', actual_node_type.replace('_', ' ').title())
-    result.setdefault('icon', '📦')
-    result.setdefault('color', '#6366f1')
-    result.setdefault('category', 'utility')
-    result.setdefault('description', '')
-    result.setdefault('fields', [])
-    result.setdefault('handles', {})
-    result.setdefault('defaults', {})
-    result.setdefault('primaryDisplayField', '')
-    return result
+    return normalized
 
 
 def main(inputs: dict) -> dict:

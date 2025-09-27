@@ -657,7 +657,6 @@ class TypeConversionFilters:
         """Get all filter methods as a dictionary."""
         return {
             "ts_to_python": cls.ts_to_python,
-            "to_py": cls.ts_to_python,  # Alias for backward compatibility
             "graphql_to_python": cls.graphql_to_python,
             "python_type_with_context": cls.python_type_with_context,
             "ts_graphql_input_to_python": cls.ts_graphql_input_to_python,
@@ -666,7 +665,6 @@ class TypeConversionFilters:
             "infer_empty_object_type": cls.infer_empty_object_type,
             "get_python_imports": cls.get_python_imports,
             "is_optional_type": cls.is_optional_type,
-            "is_optional_ts": cls.is_optional_type,  # Alias for compatibility
             "is_branded_type": cls.is_branded_type,
             "get_default_value": cls.get_default_value,
             "clear_cache": cls.clear_cache,

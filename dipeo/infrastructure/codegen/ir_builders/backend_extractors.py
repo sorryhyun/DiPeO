@@ -8,6 +8,7 @@ from typing import Any, Optional
 
 from dipeo.infrastructure.codegen.ir_builders.utils import (
     TypeConverter,
+    camel_to_snake,
     extract_constants_from_ast,
     extract_enums_from_ast,
     extract_interfaces_from_ast,
@@ -83,6 +84,125 @@ def extract_models(ast_data: dict[str, Any]) -> list[dict[str, Any]]:
             models_from_file = _extract_models_from_file(file_data, type_converter)
             models.extend(models_from_file)
     return models
+
+
+def extract_domain_models(
+    ast_data: dict[str, Any], type_converter: Optional[TypeConverter] = None
+) -> dict[str, Any]:
+    """Extract domain model data matching legacy template expectations."""
+    if not type_converter:
+        type_converter = TypeConverter()
+
+    domain_models: dict[str, list[Any]] = {
+        "newtypes": [],
+        "models": [],
+        "aliases": [],
+    }
+
+    processed_newtypes: set[str] = set()
+    processed_models: set[str] = set()
+
+    domain_files = [
+        "core/diagram.ts",
+        "core/execution.ts",
+        "core/conversation.ts",
+        "core/cli-session.ts",
+        "core/file.ts",
+        "core/subscription-types.ts",
+        "core/integration.ts",
+        "claude-code/session-types.ts",
+    ]
+
+    for file_path, file_data in ast_data.items():
+        is_domain_file = any(file_path.endswith(f"{df}.json") for df in domain_files)
+        if not is_domain_file:
+            continue
+
+        # Extract branded NewType declarations
+        for type_alias in file_data.get("types", []):
+            type_name = type_alias.get("name", "")
+            type_text = type_alias.get("type", "")
+
+            if (
+                isinstance(type_text, str)
+                and "readonly __brand:" in type_text
+                and type_name not in processed_newtypes
+            ):
+                base_type = type_text.split(" & ")[0].strip()
+                python_base = type_converter.ts_to_python(base_type)
+                domain_models["newtypes"].append({"name": type_name, "base": python_base})
+                processed_newtypes.add(type_name)
+
+        for interface in file_data.get("interfaces", []):
+            interface_name = interface.get("name", "")
+            if not interface_name or interface_name in processed_models:
+                continue
+            if interface_name in {"BaseNodeData", "NodeSpecification"}:
+                continue
+
+            processed_models.add(interface_name)
+
+            fields = []
+            for prop in interface.get("properties", []):
+                field_name = prop.get("name", "")
+                field_type = prop.get("type", {})
+                is_optional = prop.get("optional", False)
+
+                if isinstance(field_type, dict):
+                    type_text = field_type.get("text", "any")
+                else:
+                    type_text = str(field_type)
+
+                python_type = type_converter.ts_to_python(type_text)
+
+                is_literal = False
+                literal_value = None
+                if isinstance(field_type, dict) and field_type.get("kind") == "literal":
+                    is_literal = True
+                    literal_value = field_type.get("value")
+                    if literal_value == "true":
+                        literal_value = True
+                        python_type = "Literal[True]"
+                    elif literal_value == "false":
+                        literal_value = False
+                        python_type = "Literal[False]"
+                    elif isinstance(literal_value, str):
+                        python_type = f'Literal["{literal_value}"]'
+                elif type_text == "true":
+                    is_literal = True
+                    literal_value = True
+                    python_type = "Literal[True]"
+                elif type_text == "false":
+                    is_literal = True
+                    literal_value = False
+                    python_type = "Literal[False]"
+
+                fields.append(
+                    {
+                        "name": camel_to_snake(field_name)
+                        if field_name not in {"id", "type"}
+                        else field_name,
+                        "python_type": python_type,
+                        "optional": is_optional,
+                        "literal": is_literal,
+                        "literal_value": literal_value,
+                        "description": prop.get("description", ""),
+                    }
+                )
+
+            description = interface.get("description", "") or f"{interface_name} model"
+            domain_models["models"].append(
+                {"name": interface_name, "fields": fields, "description": description}
+            )
+
+    domain_models["aliases"].extend(
+        [
+            {"name": "SerializedNodeOutput", "type": "SerializedEnvelope"},
+            {"name": "PersonMemoryMessage", "type": "Message"},
+        ]
+    )
+
+    return domain_models
 
 
 def _extract_node_spec_from_file(

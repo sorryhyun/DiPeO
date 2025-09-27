@@ -10,11 +10,10 @@ from dipeo.domain.codegen.ir_builder_port import IRBuilderPort, IRData, IRMetada
 from dipeo.infrastructure.codegen.ir_builders.backend_builders import (
     build_conversions_data,
     build_factory_data,
-    build_models_data,
 )
 from dipeo.infrastructure.codegen.ir_builders.backend_extractors import (
+    extract_domain_models,
     extract_enums_all,
-    extract_models,
     extract_node_specs,
 )
 from dipeo.infrastructure.codegen.ir_builders.base import BaseIRBuilder
@@ -55,16 +54,15 @@ class BackendIRBuilder(BaseIRBuilder, IRBuilderPort):
             # Extract data from AST
             node_specs = extract_node_specs(file_dict, self.type_converter)
             enums = extract_enums_all(file_dict)
-            models = extract_models(file_dict)
+            domain_models = extract_domain_models(file_dict, self.type_converter)
 
             logger.info(
                 f"Extracted {len(node_specs)} node specs, "
-                f"{len(enums)} enums, {len(models)} models"
+                f"{len(enums)} enums, {len(domain_models['models'])} domain models"
             )
 
             # Build data structures
             factory_data = build_factory_data(node_specs)
-            models_data = build_models_data(models, enums)
             conversions_data = build_conversions_data(node_specs)
 
             # Create backend IR (matching original structure for templates)
@@ -73,16 +71,17 @@ class BackendIRBuilder(BaseIRBuilder, IRBuilderPort):
                 "generated_at": datetime.now().isoformat(),
                 "node_specs": node_specs,
                 "enums": enums,
-                "domain_models": models_data["interfaces"],
-                "types": models_data["interfaces"],
-                "type_aliases": models_data["type_aliases"],
+                "domain_models": domain_models,
+                "types": domain_models["models"],
+                "type_aliases": domain_models["aliases"],
                 "node_factory": factory_data,
                 "integrations": {},  # Empty for now
                 "conversions": conversions_data,  # Now properly populated
                 "metadata": {
                     "node_count": len(node_specs),
                     "enum_count": len(enums),
-                    "model_count": len(models),
+                    "model_count": len(domain_models["models"]),
+                    "newtype_count": len(domain_models["newtypes"]),
                 },
             }
 

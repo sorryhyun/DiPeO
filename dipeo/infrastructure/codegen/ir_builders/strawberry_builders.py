@@ -31,10 +31,13 @@ def build_domain_ir(
     organized_types = _organize_domain_types(domain_types)
     organized_interfaces = _organize_interfaces(interfaces)
 
+    # The legacy builder exposes scalars/inputs even when empty, so mirror that API.
     domain_data = {
         "types": organized_types,
         "interfaces": organized_interfaces,
         "enums": enums,
+        "scalars": [],
+        "inputs": [],
         "metadata": {
             "generated_at": datetime.now().isoformat(),
             "type_count": len(organized_types),
@@ -84,7 +87,13 @@ def build_operations_ir(
             "mutation_count": len(mutations),
             "subscription_count": len(subscriptions),
             "total_count": len(operations),
+            "total_queries": len(queries),
+            "total_mutations": len(mutations),
+            "total_subscriptions": len(subscriptions),
         },
+        "raw_queries": queries,
+        "raw_mutations": mutations,
+        "raw_subscriptions": subscriptions,
     }
 
     return operations_data
@@ -116,17 +125,34 @@ def build_complete_ir(
         + operations_data["subscriptions"],
         "domain_types": domain_data["types"],
         "interfaces": domain_data["interfaces"],
+        "scalars": domain_data.get("scalars", []),
         "enums": domain_data["enums"],
+        "inputs": domain_data.get("inputs", []),
         "input_types": operations_data["input_types"],
         "result_types": operations_data["result_types"],
         "node_specs": node_specs or [],  # Include node_specs for templates
         "types": domain_data["types"],  # Alias for domain_types for backward compatibility
         "config": config,
+        "imports": {"strawberry": [], "domain": []},
+        "raw_queries": operations_data.get("raw_queries", []),
+        "raw_mutations": operations_data.get("raw_mutations", []),
+        "raw_subscriptions": operations_data.get("raw_subscriptions", []),
+        "queries": operations_data["queries"],
+        "mutations": operations_data["mutations"],
+        "subscriptions": operations_data["subscriptions"],
+        "operations_ir": operations_data,
         "metadata": {
+            "ast_file_count": len(source_files) if source_files else 0,
+            "interface_count": len(domain_data["interfaces"]),
+            "enum_count": len(domain_data["enums"]),
+            "scalar_count": len(domain_data.get("scalars", [])),
+            "input_count": len(domain_data.get("inputs", [])),
+            "node_spec_count": len(node_specs) if node_specs else 0,
             "total_operations": operations_data["metadata"]["total_count"],
-            "total_types": domain_data["metadata"]["type_count"],
-            "total_enums": domain_data["metadata"]["enum_count"],
-            "node_count": len(node_specs) if node_specs else 0,
+            "total_queries": operations_data["metadata"].get("total_queries", 0),
+            "total_mutations": operations_data["metadata"].get("total_mutations", 0),
+            "total_subscriptions": operations_data["metadata"].get("total_subscriptions", 0),
+            "operations_meta": operations_data["metadata"],
         },
     }
 

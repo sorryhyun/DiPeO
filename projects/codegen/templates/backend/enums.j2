@@ -9,8 +9,8 @@ from enum import Enum
 {% for enum in enums %}
 class {{ enum['name'] }}(str, Enum):
     """{{ enum.get('description', '') }}"""
-    {% for value in enum['values'] %}
-    {{ value['name'] }} = "{{ value['value'] }}"
+    {% for member in enum['members'] %}
+    {{ member['name'] }} = "{{ member['value'] }}"
     {% endfor %}
 
 {% endfor %}
