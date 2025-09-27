@@ -17,6 +17,7 @@ def build_domain_ir(
     interfaces: list[dict[str, Any]],
     enums: list[dict[str, Any]],
     scalars: list[dict[str, Any]] | None = None,
+    graphql_inputs: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Build domain IR data structure.
 
@@ -24,6 +25,8 @@ def build_domain_ir(
         domain_types: List of domain type definitions
         interfaces: List of interface definitions
         enums: List of enum definitions
+        scalars: List of scalar definitions
+        graphql_inputs: List of GraphQL input type definitions
 
     Returns:
         Domain IR data dictionary
@@ -38,7 +41,7 @@ def build_domain_ir(
         "interfaces": organized_interfaces,
         "enums": enums,
         "scalars": scalars or [],
-        "inputs": [],
+        "inputs": graphql_inputs or [],
         "metadata": {
             "generated_at": datetime.now().isoformat(),
             "type_count": len(organized_types),

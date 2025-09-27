@@ -17,15 +17,15 @@ from strawberry.scalars import ID
 {% endif %}
 
 # Import the base domain types
+{% if scalars is defined and scalars|length > 0 %}
 from dipeo.diagram_generated.domain_models import (
-{% if scalars is defined and scalars.__class__.__name__ == 'list' %}
 {%- for scalar in scalars %}
     {{ scalar['name'] }},
 {%- endfor %}
-{% else %}
-    # No scalars to import (type={{ scalars.__class__.__name__ if scalars is defined else 'undefined' }})
-{% endif %}
 )
+{% else %}
+# No scalars to import - skipping import statement
+{% endif %}
 
 
 # Generate Strawberry scalar types for branded IDs

@@ -30,6 +30,7 @@ from dipeo.infrastructure.codegen.ir_builders.utils import (
     TypeConverter,
     extract_branded_scalars_from_ast,
     extract_enums_from_ast,
+    extract_graphql_input_types_from_ast,
     extract_interfaces_from_ast,
 )
 
@@ -100,8 +101,33 @@ class StrawberryIRBuilder(BaseIRBuilder, IRBuilderPort):
             # Extract data from AST
             operations = extract_operations_from_ast(file_dict, self.type_converter)
             interfaces = extract_interfaces_from_ast(file_dict)
-            enums = extract_enums_from_ast(file_dict)
+            raw_enums = extract_enums_from_ast(file_dict)
             scalars = extract_branded_scalars_from_ast(file_dict)
+            graphql_inputs = extract_graphql_input_types_from_ast(file_dict)
+
+            # Transform enums to have values field instead of members
+            enums = []
+            for enum in raw_enums:
+                values = []
+                for member in enum.get("members", []):
+                    if isinstance(member, dict):
+                        values.append(
+                            {
+                                "name": member.get("name", ""),
+                                "value": member.get("value", member.get("name", "").lower()),
+                            }
+                        )
+                    else:
+                        # If member is a string
+                        values.append({"name": str(member), "value": str(member).lower()})
+                enums.append(
+                    {
+                        "name": enum.get("name", ""),
+                        "values": values,
+                        "description": enum.get("description", ""),
+                        "file": enum.get("file", ""),
+                    }
+                )
             node_specs = extract_node_specs(file_dict, self.type_converter)
             # logger.info(
             #     f"Extracted {len(operations)} operations, {len(interfaces)} interfaces, "
@@ -115,7 +141,7 @@ class StrawberryIRBuilder(BaseIRBuilder, IRBuilderPort):
             # logger.info(f"Transformed {len(domain_types)} domain types")
 
             # Build IR structures
-            domain_data = build_domain_ir(domain_types, interfaces, enums, scalars)
+            domain_data = build_domain_ir(domain_types, interfaces, enums, scalars, graphql_inputs)
             operations_data = build_operations_ir(operations, input_types, result_types)
 
             # Create complete IR with scalars included

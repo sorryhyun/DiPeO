@@ -99,7 +99,11 @@ def wire_llm_services(registry: ServiceRegistry, api_key_service: Any) -> None:
 
 
 def wire_api_services(registry: ServiceRegistry) -> None:
-    """Wire integrated API services."""
+    """Wire integrated API services.
+
+    API_INVOKER: Used by integrated_api node handlers for calling external APIs
+    Not used in simple_iter (no API nodes)
+    """
     from dipeo.infrastructure.integrations.adapters.api_adapter import ApiInvokerAdapter
     from dipeo.infrastructure.integrations.drivers.integrated_api.service import (
         IntegratedApiService,
@@ -145,7 +149,13 @@ def wire_storage_services(registry: ServiceRegistry) -> None:
 
 
 def wire_template_services(registry: ServiceRegistry) -> None:
-    """Wire template and processing services for code generation and prompt processing."""
+    """Wire template and processing services for code generation and prompt processing.
+
+    TEMPLATE_RENDERER: Used by template node handlers and code generation
+    TEMPLATE_PROCESSOR: Used by prompt building in person_job nodes
+    AST_PARSER: Used by TypeScript AST node handlers for code generation
+    Not used in simple_iter (no template/codegen nodes)
+    """
     from dipeo.infrastructure.codegen.parsers.parser_service import ParserService
     from dipeo.infrastructure.codegen.templates.drivers.factory import get_template_service
     from dipeo.infrastructure.diagram.prompt_templates.simple_processor import (
@@ -173,7 +183,12 @@ def wire_template_services(registry: ServiceRegistry) -> None:
 
 
 def wire_ir_services(registry: ServiceRegistry) -> None:
-    """Wire IR builder and cache services."""
+    """Wire IR builder and cache services.
+
+    IR_CACHE: Used by IR builder nodes for caching build results during code generation
+    IR_BUILDER_REGISTRY: Registry for IR builder implementations used in codegen workflows
+    Not used in simple_iter (no code generation nodes)
+    """
     from dipeo.infrastructure.codegen.ir_cache import IRCache
     from dipeo.infrastructure.codegen.ir_registry import IRBuilderRegistry
 

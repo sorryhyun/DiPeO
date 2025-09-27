@@ -36,6 +36,8 @@ def wire_execution(registry: ServiceRegistry) -> None:
     import dipeo.application.execution.handlers
 
     # Wire conversation repositories (used by ExecutionOrchestrator)
+    # CONVERSATION_REPOSITORY: Used for storing conversation history in person_job nodes
+    # Not used in simple_iter (no person_job nodes with memory)
     from dipeo.infrastructure.storage.conversation import (
         InMemoryConversationRepository,
         InMemoryPersonRepository,
@@ -46,6 +48,8 @@ def wire_execution(registry: ServiceRegistry) -> None:
 
     registry.register(CONVERSATION_REPOSITORY, create_conversation_repository)
 
+    # PERSON_REPOSITORY: Used for managing person/agent instances
+    # Not used in simple_iter (no person_job nodes)
     def create_person_repository() -> InMemoryPersonRepository:
         return InMemoryPersonRepository()
 
@@ -90,6 +94,8 @@ def wire_execution(registry: ServiceRegistry) -> None:
     registry.register(EXECUTION_ORCHESTRATOR, lambda: create_execution_orchestrator())
 
     # Wire execute diagram use case
+    # EXECUTE_DIAGRAM_USE_CASE: Used by GraphQL mutations for server-initiated execution
+    # Not used in CLI mode or simple_iter (which uses direct execution)
     from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
 
     def create_execute_diagram() -> ExecuteDiagramUseCase:
@@ -101,6 +107,8 @@ def wire_execution(registry: ServiceRegistry) -> None:
     registry.register(EXECUTE_DIAGRAM_USE_CASE, create_execute_diagram)
 
     # Wire prepare diagram use case
+    # PREPARE_DIAGRAM_USE_CASE: Used for loading, validating, and compiling sub-diagrams
+    # Not used in simple_iter (no sub-diagram nodes)
     from dipeo.application.execution.use_cases.prepare_diagram import (
         PrepareDiagramForExecutionUseCase,
     )
@@ -117,6 +125,8 @@ def wire_execution(registry: ServiceRegistry) -> None:
     registry.register(PREPARE_DIAGRAM_USE_CASE, create_prepare_diagram)
 
     # Wire CLI session service
+    # CLI_SESSION_SERVICE: Used for managing CLI sessions and session tracking
+    # Not used in simple_iter (basic execution without session management)
     from dipeo.application.execution.use_cases.cli_session import CliSessionService
 
     def create_cli_session_service() -> CliSessionService:

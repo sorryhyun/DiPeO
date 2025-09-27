@@ -51,19 +51,53 @@ def extract_enums_all(ast_data: dict[str, Any]) -> list[dict[str, Any]]:
         ast_data: Dictionary of AST files
 
     Returns:
-        List of enum definitions
+        List of enum definitions with values field
     """
     enums = []
     processed_enums = set()
 
-    for file_path, file_data in ast_data.items():
-        file_enums = extract_enums_from_ast({file_path: file_data})
-
-        for enum in file_enums:
+    for _file_path, file_data in ast_data.items():
+        for enum in file_data.get("enums", []):
             enum_name = enum.get("name", "")
-            if enum_name and enum_name not in processed_enums:
-                enums.append(enum)
-                processed_enums.add(enum_name)
+
+            # Skip if already processed or is frontend-only
+            if enum_name in processed_enums:
+                continue
+            if enum_name in {
+                "QueryOperationType",
+                "CrudOperation",
+                "QueryEntity",
+                "FieldPreset",
+                "FieldGroup",
+            }:
+                continue
+
+            processed_enums.add(enum_name)
+
+            # Extract and transform enum values from members
+            values = []
+            if "members" in enum:
+                for member in enum["members"]:
+                    values.append(
+                        {
+                            "name": member.get("name", ""),
+                            "value": member.get("value", member.get("name", "").lower()),
+                        }
+                    )
+            elif "values" in enum:
+                for value in enum["values"]:
+                    if isinstance(value, str):
+                        values.append({"name": value, "value": value.lower()})
+                    elif isinstance(value, dict):
+                        values.append(value)
+
+            enum_def = {
+                "name": enum_name,
+                "values": values,
+                "description": enum.get("description", ""),
+            }
+            enums.append(enum_def)
+
     return enums
 
 
@@ -475,3 +509,158 @@ def _type_to_model(
         "description": type_def.get("description", ""),
         "type": "type_alias",
     }
+
+
+def extract_integrations(
+    ast_data: dict[str, Any], type_converter: Optional[TypeConverter] = None
+) -> dict[str, Any]:
+    """Extract integration configurations from TypeScript AST.
+
+    Args:
+        ast_data: Dictionary of AST files
+        type_converter: Optional type converter instance
+
+    Returns:
+        Dictionary containing integration models, functions, and configs
+    """
+    if not type_converter:
+        type_converter = TypeConverter()
+
+    integrations = {
+        "models": [],
+        "functions": [],
+        "configs": [],
+    }
+
+    for file_path, file_data in ast_data.items():
+        # Check for integration files more broadly
+        if "integration" not in file_path.lower() and not file_path.endswith("integration.ts.json"):
+            continue
+
+        # Extract all interfaces from integration files
+        for interface in file_data.get("interfaces", []):
+            # Include all interfaces from integration files, not just those with 'Integration' in name
+            model = {
+                "name": interface["name"],
+                "fields": [],
+            }
+            for prop in interface.get("properties", []):
+                field = {
+                    "name": prop["name"],
+                    "type": type_converter.ts_to_python(prop.get("type", "any")),
+                    "optional": prop.get("optional", prop.get("isOptional", False)),
+                }
+                model["fields"].append(field)
+            integrations["models"].append(model)
+
+        # Extract integration configs from constants
+        for const in file_data.get("constants", []):
+            if "config" in const.get("name", "").lower():
+                config = {
+                    "name": const["name"],
+                    "value": const.get("value", {}),
+                }
+                integrations["configs"].append(config)
+
+    return integrations
+
+
+def extract_conversions(ast_data: dict[str, Any]) -> dict[str, Any]:
+    """Extract type conversion mappings from TypeScript AST.
+
+    Args:
+        ast_data: Dictionary of AST files
+
+    Returns:
+        Dictionary containing node_type_map, type_conversions, and field_mappings
+    """
+    conversions = {
+        "node_type_map": {},
+        "type_conversions": {},
+        "field_mappings": {},
+    }
+
+    for file_path, file_data in ast_data.items():
+        # Check for conversion/mapping files more broadly
+        if (
+            "conversion" not in file_path.lower()
+            and "mapping" not in file_path.lower()
+            and not file_path.endswith("conversions.ts.json")
+            and not file_path.endswith("mappings.ts.json")
+        ):
+            continue
+
+        # Extract all constants from conversion/mapping files
+        for const in file_data.get("constants", []):
+            const_name = const.get("name", "")
+            const_value = const.get("value", {})
+
+            # Handle NODE_TYPE_MAP
+            if "NODE_TYPE_MAP" in const_name:
+                # Parse the JavaScript object literal string if needed
+                if isinstance(const_value, str) and "{" in const_value:
+                    # This is a JavaScript literal, extract key-value pairs
+                    import re
+
+                    matches = re.findall(r"'([^']+)':\s*NodeType\.([A-Z_]+)", const_value)
+                    for key, value in matches:
+                        conversions["node_type_map"][key] = value
+                elif isinstance(const_value, dict):
+                    for key, value in const_value.items():
+                        if isinstance(value, dict):
+                            conversions["node_type_map"][key] = value.get("value", key)
+                        else:
+                            conversions["node_type_map"][key] = str(value)
+
+            # Handle TS_TO_PY_TYPE
+            elif "TS_TO_PY" in const_name and isinstance(const_value, dict):
+                # Clean up the keys (remove quotes)
+                for key, value in const_value.items():
+                    clean_key = key.strip("'\"")
+                    conversions["type_conversions"][clean_key] = value
+
+            # Handle TYPE_TO_FIELD
+            elif "TYPE_TO_FIELD" in const_name and isinstance(const_value, dict):
+                for key, value in const_value.items():
+                    clean_key = key.strip("'\"")
+                    conversions["field_mappings"][clean_key] = value
+
+            # Handle other conversion/mapping constants
+            elif "Conversion" in const_name and isinstance(const_value, dict):
+                conversions["type_conversions"].update(const_value)
+            elif "Mapping" in const_name and isinstance(const_value, dict):
+                conversions["field_mappings"].update(const_value)
+
+    return conversions
+
+
+def extract_typescript_indexes(base_dir: Path) -> dict[str, Any]:
+    """Generate TypeScript index exports configuration.
+
+    Args:
+        base_dir: Base directory path for the project
+
+    Returns:
+        Dictionary containing TypeScript index configuration
+    """
+    indexes = {
+        "node_specs": [],
+        "types": [],
+        "utils": [],
+    }
+
+    # Scan for TypeScript files that should be indexed
+    specs_dir = base_dir / "dipeo/models/src/node-specs"
+    if specs_dir.exists():
+        for spec_file in specs_dir.glob("*.spec.ts"):
+            spec_name = spec_file.stem.replace(".spec", "")
+            registry_key = camel_to_snake(spec_name)
+            indexes["node_specs"].append(
+                {
+                    "file": spec_file.name,
+                    "name": spec_name,
+                    "registry_key": registry_key,
+                }
+            )
+
+    return indexes

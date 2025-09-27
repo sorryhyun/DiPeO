@@ -165,15 +165,14 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
         envelope_inputs = self.get_effective_inputs(request, inputs)
 
-        node = request.node
         template_vars = {}
 
         # Add default variables
         template_vars["now"] = datetime.now().isoformat()
 
         # Add node-defined variables
-        if node.variables:
-            template_vars.update(node.variables)
+        if request.node.variables:
+            template_vars.update(request.node.variables)
 
         # Add inputs from connected nodes - convert from envelopes
         if envelope_inputs:
@@ -254,7 +253,18 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         # Render template (foreach mode not currently implemented)
         # Render template
         if engine in ("internal", "jinja2"):
-            rendered = await template_service.render_string(template_content, template_vars)
+            try:
+                rendered = await template_service.render_string(template_content, template_vars)
+            except Exception as e:
+                # Only log on errors
+                logger.error(
+                    f"[TEMPLATE ERROR] Failed to render template for node {node.id} ({node.label})"
+                )
+                logger.error(f"[TEMPLATE ERROR] Template path: {node.template_path}")
+                logger.error(f"[TEMPLATE ERROR] Template content preview: {template_content[:200]}")
+                logger.error(f"[TEMPLATE ERROR] Available variables: {list(template_vars.keys())}")
+                logger.error(f"[TEMPLATE ERROR] Error details: {e}")
+                raise
         else:
             rendered = template_content
 

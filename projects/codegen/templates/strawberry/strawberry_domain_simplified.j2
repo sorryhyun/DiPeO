@@ -82,8 +82,11 @@ class {{ type['name'] }}Type:
     {{ field['name'] }}: {{ field.get('type') }}Type
     {%- elif field.get('type', '').endswith('ID') %}
     {{ field['name'] }}: {{ 'Optional[' + field.get('type') + 'Scalar]' if field.get('optional') else field.get('type') + 'Scalar' }}{{ ' = None' if field.get('optional') else '' }}
+    {%- elif field.get('type', '').startswith('Record<') %}
+    # TypeScript Record type converted to Dict
+    {{ field['name'] }}: {{ 'Optional[Dict[str, Any]]' if field.get('optional') else 'Dict[str, Any]' }}{{ ' = None' if field.get('optional') else '' }}
     {%- else %}
-    {{ field['name'] }}: {{ 'Optional[' + field.get('type', '') + ']' if field.get('optional') and not field.get('type', '').startswith('Optional[') else field.get('type', '') }}{{ ' = None' if field.get('optional') else '' }}
+    {{ field['name'] }}: {{ 'Optional[' + field.get('type', '') | ts_to_python + ']' if field.get('optional') and not field.get('type', '').startswith('Optional[') else field.get('type', '') | ts_to_python }}{{ ' = None' if field.get('optional') else '' }}
     {%- endif %}
     {%- endfor %}
 {%- endif %}

@@ -12,9 +12,12 @@ from dipeo.infrastructure.codegen.ir_builders.backend_builders import (
     build_factory_data,
 )
 from dipeo.infrastructure.codegen.ir_builders.backend_extractors import (
+    extract_conversions,
     extract_domain_models,
     extract_enums_all,
+    extract_integrations,
     extract_node_specs,
+    extract_typescript_indexes,
 )
 from dipeo.infrastructure.codegen.ir_builders.base import BaseIRBuilder
 from dipeo.infrastructure.codegen.ir_builders.utils import TypeConverter
@@ -55,6 +58,15 @@ class BackendIRBuilder(BaseIRBuilder, IRBuilderPort):
             node_specs = extract_node_specs(file_dict, self.type_converter)
             enums = extract_enums_all(file_dict)
             domain_models = extract_domain_models(file_dict, self.type_converter)
+            integrations = extract_integrations(file_dict, self.type_converter)
+            conversions = extract_conversions(file_dict)
+
+            # Get base directory from environment
+            import os
+            from pathlib import Path
+
+            base_dir = Path(os.environ.get("DIPEO_BASE_DIR", "."))
+            typescript_indexes = extract_typescript_indexes(base_dir)
 
             # logger.info(
             #     f"Extracted {len(node_specs)} node specs, "
@@ -64,6 +76,10 @@ class BackendIRBuilder(BaseIRBuilder, IRBuilderPort):
             # Build data structures
             factory_data = build_factory_data(node_specs)
             conversions_data = build_conversions_data(node_specs)
+
+            # Merge conversions from both sources
+            if conversions:
+                conversions_data.update(conversions)
 
             # Create backend IR (matching original structure for templates)
             backend_data = {
@@ -75,8 +91,9 @@ class BackendIRBuilder(BaseIRBuilder, IRBuilderPort):
                 "types": domain_models["models"],
                 "type_aliases": domain_models["aliases"],
                 "node_factory": factory_data,
-                "integrations": {},  # Empty for now
-                "conversions": conversions_data,  # Now properly populated
+                "integrations": integrations,
+                "conversions": conversions_data,
+                "typescript_indexes": typescript_indexes,
                 "metadata": {
                     "node_count": len(node_specs),
                     "enum_count": len(enums),

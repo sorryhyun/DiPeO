@@ -14,8 +14,8 @@ from strawberry.file_uploads import Upload
 {% endif %}
 
 # Import custom domain types from inputs if needed
-{% if imports is defined and imports.get('domain') %}
-from .inputs import {{ imports.get('domain', []) | sort | join(', ') }}
+{% if imports is defined and imports.domain is defined and imports.domain|length > 0 %}
+from .inputs import {{ imports.domain | sort | join(', ') }}
 {% endif %}
 
 # Helper functions for Strawberry object conversion

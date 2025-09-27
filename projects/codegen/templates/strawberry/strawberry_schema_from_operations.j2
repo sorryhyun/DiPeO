@@ -71,7 +71,7 @@ class Query:
         {%- for param in operation.get('parameters', []) %}
         {{ param['name'] }}: {% if param.get('needs_conversion') %}{{ param.get('type') | graphql_to_python(not param.get('optional')) }}{% else %}{{ param.get('type') }}{% endif %}{% if param.get('optional') %} = None{% endif %}{% if not loop.last %},{% endif %}
         {%- endfor %}
-    ) -> {{ get_operation_return_type(operation['name'], operation['type']) }}:
+    ) -> {{ get_operation_return_type(operation.get('name', operation['operation_name']), operation.get('type', operation['operation_type'])) }}:
         """
         {{ operation.get('description', '') }}
         Operation: {{ operation['operation_name'] | pascal_case }}Operation
@@ -108,7 +108,7 @@ class Mutation:
         {%- for param in operation.get('parameters', []) %}
         {{ param['name'] }}: {% if param.get('needs_conversion') %}{{ param.get('type') | graphql_to_python(not param.get('optional')) }}{% else %}{{ param.get('type') }}{% endif %}{% if param.get('optional') %} = None{% endif %}{% if not loop.last %},{% endif %}
         {%- endfor %}
-    ) -> {{ get_operation_return_type(operation['name'], operation['type']) }}:
+    ) -> {{ get_operation_return_type(operation.get('name', operation['operation_name']), operation.get('type', operation['operation_type'])) }}:
         """
         {{ operation.get('description', '') }}
         Operation: {{ operation['operation_name'] | pascal_case }}Operation
@@ -145,7 +145,7 @@ class Subscription:
         {%- for param in operation.get('parameters', []) %}
         {{ param['name'] }}: {% if param.get('needs_conversion') %}{{ param.get('type') | graphql_to_python(not param.get('optional')) }}{% else %}{{ param.get('type') }}{% endif %}{% if param.get('optional') %} = None{% endif %}{% if not loop.last %},{% endif %}
         {%- endfor %}
-    ) -> AsyncGenerator[{{ get_operation_return_type(operation['name'], operation['type']) }}, None]:
+    ) -> AsyncGenerator[{{ get_operation_return_type(operation.get('name', operation['operation_name']), operation.get('type', operation['operation_type'])) }}, None]:
         """
         {{ operation.get('description', '') }}
         Operation: {{ operation['operation_name'] | pascal_case }}Operation
