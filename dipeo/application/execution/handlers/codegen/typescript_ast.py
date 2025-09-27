@@ -10,7 +10,7 @@ from dipeo.application.execution.handlers.core.decorators import requires_servic
 from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.registry.keys import AST_PARSER
 from dipeo.diagram_generated.unified_nodes.typescript_ast_node import NodeType, TypescriptAstNode
-from dipeo.domain.execution.envelope import Envelope, get_envelope_factory
+from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
     pass
@@ -88,14 +88,6 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
 
         # Check parser service availability
         ast_parser = request.get_optional_service(AST_PARSER)
-        if not ast_parser:
-            factory = get_envelope_factory()
-            return factory.error(
-                "TypeScript parser service not available. Ensure AST_PARSER is registered in the service registry.",
-                error_type="RuntimeError",
-                produced_by=str(request.node.id),
-            )
-
         return None
 
     async def run(
@@ -244,17 +236,16 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         logger = logging.getLogger(__name__)
         node = request.node
         trace_id = request.execution_id or ""
-        factory = get_envelope_factory()
 
         # Handle skipped parsing (cache already exists)
         if isinstance(result, dict) and result.get("skipped"):
-            return factory.json({}, produced_by=node.id, trace_id=trace_id).with_meta(
+            return EnvelopeFactory.create({}, produced_by=node.id, trace_id=trace_id).with_meta(
                 batch_mode=True, skipped=True, reason="Cache already exists"
             )
 
         # Handle batch mode results
         if isinstance(result, dict) and result.get("batch_mode"):
-            return factory.json(
+            return EnvelopeFactory.create(
                 result["results"], produced_by=node.id, trace_id=trace_id
             ).with_meta(
                 batch_mode=True,
@@ -285,7 +276,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
             }
             output["summary"] = summary
 
-            return factory.json(output, produced_by=node.id, trace_id=trace_id).with_meta(
+            return EnvelopeFactory.create(output, produced_by=node.id, trace_id=trace_id).with_meta(
                 extracted_count=result["metadata"].get("extractedCount", 0),
                 parse_mode=node.parse_mode or "module",
                 include_jsdoc=node.include_js_doc or False,

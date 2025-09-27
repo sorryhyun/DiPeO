@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for person_job.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-21T20:14:16.241052
+Generated at: 2025-09-27T12:50:10.629435
 """
 
 from typing import *
@@ -11,7 +11,7 @@ from dipeo.domain.diagram.models.executable_diagram import BaseExecutableNode
 from dipeo.diagram_generated.domain_models import NodeID, Vec2
 from dipeo.diagram_generated.enums import NodeType
 
-from dipeo.diagram_generated.domain_models import DomainPerson, PersonLLMConfig
+from dipeo.diagram_generated.domain_models import DomainPerson, PersonLLMConfig, ToolConfig
 
 from dipeo.diagram_generated.enums import *
 from dipeo.diagram_generated.integrations import *

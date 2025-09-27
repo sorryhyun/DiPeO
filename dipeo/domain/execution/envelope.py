@@ -5,8 +5,6 @@ import json
 import logging
 import os
 import time
-import warnings
-from collections import defaultdict
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any, TypeVar
 from uuid import uuid4
@@ -18,7 +16,6 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
-_fallback_counters = defaultdict(int)
 logger = logging.getLogger(__name__)
 
 
@@ -134,60 +131,6 @@ class Envelope:
 
 class EnvelopeFactory:
     @staticmethod
-    def text(content: str, node_id: str | None = None, **kwargs) -> Envelope:
-        warnings.warn(
-            "EnvelopeFactory.text() is deprecated. Use EnvelopeFactory.create() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        _fallback_counters["text"] += 1
-        meta = kwargs.pop("meta", {})
-        meta["timestamp"] = meta.get("timestamp", time.time())
-
-        if node_id:
-            kwargs.setdefault("produced_by", node_id)
-
-        return Envelope(content_type=ContentType.RAW_TEXT, body=content, meta=meta, **kwargs)
-
-    @staticmethod
-    def json(
-        data: Any, schema_id: str | None = None, node_id: str | None = None, **kwargs
-    ) -> Envelope:
-        warnings.warn(
-            "EnvelopeFactory.json() is deprecated. Use EnvelopeFactory.create() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        _fallback_counters["json"] += 1
-        meta = kwargs.pop("meta", {})
-        meta["timestamp"] = meta.get("timestamp", time.time())
-
-        if node_id:
-            kwargs.setdefault("produced_by", node_id)
-
-        return Envelope(
-            content_type=ContentType.OBJECT, schema_id=schema_id, body=data, meta=meta, **kwargs
-        )
-
-    @staticmethod
-    def conversation(state: dict, node_id: str | None = None, **kwargs) -> Envelope:
-        warnings.warn(
-            "EnvelopeFactory.conversation() is deprecated. Use EnvelopeFactory.create() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        _fallback_counters["conversation"] += 1
-        meta = kwargs.pop("meta", {})
-        meta["timestamp"] = meta.get("timestamp", time.time())
-
-        if node_id:
-            kwargs.setdefault("produced_by", node_id)
-
-        return Envelope(
-            content_type=ContentType.CONVERSATION_STATE, body=state, meta=meta, **kwargs
-        )
-
-    @staticmethod
     def numpy_array(array: np.ndarray, **kwargs) -> Envelope:
         import numpy as np
 
@@ -206,46 +149,6 @@ class EnvelopeFactory:
             },
             **kwargs,
         )
-
-    @staticmethod
-    def binary(data: bytes, format: str = "raw", **kwargs) -> Envelope:
-        warnings.warn(
-            "EnvelopeFactory.binary() is deprecated. Use EnvelopeFactory.create() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        _fallback_counters["binary"] += 1
-        meta = kwargs.pop("meta", {})
-        meta["timestamp"] = meta.get("timestamp", time.time())
-
-        return Envelope(
-            content_type=ContentType.BINARY,
-            serialization_format=format,
-            body=data,
-            meta=meta,
-            **kwargs,
-        )
-
-    @staticmethod
-    def error(
-        error_msg: str, error_type: str = "ExecutionError", node_id: str | None = None, **kwargs
-    ) -> Envelope:
-        warnings.warn(
-            "EnvelopeFactory.error() is deprecated. Use EnvelopeFactory.create() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        _fallback_counters["error"] += 1
-        meta = kwargs.pop("meta", {})
-        meta["timestamp"] = meta.get("timestamp", time.time())
-        meta["error"] = error_msg
-        meta["error_type"] = error_type
-        meta["is_error"] = True
-
-        if node_id:
-            kwargs.setdefault("produced_by", node_id)
-
-        return Envelope(content_type=ContentType.RAW_TEXT, body=error_msg, meta=meta, **kwargs)
 
     @staticmethod
     def create(
@@ -481,29 +384,6 @@ def get_envelope_factory() -> type[EnvelopeFactory] | type[StrictEnvelopeFactory
         logger.info("Using StrictEnvelopeFactory (DIPEO_STRICT_ENVELOPE=1)")
         return StrictEnvelopeFactory
     return EnvelopeFactory
-
-
-def get_fallback_stats() -> dict[str, int]:
-    return dict(_fallback_counters)
-
-
-def reset_fallback_stats() -> None:
-    global _fallback_counters
-    _fallback_counters = defaultdict(int)
-    logger.info("Fallback conversion counters reset")
-
-
-def log_fallback_stats() -> None:
-    if not _fallback_counters:
-        logger.info("No fallback conversions recorded")
-        return
-
-    logger.warning("Envelope fallback conversion statistics:")
-    for conversion_type, count in sorted(_fallback_counters.items()):
-        logger.warning(f"  {conversion_type}: {count}")
-
-    total = sum(_fallback_counters.values())
-    logger.warning(f"  Total fallback conversions: {total}")
 
 
 def serialize_protocol(output: Envelope) -> dict[str, Any]:

@@ -44,7 +44,7 @@ def transform_domain_types(
 
         domain_type = _create_domain_type(interface, config, type_converter)
         domain_types.append(domain_type)
-        logger.debug(f"Transformed domain type: {domain_type['name']}")
+        # logger.debug(f"Transformed domain type: {domain_type['name']}")
 
     logger.info(f"Created {len(domain_types)} domain types")
     return domain_types
@@ -108,7 +108,7 @@ def transform_result_types(
     for operation in operations:
         result_type = _create_result_type(operation, type_converter)
         result_types.append(result_type)
-        logger.debug(f"Created result type: {result_type['name']}")
+        # logger.debug(f"Created result type: {result_type['name']}")
 
     logger.info(f"Created {len(result_types)} result types")
     return result_types
@@ -125,9 +125,21 @@ def _is_domain_type(interface_name: str) -> bool:
     """
     # Skip utility types and non-domain interfaces
     skip_patterns = [
-        "Props", "State", "Config", "Options", "Settings",
-        "Request", "Response", "Input", "Output", "Result",
-        "Params", "Args", "Query", "Mutation", "Subscription"
+        "Props",
+        "State",
+        "Config",
+        "Options",
+        "Settings",
+        "Request",
+        "Response",
+        "Input",
+        "Output",
+        "Result",
+        "Params",
+        "Args",
+        "Query",
+        "Mutation",
+        "Subscription",
     ]
 
     return not any(pattern in interface_name for pattern in skip_patterns)
@@ -238,31 +250,37 @@ def _extract_fields_as_types(
 
     for field in fields:
         if isinstance(field, str):
-            result.append({
-                "name": field,
-                "type": "String",
-                "required": True,
-                "description": "",
-            })
+            result.append(
+                {
+                    "name": field,
+                    "type": "String",
+                    "required": True,
+                    "description": "",
+                }
+            )
         elif isinstance(field, dict):
             field_name = field.get("field", field.get("name", ""))
             subfields = field.get("fields", field.get("subfields", []))
 
             if subfields:
                 # Complex type with nested fields
-                result.append({
-                    "name": field_name,
-                    "type": pascal_case(field_name),
-                    "required": True,
-                    "description": "",
-                    "fields": _extract_fields_as_types(subfields, type_converter),
-                })
+                result.append(
+                    {
+                        "name": field_name,
+                        "type": pascal_case(field_name),
+                        "required": True,
+                        "description": "",
+                        "fields": _extract_fields_as_types(subfields, type_converter),
+                    }
+                )
             else:
-                result.append({
-                    "name": field_name,
-                    "type": "String",
-                    "required": True,
-                    "description": "",
-                })
+                result.append(
+                    {
+                        "name": field_name,
+                        "type": "String",
+                        "required": True,
+                        "description": "",
+                    }
+                )
 
     return result

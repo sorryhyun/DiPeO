@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 from typing import Any, Optional
 
-from dipeo.domain.codegen.ir_builder_port import IRData
+from dipeo.domain.codegen.ir_builder_port import IRData, IRMetadata
 from dipeo.infrastructure.codegen.ir_builders.utils import TypeConverter
 
 logger = logging.getLogger(__name__)
@@ -27,8 +27,6 @@ def build_domain_ir(
     Returns:
         Domain IR data dictionary
     """
-    logger.debug(f"Building domain IR with {len(domain_types)} types, {len(enums)} enums")
-
     # Filter and organize types
     organized_types = _organize_domain_types(domain_types)
     organized_interfaces = _organize_interfaces(interfaces)
@@ -44,8 +42,6 @@ def build_domain_ir(
             "enum_count": len(enums),
         },
     }
-
-    logger.info(f"Built domain IR with {len(organized_types)} types")
     return domain_data
 
 
@@ -64,8 +60,6 @@ def build_operations_ir(
     Returns:
         Operations IR data dictionary
     """
-    logger.debug(f"Building operations IR with {len(operations)} operations")
-
     # Organize operations by type
     queries = []
     mutations = []
@@ -93,10 +87,6 @@ def build_operations_ir(
         },
     }
 
-    logger.info(
-        f"Built operations IR: {len(queries)} queries, "
-        f"{len(mutations)} mutations, {len(subscriptions)} subscriptions"
-    )
     return operations_data
 
 
@@ -104,6 +94,8 @@ def build_complete_ir(
     operations_data: dict[str, Any],
     domain_data: dict[str, Any],
     config: dict[str, Any],
+    source_files: Optional[list[str]] = None,
+    node_specs: Optional[list[dict[str, Any]]] = None,
 ) -> IRData:
     """Build complete IR data structure.
 
@@ -115,32 +107,39 @@ def build_complete_ir(
     Returns:
         Complete IRData instance
     """
-    logger.debug("Building complete Strawberry IR")
-
-    # Combine all data
+    # Combine all data (with generated_at at top level for templates)
     strawberry_data = {
-        "operations": operations_data["queries"] + operations_data["mutations"] + operations_data["subscriptions"],
+        "version": 1,
+        "generated_at": datetime.now().isoformat(),
+        "operations": operations_data["queries"]
+        + operations_data["mutations"]
+        + operations_data["subscriptions"],
         "domain_types": domain_data["types"],
         "interfaces": domain_data["interfaces"],
         "enums": domain_data["enums"],
         "input_types": operations_data["input_types"],
         "result_types": operations_data["result_types"],
+        "node_specs": node_specs or [],  # Include node_specs for templates
+        "types": domain_data["types"],  # Alias for domain_types for backward compatibility
         "config": config,
         "metadata": {
-            "generated_at": datetime.now().isoformat(),
             "total_operations": operations_data["metadata"]["total_count"],
             "total_types": domain_data["metadata"]["type_count"],
             "total_enums": domain_data["metadata"]["enum_count"],
+            "node_count": len(node_specs) if node_specs else 0,
         },
     }
 
-    ir_data = IRData(
-        backend={},  # Empty for Strawberry-only build
-        frontend={},  # Empty for Strawberry-only build
-        strawberry=strawberry_data,
+    # Create metadata for IRData
+    metadata = IRMetadata(
+        version=1,
+        source_files=len(source_files) if source_files else 0,  # Count of source files
+        builder_type="strawberry",
+        generated_at=datetime.now().isoformat(),
     )
 
-    logger.info("Successfully built complete Strawberry IR")
+    # Create IR data with proper structure
+    ir_data = IRData(metadata=metadata, data=strawberry_data)
     return ir_data
 
 
@@ -214,11 +213,11 @@ def validate_strawberry_ir(ir_data: IRData) -> tuple[bool, list[str]]:
     """
     errors = []
 
-    if not ir_data.strawberry:
+    if not ir_data.data:
         errors.append("Strawberry data is missing")
         return False, errors
 
-    strawberry_data = ir_data.strawberry
+    strawberry_data = ir_data.data
 
     # Check required fields
     required_fields = ["operations", "domain_types", "config"]

@@ -33,8 +33,6 @@ def extract_node_specs(
         type_converter = TypeConverter()
 
     node_specs = []
-    logger.debug(f"Extracting node specs from {len(ast_data)} files")
-
     for file_path, file_data in ast_data.items():
         if not file_path.endswith(".spec.ts.json"):
             continue
@@ -42,9 +40,6 @@ def extract_node_specs(
         node_spec = _extract_node_spec_from_file(file_path, file_data, type_converter)
         if node_spec:
             node_specs.append(node_spec)
-            logger.debug(f"Extracted node spec: {node_spec['node_type']}")
-
-    logger.info(f"Extracted {len(node_specs)} node specifications")
     return node_specs
 
 
@@ -60,8 +55,6 @@ def extract_enums_all(ast_data: dict[str, Any]) -> list[dict[str, Any]]:
     enums = []
     processed_enums = set()
 
-    logger.debug(f"Extracting enums from {len(ast_data)} files")
-
     for file_path, file_data in ast_data.items():
         file_enums = extract_enums_from_ast({file_path: file_data})
 
@@ -70,9 +63,6 @@ def extract_enums_all(ast_data: dict[str, Any]) -> list[dict[str, Any]]:
             if enum_name and enum_name not in processed_enums:
                 enums.append(enum)
                 processed_enums.add(enum_name)
-                logger.debug(f"Extracted enum: {enum_name}")
-
-    logger.info(f"Extracted {len(enums)} unique enums")
     return enums
 
 
@@ -87,16 +77,11 @@ def extract_models(ast_data: dict[str, Any]) -> list[dict[str, Any]]:
     """
     models = []
     type_converter = TypeConverter()
-
-    logger.debug(f"Extracting models from {len(ast_data)} files")
-
     for file_path, file_data in ast_data.items():
         # Extract models from interfaces and types
         if "models" in file_path or "types" in file_path:
             models_from_file = _extract_models_from_file(file_data, type_converter)
             models.extend(models_from_file)
-
-    logger.info(f"Extracted {len(models)} model definitions")
     return models
 
 

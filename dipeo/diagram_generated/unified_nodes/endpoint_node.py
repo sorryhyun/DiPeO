@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for endpoint.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-21T20:14:15.937038
+Generated at: 2025-09-27T12:50:10.313241
 """
 
 from typing import *

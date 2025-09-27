@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import Any, Optional
 
 from dipeo.domain.codegen.ir_builder_port import IRBuilderPort, IRData
+from dipeo.infrastructure.codegen.ir_builders.backend_extractors import (
+    extract_node_specs,
+)
 from dipeo.infrastructure.codegen.ir_builders.base import BaseIRBuilder
 from dipeo.infrastructure.codegen.ir_builders.strawberry_builders import (
     build_complete_ir,
@@ -49,11 +52,20 @@ class StrawberryIRBuilder(BaseIRBuilder, IRBuilderPort):
             config_root: Root path for configuration files
         """
         super().__init__()
-        self.config_root = config_root or Path("projects/codegen/configs")
+        # Try default config path or fallback to None for no config
+        if config_root:
+            self.config_root = config_root
+        else:
+            # Try original default location first
+            default_path = Path("projects/codegen/config/strawberry")
+            if default_path.exists():
+                self.config_root = default_path
+            else:
+                self.config_root = None
         self.type_converter = TypeConverter()
         logger.info("Initialized StrawberryIRBuilder with modular architecture")
 
-    def build_ir(self, file_dict: dict[str, Any]) -> IRData:
+    async def build_ir(self, file_dict: dict[str, Any]) -> IRData:
         """Build IR from TypeScript AST files.
 
         Args:
@@ -68,20 +80,34 @@ class StrawberryIRBuilder(BaseIRBuilder, IRBuilderPort):
         try:
             logger.debug(f"Processing {len(file_dict)} AST files")
 
-            # Load configuration
-            config = StrawberryConfig(self.config_root)
-            logger.debug("Loaded Strawberry configuration")
+            # Load configuration or use defaults
+            if self.config_root:
+                try:
+                    config = StrawberryConfig(self.config_root)
+                    logger.debug("Loaded Strawberry configuration")
+                    config_dict = config.to_dict()
+                    domain_fields = config.domain_fields
+                except FileNotFoundError:
+                    logger.warning("Configuration files not found, using defaults")
+                    config_dict = {"type_mappings": {}, "domain_fields": {}, "schema": {}}
+                    domain_fields = {}
+            else:
+                logger.debug("No config root specified, using defaults")
+                config_dict = {"type_mappings": {}, "domain_fields": {}, "schema": {}}
+                domain_fields = {}
 
             # Extract data from AST
             operations = extract_operations_from_ast(file_dict, self.type_converter)
             interfaces = extract_interfaces_from_ast(file_dict)
             enums = extract_enums_from_ast(file_dict)
-            logger.info(f"Extracted {len(operations)} operations, {len(interfaces)} interfaces")
+            node_specs = extract_node_specs(file_dict, self.type_converter)
+            logger.info(
+                f"Extracted {len(operations)} operations, {len(interfaces)} interfaces, "
+                f"{len(node_specs)} node specs"
+            )
 
             # Transform to GraphQL types
-            domain_types = transform_domain_types(
-                interfaces, config.domain_fields, self.type_converter
-            )
+            domain_types = transform_domain_types(interfaces, domain_fields, self.type_converter)
             input_types = transform_input_types(operations, self.type_converter)
             result_types = transform_result_types(operations, self.type_converter)
             logger.info(f"Transformed {len(domain_types)} domain types")
@@ -91,7 +117,9 @@ class StrawberryIRBuilder(BaseIRBuilder, IRBuilderPort):
             operations_data = build_operations_ir(operations, input_types, result_types)
 
             # Create complete IR
-            ir_data = build_complete_ir(operations_data, domain_data, config.to_dict())
+            ir_data = build_complete_ir(
+                operations_data, domain_data, config_dict, list(file_dict.keys()), node_specs
+            )
             logger.info("Successfully built Strawberry IR")
 
             return ir_data

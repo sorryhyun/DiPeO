@@ -37,7 +37,20 @@ class IRBuilderRegistry:
         if not builder_class:
             available = ", ".join(cls._builders.keys())
             raise ValueError(f"Unknown builder type: {builder_type}. Available: {available}")
-        return builder_class(config_path)
+
+        # Handle different builder signatures for refactored versions
+        if builder_type == "backend":
+            # Refactored BackendIRBuilder doesn't take config_path
+            return builder_class()
+        elif builder_type == "strawberry":
+            # Refactored StrawberryIRBuilder takes optional Path
+            from pathlib import Path
+
+            config_root = Path(config_path) if config_path else None
+            return builder_class(config_root)
+        else:
+            # Frontend and other builders still use config_path
+            return builder_class(config_path)
 
     @classmethod
     def register_builder(cls, name: str, builder_class: type[IRBuilderPort]):

@@ -81,14 +81,13 @@ def extract_operations_from_ast(
         type_converter = TypeConverter()
 
     operations = []
-    logger.debug(f"Extracting operations from {len(file_dict)} files")
 
     for file_path, file_data in file_dict.items():
         # Focus on query definitions
         if "query-definitions" not in file_path and "queryDefinitions" not in file_path:
             continue
 
-        logger.debug(f"Processing query definitions from: {file_path}")
+        # logger.debug(f"Processing query definitions from: {file_path}")
 
         # Extract from constants
         constants = file_data.get("constants", [])
@@ -96,8 +95,6 @@ def extract_operations_from_ast(
             const_name = const.get("name", "")
             if const_name.endswith("Queries"):
                 _process_query_constant(const, operations, type_converter)
-
-    logger.info(f"Extracted {len(operations)} operations")
     return operations
 
 
@@ -126,7 +123,6 @@ def _process_query_constant(
 
         operation = _build_operation(query, entity_name, type_converter)
         operations.append(operation)
-        logger.debug(f"Added operation: {operation['name']}")
 
 
 def _build_operation(
@@ -222,15 +218,15 @@ def _extract_entity_name(operation_name: str, fields: list[dict[str, Any]]) -> s
         return operation_name[3:].lower()
     elif operation_name.startswith("List"):
         return operation_name[4:].lower()
-    elif operation_name.startswith("Create"):
-        return operation_name[6:].lower()
-    elif operation_name.startswith("Update"):
-        return operation_name[6:].lower()
-    elif operation_name.startswith("Delete"):
+    elif (
+        operation_name.startswith("Create")
+        or operation_name.startswith("Update")
+        or operation_name.startswith("Delete")
+    ):
         return operation_name[6:].lower()
 
     # Try to extract from first field
-    if fields and isinstance(fields[0], (dict, str)):
+    if fields and isinstance(fields[0], dict | str):
         if isinstance(fields[0], dict):
             return fields[0].get("field", fields[0].get("name", "query"))
         else:

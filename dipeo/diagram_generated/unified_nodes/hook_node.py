@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for hook.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-21T20:14:15.937583
+Generated at: 2025-09-27T12:50:10.313892
 """
 
 from typing import *

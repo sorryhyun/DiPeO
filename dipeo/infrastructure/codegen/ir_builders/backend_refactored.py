@@ -6,8 +6,9 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from dipeo.domain.codegen.ir_builder_port import IRBuilderPort, IRData
+from dipeo.domain.codegen.ir_builder_port import IRBuilderPort, IRData, IRMetadata
 from dipeo.infrastructure.codegen.ir_builders.backend_builders import (
+    build_conversions_data,
     build_factory_data,
     build_models_data,
 )
@@ -36,7 +37,7 @@ class BackendIRBuilder(BaseIRBuilder, IRBuilderPort):
         self.type_converter = TypeConverter()
         logger.info("Initialized BackendIRBuilder with modular architecture")
 
-    def build_ir(self, file_dict: dict[str, Any]) -> IRData:
+    async def build_ir(self, file_dict: dict[str, Any]) -> IRData:
         """Build IR from TypeScript AST files.
 
         Args:
@@ -64,28 +65,37 @@ class BackendIRBuilder(BaseIRBuilder, IRBuilderPort):
             # Build data structures
             factory_data = build_factory_data(node_specs)
             models_data = build_models_data(models, enums)
+            conversions_data = build_conversions_data(node_specs)
 
-            # Create backend IR
+            # Create backend IR (matching original structure for templates)
             backend_data = {
+                "version": 1,
+                "generated_at": datetime.now().isoformat(),
                 "node_specs": node_specs,
                 "enums": enums,
-                "models": models_data["interfaces"],
+                "domain_models": models_data["interfaces"],
+                "types": models_data["interfaces"],
                 "type_aliases": models_data["type_aliases"],
-                "factory": factory_data,
+                "node_factory": factory_data,
+                "integrations": {},  # Empty for now
+                "conversions": conversions_data,  # Now properly populated
                 "metadata": {
-                    "generated_at": datetime.now().isoformat(),
                     "node_count": len(node_specs),
                     "enum_count": len(enums),
                     "model_count": len(models),
                 },
             }
 
-            # Create IR data
-            ir_data = IRData(
-                backend=backend_data,
-                frontend={},  # Empty for backend-only build
-                strawberry={},  # Empty for backend-only build
+            # Create metadata for IRData
+            metadata = IRMetadata(
+                version=1,
+                source_files=len(file_dict),  # Count of source files
+                builder_type="backend",
+                generated_at=datetime.now().isoformat(),
             )
+
+            # Create IR data with proper structure
+            ir_data = IRData(metadata=metadata, data=backend_data)
 
             logger.info("Successfully built Backend IR")
             return ir_data
@@ -107,14 +117,14 @@ class BackendIRBuilder(BaseIRBuilder, IRBuilderPort):
         if not super().validate_ir(ir_data):
             return False
 
-        if not ir_data.backend:
+        if not ir_data.data:
             logger.warning("Backend data is missing")
             return False
 
-        backend_data = ir_data.backend
+        backend_data = ir_data.data
 
         # Check required fields
-        required_keys = ["node_specs", "enums", "models", "factory"]
+        required_keys = ["node_specs", "enums", "domain_models", "node_factory"]
         for key in required_keys:
             if key not in backend_data:
                 logger.warning(f"Missing required key in backend data: {key}")
@@ -135,7 +145,7 @@ class BackendIRBuilder(BaseIRBuilder, IRBuilderPort):
                 return False
 
         # Validate factory data
-        factory = backend_data.get("factory", {})
+        factory = backend_data.get("node_factory", {})
         if not factory.get("mappings"):
             logger.warning("Factory mappings are empty")
             return False

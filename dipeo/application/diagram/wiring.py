@@ -73,7 +73,10 @@ def wire_diagram_use_cases(registry: ServiceRegistry) -> None:
 
     def create_load_diagram() -> LoadDiagramUseCase:
         diagram_service = registry.resolve(DIAGRAM_PORT)
-        return LoadDiagramUseCase(diagram_service=diagram_service)
+        # Use segregated ports from the diagram service
+        return LoadDiagramUseCase(
+            file_port=diagram_service.file_port, format_port=diagram_service.format_port
+        )
 
     registry.register(LOAD_DIAGRAM_USE_CASE, create_load_diagram)
 

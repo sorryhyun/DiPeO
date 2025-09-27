@@ -18,8 +18,6 @@ def build_factory_data(node_specs: list[dict[str, Any]]) -> dict[str, Any]:
     Returns:
         Factory data dictionary
     """
-    logger.debug(f"Building factory data for {len(node_specs)} node specs")
-
     factory_mappings = {}
     for spec in node_specs:
         node_type = spec.get("node_type", "")
@@ -38,14 +36,57 @@ def build_factory_data(node_specs: list[dict[str, Any]]) -> dict[str, Any]:
             "node_count": len(factory_mappings),
         },
     }
-
-    logger.info(f"Built factory data with {len(factory_mappings)} mappings")
     return factory_data
 
 
-def build_models_data(
-    models: list[dict[str, Any]], enums: list[dict[str, Any]]
-) -> dict[str, Any]:
+def build_conversions_data(node_specs: list[dict[str, Any]]) -> dict[str, Any]:
+    """Build conversions data for type mapping.
+
+    Args:
+        node_specs: List of node specifications
+
+    Returns:
+        Conversions data dictionary
+    """
+    # Build node type mappings from node specs
+    node_type_map = {}
+    for spec in node_specs:
+        node_type = spec.get("node_type", "")
+        if node_type:
+            # Convert snake_case to CONSTANT_CASE
+            constant_case = node_type.upper()
+            node_type_map[node_type] = constant_case
+
+    conversions_data = {
+        "node_type_map": node_type_map,
+        "type_conversions": {
+            "string": "str",
+            "number": "float",
+            "boolean": "bool",
+            "any": "Any",
+            "unknown": "Any",
+            "null": "None",
+            "undefined": "None",
+            "void": "None",
+            "Date": "datetime",
+            "object": "Dict[str, Any]",
+        },
+        "field_mappings": {
+            "string": "text",
+            "number": "number",
+            "boolean": "checkbox",
+            "object": "json",
+            "array": "list",
+        },
+        "metadata": {
+            "generated_at": datetime.now().isoformat(),
+            "node_type_count": len(node_type_map),
+        },
+    }
+    return conversions_data
+
+
+def build_models_data(models: list[dict[str, Any]], enums: list[dict[str, Any]]) -> dict[str, Any]:
     """Build models data structure.
 
     Args:
@@ -55,8 +96,6 @@ def build_models_data(
     Returns:
         Models data dictionary
     """
-    logger.debug(f"Building models data with {len(models)} models, {len(enums)} enums")
-
     # Organize models by type
     interfaces = []
     type_aliases = []
@@ -78,9 +117,4 @@ def build_models_data(
             "enum_count": len(enums),
         },
     }
-
-    logger.info(
-        f"Built models data: {len(interfaces)} interfaces, "
-        f"{len(type_aliases)} type aliases, {len(enums)} enums"
-    )
     return models_data

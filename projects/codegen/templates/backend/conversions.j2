@@ -67,6 +67,10 @@ def domain_type_to_node_kind(node_type: NodeType) -> str:
 
 {%- else %}
 
+# Default node type mappings (fallback when no conversions provided)
+NODE_TYPE_MAP = {}
+NODE_TYPE_REVERSE_MAP: Dict[NodeType, str] = {}
+
 # Default type conversions
 TYPE_CONVERSIONS = {
     'string': 'str',
@@ -80,6 +84,9 @@ TYPE_CONVERSIONS = {
     'Date': 'datetime',
     'object': 'Dict[str, Any]',
 }
+
+# Default field mappings
+FIELD_MAPPINGS = {}
 
 def ts_to_python_type(ts_type: str) -> str:
     """Convert TypeScript type to Python type."""
@@ -104,15 +111,44 @@ def python_to_ts_type(py_type: str) -> str:
         return f'{python_to_ts_type(inner_type)}[]'
 
     return reverse_map.get(py_type, py_type)
+
+def get_node_type_constant(snake_case: str) -> str:
+    """Get the constant case node type from snake case."""
+    return NODE_TYPE_MAP.get(snake_case, snake_case.upper())
+
+def get_field_ui_type(field_type: str) -> str:
+    """Get the UI component type for a field type."""
+    return FIELD_MAPPINGS.get(field_type, 'text')
+
+def node_kind_to_domain_type(kind: str) -> NodeType:
+    """Convert node kind to domain type. Fallback implementation."""
+    # When no mapping, try to find the NodeType enum value
+    try:
+        # Try to convert snake_case to CONSTANT_CASE and match enum
+        constant_case = kind.upper()
+        return getattr(NodeType, constant_case)
+    except (KeyError, AttributeError) as exc:
+        raise ValueError(f"Unknown node kind: {kind}") from exc
+
+def domain_type_to_node_kind(node_type: NodeType) -> str:
+    """Convert domain type to node kind. Fallback implementation."""
+    # When no reverse mapping, convert enum value to snake_case
+    if NODE_TYPE_REVERSE_MAP:
+        return NODE_TYPE_REVERSE_MAP.get(node_type, str(node_type).lower())
+    # Convert CONSTANT_CASE to snake_case
+    return str(node_type).lower()
 {%- endif %}
 
 # Export utilities
 __all__ = [
     'NODE_TYPE_MAP',
+    'NODE_TYPE_REVERSE_MAP',
     'TYPE_CONVERSIONS',
     'FIELD_MAPPINGS',
     'ts_to_python_type',
     'python_to_ts_type',
     'get_node_type_constant',
     'get_field_ui_type',
+    'node_kind_to_domain_type',
+    'domain_type_to_node_kind',
 ]

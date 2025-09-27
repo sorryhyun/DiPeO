@@ -11,7 +11,7 @@ from dipeo.domain.diagram.models.executable_diagram import BaseExecutableNode
 from dipeo.diagram_generated.domain_models import NodeID, Vec2
 from dipeo.diagram_generated.enums import NodeType
 {% if nodeType == 'person_job' %}
-from dipeo.diagram_generated.domain_models import DomainPerson, PersonLLMConfig
+from dipeo.diagram_generated.domain_models import DomainPerson, PersonLLMConfig, ToolConfig
 {% endif %}
 from dipeo.diagram_generated.enums import *
 from dipeo.diagram_generated.integrations import *

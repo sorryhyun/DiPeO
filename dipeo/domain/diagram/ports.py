@@ -116,7 +116,6 @@ class FormatStrategy(ABC):
 # - DiagramFormatPort: Format detection and conversion
 # - DiagramRepositoryPort: CRUD and query operations
 # - DiagramCompiler: Compilation (remains here)
-# Use UnifiedDiagramPortAdapter for backward compatibility.
 
 # ============================================================================
 # Template Processing Port
