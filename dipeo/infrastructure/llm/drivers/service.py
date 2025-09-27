@@ -128,6 +128,13 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
                     self._settings.ollama_host if hasattr(self._settings, "ollama_host") else None
                 )
                 client = self._create_provider_client(provider, model, raw_key, base_url)
+            elif provider in [
+                LLMServiceName.CLAUDE_CODE.value,
+                LLMServiceName.CLAUDE_CODE_CUSTOM.value,
+            ]:
+                # Claude Code doesn't use API keys
+                raw_key = ""
+                client = self._create_provider_client(provider, model, raw_key)
             else:
                 raw_key = self._get_api_key(api_key_id)
                 client = self._create_provider_client(provider, model, raw_key)
