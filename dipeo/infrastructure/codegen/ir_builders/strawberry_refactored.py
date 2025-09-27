@@ -28,6 +28,7 @@ from dipeo.infrastructure.codegen.ir_builders.strawberry_transformers import (
 )
 from dipeo.infrastructure.codegen.ir_builders.utils import (
     TypeConverter,
+    extract_branded_scalars_from_ast,
     extract_enums_from_ast,
     extract_interfaces_from_ast,
 )
@@ -63,7 +64,7 @@ class StrawberryIRBuilder(BaseIRBuilder, IRBuilderPort):
             else:
                 self.config_root = None
         self.type_converter = TypeConverter()
-        logger.info("Initialized StrawberryIRBuilder with modular architecture")
+        # logger.info("Initialized StrawberryIRBuilder with modular architecture")
 
     async def build_ir(self, file_dict: dict[str, Any]) -> IRData:
         """Build IR from TypeScript AST files.
@@ -78,21 +79,21 @@ class StrawberryIRBuilder(BaseIRBuilder, IRBuilderPort):
             ValueError: If IR building fails
         """
         try:
-            logger.debug(f"Processing {len(file_dict)} AST files")
+            # logger.debug(f"Processing {len(file_dict)} AST files")
 
             # Load configuration or use defaults
             if self.config_root:
                 try:
                     config = StrawberryConfig(self.config_root)
-                    logger.debug("Loaded Strawberry configuration")
+                    # logger.debug("Loaded Strawberry configuration")
                     config_dict = config.to_dict()
                     domain_fields = config.domain_fields
                 except FileNotFoundError:
-                    logger.warning("Configuration files not found, using defaults")
+                    # logger.warning("Configuration files not found, using defaults")
                     config_dict = {"type_mappings": {}, "domain_fields": {}, "schema": {}}
                     domain_fields = {}
             else:
-                logger.debug("No config root specified, using defaults")
+                # logger.debug("No config root specified, using defaults")
                 config_dict = {"type_mappings": {}, "domain_fields": {}, "schema": {}}
                 domain_fields = {}
 
@@ -100,35 +101,36 @@ class StrawberryIRBuilder(BaseIRBuilder, IRBuilderPort):
             operations = extract_operations_from_ast(file_dict, self.type_converter)
             interfaces = extract_interfaces_from_ast(file_dict)
             enums = extract_enums_from_ast(file_dict)
+            scalars = extract_branded_scalars_from_ast(file_dict)
             node_specs = extract_node_specs(file_dict, self.type_converter)
-            logger.info(
-                f"Extracted {len(operations)} operations, {len(interfaces)} interfaces, "
-                f"{len(node_specs)} node specs"
-            )
+            # logger.info(
+            #     f"Extracted {len(operations)} operations, {len(interfaces)} interfaces, "
+            #     f"{len(node_specs)} node specs"
+            # )
 
             # Transform to GraphQL types
             domain_types = transform_domain_types(interfaces, domain_fields, self.type_converter)
             input_types = transform_input_types(operations, self.type_converter)
             result_types = transform_result_types(operations, self.type_converter)
-            logger.info(f"Transformed {len(domain_types)} domain types")
+            # logger.info(f"Transformed {len(domain_types)} domain types")
 
             # Build IR structures
-            domain_data = build_domain_ir(domain_types, interfaces, enums)
+            domain_data = build_domain_ir(domain_types, interfaces, enums, scalars)
             operations_data = build_operations_ir(operations, input_types, result_types)
 
-            # Create complete IR
+            # Create complete IR with scalars included
             ir_data = build_complete_ir(
                 operations_data, domain_data, config_dict, list(file_dict.keys()), node_specs
             )
-            logger.info("Successfully built Strawberry IR")
+            # logger.info("Successfully built Strawberry IR")
 
             return ir_data
 
         except FileNotFoundError as e:
-            logger.error(f"Configuration file not found: {e}")
+            # logger.error(f"Configuration file not found: {e}")
             raise
         except Exception as e:
-            logger.error(f"Error building Strawberry IR: {e}")
+            # logger.error(f"Error building Strawberry IR: {e}")
             raise ValueError(f"Failed to build Strawberry IR: {e}")
 
     def validate_ir(self, ir_data: IRData) -> bool:
@@ -147,8 +149,8 @@ class StrawberryIRBuilder(BaseIRBuilder, IRBuilderPort):
         # Perform Strawberry-specific validation
         is_valid, errors = validate_strawberry_ir(ir_data)
 
-        if not is_valid:
-            for error in errors:
-                logger.warning(f"Validation error: {error}")
+        # if not is_valid:
+        #     for error in errors:
+        # logger.warning(f"Validation error: {error}")
 
         return is_valid

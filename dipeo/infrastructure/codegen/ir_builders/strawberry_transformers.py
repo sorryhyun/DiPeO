@@ -33,7 +33,7 @@ def transform_domain_types(
         type_converter = TypeConverter()
 
     domain_types = []
-    logger.debug(f"Transforming {len(interfaces)} interfaces to domain types")
+    # logger.debug(f"Transforming {len(interfaces)} interfaces to domain types")
 
     for interface in interfaces:
         interface_name = interface.get("name", "")
@@ -46,7 +46,7 @@ def transform_domain_types(
         domain_types.append(domain_type)
         # logger.debug(f"Transformed domain type: {domain_type['name']}")
 
-    logger.info(f"Created {len(domain_types)} domain types")
+    # logger.info(f"Created {len(domain_types)} domain types")
     return domain_types
 
 
@@ -66,7 +66,7 @@ def transform_input_types(
         type_converter = TypeConverter()
 
     input_types = {}
-    logger.debug(f"Extracting input types from {len(operations)} operations")
+    # logger.debug(f"Extracting input types from {len(operations)} operations")
 
     for operation in operations:
         if not operation.get("is_mutation"):
@@ -83,7 +83,7 @@ def transform_input_types(
                 input_types[input_type_name] = input_type
 
     result = list(input_types.values())
-    logger.info(f"Created {len(result)} input types")
+    # logger.info(f"Created {len(result)} input types")
     return result
 
 
@@ -103,14 +103,14 @@ def transform_result_types(
         type_converter = TypeConverter()
 
     result_types = []
-    logger.debug(f"Creating result types for {len(operations)} operations")
+    # logger.debug(f"Creating result types for {len(operations)} operations")
 
     for operation in operations:
         result_type = _create_result_type(operation, type_converter)
         result_types.append(result_type)
         # logger.debug(f"Created result type: {result_type['name']}")
 
-    logger.info(f"Created {len(result_types)} result types")
+    # logger.info(f"Created {len(result_types)} result types")
     return result_types
 
 

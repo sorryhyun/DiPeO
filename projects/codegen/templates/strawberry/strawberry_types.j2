@@ -89,7 +89,7 @@ NodeDataUnion = strawberry.union(
     "NodeDataUnion",
     (
 {% for type_info in node_specs %}
-        {{ type_info.name | pascal_case }}DataType,
+        {{ type_info['name'] | pascal_case }}DataType,
 {% endfor %}
     )
 )
@@ -109,6 +109,6 @@ NodeDataUnion = PlaceholderNodeData
 __all__ = [
     'NodeDataUnion',
 {% for type_info in node_specs %}
-    '{{ type_info.name | pascal_case }}DataType',
+    '{{ type_info['name'] | pascal_case }}DataType',
 {% endfor %}
 ]

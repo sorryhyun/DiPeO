@@ -307,7 +307,7 @@ class FrontendIRBuilder(BaseIRBuilder):
                 merged_ast[file_path] = ast_content
 
         # Debug logging
-        logger.info(f"FrontendIRBuilder: Processing {len(merged_ast)} AST files")
+        # logger.info(f"FrontendIRBuilder: Processing {len(merged_ast)} AST files")
 
         # Create type converter
         type_converter = TypeConverter()

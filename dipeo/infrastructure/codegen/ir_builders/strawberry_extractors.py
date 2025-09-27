@@ -138,27 +138,41 @@ def _build_operation(
     Returns:
         Operation definition dictionary
     """
+    raw_type = query.get("type", "query")
+    if isinstance(raw_type, str) and "." in raw_type:
+        operation_type = raw_type.split(".")[-1].lower()
+    else:
+        operation_type = str(raw_type).lower()
+
     variables = []
     for var in query.get("variables", []):
-        var_def = {
-            "name": var.get("name", ""),
-            "type": var.get("type", "String"),
-            "required": var.get("required", False),
-            "description": var.get("description", ""),
-            "default": var.get("default"),
-        }
-        variables.append(var_def)
+        var_type = var.get("type", "String")
+        variables.append(
+            {
+                "name": var.get("name", ""),
+                "type": var_type,
+                "graphql_type": var_type,
+                "python_type": var_type,
+                "required": var.get("required", False),
+                "description": var.get("description", ""),
+                "default": var.get("default"),
+            }
+        )
+
+    operation_name = query.get("name", "UnknownOperation")
 
     return {
-        "name": query.get("name", "UnknownOperation"),
-        "type": query.get("type", "query"),
+        "name": operation_name,
+        "operation_name": operation_name,
+        "type": operation_type,
+        "raw_type": raw_type,
         "entity": entity_name,
         "variables": variables,
         "fields": query.get("fields", []),
         "description": query.get("description", ""),
         "query_string": extract_query_string(query),
-        "is_mutation": "mutation" in query.get("type", "query").lower(),
-        "is_subscription": "subscription" in query.get("type", "query").lower(),
+        "is_mutation": operation_type == "mutation",
+        "is_subscription": operation_type == "subscription",
     }
 
 

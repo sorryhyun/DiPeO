@@ -64,33 +64,33 @@ class Query:
 
 {% for operation in queries %}
     # GraphQL field using noun form
-    @strawberry.field{% if operation.alias_name %}(name="{{ operation.alias_name }}"){% endif %}
-    async def {{ operation.alias_name if operation.alias_name else operation.operation_name | snake_case }}_resolver(
+    @strawberry.field{% if operation.get('alias_name') %}(name="{{ operation.get('alias_name') }}"){% endif %}
+    async def {{ operation.get('alias_name', operation['operation_name'] | snake_case) }}_resolver(
         self,
-        info: Info{% if operation.parameters %},{% endif %}
-        {%- for param in operation.parameters %}
-        {{ param.name }}: {% if param.needs_conversion %}{{ param.type | graphql_to_python(not param.optional) }}{% else %}{{ param.type }}{% endif %}{% if param.optional %} = None{% endif %}{% if not loop.last %},{% endif %}
+        info: Info{% if operation.get('parameters') %},{% endif %}
+        {%- for param in operation.get('parameters', []) %}
+        {{ param['name'] }}: {% if param.get('needs_conversion') %}{{ param.get('type') | graphql_to_python(not param.get('optional')) }}{% else %}{{ param.get('type') }}{% endif %}{% if param.get('optional') %} = None{% endif %}{% if not loop.last %},{% endif %}
         {%- endfor %}
-    ) -> {{ get_operation_return_type(operation.operation_name, operation.operation_type) }}:
+    ) -> {{ get_operation_return_type(operation['name'], operation['type']) }}:
         """
-        {{ operation.description }}
-        Operation: {{ operation.operation_name | pascal_case }}Operation
+        {{ operation.get('description', '') }}
+        Operation: {{ operation['operation_name'] | pascal_case }}Operation
         """
         from dipeo.application.graphql.operation_executor import OperationExecutor
         executor = OperationExecutor(info.context.service_registry)
 
         # Build variables dict from typed parameters
         variables = {}
-        {%- for param in operation.parameters %}
-        {%- if not param.optional %}
-        variables["{{ param.name }}"] = {{ param.name }}
+        {%- for param in operation.get('parameters', []) %}
+        {%- if not param.get('optional') %}
+        variables["{{ param['name'] }}"] = {{ param['name'] }}
         {%- else %}
-        if {{ param.name }} is not None:
-            variables["{{ param.name }}"] = {{ param.name }}
+        if {{ param['name'] }} is not None:
+            variables["{{ param['name'] }}"] = {{ param['name'] }}
         {%- endif %}
         {%- endfor %}
 
-        return await executor.execute("{{ operation.operation_name }}", variables=variables)
+        return await executor.execute("{{ operation['operation_name'] }}", variables=variables)
 
 {% endfor %}
 {% endif %}
@@ -102,32 +102,32 @@ class Mutation:
 
 {% for operation in mutations %}
     @strawberry.field
-    async def {{ operation.operation_name | snake_case }}(
+    async def {{ operation['operation_name'] | snake_case }}(
         self,
-        info: Info{% if operation.parameters %},{% endif %}
-        {%- for param in operation.parameters %}
-        {{ param.name }}: {% if param.needs_conversion %}{{ param.type | graphql_to_python(not param.optional) }}{% else %}{{ param.type }}{% endif %}{% if param.optional %} = None{% endif %}{% if not loop.last %},{% endif %}
+        info: Info{% if operation.get('parameters') %},{% endif %}
+        {%- for param in operation.get('parameters', []) %}
+        {{ param['name'] }}: {% if param.get('needs_conversion') %}{{ param.get('type') | graphql_to_python(not param.get('optional')) }}{% else %}{{ param.get('type') }}{% endif %}{% if param.get('optional') %} = None{% endif %}{% if not loop.last %},{% endif %}
         {%- endfor %}
-    ) -> {{ get_operation_return_type(operation.operation_name, operation.operation_type) }}:
+    ) -> {{ get_operation_return_type(operation['name'], operation['type']) }}:
         """
-        {{ operation.description }}
-        Operation: {{ operation.operation_name | pascal_case }}Operation
+        {{ operation.get('description', '') }}
+        Operation: {{ operation['operation_name'] | pascal_case }}Operation
         """
         from dipeo.application.graphql.operation_executor import OperationExecutor
         executor = OperationExecutor(info.context.service_registry)
 
         # Build variables dict from typed parameters
         variables = {}
-        {%- for param in operation.parameters %}
-        {%- if not param.optional %}
-        variables["{{ param.name }}"] = {{ param.name }}
+        {%- for param in operation.get('parameters', []) %}
+        {%- if not param.get('optional') %}
+        variables["{{ param['name'] }}"] = {{ param['name'] }}
         {%- else %}
-        if {{ param.name }} is not None:
-            variables["{{ param.name }}"] = {{ param.name }}
+        if {{ param['name'] }} is not None:
+            variables["{{ param['name'] }}"] = {{ param['name'] }}
         {%- endif %}
         {%- endfor %}
 
-        return await executor.execute("{{ operation.operation_name }}", variables=variables)
+        return await executor.execute("{{ operation['operation_name'] }}", variables=variables)
 
 {% endfor %}
 {% endif %}
@@ -139,33 +139,33 @@ class Subscription:
 
 {% for operation in subscriptions %}
     @strawberry.subscription
-    async def {{ operation.operation_name | snake_case }}(
+    async def {{ operation['operation_name'] | snake_case }}(
         self,
-        info: Info{% if operation.parameters %},{% endif %}
-        {%- for param in operation.parameters %}
-        {{ param.name }}: {% if param.needs_conversion %}{{ param.type | graphql_to_python(not param.optional) }}{% else %}{{ param.type }}{% endif %}{% if param.optional %} = None{% endif %}{% if not loop.last %},{% endif %}
+        info: Info{% if operation.get('parameters') %},{% endif %}
+        {%- for param in operation.get('parameters', []) %}
+        {{ param['name'] }}: {% if param.get('needs_conversion') %}{{ param.get('type') | graphql_to_python(not param.get('optional')) }}{% else %}{{ param.get('type') }}{% endif %}{% if param.get('optional') %} = None{% endif %}{% if not loop.last %},{% endif %}
         {%- endfor %}
-    ) -> AsyncGenerator[{{ get_operation_return_type(operation.operation_name, operation.operation_type) }}, None]:
+    ) -> AsyncGenerator[{{ get_operation_return_type(operation['name'], operation['type']) }}, None]:
         """
-        {{ operation.description }}
-        Operation: {{ operation.operation_name | pascal_case }}Operation
+        {{ operation.get('description', '') }}
+        Operation: {{ operation['operation_name'] | pascal_case }}Operation
         """
         from dipeo.application.graphql.operation_executor import OperationExecutor
         executor = OperationExecutor(info.context.service_registry)
 
         # Build variables dict from typed parameters
         variables = {}
-        {%- for param in operation.parameters %}
-        {%- if not param.optional %}
-        variables["{{ param.name }}"] = {{ param.name }}
+        {%- for param in operation.get('parameters', []) %}
+        {%- if not param.get('optional') %}
+        variables["{{ param['name'] }}"] = {{ param['name'] }}
         {%- else %}
-        if {{ param.name }} is not None:
-            variables["{{ param.name }}"] = {{ param.name }}
+        if {{ param['name'] }} is not None:
+            variables["{{ param['name'] }}"] = {{ param['name'] }}
         {%- endif %}
         {%- endfor %}
 
         # Execute subscription and yield items
-        async for item in executor.execute_subscription("{{ operation.operation_name }}", variables=variables):
+        async for item in executor.execute_subscription("{{ operation['operation_name'] }}", variables=variables):
             yield item
 
 {% endfor %}

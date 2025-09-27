@@ -12,7 +12,7 @@ from strawberry.scalars import JSON as JSONScalar
 # Import the Pydantic domain models
 from dipeo.diagram_generated.domain_models import (
 {%- for type in types %}
-    {{ type.name }},
+    {{ type['name'] }},
 {%- endfor %}
 )
 
@@ -54,54 +54,54 @@ from dipeo.diagram_generated.graphql.strawberry_domain import (
 # Create Strawberry types from Pydantic models
 # Order matters - define types that are referenced by others first
 {% for type in types %}
-{%- if type.can_use_pydantic_decorator %}
-@strawberry.experimental.pydantic.type(model={{ type.name }}, all_fields=True)
-class {{ type.name }}Type:
-    """{{ type.description or 'Auto-generated from Pydantic model' }}"""
+{%- if type.get('can_use_pydantic_decorator') %}
+@strawberry.experimental.pydantic.type(model={{ type['name'] }}, all_fields=True)
+class {{ type['name'] }}Type:
+    """{{ type.get('description', 'Auto-generated from Pydantic model') }}"""
     pass
 {%- else %}
 @strawberry.type
-class {{ type.name }}Type:
-{%- if type.description %}
-    """{{ type.description }}"""
+class {{ type['name'] }}Type:
+{%- if type.get('description') %}
+    """{{ type.get('description') }}"""
 {%- endif %}
-{%- if type.resolved_fields %}
-    {%- for field in type.resolved_fields %}
-    {{ field.name }}: {{ field.strawberry_type }}{{ field.default }}
+{%- if type.get('resolved_fields') %}
+    {%- for field in type.get('resolved_fields', []) %}
+    {{ field['name'] }}: {{ field['strawberry_type'] }}{{ field.get('default', '') }}
     {%- endfor %}
 {%- else %}
     # Using original fields as fallback (should not happen with resolver)
-    {%- for field in type.fields %}
-    {%- if field.is_json_dict %}
-    {{ field.name }}: {{ 'Optional[JSONScalar]' if field.optional else 'JSONScalar' }}{{ ' = None' if field.optional else '' }}
-    {%- elif field.is_literal %}
-    {{ field.name }}: {{ 'Optional[str]' if field.optional else 'str' }}{{ ' = None' if field.optional else '' }}
-    {%- elif field.type.startswith('List[Domain') %}
-    {{ field.name }}: List[{{ field.type.replace('List[', '').replace(']', '') }}Type]
-    {%- elif field.type.startswith('Domain') %}
-    {{ field.name }}: {{ field.type }}Type
-    {%- elif field.type.endswith('ID') %}
-    {{ field.name }}: {{ 'Optional[' + field.type + 'Scalar]' if field.optional else field.type + 'Scalar' }}{{ ' = None' if field.optional else '' }}
+    {%- for field in type.get('fields', []) %}
+    {%- if field.get('is_json_dict') %}
+    {{ field['name'] }}: {{ 'Optional[JSONScalar]' if field.get('optional') else 'JSONScalar' }}{{ ' = None' if field.get('optional') else '' }}
+    {%- elif field.get('is_literal') %}
+    {{ field['name'] }}: {{ 'Optional[str]' if field.get('optional') else 'str' }}{{ ' = None' if field.get('optional') else '' }}
+    {%- elif field.get('type', '').startswith('List[Domain') %}
+    {{ field['name'] }}: List[{{ field.get('type', '').replace('List[', '').replace(']', '') }}Type]
+    {%- elif field.get('type', '').startswith('Domain') %}
+    {{ field['name'] }}: {{ field.get('type') }}Type
+    {%- elif field.get('type', '').endswith('ID') %}
+    {{ field['name'] }}: {{ 'Optional[' + field.get('type') + 'Scalar]' if field.get('optional') else field.get('type') + 'Scalar' }}{{ ' = None' if field.get('optional') else '' }}
     {%- else %}
-    {{ field.name }}: {{ 'Optional[' + field.type + ']' if field.optional and not field.type.startswith('Optional[') else field.type }}{{ ' = None' if field.optional else '' }}
+    {{ field['name'] }}: {{ 'Optional[' + field.get('type', '') + ']' if field.get('optional') and not field.get('type', '').startswith('Optional[') else field.get('type', '') }}{{ ' = None' if field.get('optional') else '' }}
     {%- endif %}
     {%- endfor %}
 {%- endif %}
 
-{%- if type.needs_manual_conversion and type.conversion_method %}
+{%- if type.get('needs_manual_conversion') and type.get('conversion_method') %}
 
-    {{ type.conversion_method | indent(4) }}
-{%- elif type.needs_manual_conversion %}
+    {{ type.get('conversion_method') | indent(4) }}
+{%- elif type.get('needs_manual_conversion') %}
 
     @staticmethod
-    def from_pydantic(obj: {{ type.name }}) -> "{{ type.name }}Type":
+    def from_pydantic(obj: {{ type['name'] }}) -> "{{ type['name'] }}Type":
         """Convert from Pydantic model"""
-        return {{ type.name }}Type(
-        {%- for field in type.resolved_fields %}
-            {%- if field.conversion_expr %}
-            {{ field.name }}={{ field.conversion_expr }},
+        return {{ type['name'] }}Type(
+        {%- for field in type.get('resolved_fields', []) %}
+            {%- if field.get('conversion_expr') %}
+            {{ field['name'] }}={{ field.get('conversion_expr') }},
             {%- else %}
-            {{ field.name }}=obj.{{ field.name }},
+            {{ field['name'] }}=obj.{{ field['name'] }},
             {%- endif %}
         {%- endfor %}
         )

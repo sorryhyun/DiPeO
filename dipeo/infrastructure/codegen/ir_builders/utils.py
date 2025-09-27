@@ -390,6 +390,51 @@ def extract_type_aliases_from_ast(ast_data: dict[str, Any]) -> list[dict[str, An
     return type_aliases
 
 
+def extract_branded_scalars_from_ast(ast_data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Extract branded scalars from TypeScript AST data.
+
+    Args:
+        ast_data: TypeScript AST data
+
+    Returns:
+        List of branded scalar dictionaries
+    """
+    scalars = []
+    seen_names = set()
+
+    for _file_path, file_data in ast_data.items():
+        if not isinstance(file_data, dict):
+            continue
+
+        # Look for branded scalars in the AST
+        for scalar in file_data.get("brandedScalars", []):
+            scalar_name = scalar.get("name", "")
+            if scalar_name and scalar_name not in seen_names:
+                scalars.append(
+                    {
+                        "name": scalar_name,
+                        "type": scalar.get("baseType", "string"),
+                        "description": f"Branded scalar type for {scalar_name}",
+                    }
+                )
+                seen_names.add(scalar_name)
+
+        # Also look for NewType declarations that end with ID
+        for type_alias in file_data.get("typeAliases", []):
+            name = type_alias.get("name", "")
+            if name.endswith("ID") and name not in seen_names:
+                scalars.append(
+                    {
+                        "name": name,
+                        "type": "string",
+                        "description": f"Branded scalar type for {name}",
+                    }
+                )
+                seen_names.add(name)
+
+    return scalars
+
+
 def process_field_definition(
     field: dict[str, Any], type_converter: Optional[TypeConverter] = None
 ) -> dict[str, Any]:

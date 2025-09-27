@@ -16,6 +16,7 @@ def build_domain_ir(
     domain_types: list[dict[str, Any]],
     interfaces: list[dict[str, Any]],
     enums: list[dict[str, Any]],
+    scalars: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Build domain IR data structure.
 
@@ -36,7 +37,7 @@ def build_domain_ir(
         "types": organized_types,
         "interfaces": organized_interfaces,
         "enums": enums,
-        "scalars": [],
+        "scalars": scalars or [],
         "inputs": [],
         "metadata": {
             "generated_at": datetime.now().isoformat(),
@@ -184,11 +185,11 @@ def _organize_domain_types(domain_types: list[dict[str, Any]]) -> list[dict[str,
     for dtype in domain_types:
         name = dtype.get("name", "")
         if not name:
-            logger.warning("Skipping domain type without name")
+            # logger.warning("Skipping domain type without name")
             continue
 
         if name in seen_names:
-            logger.warning(f"Duplicate domain type: {name}, skipping")
+            # logger.warning(f"Duplicate domain type: {name}, skipping")
             continue
 
         seen_names.add(name)
@@ -219,7 +220,7 @@ def _organize_interfaces(interfaces: list[dict[str, Any]]) -> list[dict[str, Any
             continue
 
         if name in seen_names:
-            logger.warning(f"Duplicate interface: {name}, skipping")
+            # logger.warning(f"Duplicate interface: {name}, skipping")
             continue
 
         seen_names.add(name)
@@ -271,9 +272,9 @@ def validate_strawberry_ir(ir_data: IRData) -> tuple[bool, list[str]]:
             errors.append(f"Domain type {dtype.get('name', 'unknown')} has no fields")
 
     is_valid = len(errors) == 0
-    if is_valid:
-        logger.info("Strawberry IR validation passed")
-    else:
-        logger.warning(f"Strawberry IR validation failed with {len(errors)} errors")
+    # if is_valid:
+    # logger.info("Strawberry IR validation passed")
+    # else:
+    # logger.warning(f"Strawberry IR validation failed with {len(errors)} errors")
 
     return is_valid, errors

@@ -268,10 +268,10 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             output_path = Path(processed_output_path)
 
             # Check if this is a duplicate write to generated_nodes.py
-            if "generated_nodes.py" in str(output_path):
-                logger.warning(f"[GENERATED_NODES WRITE] Node {node.id} writing to {output_path}")
-                if "batch_item" in template_vars:
-                    logger.debug("[GENERATED_NODES BATCH] Batch item detected in context")
+            # if "generated_nodes.py" in str(output_path):
+            # logger.warning(f"[GENERATED_NODES WRITE] Node {node.id} writing to {output_path}")
+            # if "batch_item" in template_vars:
+            # logger.debug("[GENERATED_NODES BATCH] Batch item detected in context")
 
             # Check for duplicate write
             if self._is_duplicate_write(str(output_path), rendered, str(node.id)):

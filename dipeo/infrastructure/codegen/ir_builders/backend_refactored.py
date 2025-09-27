@@ -34,7 +34,7 @@ class BackendIRBuilder(BaseIRBuilder, IRBuilderPort):
         """Initialize Backend IR builder."""
         super().__init__()
         self.type_converter = TypeConverter()
-        logger.info("Initialized BackendIRBuilder with modular architecture")
+        # logger.info("Initialized BackendIRBuilder with modular architecture")
 
     async def build_ir(self, file_dict: dict[str, Any]) -> IRData:
         """Build IR from TypeScript AST files.
@@ -49,17 +49,17 @@ class BackendIRBuilder(BaseIRBuilder, IRBuilderPort):
             ValueError: If IR building fails
         """
         try:
-            logger.debug(f"Processing {len(file_dict)} AST files")
+            # logger.debug(f"Processing {len(file_dict)} AST files")
 
             # Extract data from AST
             node_specs = extract_node_specs(file_dict, self.type_converter)
             enums = extract_enums_all(file_dict)
             domain_models = extract_domain_models(file_dict, self.type_converter)
 
-            logger.info(
-                f"Extracted {len(node_specs)} node specs, "
-                f"{len(enums)} enums, {len(domain_models['models'])} domain models"
-            )
+            # logger.info(
+            #     f"Extracted {len(node_specs)} node specs, "
+            #     f"{len(enums)} enums, {len(domain_models['models'])} domain models"
+            # )
 
             # Build data structures
             factory_data = build_factory_data(node_specs)
@@ -96,11 +96,11 @@ class BackendIRBuilder(BaseIRBuilder, IRBuilderPort):
             # Create IR data with proper structure
             ir_data = IRData(metadata=metadata, data=backend_data)
 
-            logger.info("Successfully built Backend IR")
+            # logger.info("Successfully built Backend IR")
             return ir_data
 
         except Exception as e:
-            logger.error(f"Error building Backend IR: {e}")
+            # logger.error(f"Error building Backend IR: {e}")
             raise ValueError(f"Failed to build Backend IR: {e}")
 
     def validate_ir(self, ir_data: IRData) -> bool:
@@ -117,7 +117,7 @@ class BackendIRBuilder(BaseIRBuilder, IRBuilderPort):
             return False
 
         if not ir_data.data:
-            logger.warning("Backend data is missing")
+            # logger.warning("Backend data is missing")
             return False
 
         backend_data = ir_data.data
@@ -126,28 +126,28 @@ class BackendIRBuilder(BaseIRBuilder, IRBuilderPort):
         required_keys = ["node_specs", "enums", "domain_models", "node_factory"]
         for key in required_keys:
             if key not in backend_data:
-                logger.warning(f"Missing required key in backend data: {key}")
+                # logger.warning(f"Missing required key in backend data: {key}")
                 return False
 
         # Validate node specs
         node_specs = backend_data.get("node_specs", [])
         if not node_specs:
-            logger.warning("No node specifications found")
+            # logger.warning("No node specifications found")
             return False
 
         for spec in node_specs:
             if not spec.get("node_type"):
-                logger.warning("Node spec missing node_type")
+                # logger.warning("Node spec missing node_type")
                 return False
             if not spec.get("fields"):
-                logger.warning(f"Node spec {spec.get('node_type')} has no fields")
+                # logger.warning(f"Node spec {spec.get('node_type')} has no fields")
                 return False
 
         # Validate factory data
         factory = backend_data.get("node_factory", {})
         if not factory.get("mappings"):
-            logger.warning("Factory mappings are empty")
+            # logger.warning("Factory mappings are empty")
             return False
 
-        logger.info("Backend IR validation passed")
+        # logger.info("Backend IR validation passed")
         return True

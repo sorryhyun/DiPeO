@@ -254,32 +254,129 @@ def _build_node_spec(
     Returns:
         Node specification dictionary
     """
-    fields = []
-    for field in spec_value.get("fields", []):
-        field_def = {
-            "name": field.get("name", ""),
-            "type": type_converter.ts_to_python(field.get("type", "any")),
-            "required": field.get("required", False),
-            "default": field.get("defaultValue"),
-            "description": field.get("description", ""),
-            "validation": field.get("validation", {}),
-        }
-        fields.append(field_def)
+    processed_fields = [
+        _process_node_field(field, node_type, type_converter)
+        for field in spec_value.get("fields", [])
+    ]
+
+    # ensure stable order and remove Nones
+    fields = [field for field in processed_fields if field["name"]]
 
     # Extract handler metadata if present
     handler_metadata = spec_value.get("handlerMetadata", {})
 
+    camel_case_name = _to_camel_case(node_type)
+
+    spec_details = {
+        "nodeType": spec_value.get("nodeType", f"NodeType.{node_type.upper()}"),
+        "displayName": spec_value.get("displayName", node_name),
+        "category": spec_value.get("category", ""),
+        "description": spec_value.get("description", ""),
+        "icon": spec_value.get("icon", ""),
+        "color": spec_value.get("color", ""),
+        "fields": fields,
+        "handles": spec_value.get("handles", {}),
+        "outputs": spec_value.get("outputs", {}),
+        "execution": spec_value.get("execution", {}),
+        "primaryDisplayField": spec_value.get("primaryDisplayField", ""),
+        "defaults": spec_value.get("defaults", {}),
+        "handlerMetadata": handler_metadata,
+    }
+
     return {
         "node_type": node_type,
         "node_name": node_name,
-        "display_name": spec_value.get("displayName", node_name),
-        "category": spec_value.get("category", ""),
-        "description": spec_value.get("description", ""),
+        "name": camel_case_name,
+        "display_name": spec_details["displayName"],
+        "category": spec_details["category"],
+        "description": spec_details["description"],
         "fields": fields,
-        "icon": spec_value.get("icon", ""),
-        "color": spec_value.get("color", ""),
+        "icon": spec_details["icon"],
+        "color": spec_details["color"],
         "handler_metadata": handler_metadata,
+        "spec": spec_details,
+        "raw_spec": spec_value,
     }
+
+
+def _to_camel_case(node_type: str) -> str:
+    pascal = snake_to_pascal(node_type)
+    if not pascal:
+        return node_type
+    return pascal[0].lower() + pascal[1:]
+
+
+def _process_node_field(
+    field: dict[str, Any], node_type: str, type_converter: TypeConverter
+) -> dict[str, Any]:
+    """Normalize node field definitions for template consumption."""
+
+    raw_type = field.get("type", "string")
+    if isinstance(raw_type, dict):
+        field_type = raw_type.get("name") or raw_type.get("text") or "any"
+    else:
+        field_type = str(raw_type)
+
+    field_name = field.get("name", "")
+    validation = field.get("validation", {}) or {}
+    enum_values = field.get("enumValues") or validation.get("allowedValues", []) or []
+
+    python_type, graphql_type, is_object_type = _map_field_types(
+        field_type, field_name, node_type, enum_values, type_converter
+    )
+
+    is_enum = bool(enum_values) or field_type == "enum"
+
+    return {
+        "name": field_name,
+        "type": field_type,
+        "python_type": python_type,
+        "graphql_type": graphql_type,
+        "required": field.get("required", False),
+        "description": field.get("description", ""),
+        "validation": validation,
+        "uiConfig": field.get("uiConfig", {}),
+        "default": field.get("defaultValue"),
+        "is_object_type": is_object_type,
+        "is_dict_type": is_object_type,
+        "is_enum": is_enum,
+        "enum_values": enum_values,
+    }
+
+
+def _map_field_types(
+    field_type: str,
+    field_name: str,
+    node_type: str,
+    enum_values: list[Any],
+    type_converter: TypeConverter,
+) -> tuple[str, str, bool]:
+    """Determine python and GraphQL types along with object flag."""
+
+    normalized = field_type.lower()
+    is_object_type = False
+
+    if normalized in {"string", "text"}:
+        return "str", "String", is_object_type
+    if normalized == "number":
+        # Treat numbers as ints by default for node configs
+        return "int", "Int", is_object_type
+    if normalized == "boolean":
+        return "bool", "Boolean", is_object_type
+    if normalized in {"object", "dict"}:
+        is_object_type = True
+        return "Dict[str, Any]", "JSON", is_object_type
+    if normalized in {"array", "list"}:
+        return "List[Any]", "[JSON]", is_object_type
+    if normalized == "enum" or enum_values:
+        enum_type_name = f"{_to_camel_case(node_type)}{field_name.title().replace(' ', '')}Enum"
+        return enum_type_name, enum_type_name, is_object_type
+
+    # Fallback to type converter for other primitives
+    python_type = type_converter.ts_to_python(field_type)
+    graphql_type = type_converter.ts_to_graphql(field_type)
+
+    return python_type or field_type, graphql_type or field_type, is_object_type
 
 
 def _extract_models_from_file(

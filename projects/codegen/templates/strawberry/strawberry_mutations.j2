@@ -90,75 +90,75 @@ class NodeMutations:
 {% if raw_mutations %}
 {% for mutation in raw_mutations %}
     @strawberry.mutation
-    async def {{ mutation.name | snake_case }}(
+    async def {{ mutation['name'] | snake_case }}(
         self,
         info: Info,
         {% if mutation.variables %}
         {% for var in mutation.variables %}
-        {{ var.name }}: {{ var.python_type | default(var.type) | graphql_to_python(required= var.required) }}{{ "," if not loop.last }}
+        {{ var['name'] }}: {{ var.get('python_type', var.get('type')) | graphql_to_python(required= var.get('required', false)) }}{{ "," if not loop.last }}
         {% endfor %}
         {% endif %}
     ) -> Any:  # Return type will be determined by the resolver
-        """{{ mutation.name }} - {{ mutation.entity | default('') }} mutation"""
+        """{{ mutation['name'] }} - {{ mutation.get('entity', '') }} mutation"""
         registry: ServiceRegistry = info.context["registry"]
 
         # Build variables dict
         variables = {
             {% if mutation.variables %}
             {% for var in mutation.variables %}
-            "{{ var.name }}": {{ var.name }}{{ "," if not loop.last }}
+            "{{ var['name'] }}": {{ var['name'] }}{{ "," if not loop.last }}
             {% endfor %}
             {% endif %}
         }
 
         # Determine service and execute mutation based on type
-        mutation_lower = "{{ mutation.name }}".lower()
+        mutation_lower = "{{ mutation['name'] }}".lower()
 
-        {% if 'node' in mutation.name.lower() or 'Node' in mutation.name %}
+        {% if 'node' in mutation['name'].lower() or 'Node' in mutation['name'] %}
         # Node-related mutations use DIAGRAM_PORT
         service = registry.resolve(DIAGRAM_PORT)
 
         # Call the appropriate method based on the operation
-        {% if 'create' in mutation.name.lower() %}
+        {% if 'create' in mutation['name'].lower() %}
         result = await service.create_node(**variables)
-        {% elif 'update' in mutation.name.lower() %}
+        {% elif 'update' in mutation['name'].lower() %}
         result = await service.update_node(**variables)
-        {% elif 'delete' in mutation.name.lower() %}
+        {% elif 'delete' in mutation['name'].lower() %}
         result = await service.delete_node(**variables)
         {% else %}
         # Generic node operation
-        result = await service.handle_mutation("{{ mutation.name }}", variables)
+        result = await service.handle_mutation("{{ mutation['name'] }}", variables)
         {% endif %}
 
-        {% elif 'diagram' in mutation.name.lower() %}
+        {% elif 'diagram' in mutation['name'].lower() %}
         # Diagram mutations
         service = registry.resolve(DIAGRAM_PORT)
-        result = await service.handle_mutation("{{ mutation.name }}", variables)
+        result = await service.handle_mutation("{{ mutation['name'] }}", variables)
 
-        {% elif 'execution' in mutation.name.lower() %}
+        {% elif 'execution' in mutation['name'].lower() %}
         # Execution mutations
         service = registry.resolve(EXECUTION_SERVICE)
-        result = await service.handle_mutation("{{ mutation.name }}", variables)
+        result = await service.handle_mutation("{{ mutation['name'] }}", variables)
 
-        {% elif 'person' in mutation.name.lower() %}
+        {% elif 'person' in mutation['name'].lower() %}
         # Person mutations
         service = registry.resolve(PERSON_REPOSITORY)
-        result = await service.handle_mutation("{{ mutation.name }}", variables)
+        result = await service.handle_mutation("{{ mutation['name'] }}", variables)
 
-        {% elif 'conversation' in mutation.name.lower() %}
+        {% elif 'conversation' in mutation['name'].lower() %}
         # Conversation mutations
         service = registry.resolve(CONVERSATION_REPOSITORY)
-        result = await service.handle_mutation("{{ mutation.name }}", variables)
+        result = await service.handle_mutation("{{ mutation['name'] }}", variables)
 
-        {% elif 'api_key' in mutation.name.lower() or 'apikey' in mutation.name.lower() %}
+        {% elif 'api_key' in mutation['name'].lower() or 'apikey' in mutation['name'].lower() %}
         # API Key mutations
         service = registry.resolve(API_KEY_SERVICE)
-        result = await service.handle_mutation("{{ mutation.name }}", variables)
+        result = await service.handle_mutation("{{ mutation['name'] }}", variables)
 
         {% else %}
         # Default to DIAGRAM_PORT
         service = registry.resolve(DIAGRAM_PORT)
-        result = await service.handle_mutation("{{ mutation.name }}", variables)
+        result = await service.handle_mutation("{{ mutation['name'] }}", variables)
         {% endif %}
 
         return result

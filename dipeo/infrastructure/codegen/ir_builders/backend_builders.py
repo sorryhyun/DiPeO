@@ -28,7 +28,7 @@ def build_factory_data(node_specs: list[dict[str, Any]]) -> dict[str, Any]:
         category = spec.get("category", "")
 
         if not node_type or not node_name:
-            logger.debug("Skipping node spec without type/name: %s", spec)
+            # logger.debug("Skipping node spec without type/name: %s", spec)
             continue
 
         # Build import statement (PascalCase -> snake_case module)

@@ -17,25 +17,25 @@ from .enums import *
 from .integrations import *
 
 # NewType declarations
-{% for newtype in domain_models.newtypes %}
-{{ newtype.name }} = NewType('{{ newtype.name }}', {{ newtype.base }})
+{% for newtype in domain_models.get('newtypes', []) %}
+{{ newtype['name'] }} = NewType('{{ newtype['name'] }}', {{ newtype.get('base', 'str') }})
 {% endfor %}
 
-{% for model in domain_models.models %}
-class {{ model.name }}(BaseModel):
-    """{{ model.description or model.name + ' model' }}"""
+{% for model in domain_models.get('models', []) %}
+class {{ model['name'] }}(BaseModel):
+    """{{ model.get('description', model['name'] + ' model') }}"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
-    {% for field in model.fields %}
-    {{ field.name }}: {{ field.python_type }}{% if field.optional %} | None{% endif %}{% if field.literal %} = Field(default={{ field.literal_value }}){% elif field.optional %} = Field(default=None){% else %}{% endif %}
+    {% for field in model.get('fields', []) %}
+    {{ field['name'] }}: {{ field['python_type'] }}{% if field.get('optional') %} | None{% endif %}{% if field.get('literal') %} = Field(default={{ field.get('literal_value') }}){% elif field.get('optional') %} = Field(default=None){% else %}{% endif %}
     {% endfor %}
 
 
 {% endfor %}
 
 # Type aliases that reference models
-{% for alias in domain_models.aliases %}
-{{ alias.name }} = {{ alias.type }}
+{% for alias in domain_models.get('aliases', []) %}
+{{ alias['name'] }} = {{ alias['type'] }}
 {% endfor %}
 
 # Validation-related models moved from validation/ directory
