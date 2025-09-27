@@ -157,16 +157,45 @@ class UnifiedClaudeCodeClient:
                 result_text = ""
                 tool_invocation_data = None
 
-                # Create async generator for messages if multiple messages exist
-                async def message_generator():
-                    for msg in formatted_messages:
-                        yield json.dumps(msg, ensure_ascii=False)
+                # Combine all messages into a single user prompt string
+                # This avoids issues with assistant messages and AsyncIterable mode
+                combined_content = []
 
-                # Use async iterable if we have multiple messages, otherwise use JSON string
-                if len(formatted_messages) > 1:
-                    query_input = message_generator()
-                else:
-                    query_input = json.dumps(formatted_messages, ensure_ascii=False)
+                for msg in formatted_messages:
+                    message_data = json.loads(msg["message"])
+                    role = message_data.get("role", msg["type"])
+
+                    # Extract content text
+                    content_text = ""
+                    if isinstance(message_data.get("content"), str):
+                        content_text = message_data["content"]
+                    elif isinstance(message_data.get("content"), list):
+                        # Extract text from content blocks
+                        text_parts = []
+                        for block in message_data["content"]:
+                            if isinstance(block, dict) and block.get("type") == "text":
+                                text_parts.append(block.get("text", ""))
+                            elif isinstance(block, str):
+                                text_parts.append(block)
+                        content_text = " ".join(text_parts)
+
+                    # Format the message with role prefix for multi-message conversations
+                    if len(formatted_messages) > 1:
+                        # Include role prefix for context
+                        if role == "assistant":
+                            combined_content.append(f"Assistant: {content_text}")
+                        elif role == "user":
+                            combined_content.append(f"User: {content_text}")
+                        else:
+                            combined_content.append(content_text)
+                    else:
+                        # Single message - just use the content directly
+                        combined_content.append(content_text)
+
+                # Join all messages into a single prompt string
+                query_input = (
+                    "\n\n".join(combined_content) if combined_content else "Please respond"
+                )
 
                 async for message in wrapper.query(query_input):
                     # Check for tool invocations in assistant messages

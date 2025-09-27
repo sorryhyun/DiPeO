@@ -119,18 +119,14 @@ class ClaudeCodeMessageProcessor:
                 formatted_messages.append(
                     {
                         "type": "assistant",
-                        "message": ClaudeCodeMessageProcessor._stringify_payload(
-                            message_payload
-                        ),
+                        "message": ClaudeCodeMessageProcessor._stringify_payload(message_payload),
                     }
                 )
             else:
                 formatted_messages.append(
                     {
                         "type": "user",
-                        "message": ClaudeCodeMessageProcessor._stringify_payload(
-                            message_payload
-                        ),
+                        "message": ClaudeCodeMessageProcessor._stringify_payload(message_payload),
                     }
                 )
 
@@ -145,9 +141,7 @@ class ClaudeCodeMessageProcessor:
             formatted_messages.append(
                 {
                     "type": "user",
-                    "message": ClaudeCodeMessageProcessor._stringify_payload(
-                        fallback_payload
-                    ),
+                    "message": ClaudeCodeMessageProcessor._stringify_payload(fallback_payload),
                 }
             )
 
@@ -169,9 +163,7 @@ class ClaudeCodeMessageProcessor:
                         blocks.append(
                             {
                                 "type": "text",
-                                "text": ClaudeCodeMessageProcessor._stringify_content(
-                                    item["text"]
-                                ),
+                                "text": ClaudeCodeMessageProcessor._stringify_content(item["text"]),
                             }
                         )
                     else:
@@ -231,12 +223,11 @@ class ClaudeCodeMessageProcessor:
 
         if hasattr(raw_content, "model_dump"):
             try:
-                return json.dumps(
-                    raw_content.model_dump(), ensure_ascii=False, default=str
-                )
+                return json.dumps(raw_content.model_dump(), ensure_ascii=False, default=str)
             except (TypeError, ValueError):
                 return str(raw_content)
 
+        # Always JSON serialize non-string content
         try:
             return json.dumps(raw_content, ensure_ascii=False, default=str)
         except (TypeError, ValueError):
@@ -382,5 +373,10 @@ class ClaudeCodeMessageProcessor:
         kwargs.pop("text_format", None)  # Remove text_format as we don't use it
         kwargs.pop("person_name", None)  # Remove person_name as it's already used in system prompt
         options_dict.update(kwargs)
+
+        # Ensure setting_sources is set to avoid SDK issues with newer CLI versions
+        # The SDK always adds --setting-sources flag even when None, but newer CLI doesn't recognize it
+        if "setting_sources" not in options_dict:
+            options_dict["setting_sources"] = []
 
         return options_dict

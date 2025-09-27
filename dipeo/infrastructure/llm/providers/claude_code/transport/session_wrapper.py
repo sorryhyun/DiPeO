@@ -1,8 +1,7 @@
-"""Session wrapper for Claude Code queries with pooling support.
+"""Session wrapper for Claude Code queries with simplified pooling.
 
-Provides SessionQueryWrapper that manages session lifecycle from the session pool,
-enabling efficient reuse of connected sessions for multiple queries with the same
-system prompt configuration.
+Provides SessionQueryWrapper that gets fresh sessions from the pool
+for each query, leveraging fork_session for clean session state.
 """
 
 import logging
@@ -17,10 +16,10 @@ logger = logging.getLogger(__name__)
 
 
 class SessionQueryWrapper:
-    """Wrapper that uses session-based pooling for Claude Code queries.
+    """Wrapper that uses simplified session pooling for Claude Code queries.
 
-    Maintains connected sessions with system prompt configured in options
-    for efficient multi-query conversations with memory selection support.
+    Gets fresh forked sessions from template sessions for each query,
+    ensuring clean state without complex reuse management.
     """
 
     def __init__(
@@ -32,24 +31,22 @@ class SessionQueryWrapper:
 
         Args:
             options: Claude Code options (includes system_prompt)
-            execution_phase: Execution phase for pool key
+            execution_phase: Execution phase for session selection
         """
         self.options = options
         self.execution_phase = execution_phase
         self._session = None
-        self._pool = None
 
     async def __aenter__(self):
-        """Enter context - get session pool and borrow session."""
-        # Get or create pool for this configuration
+        """Enter context - get fresh session from pool."""
+        # Get the global session manager
         manager = await get_global_session_manager()
-        self._pool = await manager.get_or_create_pool(
+
+        # Get a fresh session (forked from template if enabled)
+        self._session = await manager.get_session(
             options=self.options,
             execution_phase=self.execution_phase,
         )
-
-        # Borrow a session from the pool (will connect on-demand)
-        self._session = await self._pool.borrow()
 
         # Log MCP server configuration if present
         if hasattr(self.options, "mcp_servers") and self.options.mcp_servers:
@@ -65,36 +62,20 @@ class SessionQueryWrapper:
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Exit context - clean up non-reusable sessions in same context."""
+        """Exit context - disconnect and cleanup session."""
         if self._session:
-            # If the session cannot be reused (reached REUSE_LIMIT) or is expired,
-            # remove it here so disconnect runs in the same task that used it.
             try:
-                if self._session.is_reserved:
-                    self._session.release_reservation()
-
-                if (not self._session.can_reuse()) or self._session.is_expired():
-                    await self._pool.remove_session(self._session)
+                # Always disconnect the session - it's a one-time use session
+                await self._session.disconnect()
+            except Exception as e:
+                logger.warning(
+                    f"[SessionQueryWrapper] Error disconnecting session {self._session.session_id}: {e}"
+                )
             finally:
                 self._session = None
 
-    async def force_cleanup(self):
-        """Force cleanup of the session and its subprocess on timeout."""
-        if self._session:
-            logger.warning(
-                f"[SessionQueryWrapper] Force cleanup of session {self._session.session_id}"
-            )
-            # Force disconnect the session (this should kill the subprocess)
-            await self._session.force_disconnect()
-
-            # Remove session from pool if possible
-            if self._pool:
-                await self._pool.remove_session(self._session)
-
-            self._session = None
-
     async def query(self, prompt: str | AsyncIterator[dict[str, Any]]) -> AsyncIterator[Any]:
-        """Execute query using session.
+        """Execute query using the session.
 
         Args:
             prompt: The prompt to send (string or async iterable of message dicts)
@@ -111,6 +92,11 @@ class SessionQueryWrapper:
             async for message in self._session.query(prompt):
                 message_count += 1
                 yield message
+
+            logger.debug(
+                f"[SessionQueryWrapper] Query completed on session {self._session.session_id}, "
+                f"received {message_count} messages"
+            )
 
         except Exception as e:
             logger.error(
