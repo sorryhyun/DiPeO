@@ -1,91 +1,11 @@
 """TypeScript to Python type transformation utilities."""
 
+from dipeo.infrastructure.codegen.type_system import TypeConverter
+
+_CONVERTER = TypeConverter()
+
 
 def map_ts_type_to_python(ts_type: str) -> str:
-    """Map a TypeScript type to its Python equivalent.
+    """Map a TypeScript type to its Python equivalent using the shared converter."""
 
-    Handles various TypeScript type patterns including:
-    - Basic types (string, number, boolean)
-    - Array types (T[] or Array<T>)
-    - Generic types (Promise<T>, Record<K,V>)
-    - Union types (A | B | C)
-    - Literal types ("literal")
-
-    Args:
-        ts_type: TypeScript type string
-
-    Returns:
-        Python type string
-
-    Examples:
-        >>> map_ts_type_to_python('string')
-        'str'
-        >>> map_ts_type_to_python('number[]')
-        'List[float]'
-        >>> map_ts_type_to_python('Promise<string>')
-        'Awaitable[str]'
-        >>> map_ts_type_to_python('string | number')
-        'Union[str, float]'
-    """
-    basic_type_map = {
-        "string": "str",
-        "number": "float",
-        "boolean": "bool",
-        "Date": "datetime",
-        "any": "Any",
-        "unknown": "Any",
-        "void": "None",
-        "null": "None",
-        "undefined": "Optional[Any]",
-        "object": "Dict[str, Any]",
-        "Object": "Dict[str, Any]",
-        "Array": "List",
-        "Promise": "Awaitable",
-    }
-
-    if ts_type.endswith("[]"):
-        inner_type = ts_type[:-2]
-        return f"List[{map_ts_type_to_python(inner_type)}]"
-
-    if "<" in ts_type and ">" in ts_type:
-        base = ts_type[: ts_type.index("<")]
-        inner = ts_type[ts_type.index("<") + 1 : ts_type.rindex(">")]
-
-        if base == "Array":
-            return f"List[{map_ts_type_to_python(inner)}]"
-        elif base == "Promise":
-            return f"Awaitable[{map_ts_type_to_python(inner)}]"
-        elif base == "Record":
-            parts = inner.split(",", 1)
-            if len(parts) == 2:
-                key_type = map_ts_type_to_python(parts[0].strip())
-                value_type = map_ts_type_to_python(parts[1].strip())
-                return f"Dict[{key_type}, {value_type}]"
-        elif base == "Partial":
-            return f"Partial[{map_ts_type_to_python(inner)}]"
-        elif base == "Required":
-            return f"Required[{map_ts_type_to_python(inner)}]"
-        elif base == "ReadonlyArray":
-            return f"Sequence[{map_ts_type_to_python(inner)}]"
-
-        return f"{base}[{inner}]"
-
-    if "|" in ts_type:
-        parts = [map_ts_type_to_python(p.strip()) for p in ts_type.split("|")]
-        return f'Union[{", ".join(parts)}]'
-
-    if "&" in ts_type:
-        parts = [p.strip() for p in ts_type.split("&")]
-        return f"{map_ts_type_to_python(parts[0])}  # Intersection: {ts_type}"
-
-    if (ts_type.startswith('"') and ts_type.endswith('"')) or (
-        ts_type.startswith("'") and ts_type.endswith("'")
-    ):
-        return f"Literal[{ts_type}]"
-
-    if ts_type.startswith("[") and ts_type.endswith("]"):
-        elements = ts_type[1:-1].split(",")
-        mapped_elements = [map_ts_type_to_python(e.strip()) for e in elements]
-        return f'tuple[{", ".join(mapped_elements)}]'
-
-    return basic_type_map.get(ts_type, ts_type)
+    return _CONVERTER.ts_to_python(ts_type)
