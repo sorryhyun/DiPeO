@@ -60,17 +60,10 @@ def extract_enums_all(ast_data: dict[str, Any]) -> list[dict[str, Any]]:
         for enum in file_data.get("enums", []):
             enum_name = enum.get("name", "")
 
-            # Skip if already processed or is frontend-only
+            # Skip if already processed
             if enum_name in processed_enums:
                 continue
-            if enum_name in {
-                "QueryOperationType",
-                "CrudOperation",
-                "QueryEntity",
-                "FieldPreset",
-                "FieldGroup",
-            }:
-                continue
+            # Note: Query-related enums are now included since they're needed by domain models
 
             processed_enums.add(enum_name)
 
@@ -146,6 +139,8 @@ def extract_domain_models(
         "core/integration.ts",
         "claude-code/session-types.ts",
         "codegen/ast-types.ts",  # Add AST types for TypeScript parsing
+        "frontend/query-specifications.ts",  # Add frontend query types for GraphQL
+        "frontend/relationship-queries.ts",  # Add relationship query types
     ]
 
     for file_path, file_data in ast_data.items():

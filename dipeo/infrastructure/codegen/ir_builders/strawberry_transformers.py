@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Any, Optional
 
 from dipeo.infrastructure.codegen.ir_builders.utils import (
@@ -10,6 +11,7 @@ from dipeo.infrastructure.codegen.ir_builders.utils import (
     pascal_case,
     snake_to_pascal,
 )
+from dipeo.infrastructure.codegen.type_resolver import StrawberryTypeResolver
 
 logger = logging.getLogger(__name__)
 
@@ -124,9 +126,16 @@ def _is_domain_type(interface_name: str) -> bool:
         True if interface is a domain type
     """
     # Skip utility types and non-domain interfaces
-    skip_patterns = [
+    # These are exact patterns to skip - interface must end with these patterns
+    skip_suffixes = [
         "Props",
         "State",
+        "Params",
+        "Args",
+    ]
+
+    # These are exact interface names to skip (not suffixes)
+    skip_exact = [
         "Config",
         "Options",
         "Settings",
@@ -135,19 +144,26 @@ def _is_domain_type(interface_name: str) -> bool:
         "Input",
         "Output",
         "Result",
-        "Params",
-        "Args",
-        "Query",
-        "Mutation",
-        "Subscription",
+        "Query",  # Only skip exactly "Query", not types containing "Query"
+        "Mutation",  # Only skip exactly "Mutation"
+        "Subscription",  # Only skip exactly "Subscription"
         "FieldArgument",  # Query definition type
         "FieldDefinition",  # Query definition type
         "VariableDefinition",  # Query definition type
-        "QueryDefinition",  # Query definition type
+        "QueryDefinition",  # Query definition type - skip this specific one
         "EntityQueryDefinitions",  # Query definition type
     ]
 
-    return not any(pattern in interface_name for pattern in skip_patterns)
+    # Check if interface ends with any skip suffix
+    if any(interface_name.endswith(suffix) for suffix in skip_suffixes):
+        return False
+
+    # Check if interface is exactly one of the skip names
+    if interface_name in skip_exact:
+        return False
+
+    # Allow all other interfaces (including PersonLLMConfig, ToolConfig, etc.)
+    return True
 
 
 def _create_domain_type(
@@ -168,12 +184,20 @@ def _create_domain_type(
     interface_name = interface.get("name", "")
     fields = []
 
+    # Create basic fields for backward compatibility
     for prop in interface.get("properties", []):
+        # Convert TypeScript type to Python type
+        ts_type = prop.get("type", "Any")
+        python_type = type_converter.ts_to_python(ts_type)
+
         field = {
             "name": prop.get("name", ""),
-            "type": type_converter.ts_to_graphql(prop.get("type", "String")),
-            "required": not prop.get("optional", False),
+            "type": python_type,  # Use converted Python type
+            "optional": prop.get("optional", False),
             "description": prop.get("description", ""),
+            "is_json_dict": False,
+            "is_literal": False,
+            "is_custom_list": False,
         }
         fields.append(field)
 
@@ -183,9 +207,44 @@ def _create_domain_type(
         for field_def in domain_fields[interface_name]:
             fields.append(field_def)
 
+    # Use StrawberryTypeResolver to create resolved fields with proper types
+    type_resolver = StrawberryTypeResolver()
+    resolved_fields = []
+
+    for prop in interface.get("properties", []):
+        # Create a field dict that matches the resolver's expected format
+        # Convert TypeScript type to Python type first
+        ts_type = prop.get("type", "Any")
+        python_type = type_converter.ts_to_python(ts_type)
+
+        field_dict = {
+            "name": prop.get("name", ""),
+            "type": python_type,  # Use converted Python type
+            "optional": prop.get("optional", False),
+            "description": prop.get("description", ""),
+        }
+        resolved_field = type_resolver.resolve_field(field_dict, interface_name)
+
+        # Convert ResolvedField dataclass to dict for JSON serialization
+        resolved_fields.append(
+            {
+                "name": resolved_field.name,
+                "strawberry_type": resolved_field.strawberry_type,
+                "default": resolved_field.default,
+                "python_type": resolved_field.python_type,
+                "is_optional": resolved_field.is_optional,
+                "is_json": resolved_field.is_json,
+                "is_literal": resolved_field.is_literal,
+                "is_custom_list": resolved_field.is_custom_list,
+                "needs_conversion": resolved_field.needs_conversion,
+                "conversion_expr": resolved_field.conversion_expr,
+            }
+        )
+
     return {
         "name": interface_name,
-        "fields": fields,
+        "fields": fields,  # Original fields for backward compatibility
+        "resolved_fields": resolved_fields,  # Properly resolved fields for template
         "description": interface.get("description", f"{interface_name} domain type"),
     }
 

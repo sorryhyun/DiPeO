@@ -2,7 +2,7 @@
 # __generated__ by DiPeO
 """
 Domain models generated from TypeScript interfaces.
-Generated at: 2025-09-28T12:25:58.786837
+Generated at: 2025-09-28T14:23:22.928936
 """
 from __future__ import annotations
 
@@ -788,6 +788,324 @@ class KeepalivePayload(BaseModel):
     type: Literal['keepalive']
     
     timestamp: str
+    
+
+
+
+class ParseResult(BaseModel):
+    """ParseResult model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    ast: Any
+    
+    interfaces: List[InterfaceInfo]
+    
+    types: List[TypeAliasInfo]
+    
+    enums: List[EnumInfo]
+    
+    classes: List[ClassInfo] | None = Field(default=None)
+    
+    functions: List[FunctionInfo] | None = Field(default=None)
+    
+    constants: List[ConstantInfo] | None = Field(default=None)
+    
+    error: str | None = Field(default=None)
+    
+
+
+
+class InterfaceInfo(BaseModel):
+    """InterfaceInfo model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    name: str
+    
+    properties: List[PropertyInfo]
+    
+    extends: List[str] | None = Field(default=None)
+    
+    is_exported: bool
+    
+    js_doc: str | None = Field(default=None)
+    
+
+
+
+class PropertyInfo(BaseModel):
+    """PropertyInfo model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    name: str
+    
+    type: str
+    
+    optional: bool
+    
+    readonly: bool
+    
+    js_doc: str | None = Field(default=None)
+    
+
+
+
+class TypeAliasInfo(BaseModel):
+    """TypeAliasInfo model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    name: str
+    
+    type: str
+    
+    is_exported: bool
+    
+    js_doc: str | None = Field(default=None)
+    
+
+
+
+class EnumInfo(BaseModel):
+    """EnumInfo model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    name: str
+    
+    members: List[EnumMember]
+    
+    is_exported: bool
+    
+    js_doc: str | None = Field(default=None)
+    
+
+
+
+class EnumMember(BaseModel):
+    """EnumMember model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    name: str
+    
+    value: Union[str, float] | None = Field(default=None)
+    
+
+
+
+class ClassInfo(BaseModel):
+    """ClassInfo model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    name: str
+    
+    properties: List[PropertyInfo]
+    
+    methods: List[MethodInfo]
+    
+    extends: str | None = Field(default=None)
+    
+    implements: List[str] | None = Field(default=None)
+    
+    is_exported: bool
+    
+    js_doc: str | None = Field(default=None)
+    
+
+
+
+class MethodInfo(BaseModel):
+    """MethodInfo model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    name: str
+    
+    parameters: List[ParameterInfo]
+    
+    return_type: str
+    
+    is_async: bool
+    
+    js_doc: str | None = Field(default=None)
+    
+
+
+
+class ParameterInfo(BaseModel):
+    """ParameterInfo model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    name: str
+    
+    type: str
+    
+    optional: bool
+    
+    default_value: str | None = Field(default=None)
+    
+
+
+
+class FunctionInfo(BaseModel):
+    """FunctionInfo model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    name: str
+    
+    parameters: List[ParameterInfo]
+    
+    return_type: str
+    
+    is_async: bool
+    
+    is_exported: bool
+    
+    js_doc: str | None = Field(default=None)
+    
+
+
+
+class ConstantInfo(BaseModel):
+    """ConstantInfo model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    name: str
+    
+    type: str
+    
+    value: Any
+    
+    is_exported: bool
+    
+    js_doc: str | None = Field(default=None)
+    
+
+
+
+class BatchInput(BaseModel):
+    """BatchInput model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    sources: Dict[str, str]
+    
+
+
+
+class BatchResult(BaseModel):
+    """BatchResult model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    results: Dict[str, ParseResult]
+    
+    metadata: Dict[str, Any] | None = Field(default=None)
+    
+
+
+
+class QueryField(BaseModel):
+    """QueryField model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    name: str
+    
+    required: bool | None = Field(default=None)
+    
+    fields: List[QueryField] | None = Field(default=None)
+    
+
+
+
+class QueryVariable(BaseModel):
+    """QueryVariable model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    name: str
+    
+    type: str
+    
+    required: bool
+    
+
+
+
+class QuerySpecification(BaseModel):
+    """QuerySpecification model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    name: str
+    
+    operation: QueryOperationType
+    
+    entity_type: str
+    
+    description: str | None = Field(default=None)
+    
+    variables: List[QueryVariable] | None = Field(default=None)
+    
+    return_type: str
+    
+    fields: List[QueryField]
+    
+    template: str | None = Field(default=None)
+    
+
+
+
+class EntityQueryConfig(BaseModel):
+    """EntityQueryConfig model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    entity: str
+    
+    operations: List[CrudOperation]
+    
+    default_fields: List[QueryField]
+    
+    relationships: List[Dict[str, Any]] | None = Field(default=None)
+    
+
+
+
+class QueryManifest(BaseModel):
+    """QueryManifest model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    version: str
+    
+    entities: List[EntityQueryConfig]
+    
+
+
+
+class RelationshipConfig(BaseModel):
+    """RelationshipConfig model"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    field: str
+    
+    type: Literal['one-to-one', 'one-to-many', 'many-to-many']
+    
+    target_entity: str
+    
+    include_by_default: bool | None = Field(default=None)
+    
+    default_fields: List[str] | None = Field(default=None)
     
 
 

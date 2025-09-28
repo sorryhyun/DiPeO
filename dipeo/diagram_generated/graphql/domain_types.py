@@ -2,15 +2,17 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces using simplified type resolver.
 
-Generated at: 2025-09-27T11:49:51.054945
+Generated at: 2025-09-28T14:23:21.976913
 """
 
 import strawberry
-from typing import Optional, Dict, Any, List, Union
+from typing import Optional, Dict, Any, List, Union, Literal
 from strawberry.scalars import JSON as JSONScalar
+from .inputs import Float, String, Boolean
+from dipeo.domain.type_defs import JsonValue, JsonDict
 
 # Import the Pydantic domain models
-from dipeo.diagram_generated.domain_models import (
+from ..domain_models import (
     ClaudeCodeSession,
     SessionEvent,
     ClaudeCodeMessage,
@@ -18,11 +20,26 @@ from dipeo.diagram_generated.domain_models import (
     ToolUse,
     ToolResult,
     ConversationTurn,
+    DiffPatchInput,
     ClaudeCodeDiagramMetadata,
     SessionStatistics,
     SessionConversionOptions,
     WatchOptions,
+    ParseResult,
+    InterfaceInfo,
+    PropertyInfo,
+    TypeAliasInfo,
+    EnumInfo,
+    EnumMember,
+    ClassInfo,
+    MethodInfo,
+    ParameterInfo,
+    FunctionInfo,
+    ConstantInfo,
+    BatchInput,
+    BatchResult,
     CliSession,
+    CliSessionResult,
     Message,
     ConversationMetadata,
     Conversation,
@@ -36,31 +53,40 @@ from dipeo.diagram_generated.domain_models import (
     DiagramMetadata,
     DomainDiagram,
     LLMUsage,
-    NodeState,
     NodeMetrics,
     Bottleneck,
     ExecutionMetrics,
     EnvelopeMeta,
     SerializedEnvelope,
-    ExecutionState,
     ExecutionOptions,
     InteractivePromptData,
+    InteractiveResponse,
     ExecutionUpdate,
     NodeDefinition,
     File,
+    FileOperationResult,
     ToolConfig,
     WebSearchResult,
     ImageGenerationResult,
     ToolOutput,
+    ChatResult,
     LLMRequestOptions,
     NodeUpdate,
     InteractivePrompt,
     ExecutionLogEntry,
     KeepalivePayload,
+    QueryField,
+    QueryVariable,
+    QuerySpecification,
+    EntityQueryConfig,
+    QueryManifest,
+    RelationshipConfig,
+    PersonID, PersonLLMConfig, DiagramID, ToolResult,
+    ExecutionState, NodeState,
 )
 
 # Import required enums for GraphQL type resolution
-from dipeo.diagram_generated.enums import (
+from ..enums import (
     Status,
     NodeType,
     EventType,
@@ -71,6 +97,16 @@ from dipeo.diagram_generated.enums import (
     LLMService,
     APIServiceType,
     ToolType,
+    QueryOperationType,
+    CrudOperation,
+    QueryEntity,
+    FieldPreset,
+    FieldGroup,
+)
+
+# Import GraphQL enums for proper serialization
+from .enums import (
+    StatusGraphQL,
 )
 
 # Import scalar types from shared file
@@ -99,6 +135,7 @@ from dipeo.diagram_generated.graphql.strawberry_domain import (
 
 @strawberry.type
 class ClaudeCodeSessionType:
+    """ClaudeCodeSession domain type"""
     sessionId: str
     events: List[SessionEvent]
     metadata: SessionMetadata
@@ -106,6 +143,7 @@ class ClaudeCodeSessionType:
 
 @strawberry.type
 class SessionEventType:
+    """SessionEvent domain type"""
     type: str
     uuid: str
     parentUuid: Optional[str] = None
@@ -117,12 +155,14 @@ class SessionEventType:
 
 @strawberry.type
 class ClaudeCodeMessageType:
+    """ClaudeCodeMessage domain type"""
     role: str
     content: str
 
 
 @strawberry.type
 class SessionMetadataType:
+    """SessionMetadata domain type"""
     startTime: str
     endTime: Optional[str] = None
     totalEvents: float
@@ -132,12 +172,14 @@ class SessionMetadataType:
 
 @strawberry.type
 class ToolUseType:
+    """ToolUse domain type"""
     name: str
     input: JSONScalar
 
 
 @strawberry.type
 class ToolResultType:
+    """ToolResult domain type"""
     success: bool
     output: Optional[str] = None
     error: Optional[str] = None
@@ -145,13 +187,24 @@ class ToolResultType:
 
 @strawberry.type
 class ConversationTurnType:
+    """ConversationTurn domain type"""
     userEvent: SessionEvent
     assistantEvent: SessionEvent
     toolEvents: List[SessionEvent]
 
 
 @strawberry.type
+class DiffPatchInputType:
+    """DiffPatchInput domain type"""
+    filePath: str
+    oldContent: Optional[str] = None
+    newContent: Optional[str] = None
+    patch: Optional[str] = None
+
+
+@strawberry.type
 class ClaudeCodeDiagramMetadataType:
+    """ClaudeCodeDiagramMetadata domain type"""
     sessionId: str
     createdAt: str
     eventCount: float
@@ -161,6 +214,7 @@ class ClaudeCodeDiagramMetadataType:
 
 @strawberry.type
 class SessionStatisticsType:
+    """SessionStatistics domain type"""
     sessionId: str
     totalEvents: float
     userPrompts: float
@@ -174,6 +228,7 @@ class SessionStatisticsType:
 
 @strawberry.type
 class SessionConversionOptionsType:
+    """SessionConversionOptions domain type"""
     outputDir: Optional[str] = None
     format: Optional[str] = None
     autoExecute: Optional[bool] = None
@@ -184,13 +239,138 @@ class SessionConversionOptionsType:
 
 @strawberry.type
 class WatchOptionsType:
+    """WatchOptions domain type"""
     interval: Optional[float] = None
     autoConvert: Optional[bool] = None
     notifyOnNew: Optional[bool] = None
 
 
 @strawberry.type
+class ParseResultType:
+    """ParseResult domain type"""
+    ast: JSONScalar
+    interfaces: List[InterfaceInfo]
+    types: List[TypeAliasInfo]
+    enums: List[EnumInfo]
+    classes: Optional[List[ClassInfo]] = None
+    functions: Optional[List[FunctionInfo]] = None
+    constants: Optional[List[ConstantInfo]] = None
+    error: Optional[str] = None
+
+
+@strawberry.type
+class InterfaceInfoType:
+    """InterfaceInfo domain type"""
+    name: str
+    properties: List[PropertyInfo]
+    extends: Optional[List[str]] = None
+    isExported: bool
+    jsDoc: Optional[str] = None
+
+
+@strawberry.type
+class PropertyInfoType:
+    """PropertyInfo domain type"""
+    name: str
+    type: str
+    optional: bool
+    readonly: bool
+    jsDoc: Optional[str] = None
+
+
+@strawberry.type
+class TypeAliasInfoType:
+    """TypeAliasInfo domain type"""
+    name: str
+    type: str
+    isExported: bool
+    jsDoc: Optional[str] = None
+
+
+@strawberry.type
+class EnumInfoType:
+    """EnumInfo domain type"""
+    name: str
+    members: List[EnumMember]
+    isExported: bool
+    jsDoc: Optional[str] = None
+
+
+@strawberry.type
+class EnumMemberType:
+    """EnumMember domain type"""
+    name: str
+    value: Optional[JSONScalar] = None
+
+
+@strawberry.type
+class ClassInfoType:
+    """ClassInfo domain type"""
+    name: str
+    properties: List[PropertyInfo]
+    methods: List[MethodInfo]
+    extends: Optional[str] = None
+    implements: Optional[List[str]] = None
+    isExported: bool
+    jsDoc: Optional[str] = None
+
+
+@strawberry.type
+class MethodInfoType:
+    """MethodInfo domain type"""
+    name: str
+    parameters: List[ParameterInfo]
+    returnType: str
+    isAsync: bool
+    jsDoc: Optional[str] = None
+
+
+@strawberry.type
+class ParameterInfoType:
+    """ParameterInfo domain type"""
+    name: str
+    type: str
+    optional: bool
+    defaultValue: Optional[str] = None
+
+
+@strawberry.type
+class FunctionInfoType:
+    """FunctionInfo domain type"""
+    name: str
+    parameters: List[ParameterInfo]
+    returnType: str
+    isAsync: bool
+    isExported: bool
+    jsDoc: Optional[str] = None
+
+
+@strawberry.type
+class ConstantInfoType:
+    """ConstantInfo domain type"""
+    name: str
+    type: str
+    value: JSONScalar
+    isExported: bool
+    jsDoc: Optional[str] = None
+
+
+@strawberry.type
+class BatchInputType:
+    """BatchInput domain type"""
+    sources: JSONScalar
+
+
+@strawberry.type
+class BatchResultType:
+    """BatchResult domain type"""
+    results: Dict[str, ParseResult]
+    metadata: Optional[JSONScalar] = None
+
+
+@strawberry.type
 class CliSessionType:
+    """CliSession domain type"""
     id: CliSessionIDScalar
     session_id: str
     user_id: Optional[str] = None
@@ -199,22 +379,19 @@ class CliSessionType:
     metadata: Optional[JSONScalar] = None
     environment: Optional[JSONScalar] = None
 
-    @staticmethod
-    def from_pydantic(obj: CliSession) -> "CliSessionType":
-        """Convert from Pydantic model"""
-        return CliSessionType(
-            id=obj.id,
-            session_id=obj.session_id,
-            user_id=obj.user_id,
-            started_at=obj.started_at,
-            status=str(obj.status.value) if hasattr(obj.status, 'value') else str(obj.status),
-            metadata=obj.metadata,
-            environment=obj.environment,
-        )
+
+@strawberry.type
+class CliSessionResultType:
+    """CliSessionResult domain type"""
+    success: bool
+    session: Optional[CliSession] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
 
 
 @strawberry.type
 class MessageType:
+    """Message domain type"""
     id: Optional[str] = None
     from_person_id: str
     to_person_id: PersonIDScalar
@@ -224,75 +401,52 @@ class MessageType:
     message_type: str
     metadata: Optional[JSONScalar] = None
 
-    @staticmethod
-    def from_pydantic(obj: Message) -> "MessageType":
-        """Convert from Pydantic model"""
-        return MessageType(
-            id=obj.id,
-            from_person_id=obj.from_person_id,
-            to_person_id=obj.to_person_id,
-            content=obj.content,
-            timestamp=obj.timestamp,
-            token_count=obj.token_count,
-            message_type=obj.message_type,
-            metadata=obj.metadata,
-        )
 
-
-@strawberry.experimental.pydantic.type(model=ConversationMetadata, all_fields=True)
+@strawberry.type
 class ConversationMetadataType:
-    """Auto-generated from Pydantic model"""
-    pass
+    """ConversationMetadata domain type"""
+    started_at: str
+    total_tokens: float
+    message_count: float
 
 
 @strawberry.type
 class ConversationType:
+    """Conversation domain type"""
     messages: List[MessageType]
     metadata: Optional[ConversationMetadataType] = None
 
-    @staticmethod
-    def from_pydantic(obj: Conversation) -> "ConversationType":
-        """Convert from Pydantic model"""
-        return ConversationType(
-            messages=obj.messages,
-            metadata=obj.metadata,
-        )
 
-
-@strawberry.experimental.pydantic.type(model=Vec2, all_fields=True)
+@strawberry.type
 class Vec2Type:
-    """Auto-generated from Pydantic model"""
-    pass
+    """Vec2 domain type"""
+    x: float
+    y: float
 
 
-@strawberry.experimental.pydantic.type(model=DomainHandle, all_fields=True)
+@strawberry.type
 class DomainHandleType:
-    """Auto-generated from Pydantic model"""
-    pass
+    """DomainHandle domain type"""
+    id: HandleIDScalar
+    node_id: NodeIDScalar
+    label: HandleLabel
+    direction: HandleDirection
+    data_type: DataType
+    position: Optional[str] = None
 
 
 @strawberry.type
 class DomainNodeType:
+    """DomainNode domain type"""
     id: NodeIDScalar
     type: NodeType
     position: Vec2Type
     data: JSONScalar
 
-    @staticmethod
-    def from_pydantic(obj: DomainNode) -> "DomainNodeType":
-        """Convert from Pydantic model"""
-        # Convert position
-        position = Vec2Type.from_pydantic(obj.position) if hasattr(Vec2Type, 'from_pydantic') else Vec2Type(x=obj.position.x, y=obj.position.y)
-        return DomainNodeType(
-            id=obj.id,
-            type=str(obj.type.value) if hasattr(obj.type, 'value') else str(obj.type),
-            position=obj.position,
-            data=obj.data,
-        )
-
 
 @strawberry.type
 class DomainArrowType:
+    """DomainArrow domain type"""
     id: ArrowIDScalar
     source: HandleIDScalar
     target: HandleIDScalar
@@ -301,102 +455,94 @@ class DomainArrowType:
     execution_priority: Optional[float] = None
     data: Optional[JSONScalar] = None
 
-    @staticmethod
-    def from_pydantic(obj: DomainArrow) -> "DomainArrowType":
-        """Convert from Pydantic model"""
-        return DomainArrowType(
-            id=obj.id,
-            source=obj.source,
-            target=obj.target,
-            content_type=str(obj.content_type.value) if hasattr(obj.content_type, 'value') else str(obj.content_type),
-            label=obj.label,
-            execution_priority=obj.execution_priority,
-            data=obj.data,
-        )
 
-
-@strawberry.experimental.pydantic.type(model=PersonLLMConfig, all_fields=True)
+@strawberry.type
 class PersonLLMConfigType:
-    """Auto-generated from Pydantic model"""
-    pass
+    """PersonLLMConfig domain type"""
+    service: LLMService
+    model: str
+    api_key_id: ApiKeyIDScalar
+    system_prompt: Optional[str] = None
+    prompt_file: Optional[str] = None
 
 
 @strawberry.type
 class DomainPersonType:
+    """DomainPerson domain type"""
     id: PersonIDScalar
     label: str
     llm_config: PersonLLMConfigType
     type: str
 
-    @staticmethod
-    def from_pydantic(obj: DomainPerson) -> "DomainPersonType":
-        """Convert from Pydantic model"""
-        return DomainPersonType(
-            id=obj.id,
-            label=obj.label,
-            llm_config=obj.llm_config,
-            type=str(obj.type.value) if hasattr(obj.type, 'value') else str(obj.type),
-        )
 
-
-@strawberry.experimental.pydantic.type(model=DomainApiKey, all_fields=True)
+@strawberry.type
 class DomainApiKeyType:
-    """Auto-generated from Pydantic model"""
-    pass
+    """DomainApiKey domain type"""
+    id: ApiKeyIDScalar
+    label: str
+    service: APIServiceType
+    key: Optional[str] = None
 
 
-@strawberry.experimental.pydantic.type(model=DiagramMetadata, all_fields=True)
+@strawberry.type
 class DiagramMetadataType:
-    """Auto-generated from Pydantic model"""
-    pass
+    """DiagramMetadata domain type"""
+    id: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    version: str
+    created: str
+    modified: str
+    author: Optional[str] = None
+    tags: Optional[List[str]] = None
+    format: Optional[str] = None
 
 
 @strawberry.type
 class DomainDiagramType:
+    """DomainDiagram domain type"""
     nodes: List[DomainNodeType]
     handles: List[DomainHandleType]
     arrows: List[DomainArrowType]
     persons: List[DomainPersonType]
     metadata: Optional[DiagramMetadataType] = None
 
-    @staticmethod
-    def from_pydantic(obj: DomainDiagram) -> "DomainDiagramType":
-        """Convert from Pydantic model"""
-        return DomainDiagramType(
-            nodes=[DomainNodeType.from_pydantic(item) for item in obj.nodes] if obj.nodes else [],
-            handles=[DomainHandleType.from_pydantic(item) for item in obj.handles] if obj.handles else [],
-            arrows=[DomainArrowType.from_pydantic(item) for item in obj.arrows] if obj.arrows else [],
-            persons=[DomainPersonType.from_pydantic(item) for item in obj.persons] if obj.persons else [],
-            metadata=obj.metadata,
-        )
 
-
-@strawberry.experimental.pydantic.type(model=LLMUsage, all_fields=True)
+@strawberry.type
 class LLMUsageType:
-    """Auto-generated from Pydantic model"""
-    pass
+    """LLMUsage domain type"""
+    input: float
+    output: float
+    cached: Optional[float] = None
+    total: Optional[float] = None
 
 
-@strawberry.experimental.pydantic.type(model=NodeState, all_fields=True)
-class NodeStateType:
-    """Auto-generated from Pydantic model"""
-    pass
-
-
-@strawberry.experimental.pydantic.type(model=NodeMetrics, all_fields=True)
+@strawberry.type
 class NodeMetricsType:
-    """Auto-generated from Pydantic model"""
-    pass
+    """NodeMetrics domain type"""
+    node_id: str
+    node_type: str
+    start_time: float
+    end_time: Optional[float] = None
+    duration_ms: Optional[float] = None
+    memory_usage: Optional[float] = None
+    llm_usage: Optional[LLMUsageType] = None
+    error: Optional[str] = None
+    dependencies: Optional[List[str]] = None
 
 
-@strawberry.experimental.pydantic.type(model=Bottleneck, all_fields=True)
+@strawberry.type
 class BottleneckType:
-    """Auto-generated from Pydantic model"""
-    pass
+    """Bottleneck domain type"""
+    node_id: str
+    node_type: str
+    duration_ms: float
+    percentage: float
 
 
 @strawberry.type
 class ExecutionMetricsType:
+    """ExecutionMetrics domain type"""
     execution_id: ExecutionIDScalar
     start_time: float
     end_time: Optional[float] = None
@@ -406,106 +552,63 @@ class ExecutionMetricsType:
     parallelizable_groups: Optional[List[List[str]]] = None
     bottlenecks: Optional[List[BottleneckType]] = None
 
-    @staticmethod
-    def from_pydantic(obj: ExecutionMetrics) -> "ExecutionMetricsType":
-        """Convert from Pydantic model"""
-        return ExecutionMetricsType(
-            execution_id=obj.execution_id,
-            start_time=obj.start_time,
-            end_time=obj.end_time,
-            total_duration_ms=obj.total_duration_ms,
-            node_metrics={k: v.model_dump() if hasattr(v, 'model_dump') else v
-                        for k, v in obj.node_metrics.items()} if obj.node_metrics else {},
-            critical_path=obj.critical_path,
-            parallelizable_groups=obj.parallelizable_groups,
-            bottlenecks=obj.bottlenecks,
-        )
 
-
-@strawberry.experimental.pydantic.type(model=EnvelopeMeta, all_fields=True)
+@strawberry.type
 class EnvelopeMetaType:
-    """Auto-generated from Pydantic model"""
-    pass
-
-
-@strawberry.experimental.pydantic.type(model=SerializedEnvelope, all_fields=True)
-class SerializedEnvelopeType:
-    """Auto-generated from Pydantic model"""
-    pass
+    """EnvelopeMeta domain type"""
+    node_id: Optional[str] = None
+    llm_usage: Optional[LLMUsageType] = None
+    execution_time: Optional[float] = None
+    retry_count: Optional[float] = None
+    error: Optional[str] = None
+    error_type: Optional[str] = None
+    timestamp: Optional[JSONScalar] = None
 
 
 @strawberry.type
-class ExecutionStateType:
+class SerializedEnvelopeType:
+    """SerializedEnvelope domain type"""
+    envelope_format: bool = True
     id: str
-    status: Status
-    diagram_id: Optional[DiagramIDScalar] = None
-    started_at: str
-    ended_at: Optional[str] = None
-    node_states: JSONScalar
-    node_outputs: JSONScalar
-    llm_usage: LLMUsageType
-    error: Optional[str] = None
-    variables: Optional[JSONScalar] = None
-    metadata: Optional[JSONScalar] = None
-    is_active: Optional[bool] = None
-    exec_counts: JSONScalar
-    executed_nodes: List[str]
-    metrics: Optional[ExecutionMetricsType] = None
-
-    @staticmethod
-    def from_pydantic(obj: ExecutionState) -> "ExecutionStateType":
-        """Convert from Pydantic model"""
-        # Convert nested types
-        llm_usage = LLMUsageType.from_pydantic(obj.llm_usage) if hasattr(LLMUsageType, 'from_pydantic') else obj.llm_usage
-        metrics = ExecutionMetricsType.from_pydantic(obj.metrics) if obj.metrics and hasattr(ExecutionMetricsType, 'from_pydantic') else obj.metrics
-        return ExecutionStateType(
-            id=obj.id,
-            status=str(obj.status.value) if hasattr(obj.status, 'value') else str(obj.status),
-            diagram_id=obj.diagram_id,
-            started_at=obj.started_at,
-            ended_at=obj.ended_at,
-            node_states={k: v.model_dump() if hasattr(v, 'model_dump') else v
-                        for k, v in obj.node_states.items()} if obj.node_states else {},
-            node_outputs={k: v.model_dump() if hasattr(v, 'model_dump') else v
-                        for k, v in obj.node_outputs.items()} if obj.node_outputs else {},
-            llm_usage=obj.llm_usage,
-            error=obj.error,
-            variables=obj.variables,
-            metadata=obj.metadata,
-            is_active=obj.is_active,
-            exec_counts={k: v.model_dump() if hasattr(v, 'model_dump') else v
-                        for k, v in obj.exec_counts.items()} if obj.exec_counts else {},
-            executed_nodes=obj.executed_nodes,
-            metrics=obj.metrics,
-        )
+    trace_id: str
+    produced_by: str
+    content_type: str
+    schema_id: Optional[str] = None
+    serialization_format: Optional[str] = None
+    body: JSONScalar
+    meta: EnvelopeMetaType
+    representations: Optional[JSONScalar] = None
 
 
 @strawberry.type
 class ExecutionOptionsType:
+    """ExecutionOptions domain type"""
     mode: Optional[str] = None
     timeout: Optional[float] = None
     variables: Optional[JSONScalar] = None
     debug: Optional[bool] = None
 
-    @staticmethod
-    def from_pydantic(obj: ExecutionOptions) -> "ExecutionOptionsType":
-        """Convert from Pydantic model"""
-        return ExecutionOptionsType(
-            mode=obj.mode,
-            timeout=obj.timeout,
-            variables=obj.variables,
-            debug=obj.debug,
-        )
 
-
-@strawberry.experimental.pydantic.type(model=InteractivePromptData, all_fields=True)
+@strawberry.type
 class InteractivePromptDataType:
-    """Auto-generated from Pydantic model"""
-    pass
+    """InteractivePromptData domain type"""
+    node_id: NodeIDScalar
+    prompt: str
+    timeout: Optional[float] = None
+    default_value: Optional[str] = None
+
+
+@strawberry.type
+class InteractiveResponseType:
+    """InteractiveResponse domain type"""
+    node_id: NodeIDScalar
+    response: str
+    timestamp: str
 
 
 @strawberry.type
 class ExecutionUpdateType:
+    """ExecutionUpdate domain type"""
     type: EventType
     execution_id: ExecutionIDScalar
     node_id: Optional[NodeIDScalar] = None
@@ -518,80 +621,121 @@ class ExecutionUpdateType:
     tokens: Optional[float] = None
     data: Optional[JSONScalar] = None
 
-    @staticmethod
-    def from_pydantic(obj: ExecutionUpdate) -> "ExecutionUpdateType":
-        """Convert from Pydantic model"""
-        return ExecutionUpdateType(
-            type=str(obj.type.value) if hasattr(obj.type, 'value') else str(obj.type),
-            execution_id=obj.execution_id,
-            node_id=obj.node_id,
-            status=str(obj.status.value) if hasattr(obj.status, 'value') else str(obj.status),
-            result=obj.result,
-            error=obj.error,
-            timestamp=obj.timestamp,
-            total_tokens=obj.total_tokens,
-            node_type=obj.node_type,
-            tokens=obj.tokens,
-            data=obj.data,
-        )
 
-
-@strawberry.experimental.pydantic.type(model=NodeDefinition, all_fields=True)
+@strawberry.type
 class NodeDefinitionType:
-    """Auto-generated from Pydantic model"""
-    pass
+    """NodeDefinition domain type"""
+    type: str
+    handler: JSONScalar
+    requires_services: Optional[List[str]] = None
+    description: Optional[str] = None
 
 
-@strawberry.experimental.pydantic.type(model=File, all_fields=True)
+@strawberry.type
 class FileType:
-    """Auto-generated from Pydantic model"""
-    pass
+    """File domain type"""
+    id: FileIDScalar
+    name: str
+    path: str
+    content: Optional[str] = None
+    size: Optional[float] = None
+    mime_type: Optional[str] = None
+    created_at: Optional[str] = None
+    modified_at: Optional[str] = None
+    metadata: Optional[JSONScalar] = None
 
 
-@strawberry.experimental.pydantic.type(model=ToolConfig, all_fields=True)
+@strawberry.type
+class FileOperationResultType:
+    """FileOperationResult domain type"""
+    success: bool
+    file: Optional[File] = None
+    message: Optional[str] = None
+    error: Optional[str] = None
+
+
+@strawberry.type
 class ToolConfigType:
-    """Auto-generated from Pydantic model"""
-    pass
+    """ToolConfig domain type"""
+    type: ToolType
+    enabled: Optional[bool] = None
+    config: Optional[JSONScalar] = None
 
 
-@strawberry.experimental.pydantic.type(model=WebSearchResult, all_fields=True)
+@strawberry.type
 class WebSearchResultType:
-    """Auto-generated from Pydantic model"""
-    pass
+    """WebSearchResult domain type"""
+    url: str
+    title: str
+    snippet: str
+    score: Optional[float] = None
 
 
-@strawberry.experimental.pydantic.type(model=ImageGenerationResult, all_fields=True)
+@strawberry.type
 class ImageGenerationResultType:
-    """Auto-generated from Pydantic model"""
-    pass
+    """ImageGenerationResult domain type"""
+    image_data: str
+    format: str
+    width: Optional[float] = None
+    height: Optional[float] = None
 
 
-@strawberry.experimental.pydantic.type(model=ToolOutput, all_fields=True)
+@strawberry.type
 class ToolOutputType:
-    """Auto-generated from Pydantic model"""
-    pass
+    """ToolOutput domain type"""
+    type: ToolType
+    result: JSONScalar
+    raw_response: Optional[JSONScalar] = None
 
 
-@strawberry.experimental.pydantic.type(model=LLMRequestOptions, all_fields=True)
+@strawberry.type
+class ChatResultType:
+    """ChatResult domain type"""
+    text: str
+    llm_usage: Optional[LLMUsageType] = None
+    raw_response: Optional[JSONScalar] = None
+    tool_outputs: Optional[List[ToolOutput]] = None
+
+
+@strawberry.type
 class LLMRequestOptionsType:
-    """Auto-generated from Pydantic model"""
-    pass
+    """LLMRequestOptions domain type"""
+    temperature: Optional[float] = None
+    max_tokens: Optional[float] = None
+    top_p: Optional[float] = None
+    n: Optional[float] = None
+    tools: Optional[List[ToolConfig]] = None
+    response_format: Optional[JSONScalar] = None
 
 
-@strawberry.experimental.pydantic.type(model=NodeUpdate, all_fields=True)
+@strawberry.type
 class NodeUpdateType:
-    """Auto-generated from Pydantic model"""
-    pass
+    """NodeUpdate domain type"""
+    execution_id: ExecutionIDScalar
+    node_id: NodeIDScalar
+    status: StatusGraphQL
+    progress: Optional[float] = None
+    output: Optional[JSONScalar] = None
+    error: Optional[str] = None
+    metrics: Optional[JSONScalar] = None
+    timestamp: str
 
 
-@strawberry.experimental.pydantic.type(model=InteractivePrompt, all_fields=True)
+@strawberry.type
 class InteractivePromptType:
-    """Auto-generated from Pydantic model"""
-    pass
+    """InteractivePrompt domain type"""
+    execution_id: ExecutionIDScalar
+    node_id: NodeIDScalar
+    prompt: str
+    timeout: Optional[float] = None
+    default_value: Optional[str] = None
+    options: Optional[List[str]] = None
+    timestamp: str
 
 
 @strawberry.type
 class ExecutionLogEntryType:
+    """ExecutionLogEntry domain type"""
     execution_id: ExecutionIDScalar
     node_id: Optional[NodeIDScalar] = None
     level: str
@@ -599,22 +743,154 @@ class ExecutionLogEntryType:
     context: Optional[JSONScalar] = None
     timestamp: str
 
+
+@strawberry.type
+class KeepalivePayloadType:
+    """KeepalivePayload domain type"""
+    type: str
+    timestamp: str
+
+
+@strawberry.type
+class QueryFieldType:
+    """QueryField domain type"""
+    name: str
+    required: Optional[bool] = None
+    fields: Optional[List[QueryField]] = None
+
+
+@strawberry.type
+class QueryVariableType:
+    """QueryVariable domain type"""
+    name: str
+    type: str
+    required: bool
+
+
+@strawberry.type
+class QuerySpecificationType:
+    """QuerySpecification domain type"""
+    name: str
+    operation: QueryOperationType
+    entityType: str
+    description: Optional[str] = None
+    variables: Optional[List[QueryVariable]] = None
+    returnType: str
+    fields: List[QueryField]
+    template: Optional[str] = None
+
+
+@strawberry.type
+class EntityQueryConfigType:
+    """EntityQueryConfig domain type"""
+    entity: str
+    operations: List[CrudOperation]
+    defaultFields: List[QueryField]
+    relationships: Optional[JSONScalar] = None
+
+
+@strawberry.type
+class QueryManifestType:
+    """QueryManifest domain type"""
+    version: str
+    entities: List[EntityQueryConfig]
+
+
+@strawberry.type
+class RelationshipConfigType:
+    """RelationshipConfig domain type"""
+    field: str
+    type: str
+    targetEntity: str
+    includeByDefault: Optional[bool] = None
+    defaultFields: Optional[List[str]] = None
+
+
+
+# Special cases for ExecutionState and NodeState
+@strawberry.type
+class NodeStateType:
+    """NodeState domain type"""
+    status: StatusGraphQL
+    started_at: Optional[str] = None
+    ended_at: Optional[str] = None
+    error: Optional[str] = None
+    llm_usage: Optional[LLMUsageType] = None
+    output: Optional[JSONScalar] = None
+
     @staticmethod
-    def from_pydantic(obj: ExecutionLogEntry) -> "ExecutionLogEntryType":
+    def from_pydantic(obj: NodeState) -> "NodeStateType":
         """Convert from Pydantic model"""
-        return ExecutionLogEntryType(
-            execution_id=obj.execution_id,
-            node_id=obj.node_id,
-            level=obj.level,
-            message=obj.message,
-            context=obj.context,
-            timestamp=obj.timestamp,
+        return NodeStateType(
+            status=StatusGraphQL[obj.status.name] if hasattr(obj.status, 'name') else StatusGraphQL[obj.status],
+            started_at=obj.started_at,
+            ended_at=obj.ended_at,
+            error=obj.error,
+            llm_usage=LLMUsageType.from_pydantic(obj.llm_usage) if obj.llm_usage else None,
+            output=obj.output,
         )
 
+@strawberry.type
+class LLMUsageSimpleType:
+    """Simple LLM usage type for ExecutionStateType"""
+    input: Optional[int] = None
+    output: Optional[int] = None
+    cached: Optional[int] = None
+    total: Optional[int] = None
 
-@strawberry.experimental.pydantic.type(model=KeepalivePayload, all_fields=True)
-class KeepalivePayloadType:
-    """Auto-generated from Pydantic model"""
-    pass
+@strawberry.type
+class ExecutionStateType:
+    """ExecutionState domain type"""
+    id: ExecutionIDScalar
+    status: StatusGraphQL
+    diagram_id: Optional[DiagramIDScalar] = None
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    error: Optional[str] = None
+    variables: Optional[JSONScalar] = None
+    output: Optional[JSONScalar] = None
+    execution_stats: Optional[ExecutionMetricsType] = None
+    parent_execution_id: Optional[ExecutionIDScalar] = None
+    triggered_by: Optional[NodeIDScalar] = None
+    nodes: Optional[JSONScalar] = None
+    execution_options: Optional[ExecutionOptionsType] = None
+    # Additional fields for frontend compatibility
+    node_states: Optional[JSONScalar] = None
+    node_outputs: Optional[JSONScalar] = None
+    llm_usage: Optional[LLMUsageSimpleType] = None
 
+    @strawberry.field
+    def ended_at(self) -> Optional[str]:
+        """Alias for completed_at for frontend compatibility"""
+        return self.completed_at
 
+    @strawberry.field
+    def metrics(self) -> Optional[ExecutionMetricsType]:
+        """Alias for execution_stats for frontend compatibility"""
+        return self.execution_stats
+
+    @staticmethod
+    def from_pydantic(obj: ExecutionState) -> "ExecutionStateType":
+        """Convert from Pydantic model"""
+        return ExecutionStateType(
+            id=obj.id,
+            status=StatusGraphQL[obj.status.name] if hasattr(obj.status, 'name') else StatusGraphQL[obj.status],
+            diagram_id=obj.diagram_id,
+            started_at=obj.started_at,
+            completed_at=obj.ended_at,  # Map ended_at to completed_at
+            error=obj.error,
+            variables=obj.variables,
+            # Additional fields for frontend compatibility
+            node_states={
+                node_id: {
+                    "status": str(state.status) if hasattr(state, "status") else "UNKNOWN",
+                    "started_at": state.started_at if hasattr(state, "started_at") else None,
+                    "ended_at": state.ended_at if hasattr(state, "ended_at") else None,
+                    "error": state.error if hasattr(state, "error") else None,
+                    "output": state.output if hasattr(state, "output") else None,
+                }
+                for node_id, state in (obj.node_states or {}).items()
+            } if obj.node_states else None,
+            node_outputs=obj.node_outputs,
+            llm_usage=None,  # Will be populated from execution data if available
+        )

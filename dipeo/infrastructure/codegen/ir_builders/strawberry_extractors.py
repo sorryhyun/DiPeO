@@ -56,11 +56,18 @@ def extract_query_string(query_data: dict[str, Any]) -> str:
     if operation_type == "subscription":
         query = f"{operation_type} {name}{vars_str} {{\n{fields_str}\n}}"
     else:
-        entity_name = _extract_entity_name(name, fields)
-        if vars_str:
-            query = f"{operation_type} {name}{vars_str} {{\n  {entity_name}{_build_args_from_vars(variables)}\n{fields_str}\n}}"
+        # Check if fields already contain the entity call (modern format)
+        # Modern format: fields is an array with a single object containing the entity
+        if fields and isinstance(fields[0], dict) and fields[0].get("name"):
+            # Fields already contain the complete entity structure, just use fields_str
+            query = f"{operation_type} {name}{vars_str} {{\n{fields_str}\n}}"
         else:
-            query = f"{operation_type} {name} {{\n  {entity_name}\n{fields_str}\n}}"
+            # Legacy format: need to construct entity call
+            entity_name = _extract_entity_name(name, fields)
+            if vars_str:
+                query = f"{operation_type} {name}{vars_str} {{\n  {entity_name}{_build_args_from_vars(variables)}\n{fields_str}\n}}"
+            else:
+                query = f"{operation_type} {name} {{\n  {entity_name}\n{fields_str}\n}}"
 
     return query
 
@@ -200,17 +207,35 @@ def _build_fields_string(fields: list[dict[str, Any]], indent: int = 2) -> str:
             subfields = field.get("fields", field.get("subfields", []))
             args = field.get("args")
 
+            # Format args correctly - convert from list of dicts to GraphQL argument syntax
+            args_str = ""
+            if args:
+                if isinstance(args, list):
+                    # Convert list of arg dicts to GraphQL format
+                    arg_parts = []
+                    for arg in args:
+                        if isinstance(arg, dict):
+                            arg_name = arg.get("name", "")
+                            if arg.get("isVariable"):
+                                arg_parts.append(f"{arg_name}: ${arg_name}")
+                        else:
+                            arg_parts.append(str(arg))
+                    args_str = ", ".join(arg_parts)
+                else:
+                    # Already a string, use as-is
+                    args_str = args
+
             if subfields:
                 subfields_str = _build_fields_string(subfields, indent + 2)
-                if args:
-                    lines.append(f"{indent_str}{field_name}({args}) {{")
+                if args_str:
+                    lines.append(f"{indent_str}{field_name}({args_str}) {{")
                 else:
                     lines.append(f"{indent_str}{field_name} {{")
                 lines.append(subfields_str)
                 lines.append(f"{indent_str}}}")
             else:
-                if args:
-                    lines.append(f"{indent_str}{field_name}({args})")
+                if args_str:
+                    lines.append(f"{indent_str}{field_name}({args_str})")
                 else:
                     lines.append(f"{indent_str}{field_name}")
 

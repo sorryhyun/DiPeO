@@ -2,7 +2,7 @@
 Shared scalar type aliases for Strawberry GraphQL.
 Auto-generated to avoid duplication across generated files.
 
-Generated at: 2025-09-28T12:25:57.527017
+Generated at: 2025-09-28T14:23:21.976913
 """
 
 import strawberry

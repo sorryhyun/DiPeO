@@ -62,7 +62,7 @@ input CreateDiagramInput {
   author: String = null
   description: String = null
   name: String!
-  tags: [String!] = null
+  tags: String = null
 }
 
 input CreateNodeInput {
@@ -105,7 +105,7 @@ input DiagramFilterInput {
   created_after: DateTime = null
   created_before: DateTime = null
   name: String = null
-  tags: [String!] = null
+  tags: String = null
 }
 
 enum DiagramFormatGraphQL {
@@ -140,7 +140,7 @@ type DiagramResult {
 }
 
 type DomainApiKeyType {
-  id: String!
+  id: ID!
   label: String!
   service: APIServiceType!
   key: String
@@ -165,8 +165,8 @@ type DomainDiagramType {
 }
 
 type DomainHandleType {
-  id: String!
-  node_id: String!
+  id: ID!
+  node_id: ID!
   label: HandleLabel!
   direction: HandleDirection!
   data_type: DataType!
@@ -237,6 +237,13 @@ type ExecutionMetricsType {
   bottlenecks: [BottleneckType!]
 }
 
+type ExecutionOptionsType {
+  mode: String
+  timeout: Float
+  variables: JSON
+  debug: Boolean
+}
+
 type ExecutionResult {
   success: Boolean!
   message: String
@@ -248,20 +255,25 @@ type ExecutionResult {
 }
 
 type ExecutionStateType {
-  id: String!
+  id: ID!
   status: Status!
   diagram_id: ID
-  started_at: String!
-  ended_at: String
-  node_states: JSON!
-  node_outputs: JSON!
-  llm_usage: LLMUsageType!
+  started_at: String
+  completed_at: String
   error: String
+  current_node_ids: [ID!]!
+  completed_node_ids: [ID!]!
   variables: JSON
-  metadata: JSON
-  is_active: Boolean
-  exec_counts: JSON!
-  executed_nodes: [String!]!
+  output: JSON
+  execution_stats: ExecutionMetricsType
+  parent_execution_id: ID
+  triggered_by: ID
+  nodes: JSON
+  execution_options: ExecutionOptionsType
+  node_states: JSON
+  node_outputs: JSON
+  llm_usage: LLMUsageSimpleType
+  ended_at: String
   metrics: ExecutionMetricsType
 }
 
@@ -333,11 +345,11 @@ enum LLMService {
   OLLAMA
 }
 
-type LLMUsageType {
-  input: Float!
-  output: Float!
-  cached: Float
-  total: Float
+type LLMUsageSimpleType {
+  input: Int
+  output: Int
+  cached: Int
+  total: Int
 }
 
 type Mutation {
@@ -409,7 +421,7 @@ input PersonLLMConfigInput {
 type PersonLLMConfigType {
   service: LLMService!
   model: String!
-  api_key_id: String!
+  api_key_id: ID!
   system_prompt: String
   prompt_file: String
 }

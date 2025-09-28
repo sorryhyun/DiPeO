@@ -2,7 +2,7 @@
 Generated Strawberry GraphQL enum definitions for DiPeO.
 Avoid editing THIS FILE DIRECTLY.
 
-Generated at: 2025-09-28T12:25:57.527017
+Generated at: 2025-09-28T14:23:21.976913
 """
 
 from enum import Enum
@@ -366,7 +366,7 @@ __all__ = [
 
 def convert_queryoperationtype_to_graphql(python_enum):
     """Convert Python QueryOperationType enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import QueryOperationType
+    from ..enums import QueryOperationType
     mapping = {
         QueryOperationType.QUERY: QueryOperationTypeGraphQL.QUERY,
         QueryOperationType.MUTATION: QueryOperationTypeGraphQL.MUTATION,
@@ -376,7 +376,7 @@ def convert_queryoperationtype_to_graphql(python_enum):
 
 def convert_queryoperationtype_from_graphql(graphql_enum):
     """Convert GraphQL QueryOperationType enum to Python enum."""
-    from dipeo.diagram_generated.enums import QueryOperationType
+    from ..enums import QueryOperationType
     mapping = {
         QueryOperationTypeGraphQL.QUERY: QueryOperationType.QUERY,
         QueryOperationTypeGraphQL.MUTATION: QueryOperationType.MUTATION,
@@ -387,7 +387,7 @@ def convert_queryoperationtype_from_graphql(graphql_enum):
 
 def convert_crudoperation_to_graphql(python_enum):
     """Convert Python CrudOperation enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import CrudOperation
+    from ..enums import CrudOperation
     mapping = {
         CrudOperation.GET: CrudOperationGraphQL.GET,
         CrudOperation.LIST: CrudOperationGraphQL.LIST,
@@ -400,7 +400,7 @@ def convert_crudoperation_to_graphql(python_enum):
 
 def convert_crudoperation_from_graphql(graphql_enum):
     """Convert GraphQL CrudOperation enum to Python enum."""
-    from dipeo.diagram_generated.enums import CrudOperation
+    from ..enums import CrudOperation
     mapping = {
         CrudOperationGraphQL.GET: CrudOperation.GET,
         CrudOperationGraphQL.LIST: CrudOperation.LIST,
@@ -414,7 +414,7 @@ def convert_crudoperation_from_graphql(graphql_enum):
 
 def convert_queryentity_to_graphql(python_enum):
     """Convert Python QueryEntity enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import QueryEntity
+    from ..enums import QueryEntity
     mapping = {
         QueryEntity.DIAGRAM: QueryEntityGraphQL.DIAGRAM,
         QueryEntity.PERSON: QueryEntityGraphQL.PERSON,
@@ -430,7 +430,7 @@ def convert_queryentity_to_graphql(python_enum):
 
 def convert_queryentity_from_graphql(graphql_enum):
     """Convert GraphQL QueryEntity enum to Python enum."""
-    from dipeo.diagram_generated.enums import QueryEntity
+    from ..enums import QueryEntity
     mapping = {
         QueryEntityGraphQL.DIAGRAM: QueryEntity.DIAGRAM,
         QueryEntityGraphQL.PERSON: QueryEntity.PERSON,
@@ -447,7 +447,7 @@ def convert_queryentity_from_graphql(graphql_enum):
 
 def convert_fieldpreset_to_graphql(python_enum):
     """Convert Python FieldPreset enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import FieldPreset
+    from ..enums import FieldPreset
     mapping = {
         FieldPreset.MINIMAL: FieldPresetGraphQL.MINIMAL,
         FieldPreset.STANDARD: FieldPresetGraphQL.STANDARD,
@@ -458,7 +458,7 @@ def convert_fieldpreset_to_graphql(python_enum):
 
 def convert_fieldpreset_from_graphql(graphql_enum):
     """Convert GraphQL FieldPreset enum to Python enum."""
-    from dipeo.diagram_generated.enums import FieldPreset
+    from ..enums import FieldPreset
     mapping = {
         FieldPresetGraphQL.MINIMAL: FieldPreset.MINIMAL,
         FieldPresetGraphQL.STANDARD: FieldPreset.STANDARD,
@@ -470,7 +470,7 @@ def convert_fieldpreset_from_graphql(graphql_enum):
 
 def convert_fieldgroup_to_graphql(python_enum):
     """Convert Python FieldGroup enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import FieldGroup
+    from ..enums import FieldGroup
     mapping = {
         FieldGroup.METADATA: FieldGroupGraphQL.METADATA,
         FieldGroup.TIMESTAMPS: FieldGroupGraphQL.TIMESTAMPS,
@@ -481,7 +481,7 @@ def convert_fieldgroup_to_graphql(python_enum):
 
 def convert_fieldgroup_from_graphql(graphql_enum):
     """Convert GraphQL FieldGroup enum to Python enum."""
-    from dipeo.diagram_generated.enums import FieldGroup
+    from ..enums import FieldGroup
     mapping = {
         FieldGroupGraphQL.METADATA: FieldGroup.METADATA,
         FieldGroupGraphQL.TIMESTAMPS: FieldGroup.TIMESTAMPS,
@@ -493,7 +493,7 @@ def convert_fieldgroup_from_graphql(graphql_enum):
 
 def convert_datatype_to_graphql(python_enum):
     """Convert Python DataType enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import DataType
+    from ..enums import DataType
     mapping = {
         DataType.ANY: DataTypeGraphQL.ANY,
         DataType.STRING: DataTypeGraphQL.STRING,
@@ -506,7 +506,7 @@ def convert_datatype_to_graphql(python_enum):
 
 def convert_datatype_from_graphql(graphql_enum):
     """Convert GraphQL DataType enum to Python enum."""
-    from dipeo.diagram_generated.enums import DataType
+    from ..enums import DataType
     mapping = {
         DataTypeGraphQL.ANY: DataType.ANY,
         DataTypeGraphQL.STRING: DataType.STRING,
@@ -520,7 +520,7 @@ def convert_datatype_from_graphql(graphql_enum):
 
 def convert_contenttype_to_graphql(python_enum):
     """Convert Python ContentType enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import ContentType
+    from ..enums import ContentType
     mapping = {
         ContentType.RAW_TEXT: ContentTypeGraphQL.RAW_TEXT,
         ContentType.CONVERSATION_STATE: ContentTypeGraphQL.CONVERSATION_STATE,
@@ -534,7 +534,7 @@ def convert_contenttype_to_graphql(python_enum):
 
 def convert_contenttype_from_graphql(graphql_enum):
     """Convert GraphQL ContentType enum to Python enum."""
-    from dipeo.diagram_generated.enums import ContentType
+    from ..enums import ContentType
     mapping = {
         ContentTypeGraphQL.RAW_TEXT: ContentType.RAW_TEXT,
         ContentTypeGraphQL.CONVERSATION_STATE: ContentType.CONVERSATION_STATE,
@@ -549,7 +549,7 @@ def convert_contenttype_from_graphql(graphql_enum):
 
 def convert_handledirection_to_graphql(python_enum):
     """Convert Python HandleDirection enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import HandleDirection
+    from ..enums import HandleDirection
     mapping = {
         HandleDirection.INPUT: HandleDirectionGraphQL.INPUT,
         HandleDirection.OUTPUT: HandleDirectionGraphQL.OUTPUT,
@@ -558,7 +558,7 @@ def convert_handledirection_to_graphql(python_enum):
 
 def convert_handledirection_from_graphql(graphql_enum):
     """Convert GraphQL HandleDirection enum to Python enum."""
-    from dipeo.diagram_generated.enums import HandleDirection
+    from ..enums import HandleDirection
     mapping = {
         HandleDirectionGraphQL.INPUT: HandleDirection.INPUT,
         HandleDirectionGraphQL.OUTPUT: HandleDirection.OUTPUT,
@@ -568,7 +568,7 @@ def convert_handledirection_from_graphql(graphql_enum):
 
 def convert_handlelabel_to_graphql(python_enum):
     """Convert Python HandleLabel enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import HandleLabel
+    from ..enums import HandleLabel
     mapping = {
         HandleLabel.DEFAULT: HandleLabelGraphQL.DEFAULT,
         HandleLabel.FIRST: HandleLabelGraphQL.FIRST,
@@ -582,7 +582,7 @@ def convert_handlelabel_to_graphql(python_enum):
 
 def convert_handlelabel_from_graphql(graphql_enum):
     """Convert GraphQL HandleLabel enum to Python enum."""
-    from dipeo.diagram_generated.enums import HandleLabel
+    from ..enums import HandleLabel
     mapping = {
         HandleLabelGraphQL.DEFAULT: HandleLabel.DEFAULT,
         HandleLabelGraphQL.FIRST: HandleLabel.FIRST,
@@ -597,7 +597,7 @@ def convert_handlelabel_from_graphql(graphql_enum):
 
 def convert_diagramformat_to_graphql(python_enum):
     """Convert Python DiagramFormat enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import DiagramFormat
+    from ..enums import DiagramFormat
     mapping = {
         DiagramFormat.NATIVE: DiagramFormatGraphQL.NATIVE,
         DiagramFormat.LIGHT: DiagramFormatGraphQL.LIGHT,
@@ -607,7 +607,7 @@ def convert_diagramformat_to_graphql(python_enum):
 
 def convert_diagramformat_from_graphql(graphql_enum):
     """Convert GraphQL DiagramFormat enum to Python enum."""
-    from dipeo.diagram_generated.enums import DiagramFormat
+    from ..enums import DiagramFormat
     mapping = {
         DiagramFormatGraphQL.NATIVE: DiagramFormat.NATIVE,
         DiagramFormatGraphQL.LIGHT: DiagramFormat.LIGHT,
@@ -618,7 +618,7 @@ def convert_diagramformat_from_graphql(graphql_enum):
 
 def convert_status_to_graphql(python_enum):
     """Convert Python Status enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import Status
+    from ..enums import Status
     mapping = {
         Status.PENDING: StatusGraphQL.PENDING,
         Status.RUNNING: StatusGraphQL.RUNNING,
@@ -633,7 +633,7 @@ def convert_status_to_graphql(python_enum):
 
 def convert_status_from_graphql(graphql_enum):
     """Convert GraphQL Status enum to Python enum."""
-    from dipeo.diagram_generated.enums import Status
+    from ..enums import Status
     mapping = {
         StatusGraphQL.PENDING: Status.PENDING,
         StatusGraphQL.RUNNING: Status.RUNNING,
@@ -649,7 +649,7 @@ def convert_status_from_graphql(graphql_enum):
 
 def convert_flowstatus_to_graphql(python_enum):
     """Convert Python FlowStatus enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import FlowStatus
+    from ..enums import FlowStatus
     mapping = {
         FlowStatus.WAITING: FlowStatusGraphQL.WAITING,
         FlowStatus.READY: FlowStatusGraphQL.READY,
@@ -660,7 +660,7 @@ def convert_flowstatus_to_graphql(python_enum):
 
 def convert_flowstatus_from_graphql(graphql_enum):
     """Convert GraphQL FlowStatus enum to Python enum."""
-    from dipeo.diagram_generated.enums import FlowStatus
+    from ..enums import FlowStatus
     mapping = {
         FlowStatusGraphQL.WAITING: FlowStatus.WAITING,
         FlowStatusGraphQL.READY: FlowStatus.READY,
@@ -672,7 +672,7 @@ def convert_flowstatus_from_graphql(graphql_enum):
 
 def convert_completionstatus_to_graphql(python_enum):
     """Convert Python CompletionStatus enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import CompletionStatus
+    from ..enums import CompletionStatus
     mapping = {
         CompletionStatus.SUCCESS: CompletionStatusGraphQL.SUCCESS,
         CompletionStatus.FAILED: CompletionStatusGraphQL.FAILED,
@@ -683,7 +683,7 @@ def convert_completionstatus_to_graphql(python_enum):
 
 def convert_completionstatus_from_graphql(graphql_enum):
     """Convert GraphQL CompletionStatus enum to Python enum."""
-    from dipeo.diagram_generated.enums import CompletionStatus
+    from ..enums import CompletionStatus
     mapping = {
         CompletionStatusGraphQL.SUCCESS: CompletionStatus.SUCCESS,
         CompletionStatusGraphQL.FAILED: CompletionStatus.FAILED,
@@ -695,7 +695,7 @@ def convert_completionstatus_from_graphql(graphql_enum):
 
 def convert_executionphase_to_graphql(python_enum):
     """Convert Python ExecutionPhase enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import ExecutionPhase
+    from ..enums import ExecutionPhase
     mapping = {
         ExecutionPhase.MEMORY_SELECTION: ExecutionPhaseGraphQL.MEMORY_SELECTION,
         ExecutionPhase.DIRECT_EXECUTION: ExecutionPhaseGraphQL.DIRECT_EXECUTION,
@@ -706,7 +706,7 @@ def convert_executionphase_to_graphql(python_enum):
 
 def convert_executionphase_from_graphql(graphql_enum):
     """Convert GraphQL ExecutionPhase enum to Python enum."""
-    from dipeo.diagram_generated.enums import ExecutionPhase
+    from ..enums import ExecutionPhase
     mapping = {
         ExecutionPhaseGraphQL.MEMORY_SELECTION: ExecutionPhase.MEMORY_SELECTION,
         ExecutionPhaseGraphQL.DIRECT_EXECUTION: ExecutionPhase.DIRECT_EXECUTION,
@@ -718,7 +718,7 @@ def convert_executionphase_from_graphql(graphql_enum):
 
 def convert_eventtype_to_graphql(python_enum):
     """Convert Python EventType enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import EventType
+    from ..enums import EventType
     mapping = {
         EventType.EXECUTION_STARTED: EventTypeGraphQL.EXECUTION_STARTED,
         EventType.EXECUTION_COMPLETED: EventTypeGraphQL.EXECUTION_COMPLETED,
@@ -735,7 +735,7 @@ def convert_eventtype_to_graphql(python_enum):
 
 def convert_eventtype_from_graphql(graphql_enum):
     """Convert GraphQL EventType enum to Python enum."""
-    from dipeo.diagram_generated.enums import EventType
+    from ..enums import EventType
     mapping = {
         EventTypeGraphQL.EXECUTION_STARTED: EventType.EXECUTION_STARTED,
         EventTypeGraphQL.EXECUTION_COMPLETED: EventType.EXECUTION_COMPLETED,
@@ -753,7 +753,7 @@ def convert_eventtype_from_graphql(graphql_enum):
 
 def convert_llmservice_to_graphql(python_enum):
     """Convert Python LLMService enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import LLMService
+    from ..enums import LLMService
     mapping = {
         LLMService.OPENAI: LLMServiceGraphQL.OPENAI,
         LLMService.ANTHROPIC: LLMServiceGraphQL.ANTHROPIC,
@@ -767,7 +767,7 @@ def convert_llmservice_to_graphql(python_enum):
 
 def convert_llmservice_from_graphql(graphql_enum):
     """Convert GraphQL LLMService enum to Python enum."""
-    from dipeo.diagram_generated.enums import LLMService
+    from ..enums import LLMService
     mapping = {
         LLMServiceGraphQL.OPENAI: LLMService.OPENAI,
         LLMServiceGraphQL.ANTHROPIC: LLMService.ANTHROPIC,
@@ -782,7 +782,7 @@ def convert_llmservice_from_graphql(graphql_enum):
 
 def convert_apiservicetype_to_graphql(python_enum):
     """Convert Python APIServiceType enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import APIServiceType
+    from ..enums import APIServiceType
     mapping = {
         APIServiceType.OPENAI: APIServiceTypeGraphQL.OPENAI,
         APIServiceType.ANTHROPIC: APIServiceTypeGraphQL.ANTHROPIC,
@@ -796,7 +796,7 @@ def convert_apiservicetype_to_graphql(python_enum):
 
 def convert_apiservicetype_from_graphql(graphql_enum):
     """Convert GraphQL APIServiceType enum to Python enum."""
-    from dipeo.diagram_generated.enums import APIServiceType
+    from ..enums import APIServiceType
     mapping = {
         APIServiceTypeGraphQL.OPENAI: APIServiceType.OPENAI,
         APIServiceTypeGraphQL.ANTHROPIC: APIServiceType.ANTHROPIC,
@@ -811,7 +811,7 @@ def convert_apiservicetype_from_graphql(graphql_enum):
 
 def convert_tooltype_to_graphql(python_enum):
     """Convert Python ToolType enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import ToolType
+    from ..enums import ToolType
     mapping = {
         ToolType.WEB_SEARCH: ToolTypeGraphQL.WEB_SEARCH,
         ToolType.WEB_SEARCH_PREVIEW: ToolTypeGraphQL.WEB_SEARCH_PREVIEW,
@@ -821,7 +821,7 @@ def convert_tooltype_to_graphql(python_enum):
 
 def convert_tooltype_from_graphql(graphql_enum):
     """Convert GraphQL ToolType enum to Python enum."""
-    from dipeo.diagram_generated.enums import ToolType
+    from ..enums import ToolType
     mapping = {
         ToolTypeGraphQL.WEB_SEARCH: ToolType.WEB_SEARCH,
         ToolTypeGraphQL.WEB_SEARCH_PREVIEW: ToolType.WEB_SEARCH_PREVIEW,
@@ -832,7 +832,7 @@ def convert_tooltype_from_graphql(graphql_enum):
 
 def convert_toolselection_to_graphql(python_enum):
     """Convert Python ToolSelection enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import ToolSelection
+    from ..enums import ToolSelection
     mapping = {
         ToolSelection.NONE: ToolSelectionGraphQL.NONE,
         ToolSelection.IMAGE: ToolSelectionGraphQL.IMAGE,
@@ -842,7 +842,7 @@ def convert_toolselection_to_graphql(python_enum):
 
 def convert_toolselection_from_graphql(graphql_enum):
     """Convert GraphQL ToolSelection enum to Python enum."""
-    from dipeo.diagram_generated.enums import ToolSelection
+    from ..enums import ToolSelection
     mapping = {
         ToolSelectionGraphQL.NONE: ToolSelection.NONE,
         ToolSelectionGraphQL.IMAGE: ToolSelection.IMAGE,
@@ -853,7 +853,7 @@ def convert_toolselection_from_graphql(graphql_enum):
 
 def convert_authtype_to_graphql(python_enum):
     """Convert Python AuthType enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import AuthType
+    from ..enums import AuthType
     mapping = {
         AuthType.NONE: AuthTypeGraphQL.NONE,
         AuthType.BEARER: AuthTypeGraphQL.BEARER,
@@ -864,7 +864,7 @@ def convert_authtype_to_graphql(python_enum):
 
 def convert_authtype_from_graphql(graphql_enum):
     """Convert GraphQL AuthType enum to Python enum."""
-    from dipeo.diagram_generated.enums import AuthType
+    from ..enums import AuthType
     mapping = {
         AuthTypeGraphQL.NONE: AuthType.NONE,
         AuthTypeGraphQL.BEARER: AuthType.BEARER,
@@ -876,7 +876,7 @@ def convert_authtype_from_graphql(graphql_enum):
 
 def convert_retrystrategy_to_graphql(python_enum):
     """Convert Python RetryStrategy enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import RetryStrategy
+    from ..enums import RetryStrategy
     mapping = {
         RetryStrategy.NONE: RetryStrategyGraphQL.NONE,
         RetryStrategy.LINEAR: RetryStrategyGraphQL.LINEAR,
@@ -891,7 +891,7 @@ def convert_retrystrategy_to_graphql(python_enum):
 
 def convert_retrystrategy_from_graphql(graphql_enum):
     """Convert GraphQL RetryStrategy enum to Python enum."""
-    from dipeo.diagram_generated.enums import RetryStrategy
+    from ..enums import RetryStrategy
     mapping = {
         RetryStrategyGraphQL.NONE: RetryStrategy.NONE,
         RetryStrategyGraphQL.LINEAR: RetryStrategy.LINEAR,
@@ -907,7 +907,7 @@ def convert_retrystrategy_from_graphql(graphql_enum):
 
 def convert_dbblocksubtype_to_graphql(python_enum):
     """Convert Python DBBlockSubType enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import DBBlockSubType
+    from ..enums import DBBlockSubType
     mapping = {
         DBBlockSubType.FIXED_PROMPT: DBBlockSubTypeGraphQL.FIXED_PROMPT,
         DBBlockSubType.FILE: DBBlockSubTypeGraphQL.FILE,
@@ -918,7 +918,7 @@ def convert_dbblocksubtype_to_graphql(python_enum):
 
 def convert_dbblocksubtype_from_graphql(graphql_enum):
     """Convert GraphQL DBBlockSubType enum to Python enum."""
-    from dipeo.diagram_generated.enums import DBBlockSubType
+    from ..enums import DBBlockSubType
     mapping = {
         DBBlockSubTypeGraphQL.FIXED_PROMPT: DBBlockSubType.FIXED_PROMPT,
         DBBlockSubTypeGraphQL.FILE: DBBlockSubType.FILE,
@@ -930,7 +930,7 @@ def convert_dbblocksubtype_from_graphql(graphql_enum):
 
 def convert_supportedlanguage_to_graphql(python_enum):
     """Convert Python SupportedLanguage enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import SupportedLanguage
+    from ..enums import SupportedLanguage
     mapping = {
         SupportedLanguage.PYTHON: SupportedLanguageGraphQL.PYTHON,
         SupportedLanguage.TYPESCRIPT: SupportedLanguageGraphQL.TYPESCRIPT,
@@ -941,7 +941,7 @@ def convert_supportedlanguage_to_graphql(python_enum):
 
 def convert_supportedlanguage_from_graphql(graphql_enum):
     """Convert GraphQL SupportedLanguage enum to Python enum."""
-    from dipeo.diagram_generated.enums import SupportedLanguage
+    from ..enums import SupportedLanguage
     mapping = {
         SupportedLanguageGraphQL.PYTHON: SupportedLanguage.PYTHON,
         SupportedLanguageGraphQL.TYPESCRIPT: SupportedLanguage.TYPESCRIPT,
@@ -953,7 +953,7 @@ def convert_supportedlanguage_from_graphql(graphql_enum):
 
 def convert_httpmethod_to_graphql(python_enum):
     """Convert Python HttpMethod enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import HttpMethod
+    from ..enums import HttpMethod
     mapping = {
         HttpMethod.GET: HttpMethodGraphQL.GET,
         HttpMethod.POST: HttpMethodGraphQL.POST,
@@ -965,7 +965,7 @@ def convert_httpmethod_to_graphql(python_enum):
 
 def convert_httpmethod_from_graphql(graphql_enum):
     """Convert GraphQL HttpMethod enum to Python enum."""
-    from dipeo.diagram_generated.enums import HttpMethod
+    from ..enums import HttpMethod
     mapping = {
         HttpMethodGraphQL.GET: HttpMethod.GET,
         HttpMethodGraphQL.POST: HttpMethod.POST,
@@ -978,7 +978,7 @@ def convert_httpmethod_from_graphql(graphql_enum):
 
 def convert_hooktype_to_graphql(python_enum):
     """Convert Python HookType enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import HookType
+    from ..enums import HookType
     mapping = {
         HookType.SHELL: HookTypeGraphQL.SHELL,
         HookType.WEBHOOK: HookTypeGraphQL.WEBHOOK,
@@ -989,7 +989,7 @@ def convert_hooktype_to_graphql(python_enum):
 
 def convert_hooktype_from_graphql(graphql_enum):
     """Convert GraphQL HookType enum to Python enum."""
-    from dipeo.diagram_generated.enums import HookType
+    from ..enums import HookType
     mapping = {
         HookTypeGraphQL.SHELL: HookType.SHELL,
         HookTypeGraphQL.WEBHOOK: HookType.WEBHOOK,
@@ -1001,7 +1001,7 @@ def convert_hooktype_from_graphql(graphql_enum):
 
 def convert_hooktriggermode_to_graphql(python_enum):
     """Convert Python HookTriggerMode enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import HookTriggerMode
+    from ..enums import HookTriggerMode
     mapping = {
         HookTriggerMode.NONE: HookTriggerModeGraphQL.NONE,
         HookTriggerMode.MANUAL: HookTriggerModeGraphQL.MANUAL,
@@ -1011,7 +1011,7 @@ def convert_hooktriggermode_to_graphql(python_enum):
 
 def convert_hooktriggermode_from_graphql(graphql_enum):
     """Convert GraphQL HookTriggerMode enum to Python enum."""
-    from dipeo.diagram_generated.enums import HookTriggerMode
+    from ..enums import HookTriggerMode
     mapping = {
         HookTriggerModeGraphQL.NONE: HookTriggerMode.NONE,
         HookTriggerModeGraphQL.MANUAL: HookTriggerMode.MANUAL,
@@ -1022,7 +1022,7 @@ def convert_hooktriggermode_from_graphql(graphql_enum):
 
 def convert_conditiontype_to_graphql(python_enum):
     """Convert Python ConditionType enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import ConditionType
+    from ..enums import ConditionType
     mapping = {
         ConditionType.DETECT_MAX_ITERATIONS: ConditionTypeGraphQL.DETECT_MAX_ITERATIONS,
         ConditionType.CHECK_NODES_EXECUTED: ConditionTypeGraphQL.CHECK_NODES_EXECUTED,
@@ -1033,7 +1033,7 @@ def convert_conditiontype_to_graphql(python_enum):
 
 def convert_conditiontype_from_graphql(graphql_enum):
     """Convert GraphQL ConditionType enum to Python enum."""
-    from dipeo.diagram_generated.enums import ConditionType
+    from ..enums import ConditionType
     mapping = {
         ConditionTypeGraphQL.DETECT_MAX_ITERATIONS: ConditionType.DETECT_MAX_ITERATIONS,
         ConditionTypeGraphQL.CHECK_NODES_EXECUTED: ConditionType.CHECK_NODES_EXECUTED,
@@ -1045,7 +1045,7 @@ def convert_conditiontype_from_graphql(graphql_enum):
 
 def convert_templateengine_to_graphql(python_enum):
     """Convert Python TemplateEngine enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import TemplateEngine
+    from ..enums import TemplateEngine
     mapping = {
         TemplateEngine.INTERNAL: TemplateEngineGraphQL.INTERNAL,
         TemplateEngine.JINJA2: TemplateEngineGraphQL.JINJA2,
@@ -1054,7 +1054,7 @@ def convert_templateengine_to_graphql(python_enum):
 
 def convert_templateengine_from_graphql(graphql_enum):
     """Convert GraphQL TemplateEngine enum to Python enum."""
-    from dipeo.diagram_generated.enums import TemplateEngine
+    from ..enums import TemplateEngine
     mapping = {
         TemplateEngineGraphQL.INTERNAL: TemplateEngine.INTERNAL,
         TemplateEngineGraphQL.JINJA2: TemplateEngine.JINJA2,
@@ -1064,7 +1064,7 @@ def convert_templateengine_from_graphql(graphql_enum):
 
 def convert_nodetype_to_graphql(python_enum):
     """Convert Python NodeType enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import NodeType
+    from ..enums import NodeType
     mapping = {
         NodeType.START: NodeTypeGraphQL.START,
         NodeType.PERSON_JOB: NodeTypeGraphQL.PERSON_JOB,
@@ -1087,7 +1087,7 @@ def convert_nodetype_to_graphql(python_enum):
 
 def convert_nodetype_from_graphql(graphql_enum):
     """Convert GraphQL NodeType enum to Python enum."""
-    from dipeo.diagram_generated.enums import NodeType
+    from ..enums import NodeType
     mapping = {
         NodeTypeGraphQL.START: NodeType.START,
         NodeTypeGraphQL.PERSON_JOB: NodeType.PERSON_JOB,
@@ -1111,7 +1111,7 @@ def convert_nodetype_from_graphql(graphql_enum):
 
 def convert_severity_to_graphql(python_enum):
     """Convert Python Severity enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import Severity
+    from ..enums import Severity
     mapping = {
         Severity.ERROR: SeverityGraphQL.ERROR,
         Severity.WARNING: SeverityGraphQL.WARNING,
@@ -1121,7 +1121,7 @@ def convert_severity_to_graphql(python_enum):
 
 def convert_severity_from_graphql(graphql_enum):
     """Convert GraphQL Severity enum to Python enum."""
-    from dipeo.diagram_generated.enums import Severity
+    from ..enums import Severity
     mapping = {
         SeverityGraphQL.ERROR: Severity.ERROR,
         SeverityGraphQL.WARNING: Severity.WARNING,
@@ -1132,7 +1132,7 @@ def convert_severity_from_graphql(graphql_enum):
 
 def convert_eventpriority_to_graphql(python_enum):
     """Convert Python EventPriority enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import EventPriority
+    from ..enums import EventPriority
     mapping = {
         EventPriority.LOW: EventPriorityGraphQL.LOW,
         EventPriority.NORMAL: EventPriorityGraphQL.NORMAL,
@@ -1143,7 +1143,7 @@ def convert_eventpriority_to_graphql(python_enum):
 
 def convert_eventpriority_from_graphql(graphql_enum):
     """Convert GraphQL EventPriority enum to Python enum."""
-    from dipeo.diagram_generated.enums import EventPriority
+    from ..enums import EventPriority
     mapping = {
         EventPriorityGraphQL.LOW: EventPriority.LOW,
         EventPriorityGraphQL.NORMAL: EventPriority.NORMAL,

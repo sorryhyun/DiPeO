@@ -17,6 +17,7 @@ from ..domain_models import (
     {{ type['name'] }},
 {%- endfor %}
     PersonID, PersonLLMConfig, DiagramID, ToolResult,
+    ExecutionState, NodeState,
 )
 
 # Import required enums for GraphQL type resolution
@@ -31,6 +32,11 @@ from ..enums import (
     LLMService,
     APIServiceType,
     ToolType,
+    QueryOperationType,
+    CrudOperation,
+    QueryEntity,
+    FieldPreset,
+    FieldGroup,
 )
 
 # Import scalar types from shared file
@@ -74,7 +80,7 @@ class {{ type['name'] }}Type:
     {%- endfor %}
 {%- else %}
     # Using original fields as fallback (should not happen with resolver)
-    {%- for field in type.get('fields', []) %}
+    {% for field in type.get('fields', []) -%}
     {%- if field.get('is_json_dict') %}
     {{ field['name'] }}: {{ 'Optional[JSONScalar]' if field.get('optional') else 'JSONScalar' }}{{ ' = None' if field.get('optional') else '' }}
     {%- elif field.get('is_literal') %}
@@ -92,7 +98,7 @@ class {{ type['name'] }}Type:
     {#- Types in IR are already in Python format, no conversion needed -#}
     {{ field['name'] }}: {{ 'Optional[' + field.get('type', '') + ']' if field.get('optional') and not field.get('type', '').startswith('Optional[') else field.get('type', '') }}{{ ' = None' if field.get('optional') else '' }}
     {%- endif %}
-    {%- endfor %}
+    {% endfor %}
 {%- endif %}
 
 {%- if type.get('needs_manual_conversion') and type.get('conversion_method') %}
@@ -116,3 +122,66 @@ class {{ type['name'] }}Type:
 {%- endif %}
 
 {% endfor %}
+
+# Special cases for ExecutionState and NodeState
+@strawberry.type
+class NodeStateType:
+    """NodeState domain type"""
+    status: Status
+    started_at: Optional[str] = None
+    ended_at: Optional[str] = None
+    error: Optional[str] = None
+    llm_usage: Optional[LLMUsageType] = None
+    output: Optional[JSONScalar] = None
+
+    @staticmethod
+    def from_pydantic(obj: NodeState) -> "NodeStateType":
+        """Convert from Pydantic model"""
+        return NodeStateType(
+            status=obj.status,
+            started_at=obj.started_at,
+            ended_at=obj.ended_at,
+            error=obj.error,
+            llm_usage=LLMUsageType.from_pydantic(obj.llm_usage) if obj.llm_usage else None,
+            output=obj.output,
+        )
+
+@strawberry.type
+class ExecutionStateType:
+    """ExecutionState domain type"""
+    id: ExecutionIDScalar
+    status: Status
+    diagram_id: Optional[DiagramIDScalar] = None
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    error: Optional[str] = None
+    current_node_ids: List[NodeIDScalar]
+    completed_node_ids: List[NodeIDScalar]
+    variables: Optional[JSONScalar] = None
+    output: Optional[JSONScalar] = None
+    execution_stats: Optional[ExecutionMetricsType] = None
+    parent_execution_id: Optional[ExecutionIDScalar] = None
+    triggered_by: Optional[NodeIDScalar] = None
+    nodes: Optional[JSONScalar] = None
+    execution_options: Optional[ExecutionOptionsType] = None
+
+    @staticmethod
+    def from_pydantic(obj: ExecutionState) -> "ExecutionStateType":
+        """Convert from Pydantic model"""
+        return ExecutionStateType(
+            id=obj.id,
+            status=obj.status,
+            diagram_id=obj.diagram_id,
+            started_at=obj.started_at,
+            completed_at=obj.completed_at,
+            error=obj.error,
+            current_node_ids=obj.current_node_ids,
+            completed_node_ids=obj.completed_node_ids,
+            variables=obj.variables,
+            output=obj.output,
+            execution_stats=ExecutionMetricsType.from_pydantic(obj.execution_stats) if obj.execution_stats else None,
+            parent_execution_id=obj.parent_execution_id,
+            triggered_by=obj.triggered_by,
+            nodes=obj.nodes,  # Pass as JSON
+            execution_options=ExecutionOptionsType.from_pydantic(obj.execution_options) if obj.execution_options else None,
+        )

@@ -116,7 +116,7 @@ export type CreateDiagramInput = {
   author?: InputMaybe<Scalars['String']['input']>;
   description?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
-  tags?: InputMaybe<Array<Scalars['String']['input']>>;
+  tags?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type CreateNodeInput = {
@@ -150,7 +150,7 @@ export type DiagramFilterInput = {
   created_after?: InputMaybe<Scalars['DateTime']['input']>;
   created_before?: InputMaybe<Scalars['DateTime']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
-  tags?: InputMaybe<Array<Scalars['String']['input']>>;
+  tags?: InputMaybe<Scalars['String']['input']>;
 };
 
 export { DiagramFormatGraphQL };
@@ -182,7 +182,7 @@ export type DiagramResult = {
 
 export type DomainApiKeyType = {
   __typename?: 'DomainApiKeyType';
-  id: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
   key?: Maybe<Scalars['String']['output']>;
   label: Scalars['String']['output'];
   service: APIServiceType;
@@ -212,9 +212,9 @@ export type DomainHandleType = {
   __typename?: 'DomainHandleType';
   data_type: DataType;
   direction: HandleDirection;
-  id: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
   label: HandleLabel;
-  node_id: Scalars['String']['output'];
+  node_id: Scalars['ID']['output'];
   position?: Maybe<Scalars['String']['output']>;
 };
 
@@ -282,6 +282,14 @@ export type ExecutionMetricsType = {
   total_duration_ms?: Maybe<Scalars['Float']['output']>;
 };
 
+export type ExecutionOptionsType = {
+  __typename?: 'ExecutionOptionsType';
+  debug?: Maybe<Scalars['Boolean']['output']>;
+  mode?: Maybe<Scalars['String']['output']>;
+  timeout?: Maybe<Scalars['Float']['output']>;
+  variables?: Maybe<Scalars['JSON']['output']>;
+};
+
 export type ExecutionResult = {
   __typename?: 'ExecutionResult';
   data?: Maybe<ExecutionStateType>;
@@ -296,20 +304,25 @@ export type ExecutionResult = {
 
 export type ExecutionStateType = {
   __typename?: 'ExecutionStateType';
+  completed_at?: Maybe<Scalars['String']['output']>;
+  completed_node_ids: Array<Scalars['ID']['output']>;
+  current_node_ids: Array<Scalars['ID']['output']>;
   diagram_id?: Maybe<Scalars['ID']['output']>;
   ended_at?: Maybe<Scalars['String']['output']>;
   error?: Maybe<Scalars['String']['output']>;
-  exec_counts: Scalars['JSON']['output'];
-  executed_nodes: Array<Scalars['String']['output']>;
-  id: Scalars['String']['output'];
-  is_active?: Maybe<Scalars['Boolean']['output']>;
-  llm_usage: LLMUsageType;
-  metadata?: Maybe<Scalars['JSON']['output']>;
+  execution_options?: Maybe<ExecutionOptionsType>;
+  execution_stats?: Maybe<ExecutionMetricsType>;
+  id: Scalars['ID']['output'];
+  llm_usage?: Maybe<LLMUsageSimpleType>;
   metrics?: Maybe<ExecutionMetricsType>;
-  node_outputs: Scalars['JSON']['output'];
-  node_states: Scalars['JSON']['output'];
-  started_at: Scalars['String']['output'];
+  node_outputs?: Maybe<Scalars['JSON']['output']>;
+  node_states?: Maybe<Scalars['JSON']['output']>;
+  nodes?: Maybe<Scalars['JSON']['output']>;
+  output?: Maybe<Scalars['JSON']['output']>;
+  parent_execution_id?: Maybe<Scalars['ID']['output']>;
+  started_at?: Maybe<Scalars['String']['output']>;
   status: Status;
+  triggered_by?: Maybe<Scalars['ID']['output']>;
   variables?: Maybe<Scalars['JSON']['output']>;
 };
 
@@ -353,12 +366,12 @@ export type InteractiveResponseInput = {
 
 export { LLMService };
 
-export type LLMUsageType = {
-  __typename?: 'LLMUsageType';
-  cached?: Maybe<Scalars['Float']['output']>;
-  input: Scalars['Float']['output'];
-  output: Scalars['Float']['output'];
-  total?: Maybe<Scalars['Float']['output']>;
+export type LLMUsageSimpleType = {
+  __typename?: 'LLMUsageSimpleType';
+  cached?: Maybe<Scalars['Int']['output']>;
+  input?: Maybe<Scalars['Int']['output']>;
+  output?: Maybe<Scalars['Int']['output']>;
+  total?: Maybe<Scalars['Int']['output']>;
 };
 
 export type Mutation = {
@@ -524,7 +537,7 @@ export type PersonLLMConfigInput = {
 
 export type PersonLLMConfigType = {
   __typename?: 'PersonLLMConfigType';
-  api_key_id: Scalars['String']['output'];
+  api_key_id: Scalars['ID']['output'];
   model: Scalars['String']['output'];
   prompt_file?: Maybe<Scalars['String']['output']>;
   service: LLMService;
@@ -772,7 +785,7 @@ export type GetExecutionQueryVariables = Exact<{
 }>;
 
 
-export type GetExecutionQuery = { __typename?: 'Query', execution: { __typename?: 'ExecutionStateType', id: string, status: Status, diagram_id?: string | null, started_at: string, ended_at?: string | null, error?: string | null, node_states: any, node_outputs: any, variables?: any | null, metrics?: { __typename?: 'ExecutionMetricsType', execution_id: string, start_time: number, end_time?: number | null, total_duration_ms?: number | null, node_metrics: any, critical_path?: Array<string> | null, parallelizable_groups?: Array<Array<string>> | null, bottlenecks?: Array<{ __typename?: 'BottleneckType', node_id: string, node_type: string, duration_ms: number, percentage: number }> | null } | null, llm_usage: { __typename?: 'LLMUsageType', input: number, output: number, cached?: number | null, total?: number | null } } };
+export type GetExecutionQuery = { __typename?: 'Query', execution: { __typename?: 'ExecutionStateType', id: string, status: Status, diagram_id?: string | null, started_at?: string | null, ended_at?: string | null, error?: string | null, node_states?: any | null, node_outputs?: any | null, variables?: any | null, metrics?: { __typename?: 'ExecutionMetricsType', execution_id: string, start_time: number, end_time?: number | null, total_duration_ms?: number | null, node_metrics: any, critical_path?: Array<string> | null, parallelizable_groups?: Array<Array<string>> | null, bottlenecks?: Array<{ __typename?: 'BottleneckType', node_id: string, node_type: string, duration_ms: number, percentage: number }> | null } | null, llm_usage?: { __typename?: 'LLMUsageSimpleType', input?: number | null, output?: number | null, cached?: number | null, total?: number | null } | null } };
 
 export type ListExecutionsQueryVariables = Exact<{
   filter?: InputMaybe<ExecutionFilterInput>;
@@ -781,7 +794,7 @@ export type ListExecutionsQueryVariables = Exact<{
 }>;
 
 
-export type ListExecutionsQuery = { __typename?: 'Query', executions: Array<{ __typename?: 'ExecutionStateType', id: string, status: Status, diagram_id?: string | null, started_at: string, ended_at?: string | null, error?: string | null }> };
+export type ListExecutionsQuery = { __typename?: 'Query', executions: Array<{ __typename?: 'ExecutionStateType', id: string, status: Status, diagram_id?: string | null, started_at?: string | null, ended_at?: string | null, error?: string | null }> };
 
 export type GetSupportedFormatsQueryVariables = Exact<{ [key: string]: never; }>;
 
