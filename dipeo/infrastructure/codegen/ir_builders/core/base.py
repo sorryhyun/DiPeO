@@ -56,11 +56,14 @@ class BaseIRBuilder(IRBuilderPort, ABC):
         """
         pass
 
-    def build_ir(self, ast_data: dict[str, Any]) -> IRData:
+    async def build_ir(
+        self, source_data: dict[str, Any], config: Optional[dict[str, Any]] = None
+    ) -> IRData:
         """Build IR data from TypeScript AST data.
 
         Args:
-            ast_data: Parsed TypeScript AST data
+            source_data: Input data to build IR from (TypeScript AST)
+            config: Optional configuration parameters (unused for compatibility)
 
         Returns:
             IRData with generated content and metadata
@@ -69,7 +72,7 @@ class BaseIRBuilder(IRBuilderPort, ABC):
             RuntimeError: If required pipeline step fails
         """
         # Execute the configured pipeline
-        results = self.orchestrator.execute(ast_data)
+        results = self.orchestrator.execute(source_data)
 
         # Assemble final IR data from pipeline results
         ir_data = self._assemble_ir_data(results)

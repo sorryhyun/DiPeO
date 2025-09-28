@@ -62,7 +62,7 @@ async def test_backend_builder():
     # Test new builder
     print("Testing new backend builder...")
     new_builder = NewBackendBuilder()
-    new_result = new_builder.build_ir(ast_data)
+    new_result = await new_builder.build_ir(ast_data)
 
     # Validate with new validator
     validator = get_validator("backend")
@@ -124,7 +124,7 @@ async def test_frontend_builder():
     # Test new builder
     print("Testing new frontend builder...")
     new_builder = NewFrontendBuilder()
-    new_result = new_builder.build_ir(ast_data)
+    new_result = await new_builder.build_ir(ast_data)
 
     # Validate with new validator
     validator = get_validator("frontend")
@@ -186,7 +186,7 @@ async def test_strawberry_builder():
     # Test new builder
     print("Testing new strawberry builder...")
     new_builder = NewStrawberryBuilder()
-    new_result = new_builder.build_ir(ast_data)
+    new_result = await new_builder.build_ir(ast_data)
 
     # Validate with new validator
     validator = get_validator("strawberry")

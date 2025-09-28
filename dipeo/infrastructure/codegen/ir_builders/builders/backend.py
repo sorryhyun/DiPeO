@@ -74,25 +74,43 @@ class BackendAssemblerStep(BuildStep):
             typescript_indexes = extract_typescript_indexes(base_dir)
 
             # Assemble backend data matching original structure
+            # Handle domain_models structure properly
+            if domain_models and isinstance(domain_models, dict):
+                models = domain_models.get("models", [])
+                # Ensure aliases is always a dict
+                aliases = domain_models.get("aliases", {})
+                if isinstance(aliases, list):
+                    # Convert list to dict if needed (empty case)
+                    aliases = (
+                        {}
+                        if not aliases
+                        else {a.get("name", f"alias_{i}"): a for i, a in enumerate(aliases)}
+                    )
+            else:
+                models = []
+                aliases = {}
+                # Create proper empty domain_models structure
+                domain_models = {"models": [], "aliases": {}}
+
             backend_data = {
                 "version": 1,
                 "generated_at": context.create_metadata({})["generated_at"],
-                "node_specs": node_specs,
-                "enums": enums,
+                "node_specs": node_specs or [],
+                "enums": enums or [],
                 "domain_models": domain_models,
-                "types": domain_models["models"] if domain_models else [],
-                "type_aliases": domain_models["aliases"] if domain_models else {},
-                "node_factory": node_factory,
-                "integrations": integrations,
+                "types": models,
+                "type_aliases": aliases,
+                "node_factory": node_factory or {},
+                "integrations": integrations or [],
                 "conversions": conversions or {},
                 "typescript_indexes": typescript_indexes,
                 "metadata": {
                     "node_count": len(node_specs) if node_specs else 0,
                     "enum_count": len(enums) if enums else 0,
-                    "model_count": len(domain_models["models"]) if domain_models else 0,
-                    "alias_count": len(domain_models["aliases"]) if domain_models else 0,
+                    "model_count": len(models),
+                    "alias_count": len(aliases),
                     "integration_count": len(integrations) if integrations else 0,
-                    "category_metadata": category_metadata,
+                    "category_metadata": category_metadata or {},
                 },
             }
 

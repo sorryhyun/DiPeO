@@ -3,10 +3,16 @@
 from typing import Optional
 
 from dipeo.domain.codegen.ir_builder_port import IRBuilderPort
-from dipeo.infrastructure.codegen.ir_builders import (
-    BackendIRBuilder,
-    FrontendIRBuilder,
-    StrawberryIRBuilder,
+
+# Import new builders from the builders package
+from dipeo.infrastructure.codegen.ir_builders.builders import (
+    BackendBuilder as BackendIRBuilder,
+)
+from dipeo.infrastructure.codegen.ir_builders.builders import (
+    FrontendBuilder as FrontendIRBuilder,
+)
+from dipeo.infrastructure.codegen.ir_builders.builders import (
+    StrawberryBuilder as StrawberryIRBuilder,
 )
 
 
@@ -38,18 +44,13 @@ class IRBuilderRegistry:
             available = ", ".join(cls._builders.keys())
             raise ValueError(f"Unknown builder type: {builder_type}. Available: {available}")
 
-        # Handle different builder signatures for refactored versions
+        # All new builders use consistent signatures - optional config_path string
+        # BackendBuilder(), FrontendBuilder(config_path=None), StrawberryBuilder(config_path=None)
         if builder_type == "backend":
-            # Refactored BackendIRBuilder doesn't take config_path
+            # BackendBuilder doesn't use config_path
             return builder_class()
-        elif builder_type == "strawberry":
-            # Refactored StrawberryIRBuilder takes optional Path
-            from pathlib import Path
-
-            config_root = Path(config_path) if config_path else None
-            return builder_class(config_root)
         else:
-            # Frontend and other builders still use config_path
+            # Frontend and Strawberry builders take optional config_path
             return builder_class(config_path)
 
     @classmethod

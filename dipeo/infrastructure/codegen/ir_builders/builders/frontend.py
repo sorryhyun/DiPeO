@@ -69,6 +69,22 @@ class FrontendAssemblerStep(BuildStep):
             # Note: We would need the original AST data to extract enums
             # For now, we'll leave it empty or get from context if available
 
+            # Separate operations into queries, mutations, subscriptions for backward compatibility
+            queries = []
+            mutations = []
+            subscriptions = []
+
+            if operations:
+                for op in operations:
+                    if isinstance(op, dict):
+                        op_type = op.get("type", "").lower()
+                        if op_type == "query":
+                            queries.append(op)
+                        elif op_type == "mutation":
+                            mutations.append(op)
+                        elif op_type == "subscription":
+                            subscriptions.append(op)
+
             # Assemble frontend data matching original structure
             frontend_data = {
                 "version": 1,
@@ -76,9 +92,15 @@ class FrontendAssemblerStep(BuildStep):
                 "node_specs": node_specs or [],
                 "node_configs": node_configs or {},
                 "node_registry": node_registry or {},
+                # Also keep registry_data for backward compatibility
+                "registry_data": node_registry or {},
                 "field_configs": field_configs or {},
                 "typescript_models": typescript_models or {},
                 "graphql_queries": operations or [],
+                # Add separate lists for backward compatibility
+                "queries": queries,
+                "mutations": mutations,
+                "subscriptions": subscriptions,
                 "grouped_queries": grouped_operations or {},
                 "enums": enums,
                 "metadata": {
