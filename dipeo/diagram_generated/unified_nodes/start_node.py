@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for start.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-27T12:50:10.630158
+Generated at: 2025-09-28T12:25:59.495724
 """
 
 from typing import *

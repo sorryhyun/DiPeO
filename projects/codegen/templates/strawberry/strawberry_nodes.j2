@@ -6,7 +6,7 @@ Generated at: {{ generated_at }}
 """
 
 import strawberry
-from typing import *
+from typing import Optional, Dict, Any, List, Union, Literal
 from strawberry.types import *
 from strawberry.scalars import JSON as JSONScalar
 from .strawberry_domain import TemplatePreprocessorType, ToolConfigType
@@ -18,7 +18,7 @@ from ..domain_models import *
 from ..unified_nodes import *
 
 # Import generated scalars
-from dipeo.diagram_generated.graphql.scalars import *
+from .scalars import *
 
 
 # Generate Strawberry types for node data

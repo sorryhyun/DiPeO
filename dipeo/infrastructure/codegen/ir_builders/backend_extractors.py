@@ -145,6 +145,7 @@ def extract_domain_models(
         "core/subscription-types.ts",
         "core/integration.ts",
         "claude-code/session-types.ts",
+        "codegen/ast-types.ts",  # Add AST types for TypeScript parsing
     ]
 
     for file_path, file_data in ast_data.items():

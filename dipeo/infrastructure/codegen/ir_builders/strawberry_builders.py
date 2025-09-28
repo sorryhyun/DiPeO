@@ -120,6 +120,9 @@ def build_complete_ir(
     Returns:
         Complete IRData instance
     """
+    # Extract imports from operations
+    imports = _extract_imports_from_operations(operations_data)
+
     # Combine all data (with generated_at at top level for templates)
     strawberry_data = {
         "version": 1,
@@ -137,7 +140,7 @@ def build_complete_ir(
         "node_specs": node_specs or [],  # Include node_specs for templates
         "types": domain_data["types"],  # Alias for domain_types for backward compatibility
         "config": config,
-        "imports": {"strawberry": [], "domain": []},
+        "imports": imports,
         "raw_queries": operations_data.get("raw_queries", []),
         "raw_mutations": operations_data.get("raw_mutations", []),
         "raw_subscriptions": operations_data.get("raw_subscriptions", []),
@@ -281,3 +284,40 @@ def validate_strawberry_ir(ir_data: IRData) -> tuple[bool, list[str]]:
     # logger.warning(f"Strawberry IR validation failed with {len(errors)} errors")
 
     return is_valid, errors
+
+
+def _extract_imports_from_operations(operations_data: dict[str, Any]) -> dict[str, list[str]]:
+    """Extract import types from operations data.
+
+    Args:
+        operations_data: Operations IR data
+
+    Returns:
+        Dictionary with 'strawberry' and 'domain' import lists
+    """
+    strawberry_imports = set()
+    domain_imports = set()
+
+    # Collect all operations
+    all_operations = (
+        operations_data.get("queries", [])
+        + operations_data.get("mutations", [])
+        + operations_data.get("subscriptions", [])
+    )
+
+    # Extract types from operation variables
+    for operation in all_operations:
+        variables = operation.get("variables", [])
+        for variable in variables:
+            var_type = variable.get("type", "")
+
+            # Remove GraphQL modifiers (! for required, [] for arrays)
+            clean_type = var_type.replace("!", "").replace("[", "").replace("]", "")
+
+            # Categorize the import type
+            if clean_type == "Upload":
+                strawberry_imports.add(clean_type)
+            elif clean_type.endswith("Input") or clean_type in ["DiagramFormatGraphQL"]:
+                domain_imports.add(clean_type)
+
+    return {"strawberry": sorted(list(strawberry_imports)), "domain": sorted(list(domain_imports))}

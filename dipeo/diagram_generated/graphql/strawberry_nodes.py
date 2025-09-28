@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-27T11:49:51.054945
+Generated at: 2025-09-28T12:25:57.527017
 """
 
 import strawberry
@@ -389,7 +389,8 @@ class DbDataType:
     
     
     
-    operation: str  # Operation configuration
+    # Enum field: Operation configuration (Values: prompt, read, write, append, update)
+    operation: str
     
     
     
@@ -1645,7 +1646,8 @@ class TypescriptAstDataType:
     
     
     
-    extractPatterns: Optional[List[JSONScalar]] = None  # Patterns to extract from the AST
+    # Enum field: Patterns to extract from the AST (Values: interface, type, enum, class, function, const, export)
+    extractPatterns: Optional[str] = None
     
     
     

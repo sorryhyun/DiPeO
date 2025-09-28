@@ -20,11 +20,11 @@ from dipeo.application.graphql.operation_executor import OperationExecutor
 from dipeo.diagram_generated.graphql import operations
 
 # Import input types and enums
-from dipeo.diagram_generated.graphql.inputs import *
-from dipeo.diagram_generated.graphql.enums import DiagramFormatGraphQL
+from .inputs import *
+from .enums import DiagramFormatGraphQL
 
 # Import result types
-from dipeo.diagram_generated.graphql.results import (
+from .results import (
     DiagramResult,
     DiagramListResult,
     NodeResult,
@@ -48,7 +48,7 @@ from dipeo.diagram_generated.graphql.results import (
 )
 
 # Import domain types for direct query returns
-from dipeo.diagram_generated.graphql.domain_types import (
+from .domain_types import (
     ExecutionStateType,
     DomainDiagramType,
     DomainPersonType,

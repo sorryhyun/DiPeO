@@ -151,6 +151,30 @@ class TypeConverter:
                     py_key = "int"
                 return f"Dict[{py_key}, {py_value}]"
 
+        # Handle TypeScript object types: { ... }
+        if ts_type.strip().startswith("{") and ts_type.strip().endswith("}"):
+            # Check if it's an index signature type like { [key: string]: string; }
+            import re
+
+            pattern = r"\[\s*\w+\s*:\s*(\w+)\s*\]\s*:\s*(\w+)"
+            match = re.search(pattern, ts_type)
+            if match:
+                key_type = match.group(1)
+                value_type = match.group(2)
+                py_key = self.ts_to_python(key_type)
+                py_value = self.ts_to_python(value_type)
+                # Map number to int for dictionary keys
+                if py_key == "float":
+                    py_key = "int"
+                return f"Dict[{py_key}, {py_value}]"
+
+            # Check if it's an inline object type with specific properties
+            # e.g., { totalFiles: number; successCount: number; }
+            # For now, convert to Dict[str, Any] for simplicity
+            # TODO: Could generate a proper model class for these
+            if ":" in ts_type and ";" in ts_type:
+                return "Dict[str, Any]"
+
         # Handle branded scalars
         if "&" in ts_type and "__brand" in ts_type:
             match = re.search(r"'__brand':\s*'([^']+)'", ts_type)

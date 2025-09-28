@@ -43,7 +43,7 @@ nodes:
     position: {x: 600, y: 200}
     props:
       engine: jinja2
-      template_path: projects/codegen/templates/strawberry/strawberry_types.j2
+      template_path: projects/codegen/templates/strawberry/strawberry_nodes.j2
       output_path: dipeo/diagram_generated_staged/graphql/strawberry_nodes.py
       variables:
         module_name: "strawberry_nodes"
@@ -76,7 +76,7 @@ nodes:
     position: {x: 600, y: 450}
     props:
       engine: jinja2
-      template_path: projects/codegen/templates/strawberry/strawberry_domain_simplified.j2
+      template_path: projects/codegen/templates/strawberry/strawberry_domain_types.j2
       output_path: dipeo/diagram_generated_staged/graphql/domain_types.py
       variables:
         module_name: "domain_types"

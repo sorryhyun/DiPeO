@@ -6,18 +6,21 @@ Generated at: {{ generated_at }}
 """
 
 import strawberry
-from typing import Optional, Dict, Any, List, Union
+from typing import Optional, Dict, Any, List, Union, Literal
 from strawberry.scalars import JSON as JSONScalar
+from .inputs import Float, String, Boolean
+from dipeo.domain.type_defs import JsonValue, JsonDict
 
 # Import the Pydantic domain models
-from dipeo.diagram_generated.domain_models import (
+from ..domain_models import (
 {%- for type in types %}
     {{ type['name'] }},
 {%- endfor %}
+    PersonID, PersonLLMConfig, DiagramID, ToolResult,
 )
 
 # Import required enums for GraphQL type resolution
-from dipeo.diagram_generated.enums import (
+from ..enums import (
     Status,
     NodeType,
     EventType,
@@ -86,7 +89,8 @@ class {{ type['name'] }}Type:
     # TypeScript Record type converted to Dict
     {{ field['name'] }}: {{ 'Optional[Dict[str, Any]]' if field.get('optional') else 'Dict[str, Any]' }}{{ ' = None' if field.get('optional') else '' }}
     {%- else %}
-    {{ field['name'] }}: {{ 'Optional[' + field.get('type', '') | ts_to_python + ']' if field.get('optional') and not field.get('type', '').startswith('Optional[') else field.get('type', '') | ts_to_python }}{{ ' = None' if field.get('optional') else '' }}
+    {#- Types in IR are already in Python format, no conversion needed -#}
+    {{ field['name'] }}: {{ 'Optional[' + field.get('type', '') + ']' if field.get('optional') and not field.get('type', '').startswith('Optional[') else field.get('type', '') }}{{ ' = None' if field.get('optional') else '' }}
     {%- endif %}
     {%- endfor %}
 {%- endif %}

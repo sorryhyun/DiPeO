@@ -7,7 +7,7 @@ import re
 from collections.abc import AsyncIterator
 from typing import Any
 
-from claude_code_sdk import ClaudeCodeOptions
+from claude_code_sdk import ClaudeAgentOptions
 from pydantic import BaseModel
 from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_exponential
 
@@ -400,7 +400,7 @@ class UnifiedClaudeCodeCustomClient:
         options_dict.update(kwargs)
 
         # Create options
-        options = ClaudeCodeOptions(**options_dict)
+        options = ClaudeAgentOptions(**options_dict)
 
         # Set up retry logic
         retry = AsyncRetrying(
@@ -527,7 +527,7 @@ class UnifiedClaudeCodeCustomClient:
         options_dict.update(kwargs)
 
         # Create options
-        options = ClaudeCodeOptions(**options_dict)
+        options = ClaudeAgentOptions(**options_dict)
 
         # Use QueryClientWrapper with context manager
         async with SessionQueryWrapper(

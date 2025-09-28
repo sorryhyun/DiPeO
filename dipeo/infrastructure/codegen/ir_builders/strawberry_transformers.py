@@ -140,6 +140,11 @@ def _is_domain_type(interface_name: str) -> bool:
         "Query",
         "Mutation",
         "Subscription",
+        "FieldArgument",  # Query definition type
+        "FieldDefinition",  # Query definition type
+        "VariableDefinition",  # Query definition type
+        "QueryDefinition",  # Query definition type
+        "EntityQueryDefinitions",  # Query definition type
     ]
 
     return not any(pattern in interface_name for pattern in skip_patterns)

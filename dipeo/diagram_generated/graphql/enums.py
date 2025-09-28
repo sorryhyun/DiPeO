@@ -2,11 +2,62 @@
 Generated Strawberry GraphQL enum definitions for DiPeO.
 Avoid editing THIS FILE DIRECTLY.
 
-Generated at: 2025-09-27T11:49:51.054945
+Generated at: 2025-09-28T12:25:57.527017
 """
 
 from enum import Enum
 import strawberry
+
+
+@strawberry.enum
+class QueryOperationTypeGraphQL(Enum):
+    """GraphQL enum for QueryOperationType"""
+    QUERY = "query"
+    MUTATION = "mutation"
+    SUBSCRIPTION = "subscription"
+
+
+@strawberry.enum
+class CrudOperationGraphQL(Enum):
+    """GraphQL enum for CrudOperation"""
+    GET = "get"
+    LIST = "list"
+    CREATE = "create"
+    UPDATE = "update"
+    DELETE = "delete"
+    SUBSCRIBE = "subscribe"
+
+
+@strawberry.enum
+class QueryEntityGraphQL(Enum):
+    """GraphQL enum for QueryEntity"""
+    DIAGRAM = "Diagram"
+    PERSON = "Person"
+    EXECUTION = "Execution"
+    API_KEY = "ApiKey"
+    CONVERSATION = "Conversation"
+    FILE = "File"
+    NODE = "Node"
+    PROMPT_TEMPLATE = "PromptTemplate"
+    SYSTEM = "System"
+
+
+@strawberry.enum
+class FieldPresetGraphQL(Enum):
+    """GraphQL enum for FieldPreset"""
+    MINIMAL = "minimal"
+    STANDARD = "standard"
+    DETAILED = "detailed"
+    FULL = "full"
+
+
+@strawberry.enum
+class FieldGroupGraphQL(Enum):
+    """GraphQL enum for FieldGroup"""
+    METADATA = "metadata"
+    TIMESTAMPS = "timestamps"
+    RELATIONSHIPS = "relationships"
+    CONFIGURATION = "configuration"
 
 
 @strawberry.enum
@@ -278,6 +329,11 @@ class EventPriorityGraphQL(Enum):
 
 # Export all GraphQL enums
 __all__ = [
+    "QueryOperationTypeGraphQL",
+    "CrudOperationGraphQL",
+    "QueryEntityGraphQL",
+    "FieldPresetGraphQL",
+    "FieldGroupGraphQL",
     "DataTypeGraphQL",
     "ContentTypeGraphQL",
     "HandleDirectionGraphQL",
@@ -307,6 +363,133 @@ __all__ = [
 ]
 
 # Mapping functions for conversion between Python and GraphQL enums
+
+def convert_queryoperationtype_to_graphql(python_enum):
+    """Convert Python QueryOperationType enum to GraphQL enum."""
+    from dipeo.diagram_generated.enums import QueryOperationType
+    mapping = {
+        QueryOperationType.QUERY: QueryOperationTypeGraphQL.QUERY,
+        QueryOperationType.MUTATION: QueryOperationTypeGraphQL.MUTATION,
+        QueryOperationType.SUBSCRIPTION: QueryOperationTypeGraphQL.SUBSCRIPTION,
+    }
+    return mapping.get(python_enum)
+
+def convert_queryoperationtype_from_graphql(graphql_enum):
+    """Convert GraphQL QueryOperationType enum to Python enum."""
+    from dipeo.diagram_generated.enums import QueryOperationType
+    mapping = {
+        QueryOperationTypeGraphQL.QUERY: QueryOperationType.QUERY,
+        QueryOperationTypeGraphQL.MUTATION: QueryOperationType.MUTATION,
+        QueryOperationTypeGraphQL.SUBSCRIPTION: QueryOperationType.SUBSCRIPTION,
+    }
+    return mapping.get(graphql_enum)
+
+
+def convert_crudoperation_to_graphql(python_enum):
+    """Convert Python CrudOperation enum to GraphQL enum."""
+    from dipeo.diagram_generated.enums import CrudOperation
+    mapping = {
+        CrudOperation.GET: CrudOperationGraphQL.GET,
+        CrudOperation.LIST: CrudOperationGraphQL.LIST,
+        CrudOperation.CREATE: CrudOperationGraphQL.CREATE,
+        CrudOperation.UPDATE: CrudOperationGraphQL.UPDATE,
+        CrudOperation.DELETE: CrudOperationGraphQL.DELETE,
+        CrudOperation.SUBSCRIBE: CrudOperationGraphQL.SUBSCRIBE,
+    }
+    return mapping.get(python_enum)
+
+def convert_crudoperation_from_graphql(graphql_enum):
+    """Convert GraphQL CrudOperation enum to Python enum."""
+    from dipeo.diagram_generated.enums import CrudOperation
+    mapping = {
+        CrudOperationGraphQL.GET: CrudOperation.GET,
+        CrudOperationGraphQL.LIST: CrudOperation.LIST,
+        CrudOperationGraphQL.CREATE: CrudOperation.CREATE,
+        CrudOperationGraphQL.UPDATE: CrudOperation.UPDATE,
+        CrudOperationGraphQL.DELETE: CrudOperation.DELETE,
+        CrudOperationGraphQL.SUBSCRIBE: CrudOperation.SUBSCRIBE,
+    }
+    return mapping.get(graphql_enum)
+
+
+def convert_queryentity_to_graphql(python_enum):
+    """Convert Python QueryEntity enum to GraphQL enum."""
+    from dipeo.diagram_generated.enums import QueryEntity
+    mapping = {
+        QueryEntity.DIAGRAM: QueryEntityGraphQL.DIAGRAM,
+        QueryEntity.PERSON: QueryEntityGraphQL.PERSON,
+        QueryEntity.EXECUTION: QueryEntityGraphQL.EXECUTION,
+        QueryEntity.API_KEY: QueryEntityGraphQL.API_KEY,
+        QueryEntity.CONVERSATION: QueryEntityGraphQL.CONVERSATION,
+        QueryEntity.FILE: QueryEntityGraphQL.FILE,
+        QueryEntity.NODE: QueryEntityGraphQL.NODE,
+        QueryEntity.PROMPT_TEMPLATE: QueryEntityGraphQL.PROMPT_TEMPLATE,
+        QueryEntity.SYSTEM: QueryEntityGraphQL.SYSTEM,
+    }
+    return mapping.get(python_enum)
+
+def convert_queryentity_from_graphql(graphql_enum):
+    """Convert GraphQL QueryEntity enum to Python enum."""
+    from dipeo.diagram_generated.enums import QueryEntity
+    mapping = {
+        QueryEntityGraphQL.DIAGRAM: QueryEntity.DIAGRAM,
+        QueryEntityGraphQL.PERSON: QueryEntity.PERSON,
+        QueryEntityGraphQL.EXECUTION: QueryEntity.EXECUTION,
+        QueryEntityGraphQL.API_KEY: QueryEntity.API_KEY,
+        QueryEntityGraphQL.CONVERSATION: QueryEntity.CONVERSATION,
+        QueryEntityGraphQL.FILE: QueryEntity.FILE,
+        QueryEntityGraphQL.NODE: QueryEntity.NODE,
+        QueryEntityGraphQL.PROMPT_TEMPLATE: QueryEntity.PROMPT_TEMPLATE,
+        QueryEntityGraphQL.SYSTEM: QueryEntity.SYSTEM,
+    }
+    return mapping.get(graphql_enum)
+
+
+def convert_fieldpreset_to_graphql(python_enum):
+    """Convert Python FieldPreset enum to GraphQL enum."""
+    from dipeo.diagram_generated.enums import FieldPreset
+    mapping = {
+        FieldPreset.MINIMAL: FieldPresetGraphQL.MINIMAL,
+        FieldPreset.STANDARD: FieldPresetGraphQL.STANDARD,
+        FieldPreset.DETAILED: FieldPresetGraphQL.DETAILED,
+        FieldPreset.FULL: FieldPresetGraphQL.FULL,
+    }
+    return mapping.get(python_enum)
+
+def convert_fieldpreset_from_graphql(graphql_enum):
+    """Convert GraphQL FieldPreset enum to Python enum."""
+    from dipeo.diagram_generated.enums import FieldPreset
+    mapping = {
+        FieldPresetGraphQL.MINIMAL: FieldPreset.MINIMAL,
+        FieldPresetGraphQL.STANDARD: FieldPreset.STANDARD,
+        FieldPresetGraphQL.DETAILED: FieldPreset.DETAILED,
+        FieldPresetGraphQL.FULL: FieldPreset.FULL,
+    }
+    return mapping.get(graphql_enum)
+
+
+def convert_fieldgroup_to_graphql(python_enum):
+    """Convert Python FieldGroup enum to GraphQL enum."""
+    from dipeo.diagram_generated.enums import FieldGroup
+    mapping = {
+        FieldGroup.METADATA: FieldGroupGraphQL.METADATA,
+        FieldGroup.TIMESTAMPS: FieldGroupGraphQL.TIMESTAMPS,
+        FieldGroup.RELATIONSHIPS: FieldGroupGraphQL.RELATIONSHIPS,
+        FieldGroup.CONFIGURATION: FieldGroupGraphQL.CONFIGURATION,
+    }
+    return mapping.get(python_enum)
+
+def convert_fieldgroup_from_graphql(graphql_enum):
+    """Convert GraphQL FieldGroup enum to Python enum."""
+    from dipeo.diagram_generated.enums import FieldGroup
+    mapping = {
+        FieldGroupGraphQL.METADATA: FieldGroup.METADATA,
+        FieldGroupGraphQL.TIMESTAMPS: FieldGroup.TIMESTAMPS,
+        FieldGroupGraphQL.RELATIONSHIPS: FieldGroup.RELATIONSHIPS,
+        FieldGroupGraphQL.CONFIGURATION: FieldGroup.CONFIGURATION,
+    }
+    return mapping.get(graphql_enum)
+
 
 def convert_datatype_to_graphql(python_enum):
     """Convert Python DataType enum to GraphQL enum."""

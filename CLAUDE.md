@@ -257,9 +257,9 @@ make graphql-schema     # Update GraphQL types
 ### IR Builders - Path Reference
 **Base Directory**: `/dipeo/infrastructure/codegen/ir_builders/`
 
-- `backend.py` - Backend IR builder (consolidates models/types)
+- `backend_builders.py` - Backend IR builder (consolidates models/types)
 - `frontend.py` - Frontend IR builder (extracts components/schemas)
-- `strawberry.py` - GraphQL operations & domain types
+- `strawberry_builders.py` - GraphQL operations & domain types
 - `base.py` - Base IR builder interface
 - `utils.py` - Shared utilities for IR building
 
