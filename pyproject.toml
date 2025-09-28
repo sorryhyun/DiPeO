@@ -145,6 +145,9 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["dipeo", "apps", "projects"]
 
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [tool.uv]
 # Enable workspace support for monorepo
 dev-dependencies = [
