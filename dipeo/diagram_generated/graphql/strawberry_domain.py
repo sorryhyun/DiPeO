@@ -7,7 +7,7 @@ import strawberry
 from strawberry.scalars import JSON as JSONScalar
 from typing import Any, Optional
 
-from dipeo.diagram_generated.integrations import ToolConfig
+from dipeo.diagram_generated.domain_models import ToolConfig
 from dipeo.diagram_generated.domain_models import TemplatePreprocessor, JsonDictValidation as JsonDict, RecordStringString
 
 # Register JsonDict as a JSON scalar type

@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from claude_code_sdk import ClaudeCodeOptions, ClaudeSDKClient
+from claude_code_sdk import ClaudeAgentOptions, ClaudeSDKClient
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ SESSION_POOL_ENABLED = os.getenv("DIPEO_SESSION_POOL_ENABLED", "false").lower() 
 SESSION_CONNECTION_TIMEOUT = float(os.getenv("DIPEO_SESSION_CONNECTION_TIMEOUT", "30"))
 
 # fork_session feature detection
-FORK_SESSION_SUPPORTED = "fork_session" in getattr(ClaudeCodeOptions, "__dataclass_fields__", {})
+FORK_SESSION_SUPPORTED = "fork_session" in getattr(ClaudeAgentOptions, "__dataclass_fields__", {})
 
 FORK_SESSION_ENABLED = FORK_SESSION_SUPPORTED and SESSION_POOL_ENABLED
 
@@ -41,7 +41,7 @@ class SessionClient:
     """
 
     client: ClaudeSDKClient
-    options: ClaudeCodeOptions
+    options: ClaudeAgentOptions
     session_id: str
     created_at: datetime
     is_connected: bool = False
@@ -122,7 +122,7 @@ class SimplifiedSessionPool:
         self._closed = False
 
     async def get_or_create_template(
-        self, options: ClaudeCodeOptions, execution_phase: str = "default"
+        self, options: ClaudeAgentOptions, execution_phase: str = "default"
     ) -> SessionClient:
         """Get or create a template session for the given phase.
 
@@ -170,7 +170,7 @@ class SimplifiedSessionPool:
             return template
 
     async def get_forked_session(
-        self, options: ClaudeCodeOptions, execution_phase: str = "default"
+        self, options: ClaudeAgentOptions, execution_phase: str = "default"
     ) -> SessionClient:
         """Get a fresh forked session from template.
 
@@ -248,7 +248,7 @@ class SessionPoolManager:
         self._closed = False
 
     async def get_session(
-        self, options: ClaudeCodeOptions, execution_phase: str = "default"
+        self, options: ClaudeAgentOptions, execution_phase: str = "default"
     ) -> SessionClient:
         """Get a fresh session for the given configuration.
 

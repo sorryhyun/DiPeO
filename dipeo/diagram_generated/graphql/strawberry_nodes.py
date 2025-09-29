@@ -2,11 +2,11 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-21T20:14:14.580250
+Generated at: 2025-09-30T07:54:32.456710
 """
 
 import strawberry
-from typing import *
+from typing import Optional, Dict, Any, List, Union, Literal
 from strawberry.types import *
 from strawberry.scalars import JSON as JSONScalar
 from .strawberry_domain import TemplatePreprocessorType, ToolConfigType
@@ -18,7 +18,7 @@ from ..domain_models import *
 from ..unified_nodes import *
 
 # Import generated scalars
-from dipeo.diagram_generated.graphql.scalars import *
+from .scalars import *
 
 
 # Generate Strawberry types for node data
@@ -389,7 +389,8 @@ class DbDataType:
     
     
     
-    operation: str  # Operation configuration
+    # Enum field: Operation configuration (Values: prompt, read, write, append, update)
+    operation: str
     
     
     
@@ -1645,7 +1646,8 @@ class TypescriptAstDataType:
     
     
     
-    extractPatterns: Optional[List[JSONScalar]] = None  # Patterns to extract from the AST
+    # Enum field: Patterns to extract from the AST (Values: interface, type, enum, class, function, const, export)
+    extractPatterns: Optional[str] = None
     
     
     

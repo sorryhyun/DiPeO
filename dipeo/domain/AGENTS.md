@@ -168,19 +168,6 @@ envelope = EnvelopeFactory.create(
 )
 ```
 
-### Deprecated Methods (v1.0)
-
-The following methods are deprecated and will be removed. Use `EnvelopeFactory.create()` instead:
-
-```python
-# DEPRECATED - Use EnvelopeFactory.create() instead
-EnvelopeFactory.text("content")           # → EnvelopeFactory.create("content")
-EnvelopeFactory.json(data)               # → EnvelopeFactory.create(data)
-EnvelopeFactory.binary(bytes_data)       # → EnvelopeFactory.create(bytes_data)
-EnvelopeFactory.error("msg", "ErrorType") # → EnvelopeFactory.create("msg", error="ErrorType")
-EnvelopeFactory.conversation(state)     # → EnvelopeFactory.create(state, content_type=ContentType.CONVERSATION_STATE)
-```
-
 ## v1.0 Domain Changes (2025-09-05)
 
 ### Unified Patterns

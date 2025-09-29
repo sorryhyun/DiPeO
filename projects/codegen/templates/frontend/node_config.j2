@@ -1,19 +1,19 @@
-// Auto-generated node configuration for {{ nodeType }}
+// Auto-generated node configuration for {{ node_type }}
 import type { UnifiedNodeConfig } from '@/infrastructure/config/unifiedConfig';
 import { NodeType, HandleLabel, ToolSelection, HookType, HttpMethod, SupportedLanguage, HookTriggerMode } from '@dipeo/models';
-import { {{ nodeType | camel_case }}Fields } from '../fields/{{ nodeType | pascal_case }}Fields';
-{%- if nodeType == 'integrated_api' %}
+import { {{ node_type | camel_case }}Fields } from '../fields/{{ node_type | pascal_case }}Fields';
+{%- if node_type == 'integrated_api' %}
 import { mergeFieldConfigs } from '@/domain/diagram/config/nodes/fieldOverrides';
 
 // Apply field overrides to get dynamic options
 const fieldsWithOverrides = mergeFieldConfigs('integrated_api');
 {%- endif %}
 
-export const {{ nodeType | camel_case }}Config: UnifiedNodeConfig = {
-  label: '{{ displayName }}',
+export const {{ node_type | camel_case }}Config: UnifiedNodeConfig = {
+  label: '{{ display_name }}',
   icon: '{{ icon }}',
   color: '{{ color | default('#6366f1') }}',
-  nodeType: NodeType.{{ nodeType | replace('-', '_') | upper }},
+  nodeType: NodeType.{{ node_type | replace('-', '_') | upper }},
   category: '{{ category | default('utility') }}',
   handles: {
 {%- if handles and handles.inputs %}
@@ -60,14 +60,14 @@ export const {{ nodeType | camel_case }}Config: UnifiedNodeConfig = {
 {%- endif %}
 {%- endfor %}
   },
-{%- if nodeType == 'integrated_api' %}
+{%- if node_type == 'integrated_api' %}
   customFields: fieldsWithOverrides,
 {%- else %}
-  customFields: {{ nodeType | camel_case }}Fields,
+  customFields: {{ node_type | camel_case }}Fields,
 {%- endif %}
-{%- if primaryDisplayField %}
-  primaryDisplayField: '{{ primaryDisplayField }}',
+{%- if primary_display_field %}
+  primaryDisplayField: '{{ primary_display_field }}',
 {%- endif %}
 };
 
-export default {{ nodeType | camel_case }}Config;
+export default {{ node_type | camel_case }}Config;

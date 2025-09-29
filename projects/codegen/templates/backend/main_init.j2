@@ -1,0 +1,37 @@
+"""Generated code for DiPeO diagram system."""
+
+# Re-export enums
+# Re-export functions from conversions
+from .conversions import (
+    domain_type_to_node_kind,
+    node_kind_to_domain_type,
+)
+# Re-export all domain models
+from .domain_models import (
+{%- for model in domain_models.get('models', []) %}
+    {{ model.name }},
+{%- endfor %}
+{%- for newtype in domain_models.get('newtypes', []) %}
+    {{ newtype.name }},
+{%- endfor %}
+)
+from .enums import (
+{%- for enum in enums %}
+    {{ enum.name }},
+{%- endfor %}
+)
+
+__all__ = [
+{%- for enum in enums %}
+    "{{ enum.name }}",
+{%- endfor %}
+{%- for newtype in domain_models.get('newtypes', []) %}
+    "{{ newtype.name }}",
+{%- endfor %}
+{%- for model in domain_models.get('models', []) %}
+    "{{ model.name }}",
+{%- endfor %}
+    "domain_type_to_node_kind",
+    # Functions from conversions
+    "node_kind_to_domain_type",
+]

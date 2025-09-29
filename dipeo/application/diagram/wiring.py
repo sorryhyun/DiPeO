@@ -46,7 +46,14 @@ def wire_diagram(registry: ServiceRegistry) -> None:
 
 
 def wire_diagram_use_cases(registry: ServiceRegistry) -> None:
-    """Wire diagram-specific use cases."""
+    """Wire diagram-specific use cases.
+
+    These use cases are conditionally used:
+    - COMPILE_DIAGRAM_USE_CASE: Used when compiling sub-diagrams, not in simple diagrams
+    - VALIDATE_DIAGRAM_USE_CASE: Used for diagram validation before execution
+    - SERIALIZE_DIAGRAM_USE_CASE: Used for format conversion and storage
+    - LOAD_DIAGRAM_USE_CASE: Used by sub-diagram nodes to load nested diagrams
+    """
     from dipeo.application.diagram.use_cases import (
         CompileDiagramUseCase,
         LoadDiagramUseCase,
@@ -73,7 +80,10 @@ def wire_diagram_use_cases(registry: ServiceRegistry) -> None:
 
     def create_load_diagram() -> LoadDiagramUseCase:
         diagram_service = registry.resolve(DIAGRAM_PORT)
-        return LoadDiagramUseCase(diagram_service=diagram_service)
+        # Use segregated ports from the diagram service
+        return LoadDiagramUseCase(
+            file_port=diagram_service.file_port, format_port=diagram_service.format_port
+        )
 
     registry.register(LOAD_DIAGRAM_USE_CASE, create_load_diagram)
 

@@ -1,7 +1,7 @@
 """
 Generated enum definitions for DiPeO.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-21T20:14:15.544058
+Generated at: 2025-09-30T07:54:33.725974
 """
 
 from enum import Enum
@@ -409,6 +409,83 @@ class EventPriority(str, Enum):
     
 
 
+class QueryOperationType(str, Enum):
+    """"""
+    
+    QUERY = "query"
+    
+    MUTATION = "mutation"
+    
+    SUBSCRIPTION = "subscription"
+    
+
+
+class CrudOperation(str, Enum):
+    """"""
+    
+    GET = "get"
+    
+    LIST = "list"
+    
+    CREATE = "create"
+    
+    UPDATE = "update"
+    
+    DELETE = "delete"
+    
+    SUBSCRIBE = "subscribe"
+    
+
+
+class QueryEntity(str, Enum):
+    """"""
+    
+    DIAGRAM = "Diagram"
+    
+    PERSON = "Person"
+    
+    EXECUTION = "Execution"
+    
+    API_KEY = "ApiKey"
+    
+    CONVERSATION = "Conversation"
+    
+    FILE = "File"
+    
+    NODE = "Node"
+    
+    PROMPT_TEMPLATE = "PromptTemplate"
+    
+    SYSTEM = "System"
+    
+
+
+class FieldPreset(str, Enum):
+    """"""
+    
+    MINIMAL = "minimal"
+    
+    STANDARD = "standard"
+    
+    DETAILED = "detailed"
+    
+    FULL = "full"
+    
+
+
+class FieldGroup(str, Enum):
+    """"""
+    
+    METADATA = "metadata"
+    
+    TIMESTAMPS = "timestamps"
+    
+    RELATIONSHIPS = "relationships"
+    
+    CONFIGURATION = "configuration"
+    
+
+
 
 # Export all enums
 __all__ = [
@@ -464,5 +541,15 @@ __all__ = [
     "Severity",
     
     "EventPriority",
+    
+    "QueryOperationType",
+    
+    "CrudOperation",
+    
+    "QueryEntity",
+    
+    "FieldPreset",
+    
+    "FieldGroup",
     
 ]

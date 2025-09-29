@@ -40,6 +40,8 @@ class ApplicationContainer:
     def _setup_app_services(self):
         from dipeo.domain.diagram.validation.diagram_validator import DiagramValidator
 
+        # DIAGRAM_VALIDATOR: Used for validating API key requirements in diagrams
+        # Not used in simple_iter but needed for diagrams with API nodes
         self.registry.register(
             DIAGRAM_VALIDATOR,
             lambda: DiagramValidator(api_key_service=self.registry.resolve(API_KEY_SERVICE)),
@@ -47,6 +49,8 @@ class ApplicationContainer:
 
         from dipeo.infrastructure.diagram.prompt_templates import PromptBuilder
 
+        # PROMPT_BUILDER: Used by person_job, condition nodes for building prompts
+        # Not used in simple_iter (which doesn't have complex prompts)
         self.registry.register(
             PROMPT_BUILDER,
             lambda: PromptBuilder(template_processor=self.registry.resolve(TEMPLATE_PROCESSOR)),
@@ -71,6 +75,8 @@ class ApplicationContainer:
                 file_system=file_system, validation_service=DataValidator()
             )
 
+        # DB_OPERATIONS_SERVICE: Used by DBTypedNodeHandler for database operations
+        # Not used in simple_iter (no DB nodes)
         self.registry.register(
             DB_OPERATIONS_SERVICE,
             create_db_operations_service,
@@ -85,6 +91,8 @@ class ApplicationContainer:
             pass
         from dipeo.application.execution.use_cases import ExecuteDiagramUseCase
 
+        # EXECUTION_SERVICE: Used by GraphQL mutations for server-initiated execution
+        # Not used in CLI mode or simple_iter (which uses direct execution)
         self.registry.register(
             EXECUTION_SERVICE,
             lambda: ExecuteDiagramUseCase(

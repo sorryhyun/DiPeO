@@ -2,14 +2,22 @@
 Strawberry GraphQL scalar types for DiPeO.
 Auto-generated from TypeScript branded types.
 
-Generated at: 2025-09-21T20:14:14.580250
+Generated at: 2025-09-30T07:54:32.456710
 """
 
 import strawberry
 from typing import Any, NewType
 from strawberry.scalars import ID
 
+# Debug info:
+# scalars defined: yes
+
+# scalars type: list
+# scalars value: [{'name': 'CliSessionID', 'type': 'string', 'description': 'Branded scalar type for...
+
+
 # Import the base domain types
+
 from dipeo.diagram_generated.domain_models import (
     CliSessionID,
     NodeID,
@@ -25,7 +33,9 @@ from dipeo.diagram_generated.domain_models import (
 )
 
 
+
 # Generate Strawberry scalar types for branded IDs
+
 
 # Branded scalar type for CliSessionID
 CliSessionIDScalar = strawberry.scalar(
@@ -127,8 +137,10 @@ FileIDScalar = strawberry.scalar(
 )
 
 
+
 # Export all scalar types
 __all__ = [
+
     "CliSessionIDScalar",
     "NodeIDScalar",
     "ArrowIDScalar",
@@ -140,11 +152,13 @@ __all__ = [
     "TaskIDScalar",
     "ExecutionIDScalar",
     "FileIDScalar",
+
 ]
 
 
 # Convenience dictionary for looking up scalars by name
 SCALAR_MAP = {
+
     "CliSessionID": CliSessionIDScalar,
     "NodeID": NodeIDScalar,
     "ArrowID": ArrowIDScalar,
@@ -156,4 +170,5 @@ SCALAR_MAP = {
     "TaskID": TaskIDScalar,
     "ExecutionID": ExecutionIDScalar,
     "FileID": FileIDScalar,
+
 }

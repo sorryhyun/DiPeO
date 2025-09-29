@@ -11,6 +11,7 @@ from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import DIAGRAM_PORT, MESSAGE_ROUTER, STATE_STORE
 from dipeo.diagram_generated.domain_models import ExecutionID
 from dipeo.diagram_generated.enums import EventType, Status
+from dipeo.diagram_generated.graphql.domain_types import ExecutionStateType
 from dipeo.diagram_generated.graphql.inputs import (
     ExecuteDiagramInput,
     ExecutionControlInput,
@@ -104,9 +105,10 @@ async def execute_diagram(registry: ServiceRegistry, input: ExecuteDiagramInput)
         if execution_id:
             execution = await state_store.get_state(str(execution_id))
             result = ExecutionResult.success_result(
-                data=execution, message="Execution started successfully"
+                data=ExecutionStateType.from_pydantic(execution),
+                message="Execution started successfully",
             )
-            result.execution = execution
+            result.execution = ExecutionStateType.from_pydantic(execution)
             return result
         else:
             return ExecutionResult.error_result(error="Failed to start execution")
@@ -155,9 +157,10 @@ async def update_node_state(
 
         execution = await state_store.get_state(input.execution_id)
         result = ExecutionResult.success_result(
-            data=execution, message=f"Updated node {input.node_id} state"
+            data=ExecutionStateType.from_pydantic(execution),
+            message=f"Updated node {input.node_id} state",
         )
-        result.execution = execution
+        result.execution = ExecutionStateType.from_pydantic(execution)
         return result
 
     except Exception as e:
@@ -204,9 +207,10 @@ async def control_execution(
 
         execution = await state_store.get_state(input.execution_id)
         result = ExecutionResult.success_result(
-            data=execution, message=f"Execution {input.action} successful"
+            data=ExecutionStateType.from_pydantic(execution),
+            message=f"Execution {input.action} successful",
         )
-        result.execution = execution
+        result.execution = ExecutionStateType.from_pydantic(execution)
         return result
 
     except Exception as e:
@@ -236,8 +240,10 @@ async def send_interactive_response(
         )
 
         execution = await state_store.get_state(input.execution_id)
-        result = ExecutionResult.success_result(data=execution, message="Interactive response sent")
-        result.execution = execution
+        result = ExecutionResult.success_result(
+            data=ExecutionStateType.from_pydantic(execution), message="Interactive response sent"
+        )
+        result.execution = ExecutionStateType.from_pydantic(execution)
         return result
 
     except Exception as e:

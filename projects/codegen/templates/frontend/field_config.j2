@@ -1,7 +1,7 @@
-// Generated field configuration for {{ nodeType }}
+// Generated field configuration for {{ node_type }}
 import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConfig';
 
-export const {{ nodeType | camel_case }}Fields: UnifiedFieldDefinition[] = [
+export const {{ node_type | camel_case }}Fields: UnifiedFieldDefinition[] = [
 {%- for field in fields %}
   {
     name: '{{ field['name'] }}',

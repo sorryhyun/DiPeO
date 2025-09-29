@@ -5,7 +5,7 @@ Generated at: {{ generated_at }}
 """
 
 # Re-export all node classes from individual files
-{% for import in node_factory.imports %}
+{% for import in node_factory.get('imports', []) %}
 from .{{ import.module }} import {{ import.class }}{% if import.alias %} as {{ import.alias }}{% endif %}
 {% endfor %}
 
@@ -36,7 +36,7 @@ def create_executable_node(
     """Factory function to create typed executable nodes from diagram data."""
     data = data or {}
 
-    {% for case in node_factory.factory_cases %}
+    {% for case in node_factory.get('factory_cases', []) %}
     {% if loop.first %}if{% else %}elif{% endif %} node_type == {{ case.node_type }}:
         return {{ case.class_name }}(
             id=node_id,
@@ -49,19 +49,26 @@ def create_executable_node(
             {% endfor %}
         )
     {% endfor %}
-    else:
-        raise ValueError(f"Unknown node type: {node_type}")
+    {% if node_factory.get('factory_cases', []) %}else:
+        raise ValueError(f"Unknown node type: {node_type}"){% else %}# No factory cases available, raise error for any input
+    raise ValueError(f"Unknown node type: {node_type}"){% endif %}
 
 # Union type for all executable node types
+{% if node_factory.get('imports', []) %}
 ExecutableNode = Union[
-    {% for import in node_factory.imports %}
+    {% for import in node_factory.get('imports', []) %}
     {{ import.class if not import.alias else import.alias }},
     {% endfor %}
 ]
+{% else %}
+# No node types available, using Any as placeholder
+from typing import Any
+ExecutableNode = Any
+{% endif %}
 
 # Additional exports for backward compatibility
 __all__ = [
-    {% for import in node_factory.imports %}
+    {% for import in node_factory.get('imports', []) %}
     "{{ import.class if not import.alias else import.alias }}",
     {% endfor %}
     "NodeType",

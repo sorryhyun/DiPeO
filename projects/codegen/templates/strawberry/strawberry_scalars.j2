@@ -9,39 +9,58 @@ import strawberry
 from typing import Any, NewType
 from strawberry.scalars import ID
 
+# Debug info:
+# scalars defined: {{ 'yes' if scalars is defined else 'no' }}
+{% if scalars is defined %}
+# scalars type: {{ scalars.__class__.__name__ }}
+# scalars value: {{ scalars | string | truncate(100) }}
+{% endif %}
+
 # Import the base domain types
+{% if scalars is defined and scalars|length > 0 %}
 from dipeo.diagram_generated.domain_models import (
 {%- for scalar in scalars %}
-    {{ scalar.name }},
+    {{ scalar['name'] }},
 {%- endfor %}
 )
+{% else %}
+# No scalars to import - skipping import statement
+{% endif %}
 
 
 # Generate Strawberry scalar types for branded IDs
+{% if scalars is defined %}
 {%- for scalar in scalars %}
 
-# {{ scalar.description | default('Scalar type for ' + scalar.name) }}
-{{ scalar.name }}Scalar = strawberry.scalar(
-    {{ scalar.name }},
-    name="{{ scalar.name }}",
-    description="{{ scalar.description | default('Scalar type for ' + scalar.name) }}",
+# {{ scalar.get('description', 'Scalar type for ' + scalar['name']) }}
+{{ scalar['name'] }}Scalar = strawberry.scalar(
+    {{ scalar['name'] }},
+    name="{{ scalar['name'] }}",
+    description="{{ scalar.get('description', 'Scalar type for ' + scalar['name']) }}",
     serialize=lambda v: str(v) if v is not None else None,
-    parse_value=lambda v: {{ scalar.name }}(v) if v is not None else None,
+    parse_value=lambda v: {{ scalar['name'] }}(v) if v is not None else None,
 )
 {%- endfor %}
+{% else %}
+# WARNING: No scalars to generate (scalars not iterable)
+{% endif %}
 
 
 # Export all scalar types
 __all__ = [
+{% if scalars is defined %}
 {%- for scalar in scalars %}
-    "{{ scalar.name }}Scalar",
+    "{{ scalar['name'] }}Scalar",
 {%- endfor %}
+{% endif %}
 ]
 
 
 # Convenience dictionary for looking up scalars by name
 SCALAR_MAP = {
+{% if scalars is defined %}
 {%- for scalar in scalars %}
-    "{{ scalar.name }}": {{ scalar.name }}Scalar,
+    "{{ scalar['name'] }}": {{ scalar['name'] }}Scalar,
 {%- endfor %}
+{% endif %}
 }

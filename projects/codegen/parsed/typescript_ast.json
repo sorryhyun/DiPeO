@@ -1,0 +1,609 @@
+{
+  "node-registry.ts": {
+    "interfaces": [],
+    "types": [],
+    "enums": [],
+    "constants": [
+      {
+        "name": "nodeSpecificationRegistry",
+        "type": "NodeSpecificationRegistry",
+        "value": {
+          "start": "startSpec",
+          "person_job": "personJobSpec",
+          "condition": "conditionSpec",
+          "code_job": "codeJobSpec",
+          "api_job": "apiJobSpec",
+          "endpoint": "endpointSpec",
+          "db": "dbSpec",
+          "diff_patch": "diffPatchSpec",
+          "user_response": "userResponseSpec",
+          "hook": "hookSpec",
+          "template_job": "templateJobSpec",
+          "json_schema_validator": "jsonSchemaValidatorSpec",
+          "typescript_ast": "typescriptAstSpec",
+          "sub_diagram": "subDiagramSpec",
+          "integrated_api": "integratedApiSpec",
+          "ir_builder": "irBuilderSpec"
+        },
+        "isExported": true
+      }
+    ]
+  },
+  "node-specification.ts": {
+    "interfaces": [
+      {
+        "name": "BaseNodeData",
+        "properties": [
+          {
+            "name": "label",
+            "type": "string",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "flipped",
+            "type": "boolean",
+            "optional": true,
+            "readonly": false
+          }
+        ],
+        "extends": [],
+        "isExported": true,
+        "jsDoc": "Base node data interface that all node types extend"
+      },
+      {
+        "name": "ValidationRules",
+        "properties": [
+          {
+            "name": "min",
+            "type": "number",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "max",
+            "type": "number",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "minLength",
+            "type": "number",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "maxLength",
+            "type": "number",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "pattern",
+            "type": "string",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "message",
+            "type": "string",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "itemType",
+            "type": "FieldType",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "allowedValues",
+            "type": "string[]",
+            "optional": true,
+            "readonly": false
+          }
+        ],
+        "extends": [],
+        "isExported": true,
+        "jsDoc": "Validation rules for a field"
+      },
+      {
+        "name": "UIConfiguration",
+        "properties": [
+          {
+            "name": "inputType",
+            "type": "UIInputType",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "placeholder",
+            "type": "string",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "column",
+            "type": "1 | 2",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "rows",
+            "type": "number",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "language",
+            "type": "SupportedLanguage",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "collapsible",
+            "type": "boolean",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "readOnly",
+            "type": "boolean",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "options",
+            "type": "Array<{ value: string; label: string }>",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "min",
+            "type": "number",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "max",
+            "type": "number",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "showPromptFileButton",
+            "type": "boolean",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "adjustable",
+            "type": "boolean",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "hidden",
+            "type": "boolean",
+            "optional": true,
+            "readonly": false
+          }
+        ],
+        "extends": [],
+        "isExported": true,
+        "jsDoc": "UI configuration for a field"
+      },
+      {
+        "name": "ConditionalConfig",
+        "properties": [
+          {
+            "name": "field",
+            "type": "string",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "values",
+            "type": "any[]",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "operator",
+            "type": "'equals' | 'notEquals' | 'includes'",
+            "optional": true,
+            "readonly": false
+          }
+        ],
+        "extends": [],
+        "isExported": true,
+        "jsDoc": "Conditional display configuration"
+      },
+      {
+        "name": "FieldSpecification",
+        "properties": [
+          {
+            "name": "name",
+            "type": "string",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "type",
+            "type": "FieldType",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "required",
+            "type": "boolean",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "defaultValue",
+            "type": "any",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "validation",
+            "type": "ValidationRules",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "uiConfig",
+            "type": "UIConfiguration",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "nestedFields",
+            "type": "FieldSpecification[]",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "affects",
+            "type": "string[]",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "conditional",
+            "type": "ConditionalConfig",
+            "optional": true,
+            "readonly": false
+          }
+        ],
+        "extends": [],
+        "isExported": true,
+        "jsDoc": "Field specification defining a single field in a node"
+      },
+      {
+        "name": "HandleConfiguration",
+        "properties": [
+          {
+            "name": "inputs",
+            "type": "string[]",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "outputs",
+            "type": "string[]",
+            "optional": false,
+            "readonly": false
+          }
+        ],
+        "extends": [],
+        "isExported": true,
+        "jsDoc": "Handle configuration for a node"
+      },
+      {
+        "name": "InputPortSpecification",
+        "properties": [
+          {
+            "name": "name",
+            "type": "string",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "contentType",
+            "type": "'raw_text' | 'object' | 'conversation_state' | 'binary'",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "required",
+            "type": "boolean",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "default",
+            "type": "any",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "accepts",
+            "type": "string[]",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "optional": true,
+            "readonly": false
+          }
+        ],
+        "extends": [],
+        "isExported": true,
+        "jsDoc": "Input port specification for SEAC (Strict Envelopes & Arrow Contracts)"
+      },
+      {
+        "name": "OutputSpecification",
+        "properties": [
+          {
+            "name": "type",
+            "type": "DataType | 'any'",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "optional": false,
+            "readonly": false
+          }
+        ],
+        "extends": [],
+        "isExported": true,
+        "jsDoc": "Output specification for a node"
+      },
+      {
+        "name": "ExecutionConfiguration",
+        "properties": [
+          {
+            "name": "timeout",
+            "type": "number",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "retryable",
+            "type": "boolean",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "maxRetries",
+            "type": "number",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "requires",
+            "type": "string[]",
+            "optional": true,
+            "readonly": false
+          }
+        ],
+        "extends": [],
+        "isExported": true,
+        "jsDoc": "Execution configuration for a node"
+      },
+      {
+        "name": "ExampleConfiguration",
+        "properties": [
+          {
+            "name": "name",
+            "type": "string",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "configuration",
+            "type": "Record<string, any>",
+            "optional": false,
+            "readonly": false
+          }
+        ],
+        "extends": [],
+        "isExported": true,
+        "jsDoc": "Example configuration for documentation"
+      },
+      {
+        "name": "HandlerMetadata",
+        "properties": [
+          {
+            "name": "modulePath",
+            "type": "string",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "className",
+            "type": "string",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "mixins",
+            "type": "string[]",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "serviceKeys",
+            "type": "string[]",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "skipGeneration",
+            "type": "boolean",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "customImports",
+            "type": "string[]",
+            "optional": true,
+            "readonly": false
+          }
+        ],
+        "extends": [],
+        "isExported": true,
+        "jsDoc": "Handler metadata for backend code generation"
+      },
+      {
+        "name": "NodeSpecification",
+        "properties": [
+          {
+            "name": "nodeType",
+            "type": "NodeType",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "displayName",
+            "type": "string",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "category",
+            "type": "NodeCategory",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "icon",
+            "type": "string",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "color",
+            "type": "string",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "fields",
+            "type": "FieldSpecification[]",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "handles",
+            "type": "HandleConfiguration",
+            "optional": false,
+            "readonly": false
+          },
+          {
+            "name": "inputPorts",
+            "type": "InputPortSpecification[]",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "outputs",
+            "type": "Record<string, OutputSpecification>",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "execution",
+            "type": "ExecutionConfiguration",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "examples",
+            "type": "ExampleConfiguration[]",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "primaryDisplayField",
+            "type": "string",
+            "optional": true,
+            "readonly": false
+          },
+          {
+            "name": "handlerMetadata",
+            "type": "HandlerMetadata",
+            "optional": true,
+            "readonly": false
+          }
+        ],
+        "extends": [],
+        "isExported": true,
+        "jsDoc": "Complete node specification"
+      },
+      {
+        "name": "NodeSpecificationRegistry",
+        "properties": [],
+        "extends": [],
+        "isExported": true,
+        "jsDoc": "Collection of all node specifications"
+      }
+    ],
+    "types": [],
+    "enums": [],
+    "constants": []
+  },
+  "node-categories.ts": {
+    "interfaces": [],
+    "types": [
+      {
+        "name": "NodeCategory",
+        "type": "'control' | 'ai' | 'compute' | 'data' | 'integration' | 'interaction' | 'codegen' | 'validation' | 'utility'",
+        "isExported": true,
+        "jsDoc": "UI and specification-related type definitions"
+      },
+      {
+        "name": "FieldType",
+        "type": "'string' | 'number' | 'boolean' | 'array' | 'object' | 'enum' | 'any'",
+        "isExported": true
+      },
+      {
+        "name": "UIInputType",
+        "type": "| 'text'\n  | 'textarea'\n  | 'number'\n  | 'checkbox'\n  | 'select'\n  | 'code'\n  | 'group'\n  | 'json'\n  | 'personSelect'  // Special person selector\n  | 'nodeSelect'",
+        "isExported": true
+      }
+    ],
+    "enums": [],
+    "constants": []
+  },
+  "index.ts": {
+    "interfaces": [],
+    "types": [],
+    "enums": [],
+    "constants": []
+  }
+}

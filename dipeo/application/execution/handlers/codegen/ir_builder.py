@@ -163,7 +163,7 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
         if node.cache_enabled:
             cached = await self._ir_cache.get(self._current_cache_key)
             if cached:
-                logger.info(f"Using cached IR for {node.builder_type}")
+                # logger.info(f"Using cached IR for {node.builder_type}")
                 return cached
 
         # Build IR
@@ -178,12 +178,12 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
             if node.validate_output:
                 if not self._current_builder.validate_ir(ir_data):
                     raise ValueError(f"IR validation failed for {node.builder_type}")
-                logger.info(f"IR validation passed for {node.builder_type}")
+                # logger.info(f"IR validation passed for {node.builder_type}")
 
             # Cache result if enabled
             if node.cache_enabled:
                 await self._ir_cache.set(self._current_cache_key, ir_data)
-                logger.info(f"Cached IR for {node.builder_type}")
+                # logger.info(f"Cached IR for {node.builder_type}")
 
             # Return based on output format
             if node.output_format == "json":

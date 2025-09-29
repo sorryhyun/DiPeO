@@ -157,7 +157,7 @@ class ServerManager:
         if "errors" in result:
             raise Exception(f"GraphQL errors: {result['errors']}")
 
-        execution_result = result["data"]["execute_diagram"]
+        execution_result = result["data"]["executeDiagram"]
 
         # Register CLI session if execution started successfully
         if execution_result.get("success") and execution_result.get("execution"):
@@ -200,7 +200,7 @@ class ServerManager:
             if "data" not in result or result["data"] is None:
                 return None
 
-            return result["data"].get("execution")
+            return result["data"].get("getExecution")
         except Exception as e:
             print(f"[DEBUG] Error getting execution result: {e}")
             import traceback

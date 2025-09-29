@@ -57,4 +57,4 @@ persons:
   person 1:
     service: claude-code
     model: claude-code
-    api_key_id: APIKEY_52609F
+    api_key_id: APIKEY_MOCK

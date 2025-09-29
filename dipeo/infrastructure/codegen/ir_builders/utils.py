@@ -6,255 +6,18 @@ import re
 from pathlib import Path
 from typing import Any, Optional
 
-import inflection
 import yaml
 
-# ============================================================================
-# CASE CONVERSION UTILITIES
-# ============================================================================
-
-
-def snake_case(text: str) -> str:
-    """Convert text to snake_case using inflection library."""
-    if not text or text == "Undefined":
-        return ""
-    return inflection.underscore(str(text))
-
-
-def camel_case(text: str) -> str:
-    """Convert text to camelCase using inflection library."""
-    if not text or text == "Undefined":
-        return ""
-    return inflection.camelize(str(text), uppercase_first_letter=False)
-
-
-def pascal_case(text: str) -> str:
-    """Convert text to PascalCase using inflection library."""
-    if not text or text == "Undefined":
-        return ""
-    return inflection.camelize(str(text))
-
-
-def kebab_case(text: str) -> str:
-    """Convert text to kebab-case using inflection library."""
-    if not text or text == "Undefined":
-        return ""
-    return inflection.dasherize(inflection.underscore(str(text)))
-
-
-# Aliases for backward compatibility
-camel_to_snake = snake_case
-snake_to_pascal = pascal_case
-pascal_to_camel = camel_case
-
-
-# ============================================================================
-# TYPE CONVERSION UTILITIES
-# ============================================================================
-
-
-class TypeConverter:
-    """Unified type converter for TypeScript, Python, and GraphQL types."""
-
-    # Base type mappings
-    TS_TO_PYTHON_BASE = {
-        "string": "str",
-        "number": "float",
-        "boolean": "bool",
-        "any": "Any",
-        "unknown": "Any",
-        "null": "None",
-        "undefined": "None",
-        "void": "None",
-        "Date": "datetime",
-        "Record<string, any>": "Dict[str, Any]",
-        "Record<string, string>": "Dict[str, str]",
-        "object": "Dict[str, Any]",
-    }
-
-    TS_TO_GRAPHQL = {
-        "string": "String",
-        "number": "Float",
-        "boolean": "Boolean",
-        "any": "JSONScalar",
-        "unknown": "JSONScalar",
-        "Date": "DateTime",
-        "Record<string, any>": "JSONScalar",
-        "Record<string, string>": "JSONScalar",
-        "object": "JSONScalar",
-    }
-
-    GRAPHQL_TO_TS = {
-        "String": "string",
-        "Int": "number",
-        "Float": "number",
-        "Boolean": "boolean",
-        "ID": "string",
-        "DateTime": "string",
-        "JSON": "any",
-        "JSONScalar": "any",
-        "Upload": "File",
-    }
-
-    def __init__(self, custom_mappings: Optional[dict[str, dict[str, str]]] = None):
-        """Initialize with optional custom type mappings.
-
-        Args:
-            custom_mappings: Dictionary with keys like 'ts_to_python', 'ts_to_graphql', etc.
-        """
-        self.custom_mappings = custom_mappings or {}
-
-    def ts_to_python(self, ts_type: str) -> str:
-        """Convert TypeScript type to Python type."""
-        # Check custom mappings first
-        if "ts_to_python" in self.custom_mappings:
-            if ts_type in self.custom_mappings["ts_to_python"]:
-                return self.custom_mappings["ts_to_python"][ts_type]
-
-        # Handle known type aliases to avoid forward reference issues
-        if ts_type == "SerializedNodeOutput":
-            return "SerializedEnvelope"
-        if ts_type == "PersonMemoryMessage":
-            return "Message"
-
-        # Handle union types (A | B | C) - check this before string literals
-        # to properly handle unions of string literals
-        if "|" in ts_type:
-            return self._handle_union_type(ts_type, self.ts_to_python)
-
-        # Handle string literals (only after checking for unions)
-        if self._is_string_literal(ts_type):
-            return f"Literal[{ts_type}]"
-
-        # Handle array types
-        if ts_type.startswith("Array<") and ts_type.endswith(">"):
-            inner_type = ts_type[6:-1]
-            return f"List[{self.ts_to_python(inner_type)}]"
-
-        if ts_type.endswith("[]"):
-            inner_type = ts_type[:-2]
-            return f"List[{self.ts_to_python(inner_type)}]"
-
-        # Handle Record types generically
-        if ts_type.startswith("Record<") and ts_type.endswith(">"):
-            # Extract key and value types from Record<K, V>
-            inner = ts_type[7:-1]  # Remove "Record<" and ">"
-            parts = inner.split(",", 1)
-            if len(parts) == 2:
-                key_type = parts[0].strip()
-                value_type = parts[1].strip()
-                # Convert both types recursively
-                py_key = self.ts_to_python(key_type)
-                py_value = self.ts_to_python(value_type)
-                # Map number to int for dictionary keys
-                if py_key == "float":
-                    py_key = "int"
-                return f"Dict[{py_key}, {py_value}]"
-
-        # Handle branded scalars
-        if "&" in ts_type and "__brand" in ts_type:
-            match = re.search(r"'__brand':\s*'([^']+)'", ts_type)
-            if match:
-                return match.group(1)
-
-        # Use base mapping
-        return self.TS_TO_PYTHON_BASE.get(ts_type, ts_type)
-
-    def ts_to_graphql(self, ts_type: str) -> str:
-        """Convert TypeScript type to GraphQL type."""
-        # Check custom mappings first
-        if "ts_to_graphql" in self.custom_mappings:
-            if ts_type in self.custom_mappings["ts_to_graphql"]:
-                return self.custom_mappings["ts_to_graphql"][ts_type]
-
-        # Handle arrays
-        if ts_type.startswith("Array<") and ts_type.endswith(">"):
-            inner_type = ts_type[6:-1]
-            return f"[{self.ts_to_graphql(inner_type)}]"
-
-        if ts_type.endswith("[]"):
-            inner_type = ts_type[:-2]
-            return f"[{self.ts_to_graphql(inner_type)}]"
-
-        # Handle branded scalars
-        if "&" in ts_type and "__brand" in ts_type:
-            match = re.search(r"'__brand':\s*'([^']+)'", ts_type)
-            if match:
-                # Convert to GraphQL scalar name
-                brand = match.group(1)
-                return brand if brand.endswith("ID") else brand
-
-        # Use base mapping
-        return self.TS_TO_GRAPHQL.get(ts_type, ts_type)
-
-    def graphql_to_ts(self, graphql_type: str) -> str:
-        """Convert GraphQL type to TypeScript type."""
-        # Check custom mappings first
-        if "graphql_to_ts" in self.custom_mappings:
-            if graphql_type in self.custom_mappings["graphql_to_ts"]:
-                return self.custom_mappings["graphql_to_ts"][graphql_type]
-
-        # Handle arrays
-        if graphql_type.startswith("[") and graphql_type.endswith("]"):
-            inner = graphql_type[1:-1].replace("!", "")
-            return f"{self.graphql_to_ts(inner)}[]"
-
-        # Remove required marker
-        clean_type = graphql_type.replace("!", "")
-
-        # Use base mapping
-        return self.GRAPHQL_TO_TS.get(clean_type, clean_type)
-
-    def graphql_to_python(self, graphql_type: str) -> str:
-        """Convert GraphQL type to Python type."""
-        # First convert to TypeScript, then to Python
-        ts_type = self.graphql_to_ts(graphql_type)
-        return self.ts_to_python(ts_type)
-
-    def _is_string_literal(self, ts_type: str) -> bool:
-        """Check if a TypeScript type is a string literal."""
-        ts_type = ts_type.strip()
-        return (ts_type.startswith("'") and ts_type.endswith("'")) or (
-            ts_type.startswith('"') and ts_type.endswith('"')
-        )
-
-    def _handle_union_type(self, ts_type: str, converter_func) -> str:
-        """Handle TypeScript union types (A | B | C)."""
-        parts = [part.strip() for part in ts_type.split("|")]
-
-        # Special case: if it's just Type | null or Type | undefined
-        if len(parts) == 2:
-            if "null" in parts or "undefined" in parts:
-                other_type = parts[0] if parts[1] in ["null", "undefined"] else parts[1]
-                return f"Optional[{converter_func(other_type)}]"
-
-        # Check if all parts are string literals
-        all_string_literals = all(self._is_string_literal(part) for part in parts)
-
-        if all_string_literals:
-            # Use Literal for unions of string literals
-            # Keep the quotes for the literal values
-            literal_values = ", ".join(parts)
-            return f"Literal[{literal_values}]"
-
-        # General union case
-        converted_parts = []
-        for part in parts:
-            if self._is_string_literal(part):
-                # For individual string literals in mixed unions, use Literal
-                converted_parts.append(f"Literal[{part}]")
-            else:
-                converted_parts.append(converter_func(part))
-
-        # Filter out None values for cleaner output
-        converted_parts = [p for p in converted_parts if p != "None"]
-
-        if len(converted_parts) == 1:
-            return f"Optional[{converted_parts[0]}]"
-        elif len(converted_parts) > 1:
-            return f'Union[{", ".join(converted_parts)}]'
-        else:
-            return "None"
+from dipeo.infrastructure.codegen.type_system import (
+    TypeConverter,
+    camel_case,
+    camel_to_snake,
+    kebab_case,
+    pascal_case,
+    pascal_to_camel,
+    snake_case,
+    snake_to_pascal,
+)
 
 
 # ============================================================================
@@ -388,6 +151,168 @@ def extract_type_aliases_from_ast(ast_data: dict[str, Any]) -> list[dict[str, An
             )
 
     return type_aliases
+
+
+def extract_graphql_input_types_from_ast(ast_data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Extract GraphQL input types from TypeScript AST data.
+
+    Looks for type aliases ending with 'Input' from graphql-inputs.ts
+
+    Args:
+        ast_data: TypeScript AST data
+
+    Returns:
+        List of input type definitions
+    """
+    input_types = []
+
+    for file_path, file_data in ast_data.items():
+        if not isinstance(file_data, dict):
+            continue
+
+        # Only process graphql-inputs.ts
+        if "graphql-inputs" not in file_path:
+            continue
+
+        # Extract type aliases ending with Input
+        for type_alias in file_data.get("typeAliases", []):
+            name = type_alias.get("name", "")
+            if name.endswith("Input"):
+                # Parse the type definition
+                type_def = type_alias.get("type", {})
+                fields = []
+
+                # Extract fields from object type
+                if isinstance(type_def, dict) and type_def.get("type") == "object":
+                    for prop in type_def.get("properties", []):
+                        field = {
+                            "name": prop.get("name", ""),
+                            "type": prop.get("type", "String"),
+                            "is_optional": prop.get("optional", False),
+                            "description": prop.get("comment", ""),
+                        }
+                        fields.append(field)
+
+                input_types.append(
+                    {"name": name, "fields": fields, "description": type_alias.get("comment", "")}
+                )
+
+        # Also look in types array for types ending with Input
+        for type_def in file_data.get("types", []):
+            if isinstance(type_def, dict):
+                name = type_def.get("name", "")
+                if name.endswith("Input"):
+                    # Parse the type string to extract fields
+                    type_str = type_def.get("type", "")
+                    fields = []
+
+                    # Simple parser for object type string like "{ x: Float; y: Float; }"
+                    if "{" in type_str and "}" in type_str:
+                        # Remove braces and split by semicolon
+                        content = type_str.strip().strip("{}").strip()
+                        if content:
+                            field_lines = content.split(";")
+                            for line in field_lines:
+                                line = line.strip()
+                                if ":" in line:
+                                    parts = line.split(":", 1)
+                                    field_name = parts[0].strip()
+                                    field_type = parts[1].strip() if len(parts) > 1 else "Any"
+
+                                    # Simplify Scalars['Type']['input'] to Type
+                                    if "Scalars[" in field_type:
+                                        # Extract the type name
+                                        import re
+
+                                        match = re.search(r"Scalars\['(\w+)'\]", field_type)
+                                        if match:
+                                            field_type = match.group(1)
+
+                                    # Check if optional
+                                    is_optional = "?" in field_name or "InputMaybe<" in field_type
+                                    field_name = field_name.rstrip("?")
+
+                                    fields.append(
+                                        {
+                                            "name": field_name,
+                                            "type": field_type,
+                                            "is_optional": is_optional,
+                                            "description": "",
+                                        }
+                                    )
+
+                    if fields:  # Only add if we found fields
+                        input_types.append({"name": name, "fields": fields, "description": ""})
+
+    return input_types
+
+
+def extract_branded_scalars_from_ast(ast_data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Extract branded scalars from TypeScript AST data.
+
+    Args:
+        ast_data: TypeScript AST data
+
+    Returns:
+        List of branded scalar dictionaries
+    """
+    scalars = []
+    seen_names = set()
+
+    for _file_path, file_data in ast_data.items():
+        if not isinstance(file_data, dict):
+            continue
+
+        # Look for branded scalars in the AST
+        for scalar in file_data.get("brandedScalars", []):
+            scalar_name = scalar.get("name", "")
+            if scalar_name and scalar_name not in seen_names:
+                scalars.append(
+                    {
+                        "name": scalar_name,
+                        "type": scalar.get("baseType", "string"),
+                        "description": f"Branded scalar type for {scalar_name}",
+                    }
+                )
+                seen_names.add(scalar_name)
+
+        # Also look for NewType declarations that end with ID
+        for type_alias in file_data.get("typeAliases", []):
+            name = type_alias.get("name", "")
+            if name.endswith("ID") and name not in seen_names:
+                scalars.append(
+                    {
+                        "name": name,
+                        "type": "string",
+                        "description": f"Branded scalar type for {name}",
+                    }
+                )
+                seen_names.add(name)
+
+        # Look in types array for branded types (pattern: string & { readonly __brand: ... })
+        for type_def in file_data.get("types", []):
+            if isinstance(type_def, dict):
+                type_name = type_def.get("name", "")
+                type_value = type_def.get("type", "")
+                # Check if it's a branded type pattern
+                if "__brand" in type_value and type_name and type_name not in seen_names:
+                    # Extract base type (usually "string" before the &)
+                    base_type = "string"  # Default to string
+                    if "string &" in type_value:
+                        base_type = "string"
+                    elif "number &" in type_value:
+                        base_type = "number"
+
+                    scalars.append(
+                        {
+                            "name": type_name,
+                            "type": base_type,
+                            "description": f"Branded scalar type for {type_name}",
+                        }
+                    )
+                    seen_names.add(type_name)
+
+    return scalars
 
 
 def process_field_definition(

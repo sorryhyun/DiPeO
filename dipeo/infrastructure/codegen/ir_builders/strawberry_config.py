@@ -41,10 +41,10 @@ class StrawberryConfig:
         try:
             with open(config_path) as f:
                 data = yaml.safe_load(f) or {}
-                logger.debug(f"Loaded configuration from {name}: {len(data)} items")
+                # logger.debug(f"Loaded configuration from {name}: {len(data)} items")
                 return data
         except FileNotFoundError:
-            logger.error(f"Required configuration file not found: {config_path}")
+            # logger.error(f"Required configuration file not found: {config_path}")
             raise
 
     def _opt(self, name: str) -> dict[str, Any]:
@@ -59,7 +59,7 @@ class StrawberryConfig:
         config_path = self.root / name
         if config_path.exists():
             return self._load(name)
-        logger.debug(f"Optional configuration file not found: {name}, using defaults")
+        # logger.debug(f"Optional configuration file not found: {name}, using defaults")
         return {}
 
     def to_dict(self) -> dict[str, Any]:

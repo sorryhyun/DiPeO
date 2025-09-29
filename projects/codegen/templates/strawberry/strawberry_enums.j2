@@ -33,7 +33,7 @@ __all__ = [
 {% for enum in enums %}
 def convert_{{ enum['name'].lower() }}_to_graphql(python_enum):
     """Convert Python {{ enum['name'] }} enum to GraphQL enum."""
-    from dipeo.diagram_generated.enums import {{ enum['name'] }}
+    from ..enums import {{ enum['name'] }}
     mapping = {
         {%- for value in enum['values'] %}
         {% if value is mapping -%}
@@ -47,7 +47,7 @@ def convert_{{ enum['name'].lower() }}_to_graphql(python_enum):
 
 def convert_{{ enum['name'].lower() }}_from_graphql(graphql_enum):
     """Convert GraphQL {{ enum['name'] }} enum to Python enum."""
-    from dipeo.diagram_generated.enums import {{ enum['name'] }}
+    from ..enums import {{ enum['name'] }}
     mapping = {
         {%- for value in enum['values'] %}
         {% if value is mapping -%}

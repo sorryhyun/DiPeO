@@ -4,24 +4,10 @@ This module provides filters for type system conversions between TypeScript,
 Python, and GraphQL during code generation.
 """
 
-import os
 import re
-import sys
 from typing import Any
 
-
-def get_infrastructure_type_transformer():
-    """Get the infrastructure type transformer if available."""
-    try:
-        base_dir = os.environ.get("DIPEO_BASE_DIR", "/home/soryhyun/DiPeO")
-        if base_dir not in sys.path:
-            sys.path.append(base_dir)
-
-        from dipeo.infrastructure.parsers.typescript.type_transformer import map_ts_type_to_python
-
-        return map_ts_type_to_python
-    except ImportError:
-        return None
+from dipeo.infrastructure.codegen.type_system import TypeConverter
 
 
 class TypeConversionFilters:
@@ -42,33 +28,6 @@ class TypeConversionFilters:
         "never": "Any",
         "ExecutionStatus": "Status",
         "NodeExecutionStatus": "Status",
-    }
-
-    GRAPHQL_TYPE_MAP = {
-        "string": "String",
-        "number": "Float",
-        "boolean": "Boolean",
-        "any": "JSON",
-        "unknown": "JSON",
-        "void": "JSON",
-        "null": "JSON",
-        "undefined": "JSON",
-        "object": "JSON",
-        "bigint": "BigInt",
-        "symbol": "String",
-        "never": "JSON",
-        "Date": "DateTime",
-    }
-
-    GRAPHQL_TO_PYTHON_MAP = {
-        "ID": "str",
-        "String": "str",
-        "Int": "int",
-        "Float": "float",
-        "Boolean": "bool",
-        "JSON": "dict[str, Any]",
-        "Upload": "Upload",
-        "DateTime": "str",
     }
 
     INTEGER_FIELDS = {
@@ -123,6 +82,7 @@ class TypeConversionFilters:
     }
 
     _type_cache: dict[str, str] = {}
+    _converter = TypeConverter()
 
     @classmethod
     def ts_to_python(cls, ts_type: str, field_name: str = "") -> str:
@@ -161,22 +121,17 @@ class TypeConversionFilters:
             cls._type_cache[cache_key] = result
             return result
 
-        infrastructure_transformer = get_infrastructure_type_transformer()
-        if infrastructure_transformer:
-            try:
-                result = infrastructure_transformer(ts_type)
+        result = cls._converter.ts_to_python(ts_type)
 
-                if result == "float" and field_name in cls.INTEGER_FIELDS:
-                    result = "int"
+        if result == "float" and field_name in cls.INTEGER_FIELDS:
+            result = "int"
 
-                if result in ["ExecutionStatus", "NodeExecutionStatus"]:
-                    result = "Status"
+        if result in ["ExecutionStatus", "NodeExecutionStatus"]:
+            result = "Status"
 
-                if result != ts_type:
-                    cls._type_cache[cache_key] = result
-                    return result
-            except Exception:
-                pass
+        if result != ts_type:
+            cls._type_cache[cache_key] = result
+            return result
 
         # Legacy implementation (fallback)
         if ts_type.startswith("{") and ts_type.endswith("}"):
@@ -287,21 +242,15 @@ class TypeConversionFilters:
         Returns:
             Python type string
         """
-        # Handle array types
-        if graphql_type.startswith("[") and graphql_type.endswith("]"):
-            inner_type = graphql_type[1:-1].replace("!", "")
-            python_type = cls.graphql_to_python(inner_type, True)
-            return f"list[{python_type}]"
+        python_type = cls._converter.graphql_to_python(graphql_type)
 
-        # Remove required markers for base type mapping
-        base_type = graphql_type.replace("!", "")
+        # Maintain legacy lowercase list typing for backwards compatibility
+        if python_type.startswith("List["):
+            python_type = "list" + python_type[4:]
 
-        # Check if it's a known scalar or use as-is for custom types
-        python_type = cls.GRAPHQL_TO_PYTHON_MAP.get(base_type, base_type)
-
-        # Add Optional wrapper if not required and not already marked as required
         if not required and not graphql_type.endswith("!"):
-            python_type = f"Optional[{python_type}]"
+            if not python_type.startswith("Optional["):
+                python_type = f"Optional[{python_type}]"
 
         return python_type
 
@@ -657,7 +606,6 @@ class TypeConversionFilters:
         """Get all filter methods as a dictionary."""
         return {
             "ts_to_python": cls.ts_to_python,
-            "to_py": cls.ts_to_python,  # Alias for backward compatibility
             "graphql_to_python": cls.graphql_to_python,
             "python_type_with_context": cls.python_type_with_context,
             "ts_graphql_input_to_python": cls.ts_graphql_input_to_python,
@@ -666,7 +614,6 @@ class TypeConversionFilters:
             "infer_empty_object_type": cls.infer_empty_object_type,
             "get_python_imports": cls.get_python_imports,
             "is_optional_type": cls.is_optional_type,
-            "is_optional_ts": cls.is_optional_type,  # Alias for compatibility
             "is_branded_type": cls.is_branded_type,
             "get_default_value": cls.get_default_value,
             "clear_cache": cls.clear_cache,

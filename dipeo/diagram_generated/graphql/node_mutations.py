@@ -2,7 +2,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-09-21T20:14:14.580250
+Generated at: 2025-09-30T07:54:32.456710
 """
 
 import strawberry
@@ -308,7 +308,8 @@ class CreateDbInput:
     
     
     
-    operation: str  # Operation configuration
+    # Enum field: Operation configuration
+    operation: str  # Values: ['prompt', 'read', 'write', 'append', 'update']
     
     
     
@@ -358,7 +359,8 @@ class UpdateDbInput:
     
     
     
-    operation: Optional[str] = None  # Operation configuration
+    # Enum field: Operation configuration
+    operation: Optional[str] = None  # Values: ['prompt', 'read', 'write', 'append', 'update']
     
     
     
@@ -1235,7 +1237,8 @@ class CreateTypescriptAstInput:
     
     
     
-    extractPatterns: Optional[str] = None  # Patterns to extract from the AST
+    # Enum field: Patterns to extract from the AST
+    extractPatterns: Optional[str] = None  # Values: ['interface', 'type', 'enum', 'class', 'function', 'const', 'export']
     
     
     
@@ -1282,7 +1285,8 @@ class UpdateTypescriptAstInput:
     
     
     
-    extractPatterns: Optional[str] = None  # Patterns to extract from the AST
+    # Enum field: Patterns to extract from the AST
+    extractPatterns: Optional[str] = None  # Values: ['interface', 'type', 'enum', 'class', 'function', 'const', 'export']
     
     
     

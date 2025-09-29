@@ -185,14 +185,7 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         if not inputs:
             return []
 
-        # Add detailed logging to debug the issue
-        if "default" in inputs:
-            default_value = inputs["default"]
-            logger.debug(f"Type of 'default' value: {type(default_value)}")
-            if isinstance(default_value, dict):
-                logger.debug(f"Keys in 'default' dict: {list(default_value.keys())}")
-            elif isinstance(default_value, str):
-                logger.debug(f"'default' is a string, first 100 chars: {default_value[:100]}")
+        # Removed debug logging for cleaner output
 
         batch_items = self._find_batch_items_in_inputs(inputs, batch_input_key)
 
@@ -216,7 +209,7 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         """Find batch items in various input structures."""
         # 1. Direct key in inputs
         if batch_input_key in inputs:
-            logger.debug("Found batch items at root level")
+            # logger.debug("Found batch items at root level")
             return inputs[batch_input_key]
 
         # 2. Under 'default' key

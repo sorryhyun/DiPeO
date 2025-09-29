@@ -8,7 +8,7 @@ import logging
 from collections.abc import AsyncIterator
 from typing import Any
 
-from claude_code_sdk import ClaudeCodeOptions
+from claude_code_sdk import ClaudeAgentOptions
 
 from .session_pool import get_global_session_manager
 
@@ -24,7 +24,7 @@ class SessionQueryWrapper:
 
     def __init__(
         self,
-        options: ClaudeCodeOptions,
+        options: ClaudeAgentOptions,
         execution_phase: str = "default",
     ):
         """Initialize session query wrapper.

@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 from dipeo.diagram_generated import DomainDiagram
-from dipeo.domain.diagram.segregated_ports import UnifiedDiagramPortAdapter as DiagramPort
+from dipeo.domain.diagram.segregated_ports import DiagramFilePort, DiagramFormatPort
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +26,15 @@ class LoadDiagramUseCase:
         "readable": ".readable.yaml",
     }
 
-    def __init__(self, diagram_service: DiagramPort):
+    def __init__(self, file_port: DiagramFilePort, format_port: DiagramFormatPort | None = None):
         """Initialize the diagram loading use case.
 
         Args:
-            diagram_service: Service for loading and converting diagrams
+            file_port: Port for loading diagrams from files
+            format_port: Optional port for format conversion
         """
-        self._diagram_service = diagram_service
+        self._file_port = file_port
+        self._format_port = format_port
         self._diagram_cache: dict[str, DomainDiagram] = {}
 
     async def load_diagram(
@@ -70,10 +72,10 @@ class LoadDiagramUseCase:
 
         logger.debug(f"Loading diagram from file: {file_path}")
 
-        if hasattr(self._diagram_service, "initialize"):
-            await self._diagram_service.initialize()
+        if hasattr(self._file_port, "initialize"):
+            await self._file_port.initialize()
 
-        diagram = await self._diagram_service.load_from_file(str(file_path))
+        diagram = await self._file_port.load_from_file(str(file_path))
 
         self._diagram_cache[cache_key] = diagram
 
@@ -132,9 +134,15 @@ class LoadDiagramUseCase:
         Returns:
             DomainDiagram created from the data
         """
-        if hasattr(self._diagram_service, "load_from_dict"):
-            return await self._diagram_service.load_from_dict(data)
+        # If we have a format port, use it to deserialize the data
+        if self._format_port and hasattr(data, "get"):
+            # Convert dict to a format string representation if possible
+            import json
 
+            content = json.dumps(data)
+            return self._format_port.deserialize(content, "native")
+
+        # Otherwise, directly construct from dict
         return DomainDiagram(**data)
 
     def clear_cache(self) -> None:

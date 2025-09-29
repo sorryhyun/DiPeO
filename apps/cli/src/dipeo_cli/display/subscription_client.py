@@ -92,7 +92,7 @@ class SubscriptionClient:
                     break
 
                 # Extract update data
-                update = result.get("execution_updates")
+                update = result.get("executionUpdates")
                 if update:
                     # Convert the update to event format expected by display
                     # Note: GraphQL returns 'type' but display expects 'event_type'

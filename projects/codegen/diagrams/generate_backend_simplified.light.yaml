@@ -147,6 +147,14 @@ nodes:
       template_path: projects/codegen/templates/backend/conversions.j2
       output_path: dipeo/diagram_generated_staged/conversions.py
 
+  # Main __init__.py
+  - label: Generate Main Init
+    type: template_job
+    position: {x: 800, y: 760}
+    props:
+      engine: jinja2
+      template_path: projects/codegen/templates/backend/main_init.j2
+      output_path: dipeo/diagram_generated_staged/__init__.py
 
   # Summary
   - label: Summary
@@ -169,6 +177,7 @@ nodes:
                 "Enums",
                 "Integrations",
                 "Conversions",
+                "Main __init__.py",
             ]
         }
 
@@ -212,6 +221,7 @@ connections:
   - {from: Build Backend IR, to: Generate Enums, content_type: object}
   - {from: Build Backend IR, to: Generate Integrations, content_type: object}
   - {from: Build Backend IR, to: Generate Conversions, content_type: object}
+  - {from: Build Backend IR, to: Generate Main Init, content_type: object}
 
   # All generation tasks converge to Summary
   - {from: Batch Generate Backend Models, to: Summary}
@@ -222,6 +232,7 @@ connections:
   - {from: Generate Enums, to: Summary}
   - {from: Generate Integrations, to: Summary}
   - {from: Generate Conversions, to: Summary}
+  - {from: Generate Main Init, to: Summary}
 
   # Summary to End
   - {from: Summary, to: End}

@@ -1,0 +1,185 @@
+"""
+Strawberry GraphQL domain types for DiPeO.
+Auto-generated from TypeScript interfaces using simplified type resolver.
+
+Generated at: {{ generated_at }}
+"""
+
+import strawberry
+from typing import Optional, Dict, Any, List, Union, Literal
+from strawberry.scalars import JSON as JSONScalar
+from .inputs import Float, String, Boolean
+from dipeo.domain.type_defs import JsonValue, JsonDict
+
+# Import the Pydantic domain models
+from ..domain_models import (
+{%- for type in types %}
+    {{ type['name'] }},
+{%- endfor %}
+    PersonID, PersonLLMConfig, DiagramID, ToolResult,
+    ExecutionState, NodeState,
+)
+
+# Import required enums for GraphQL type resolution
+from ..enums import (
+    Status,
+    NodeType,
+    EventType,
+    HandleLabel,
+    HandleDirection,
+    DataType,
+    ContentType,
+    LLMService,
+    APIServiceType,
+    ToolType,
+    QueryOperationType,
+    CrudOperation,
+    QueryEntity,
+    FieldPreset,
+    FieldGroup,
+)
+
+# Import scalar types from shared file
+from .scalar_aliases import (
+    CliSessionIDScalar,
+    NodeIDScalar,
+    ArrowIDScalar,
+    HandleIDScalar,
+    PersonIDScalar,
+    ApiKeyIDScalar,
+    DiagramIDScalar,
+    ExecutionIDScalar,
+    FileIDScalar,
+    HookIDScalar,
+    TaskIDScalar,
+    SerializedNodeOutput,
+)
+
+# Import generated types that already exist
+from dipeo.diagram_generated.graphql.strawberry_domain import (
+    ToolConfigType,
+)
+
+# Create Strawberry types from Pydantic models
+# Order matters - define types that are referenced by others first
+{% for type in types %}
+{%- if type.get('can_use_pydantic_decorator') %}
+@strawberry.experimental.pydantic.type(model={{ type['name'] }}, all_fields=True)
+class {{ type['name'] }}Type:
+    """{{ type.get('description', 'Auto-generated from Pydantic model') }}"""
+    pass
+{%- else %}
+@strawberry.type
+class {{ type['name'] }}Type:
+{%- if type.get('description') %}
+    """{{ type.get('description') }}"""
+{%- endif %}
+{%- if type.get('resolved_fields') %}
+    {%- for field in type.get('resolved_fields', []) %}
+    {{ field['name'] }}: {{ field['strawberry_type'] }}{{ field.get('default', '') }}
+    {%- endfor %}
+{%- else %}
+    # Using original fields as fallback (should not happen with resolver)
+    {% for field in type.get('fields', []) -%}
+    {%- if field.get('is_json_dict') %}
+    {{ field['name'] }}: {{ 'Optional[JSONScalar]' if field.get('optional') else 'JSONScalar' }}{{ ' = None' if field.get('optional') else '' }}
+    {%- elif field.get('is_literal') %}
+    {{ field['name'] }}: {{ 'Optional[str]' if field.get('optional') else 'str' }}{{ ' = None' if field.get('optional') else '' }}
+    {%- elif field.get('type', '').startswith('List[Domain') %}
+    {{ field['name'] }}: List[{{ field.get('type', '').replace('List[', '').replace(']', '') }}Type]
+    {%- elif field.get('type', '').startswith('Domain') %}
+    {{ field['name'] }}: {{ field.get('type') }}Type
+    {%- elif field.get('type', '').endswith('ID') %}
+    {{ field['name'] }}: {{ 'Optional[' + field.get('type') + 'Scalar]' if field.get('optional') else field.get('type') + 'Scalar' }}{{ ' = None' if field.get('optional') else '' }}
+    {%- elif field.get('type', '').startswith('Record<') %}
+    # TypeScript Record type converted to Dict
+    {{ field['name'] }}: {{ 'Optional[Dict[str, Any]]' if field.get('optional') else 'Dict[str, Any]' }}{{ ' = None' if field.get('optional') else '' }}
+    {%- else %}
+    {#- Types in IR are already in Python format, no conversion needed -#}
+    {{ field['name'] }}: {{ 'Optional[' + field.get('type', '') + ']' if field.get('optional') and not field.get('type', '').startswith('Optional[') else field.get('type', '') }}{{ ' = None' if field.get('optional') else '' }}
+    {%- endif %}
+    {% endfor %}
+{%- endif %}
+
+{%- if type.get('needs_manual_conversion') and type.get('conversion_method') %}
+
+    {{ type.get('conversion_method') | indent(4) }}
+{%- elif type.get('needs_manual_conversion') %}
+
+    @staticmethod
+    def from_pydantic(obj: {{ type['name'] }}) -> "{{ type['name'] }}Type":
+        """Convert from Pydantic model"""
+        return {{ type['name'] }}Type(
+        {%- for field in type.get('resolved_fields', []) %}
+            {%- if field.get('conversion_expr') %}
+            {{ field['name'] }}={{ field.get('conversion_expr') }},
+            {%- else %}
+            {{ field['name'] }}=obj.{{ field['name'] }},
+            {%- endif %}
+        {%- endfor %}
+        )
+{%- endif %}
+{%- endif %}
+
+{% endfor %}
+
+# Special cases for ExecutionState and NodeState
+@strawberry.type
+class NodeStateType:
+    """NodeState domain type"""
+    status: Status
+    started_at: Optional[str] = None
+    ended_at: Optional[str] = None
+    error: Optional[str] = None
+    llm_usage: Optional[LLMUsageType] = None
+    output: Optional[JSONScalar] = None
+
+    @staticmethod
+    def from_pydantic(obj: NodeState) -> "NodeStateType":
+        """Convert from Pydantic model"""
+        return NodeStateType(
+            status=obj.status,
+            started_at=obj.started_at,
+            ended_at=obj.ended_at,
+            error=obj.error,
+            llm_usage=LLMUsageType.from_pydantic(obj.llm_usage) if obj.llm_usage else None,
+            output=obj.output,
+        )
+
+@strawberry.type
+class ExecutionStateType:
+    """ExecutionState domain type"""
+    id: ExecutionIDScalar
+    status: Status
+    diagram_id: Optional[DiagramIDScalar] = None
+    started_at: Optional[str] = None
+    ended_at: Optional[str] = None
+    error: Optional[str] = None
+    llm_usage: Optional[LLMUsageType] = None
+    is_active: Optional[bool] = None
+    executed_nodes: List[str]
+    node_states: JSONScalar
+    node_outputs: JSONScalar
+    variables: Optional[JSONScalar] = None
+    exec_counts: JSONScalar
+    metrics: Optional[JSONScalar] = None
+
+    @staticmethod
+    def from_pydantic(obj: ExecutionState) -> "ExecutionStateType":
+        """Convert from Pydantic model"""
+        return ExecutionStateType(
+            id=obj.id,
+            status=obj.status,
+            diagram_id=obj.diagram_id,
+            started_at=obj.started_at,
+            ended_at=obj.ended_at,
+            error=obj.error,
+            llm_usage=LLMUsageType.from_pydantic(obj.llm_usage) if obj.llm_usage else None,
+            is_active=obj.is_active,
+            executed_nodes=obj.executed_nodes,
+            node_states=obj.node_states,
+            node_outputs=obj.node_outputs,
+            variables=obj.variables,
+            exec_counts=obj.exec_counts,
+            metrics=obj.metrics,
+        )
