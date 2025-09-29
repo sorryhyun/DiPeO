@@ -133,13 +133,21 @@ export const executionQueries: EntityQueryDefinitions = {
         { name: 'input', type: 'ExecutionControlInput', required: true }
       ],
       fields: [
-        { name: 'success' },
         {
-          name: 'execution',
-          fields: EXECUTION_WITH_STATUS_FIELDS
-        },
-        { name: 'message' },
-        { name: 'error' }
+          name: 'control_execution',
+          args: [
+            { name: 'input', value: 'input', isVariable: true }
+          ],
+          fields: [
+            { name: 'success' },
+            {
+              name: 'execution',
+              fields: EXECUTION_WITH_STATUS_FIELDS
+            },
+            { name: 'message' },
+            { name: 'error' }
+          ]
+        }
       ]
     },
     {
@@ -148,7 +156,15 @@ export const executionQueries: EntityQueryDefinitions = {
       variables: [
         { name: 'input', type: 'InteractiveResponseInput', required: true }
       ],
-      fields: RESULT_FIELDS
+      fields: [
+        {
+          name: 'send_interactive_response',
+          args: [
+            { name: 'input', value: 'input', isVariable: true }
+          ],
+          fields: RESULT_FIELDS
+        }
+      ]
     },
     {
       name: 'UpdateNodeState',
@@ -157,13 +173,21 @@ export const executionQueries: EntityQueryDefinitions = {
         { name: 'input', type: 'UpdateNodeStateInput', required: true }
       ],
       fields: [
-        { name: 'success' },
         {
-          name: 'execution',
-          fields: EXECUTION_WITH_STATUS_FIELDS
-        },
-        { name: 'message' },
-        { name: 'error' }
+          name: 'update_node_state',
+          args: [
+            { name: 'input', value: 'input', isVariable: true }
+          ],
+          fields: [
+            { name: 'success' },
+            {
+              name: 'execution',
+              fields: EXECUTION_WITH_STATUS_FIELDS
+            },
+            { name: 'message' },
+            { name: 'error' }
+          ]
+        }
       ]
     }
   ]

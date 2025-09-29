@@ -676,7 +676,7 @@ useExecutionUpdatesSubscription({
 ```bash
 # Regenerate everything
 make codegen
-make apply-test
+make apply-syntax-only
 make graphql-schema
 ```
 

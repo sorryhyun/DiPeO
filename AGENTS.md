@@ -100,6 +100,7 @@ dipeo integrations claude-code --sync-mode auto --watch-todos
    - Outputs to `dipeo/diagram_generated_staged/` for review
 3. **Verify**: `make diff-staged` to review changes
 4. **Apply** staged → active (`dipeo/diagram_generated/`), choose validation level:
+   - `make apply-syntax-only` - Syntax validation only (fastest)
    - `make apply` - Full type checking (recommended)
    - `make apply-test` - Server startup test (safest, includes health checks)
 5. **Update GraphQL**: `make graphql-schema`

@@ -73,13 +73,21 @@ export const apiKeyQueries: EntityQueryDefinitions = {
         { name: 'input', type: 'CreateApiKeyInput', required: true }
       ],
       fields: [
-        { name: 'success' },
         {
-          name: 'api_key',
-          fields: API_KEY_FIELDS
-        },
-        { name: 'message' },
-        { name: 'error' }
+          name: 'create_api_key',
+          args: [
+            { name: 'input', value: 'input', isVariable: true }
+          ],
+          fields: [
+            { name: 'success' },
+            {
+              name: 'api_key',
+              fields: API_KEY_FIELDS
+            },
+            { name: 'message' },
+            { name: 'error' }
+          ]
+        }
       ]
     },
     {
@@ -88,7 +96,15 @@ export const apiKeyQueries: EntityQueryDefinitions = {
       variables: [
         { name: 'api_key_id', type: 'String', required: true }
       ],
-      fields: RESULT_FIELDS
+      fields: [
+        {
+          name: 'test_api_key',
+          args: [
+            { name: 'api_key_id', value: 'api_key_id', isVariable: true }
+          ],
+          fields: RESULT_FIELDS
+        }
+      ]
     },
     {
       name: 'DeleteApiKey',
@@ -97,8 +113,16 @@ export const apiKeyQueries: EntityQueryDefinitions = {
         { name: 'api_key_id', type: 'String', required: true }
       ],
       fields: [
-        { name: 'success' },
-        { name: 'message' }
+        {
+          name: 'delete_api_key',
+          args: [
+            { name: 'api_key_id', value: 'api_key_id', isVariable: true }
+          ],
+          fields: [
+            { name: 'success' },
+            { name: 'message' }
+          ]
+        }
       ]
     }
   ]

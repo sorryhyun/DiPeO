@@ -60,7 +60,7 @@ Regenerate backend models:
 ```bash
 cd /dipeo/models && pnpm build
 dipeo run codegen/diagrams/generate_all --light --debug
-make apply-test
+make apply-syntax-only
 ```
 
 ### Step 2: Create GraphQL Subscription
@@ -150,7 +150,7 @@ cd dipeo/models && pnpm build
 
 # Run code generation
 dipeo run codegen/diagrams/generate_all --light --debug
-make apply-test
+make apply-syntax-only
 
 # Update GraphQL schema and TypeScript types
 make graphql-schema

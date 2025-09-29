@@ -255,6 +255,17 @@ apply: validate-staged
 	@cp -r dipeo/diagram_generated_staged/* dipeo/diagram_generated/
 	@echo "Staged changes applied successfully!"
 
+# Apply staged changes with syntax checking only (faster)
+apply-syntax-only: validate-staged-syntax
+	@echo "Applying staged changes to active directory (syntax validation only)..."
+	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
+		echo "Error: No staged directory found. Run 'make codegen' first."; \
+		exit 1; \
+	fi
+	@echo "Copying staged files to active directory..."
+	@cp -r dipeo/diagram_generated_staged/* dipeo/diagram_generated/
+	@echo "Staged changes applied successfully!"
+
 # Test server with staged code before applying (strongest validation)
 apply-test: validate-staged-syntax
 	@echo "Testing server startup with staged code..."
