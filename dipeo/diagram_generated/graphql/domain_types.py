@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces using simplified type resolver.
 
-Generated at: 2025-09-30T07:54:32.456710
+Generated at: 2025-09-29T23:28:45.403840
 """
 
 import strawberry
@@ -842,7 +842,6 @@ class ExecutionStateType:
     variables: Optional[JSONScalar] = None
     exec_counts: JSONScalar
     metrics: Optional[JSONScalar] = None
-    output: Optional[JSONScalar] = None
 
     @staticmethod
     def from_pydantic(obj: ExecutionState) -> "ExecutionStateType":
@@ -860,7 +859,6 @@ class ExecutionStateType:
             node_states=obj.node_states,
             node_outputs=obj.node_outputs,
             variables=obj.variables,
-            output=obj.output,
             exec_counts=obj.exec_counts,
             metrics=obj.metrics,
         )
