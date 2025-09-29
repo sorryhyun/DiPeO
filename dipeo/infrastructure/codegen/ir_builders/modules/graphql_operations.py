@@ -217,6 +217,9 @@ class ExtractGraphQLOperationsStep(BuildStep):
                         "type": field.get("type"),
                         "description": field.get("description", ""),
                     }
+                    # Preserve args if present (for mutations/queries with arguments)
+                    if "args" in field:
+                        field_def["args"] = field.get("args", [])
                     transformed.append(field_def)
             return transformed
 
@@ -284,21 +287,48 @@ class BuildOperationStringsStep(BuildStep):
             # Build variable declarations
             var_decls = self._build_variable_declarations(variables)
 
-            # Build field selections
-            field_selections = self._build_field_selections(fields)
-
             # Construct operation string
             op_string = f"{op_type} {op_name}"
             if var_decls:
                 op_string += f"({var_decls})"
             op_string += " {\n"
-            op_string += f"  {self._to_camel_case(op_name)}"
-            if variables:
-                var_args = ", ".join(f"{v['name']}: ${v['name']}" for v in variables)
-                op_string += f"({var_args})"
-            op_string += " {\n"
-            op_string += field_selections
-            op_string += "  }\n"
+
+            # Handle fields - check if first field is a mutation/query call with explicit name
+            if fields and len(fields) == 1 and "args" in fields[0]:
+                # This is a mutation/query call - use it directly
+                field = fields[0]
+                field_name = field.get("name", "")
+                args = field.get("args", [])
+                sub_fields = field.get("fields", [])
+
+                # Build the field call (convert to camelCase for GraphQL)
+                op_string += f"  {self._to_camel_case(field_name)}"
+
+                # Add args if present
+                if args:
+                    arg_strs = []
+                    for arg in args:
+                        arg_name = arg.get("name", "")
+                        arg_value = arg.get("value", "")
+                        is_var = arg.get("isVariable", False)
+                        # Convert argument name to camelCase for GraphQL
+                        camel_arg_name = self._to_camel_case(arg_name)
+                        if is_var:
+                            arg_strs.append(f"{camel_arg_name}: ${arg_value}")
+                        else:
+                            arg_strs.append(f"{camel_arg_name}: {arg_value}")
+                    op_string += f"({', '.join(arg_strs)})"
+
+                op_string += " {\n"
+                # Build sub-fields (return type fields)
+                field_selections = self._build_field_selections(sub_fields, indent=2)
+                op_string += field_selections
+                op_string += "  }\n"
+            else:
+                # Legacy/simple case - just build field selections
+                field_selections = self._build_field_selections(fields, indent=1)
+                op_string += field_selections
+
             op_string += "}"
 
             operation_strings[op_name] = op_string
@@ -347,12 +377,15 @@ class BuildOperationStringsStep(BuildStep):
             field_name = field.get("name", "")
             sub_fields = field.get("fields", [])
 
+            # Convert field name to camelCase for GraphQL
+            camel_field_name = self._to_camel_case(field_name)
+
             if sub_fields:
-                lines.append(f"{indent_str}{field_name} {{")
+                lines.append(f"{indent_str}{camel_field_name} {{")
                 lines.append(self._build_field_selections(sub_fields, indent + 1))
                 lines.append(f"{indent_str}}}")
             else:
-                lines.append(f"{indent_str}{field_name}")
+                lines.append(f"{indent_str}{camel_field_name}")
 
         return "\n".join(lines) + "\n"
 
@@ -367,10 +400,17 @@ class BuildOperationStringsStep(BuildStep):
         """
         if not name:
             return ""
+
+        # Handle snake_case (e.g., execute_diagram → executeDiagram)
+        if '_' in name:
+            parts = name.split('_')
+            return parts[0] + ''.join(word.capitalize() for word in parts[1:])
+
         # Handle already camel case
         if name[0].islower():
             return name
-        # Convert from PascalCase
+
+        # Convert from PascalCase (e.g., ExecuteDiagram → executeDiagram)
         return name[0].lower() + name[1:]
 
 

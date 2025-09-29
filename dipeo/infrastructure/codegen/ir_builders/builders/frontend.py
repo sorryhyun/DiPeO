@@ -11,6 +11,7 @@ from dipeo.infrastructure.codegen.ir_builders.core.context import BuildContext
 from dipeo.infrastructure.codegen.ir_builders.core.steps import BuildStep, StepResult, StepType
 from dipeo.infrastructure.codegen.ir_builders.modules.graphql_operations import (
     ExtractGraphQLOperationsStep,
+    BuildOperationStringsStep,
     GroupOperationsByEntityStep,
 )
 from dipeo.infrastructure.codegen.ir_builders.modules.node_specs import ExtractNodeSpecsStep
@@ -258,6 +259,7 @@ class FrontendBuilder(BaseIRBuilder):
                 BuildNodeRegistryStep(),
                 GenerateFieldConfigsStep(),
                 GenerateTypeScriptModelsStep(),
+                BuildOperationStringsStep(),  # Applies camelCase conversion to field names
                 GroupOperationsByEntityStep(),
             ]
         )

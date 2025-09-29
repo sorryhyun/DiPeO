@@ -1,7 +1,7 @@
 """
 Compatibility shim for generated_nodes.py
 Re-exports from individual files for backward compatibility.
-Generated at: 2025-09-28T14:23:22.928936
+Generated at: 2025-09-30T06:10:10.843257
 """
 
 # Re-export all node classes from individual files
@@ -473,6 +473,7 @@ def create_executable_node(
         raise ValueError(f"Unknown node type: {node_type}")
 
 # Union type for all executable node types
+
 ExecutableNode = Union[
     
     ApiJobNode,
@@ -508,6 +509,7 @@ ExecutableNode = Union[
     UserResponseNode,
     
 ]
+
 
 # Additional exports for backward compatibility
 __all__ = [

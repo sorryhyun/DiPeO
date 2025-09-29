@@ -270,11 +270,6 @@ type ExecutionStateType {
   triggered_by: ID
   nodes: JSON
   execution_options: ExecutionOptionsType
-  node_states: JSON
-  node_outputs: JSON
-  llm_usage: LLMUsageSimpleType
-  ended_at: String
-  metrics: ExecutionMetricsType
 }
 
 type ExecutionUpdateType {
@@ -345,35 +340,28 @@ enum LLMService {
   OLLAMA
 }
 
-type LLMUsageSimpleType {
-  input: Int
-  output: Int
-  cached: Int
-  total: Int
-}
-
 type Mutation {
-  create_api_key(input: CreateApiKeyInput!): ApiKeyResult!
-  test_api_key(api_key_id: String!): ApiKeyResult!
-  delete_api_key(api_key_id: String!): DeleteResult!
-  register_cli_session(input: RegisterCliSessionInput!): CliSessionResult!
-  unregister_cli_session(input: UnregisterCliSessionInput!): CliSessionResult!
-  create_diagram(input: CreateDiagramInput!): DiagramResult!
-  execute_diagram(input: ExecuteDiagramInput!): ExecutionResult!
-  delete_diagram(diagram_id: String!): DeleteResult!
-  control_execution(input: ExecutionControlInput!): ExecutionResult!
-  send_interactive_response(input: InteractiveResponseInput!): ExecutionResult!
-  update_node_state(input: UpdateNodeStateInput!): ExecutionResult!
-  upload_file(file: Upload!, path: String = null): JSON!
-  upload_diagram(file: Upload!, format: DiagramFormatGraphQL!): JSON!
-  validate_diagram(content: String!, format: DiagramFormatGraphQL!): JSON!
-  convert_diagram_format(content: String!, from_format: DiagramFormatGraphQL!, to_format: DiagramFormatGraphQL!): FormatConversionResult!
-  create_node(diagram_id: String!, input: CreateNodeInput!): NodeResult!
-  update_node(diagram_id: String!, node_id: String!, input: UpdateNodeInput!): NodeResult!
-  delete_node(diagram_id: String!, node_id: String!): DeleteResult!
-  create_person(input: CreatePersonInput!): PersonResult!
-  update_person(person_id: String!, input: UpdatePersonInput!): PersonResult!
-  delete_person(person_id: String!): DeleteResult!
+  createApiKey(input: CreateApiKeyInput!): ApiKeyResult!
+  testApiKey(api_key_id: String!): ApiKeyResult!
+  deleteApiKey(api_key_id: String!): DeleteResult!
+  registerCliSession(input: RegisterCliSessionInput!): CliSessionResult!
+  unregisterCliSession(input: UnregisterCliSessionInput!): CliSessionResult!
+  createDiagram(input: CreateDiagramInput!): DiagramResult!
+  executeDiagram(input: ExecuteDiagramInput!): ExecutionResult!
+  deleteDiagram(diagram_id: String!): DeleteResult!
+  controlExecution(input: ExecutionControlInput!): ExecutionResult!
+  sendInteractiveResponse(input: InteractiveResponseInput!): ExecutionResult!
+  updateNodeState(input: UpdateNodeStateInput!): ExecutionResult!
+  uploadFile(file: Upload!, path: String = null): JSON!
+  uploadDiagram(file: Upload!, format: DiagramFormatGraphQL!): JSON!
+  validateDiagram(content: String!, format: DiagramFormatGraphQL!): JSON!
+  convertDiagramFormat(content: String!, from_format: DiagramFormatGraphQL!, to_format: DiagramFormatGraphQL!): FormatConversionResult!
+  createNode(diagram_id: String!, input: CreateNodeInput!): NodeResult!
+  updateNode(diagram_id: String!, node_id: String!, input: UpdateNodeInput!): NodeResult!
+  deleteNode(diagram_id: String!, node_id: String!): DeleteResult!
+  createPerson(input: CreatePersonInput!): PersonResult!
+  updatePerson(person_id: String!, input: UpdatePersonInput!): PersonResult!
+  deletePerson(person_id: String!): DeleteResult!
 }
 
 """Branded scalar type for NodeID"""
@@ -437,29 +425,29 @@ type PersonResult {
 }
 
 type Query {
-  api_keys(service: String = null): JSON!
-  api_key(api_key_id: String!): DomainApiKeyType!
-  available_models(service: String!, api_key_id: String!): JSON!
-  conversations(person_id: String = null, execution_id: String = null, search: String = null, show_forgotten: Boolean = null, limit: Int = null, offset: Int = null, since: String = null): [JSON!]!
-  diagram(diagram_id: String!): DomainDiagramType!
-  diagrams(filter: DiagramFilterInput = null, limit: Int = null, offset: Int = null): [DomainDiagramType!]!
-  execution(execution_id: String!): ExecutionStateType!
-  executions(filter: ExecutionFilterInput = null, limit: Int = null, offset: Int = null): [ExecutionStateType!]!
-  supported_formats: JSON!
-  person(person_id: String!): DomainPersonType!
-  persons(limit: Int = null): [DomainPersonType!]!
-  prompt_files: [JSON!]!
-  prompt_file(filename: String!): JSON!
-  providers: JSON!
-  provider_operations(provider: String!): JSON!
-  operation_schema(provider: String!, operation: String!): JSON!
-  system_info: JSON!
-  execution_capabilities: JSON!
-  health_check: JSON!
-  execution_order(execution_id: String!): JSON!
-  execution_metrics(execution_id: String!): JSON!
-  execution_history(diagram_id: String = null, limit: Int = null, include_metrics: Boolean = null): JSON!
-  active_cli_session: JSON!
+  getApiKeys(service: String = null): JSON!
+  getApiKey(api_key_id: String!): DomainApiKeyType!
+  getAvailableModels(service: String!, api_key_id: String!): JSON!
+  listConversations(person_id: String = null, execution_id: String = null, search: String = null, show_forgotten: Boolean = null, limit: Float = null, offset: Float = null, since: String = null): [JSON!]!
+  getDiagram(diagram_id: String!): DomainDiagramType!
+  listDiagrams(filter: DiagramFilterInput = null, limit: Float = null, offset: Float = null): [DomainDiagramType!]!
+  getExecution(execution_id: String!): ExecutionStateType!
+  listExecutions(filter: ExecutionFilterInput = null, limit: Float = null, offset: Float = null): [ExecutionStateType!]!
+  getSupportedFormats: JSON!
+  getPerson(person_id: String!): DomainPersonType!
+  listPersons(limit: Float = null): [DomainPersonType!]!
+  listPromptFiles: [JSON!]!
+  getPromptFile(filename: String!): JSON!
+  getProviders: JSON!
+  getProviderOperations(provider: String!): JSON!
+  getOperationSchema(provider: String!, operation: String!): JSON!
+  getSystemInfo: JSON!
+  getExecutionCapabilities: JSON!
+  healthCheck: JSON!
+  getExecutionOrder(execution_id: String!): JSON!
+  getExecutionMetrics(execution_id: String!): JSON!
+  getExecutionHistory(diagram_id: String = null, limit: Float = null, include_metrics: Boolean = null): JSON!
+  getActiveCliSession: JSON!
 }
 
 input RegisterCliSessionInput {
@@ -481,7 +469,7 @@ enum Status {
 }
 
 type Subscription {
-  execution_updates(execution_id: String!): ExecutionUpdateType!
+  executionUpdates(execution_id: String!): ExecutionUpdateType!
 }
 
 """Branded scalar type for TaskID"""

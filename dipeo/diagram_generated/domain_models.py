@@ -2,7 +2,7 @@
 # __generated__ by DiPeO
 """
 Domain models generated from TypeScript interfaces.
-Generated at: 2025-09-28T14:23:22.928936
+Generated at: 2025-09-30T06:10:10.843257
 """
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ FileID = NewType('FileID', str)
 
 
 class CliSession(BaseModel):
-    """CliSession model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -65,7 +65,7 @@ class CliSession(BaseModel):
 
 
 class CliSessionResult(BaseModel):
-    """CliSessionResult model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -81,7 +81,7 @@ class CliSessionResult(BaseModel):
 
 
 class Message(BaseModel):
-    """Message model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -105,7 +105,7 @@ class Message(BaseModel):
 
 
 class ConversationMetadata(BaseModel):
-    """ConversationMetadata model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -119,7 +119,7 @@ class ConversationMetadata(BaseModel):
 
 
 class Conversation(BaseModel):
-    """Conversation model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -131,7 +131,7 @@ class Conversation(BaseModel):
 
 
 class Vec2(BaseModel):
-    """Vec2 model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -143,7 +143,7 @@ class Vec2(BaseModel):
 
 
 class DomainHandle(BaseModel):
-    """DomainHandle model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -163,7 +163,7 @@ class DomainHandle(BaseModel):
 
 
 class DomainNode(BaseModel):
-    """DomainNode model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -179,7 +179,7 @@ class DomainNode(BaseModel):
 
 
 class DomainArrow(BaseModel):
-    """DomainArrow model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -201,7 +201,7 @@ class DomainArrow(BaseModel):
 
 
 class PersonLLMConfig(BaseModel):
-    """PersonLLMConfig model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -219,7 +219,7 @@ class PersonLLMConfig(BaseModel):
 
 
 class DomainPerson(BaseModel):
-    """DomainPerson model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -235,7 +235,7 @@ class DomainPerson(BaseModel):
 
 
 class DomainApiKey(BaseModel):
-    """DomainApiKey model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -251,7 +251,7 @@ class DomainApiKey(BaseModel):
 
 
 class DiagramMetadata(BaseModel):
-    """DiagramMetadata model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -277,7 +277,7 @@ class DiagramMetadata(BaseModel):
 
 
 class DomainDiagram(BaseModel):
-    """DomainDiagram model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -295,7 +295,7 @@ class DomainDiagram(BaseModel):
 
 
 class LLMUsage(BaseModel):
-    """LLMUsage model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -311,7 +311,7 @@ class LLMUsage(BaseModel):
 
 
 class NodeState(BaseModel):
-    """NodeState model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -331,7 +331,7 @@ class NodeState(BaseModel):
 
 
 class NodeMetrics(BaseModel):
-    """NodeMetrics model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -357,7 +357,7 @@ class NodeMetrics(BaseModel):
 
 
 class Bottleneck(BaseModel):
-    """Bottleneck model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -373,7 +373,7 @@ class Bottleneck(BaseModel):
 
 
 class ExecutionMetrics(BaseModel):
-    """ExecutionMetrics model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -397,7 +397,7 @@ class ExecutionMetrics(BaseModel):
 
 
 class EnvelopeMeta(BaseModel):
-    """EnvelopeMeta model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -419,11 +419,11 @@ class EnvelopeMeta(BaseModel):
 
 
 class SerializedEnvelope(BaseModel):
-    """SerializedEnvelope model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
-    envelope_format: Literal[True] = Field(default=True)
+    envelope_format: Literal[True]
     
     id: str
     
@@ -447,7 +447,7 @@ class SerializedEnvelope(BaseModel):
 
 
 class ExecutionState(BaseModel):
-    """ExecutionState model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -485,7 +485,7 @@ class ExecutionState(BaseModel):
 
 
 class ExecutionOptions(BaseModel):
-    """ExecutionOptions model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -501,7 +501,7 @@ class ExecutionOptions(BaseModel):
 
 
 class InteractivePromptData(BaseModel):
-    """InteractivePromptData model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -517,7 +517,7 @@ class InteractivePromptData(BaseModel):
 
 
 class InteractiveResponse(BaseModel):
-    """InteractiveResponse model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -531,7 +531,7 @@ class InteractiveResponse(BaseModel):
 
 
 class ExecutionUpdate(BaseModel):
-    """ExecutionUpdate model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -561,7 +561,7 @@ class ExecutionUpdate(BaseModel):
 
 
 class NodeDefinition(BaseModel):
-    """NodeDefinition model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -577,7 +577,7 @@ class NodeDefinition(BaseModel):
 
 
 class File(BaseModel):
-    """File model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -603,7 +603,7 @@ class File(BaseModel):
 
 
 class FileOperationResult(BaseModel):
-    """FileOperationResult model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -619,7 +619,7 @@ class FileOperationResult(BaseModel):
 
 
 class ToolConfig(BaseModel):
-    """ToolConfig model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -633,7 +633,7 @@ class ToolConfig(BaseModel):
 
 
 class WebSearchResult(BaseModel):
-    """WebSearchResult model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -649,7 +649,7 @@ class WebSearchResult(BaseModel):
 
 
 class ImageGenerationResult(BaseModel):
-    """ImageGenerationResult model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -665,7 +665,7 @@ class ImageGenerationResult(BaseModel):
 
 
 class ToolOutput(BaseModel):
-    """ToolOutput model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -679,7 +679,7 @@ class ToolOutput(BaseModel):
 
 
 class ChatResult(BaseModel):
-    """ChatResult model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -695,7 +695,7 @@ class ChatResult(BaseModel):
 
 
 class LLMRequestOptions(BaseModel):
-    """LLMRequestOptions model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -715,7 +715,7 @@ class LLMRequestOptions(BaseModel):
 
 
 class NodeUpdate(BaseModel):
-    """NodeUpdate model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -739,7 +739,7 @@ class NodeUpdate(BaseModel):
 
 
 class InteractivePrompt(BaseModel):
-    """InteractivePrompt model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -761,7 +761,7 @@ class InteractivePrompt(BaseModel):
 
 
 class ExecutionLogEntry(BaseModel):
-    """ExecutionLogEntry model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -781,7 +781,7 @@ class ExecutionLogEntry(BaseModel):
 
 
 class KeepalivePayload(BaseModel):
-    """KeepalivePayload model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -793,7 +793,7 @@ class KeepalivePayload(BaseModel):
 
 
 class ParseResult(BaseModel):
-    """ParseResult model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -817,7 +817,7 @@ class ParseResult(BaseModel):
 
 
 class InterfaceInfo(BaseModel):
-    """InterfaceInfo model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -827,15 +827,15 @@ class InterfaceInfo(BaseModel):
     
     extends: List[str] | None = Field(default=None)
     
-    is_exported: bool
+    isExported: bool
     
-    js_doc: str | None = Field(default=None)
+    jsDoc: str | None = Field(default=None)
     
 
 
 
 class PropertyInfo(BaseModel):
-    """PropertyInfo model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -847,13 +847,13 @@ class PropertyInfo(BaseModel):
     
     readonly: bool
     
-    js_doc: str | None = Field(default=None)
+    jsDoc: str | None = Field(default=None)
     
 
 
 
 class TypeAliasInfo(BaseModel):
-    """TypeAliasInfo model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -861,15 +861,15 @@ class TypeAliasInfo(BaseModel):
     
     type: str
     
-    is_exported: bool
+    isExported: bool
     
-    js_doc: str | None = Field(default=None)
+    jsDoc: str | None = Field(default=None)
     
 
 
 
 class EnumInfo(BaseModel):
-    """EnumInfo model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -877,15 +877,15 @@ class EnumInfo(BaseModel):
     
     members: List[EnumMember]
     
-    is_exported: bool
+    isExported: bool
     
-    js_doc: str | None = Field(default=None)
+    jsDoc: str | None = Field(default=None)
     
 
 
 
 class EnumMember(BaseModel):
-    """EnumMember model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -897,7 +897,7 @@ class EnumMember(BaseModel):
 
 
 class ClassInfo(BaseModel):
-    """ClassInfo model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -911,15 +911,15 @@ class ClassInfo(BaseModel):
     
     implements: List[str] | None = Field(default=None)
     
-    is_exported: bool
+    isExported: bool
     
-    js_doc: str | None = Field(default=None)
+    jsDoc: str | None = Field(default=None)
     
 
 
 
 class MethodInfo(BaseModel):
-    """MethodInfo model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -927,17 +927,17 @@ class MethodInfo(BaseModel):
     
     parameters: List[ParameterInfo]
     
-    return_type: str
+    returnType: str
     
-    is_async: bool
+    isAsync: bool
     
-    js_doc: str | None = Field(default=None)
+    jsDoc: str | None = Field(default=None)
     
 
 
 
 class ParameterInfo(BaseModel):
-    """ParameterInfo model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -947,13 +947,13 @@ class ParameterInfo(BaseModel):
     
     optional: bool
     
-    default_value: str | None = Field(default=None)
+    defaultValue: str | None = Field(default=None)
     
 
 
 
 class FunctionInfo(BaseModel):
-    """FunctionInfo model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -961,19 +961,19 @@ class FunctionInfo(BaseModel):
     
     parameters: List[ParameterInfo]
     
-    return_type: str
+    returnType: str
     
-    is_async: bool
+    isAsync: bool
     
-    is_exported: bool
+    isExported: bool
     
-    js_doc: str | None = Field(default=None)
+    jsDoc: str | None = Field(default=None)
     
 
 
 
 class ConstantInfo(BaseModel):
-    """ConstantInfo model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -983,15 +983,15 @@ class ConstantInfo(BaseModel):
     
     value: Any
     
-    is_exported: bool
+    isExported: bool
     
-    js_doc: str | None = Field(default=None)
+    jsDoc: str | None = Field(default=None)
     
 
 
 
 class BatchInput(BaseModel):
-    """BatchInput model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -1001,7 +1001,7 @@ class BatchInput(BaseModel):
 
 
 class BatchResult(BaseModel):
-    """BatchResult model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -1013,7 +1013,7 @@ class BatchResult(BaseModel):
 
 
 class QueryField(BaseModel):
-    """QueryField model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -1027,7 +1027,7 @@ class QueryField(BaseModel):
 
 
 class QueryVariable(BaseModel):
-    """QueryVariable model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -1041,7 +1041,7 @@ class QueryVariable(BaseModel):
 
 
 class QuerySpecification(BaseModel):
-    """QuerySpecification model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -1049,13 +1049,13 @@ class QuerySpecification(BaseModel):
     
     operation: QueryOperationType
     
-    entity_type: str
+    entityType: str
     
     description: str | None = Field(default=None)
     
     variables: List[QueryVariable] | None = Field(default=None)
     
-    return_type: str
+    returnType: str
     
     fields: List[QueryField]
     
@@ -1065,7 +1065,7 @@ class QuerySpecification(BaseModel):
 
 
 class EntityQueryConfig(BaseModel):
-    """EntityQueryConfig model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -1073,7 +1073,7 @@ class EntityQueryConfig(BaseModel):
     
     operations: List[CrudOperation]
     
-    default_fields: List[QueryField]
+    defaultFields: List[QueryField]
     
     relationships: List[Dict[str, Any]] | None = Field(default=None)
     
@@ -1081,7 +1081,7 @@ class EntityQueryConfig(BaseModel):
 
 
 class QueryManifest(BaseModel):
-    """QueryManifest model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -1093,7 +1093,7 @@ class QueryManifest(BaseModel):
 
 
 class RelationshipConfig(BaseModel):
-    """RelationshipConfig model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -1101,21 +1101,21 @@ class RelationshipConfig(BaseModel):
     
     type: Literal['one-to-one', 'one-to-many', 'many-to-many']
     
-    target_entity: str
+    targetEntity: str
     
-    include_by_default: bool | None = Field(default=None)
+    includeByDefault: bool | None = Field(default=None)
     
-    default_fields: List[str] | None = Field(default=None)
+    defaultFields: List[str] | None = Field(default=None)
     
 
 
 
 class ClaudeCodeSession(BaseModel):
-    """ClaudeCodeSession model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
-    session_id: str
+    sessionId: str
     
     events: List[SessionEvent]
     
@@ -1125,7 +1125,7 @@ class ClaudeCodeSession(BaseModel):
 
 
 class SessionEvent(BaseModel):
-    """SessionEvent model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -1133,21 +1133,21 @@ class SessionEvent(BaseModel):
     
     uuid: str
     
-    parent_uuid: str | None = Field(default=None)
+    parentUuid: str | None = Field(default=None)
     
     timestamp: str
     
     message: ClaudeCodeMessage
     
-    tool_use: ToolUse | None = Field(default=None)
+    toolUse: ToolUse | None = Field(default=None)
     
-    tool_result: ToolResult | None = Field(default=None)
+    toolResult: ToolResult | None = Field(default=None)
     
 
 
 
 class ClaudeCodeMessage(BaseModel):
-    """ClaudeCodeMessage model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -1159,25 +1159,25 @@ class ClaudeCodeMessage(BaseModel):
 
 
 class SessionMetadata(BaseModel):
-    """SessionMetadata model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
-    start_time: str
+    startTime: str
     
-    end_time: str | None = Field(default=None)
+    endTime: str | None = Field(default=None)
     
-    total_events: float
+    totalEvents: float
     
-    tool_usage_count: Dict[str, float]
+    toolUsageCount: Dict[str, float]
     
-    project_path: str | None = Field(default=None)
+    projectPath: str | None = Field(default=None)
     
 
 
 
 class ToolUse(BaseModel):
-    """ToolUse model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -1189,7 +1189,7 @@ class ToolUse(BaseModel):
 
 
 class ToolResult(BaseModel):
-    """ToolResult model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
@@ -1203,29 +1203,29 @@ class ToolResult(BaseModel):
 
 
 class ConversationTurn(BaseModel):
-    """ConversationTurn model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
-    user_event: SessionEvent
+    userEvent: SessionEvent
     
-    assistant_event: SessionEvent
+    assistantEvent: SessionEvent
     
-    tool_events: List[SessionEvent]
+    toolEvents: List[SessionEvent]
     
 
 
 
 class DiffPatchInput(BaseModel):
-    """DiffPatchInput model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
-    file_path: str
+    filePath: str
     
-    old_content: str | None = Field(default=None)
+    oldContent: str | None = Field(default=None)
     
-    new_content: str | None = Field(default=None)
+    newContent: str | None = Field(default=None)
     
     patch: str | None = Field(default=None)
     
@@ -1233,89 +1233,85 @@ class DiffPatchInput(BaseModel):
 
 
 class ClaudeCodeDiagramMetadata(BaseModel):
-    """ClaudeCodeDiagramMetadata model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
-    session_id: str
+    sessionId: str
     
-    created_at: str
+    createdAt: str
     
-    event_count: float
+    eventCount: float
     
-    node_count: float
+    nodeCount: float
     
-    tool_usage: Dict[str, float]
+    toolUsage: Dict[str, float]
     
 
 
 
 class SessionStatistics(BaseModel):
-    """SessionStatistics model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
-    session_id: str
+    sessionId: str
     
-    total_events: float
+    totalEvents: float
     
-    user_prompts: float
+    userPrompts: float
     
-    assistant_responses: float
+    assistantResponses: float
     
-    total_tool_calls: float
+    totalToolCalls: float
     
-    tool_breakdown: Dict[str, float]
+    toolBreakdown: Dict[str, float]
     
     duration: float | None = Field(default=None)
     
-    files_modified: List[str]
+    filesModified: List[str]
     
-    commands_executed: List[str]
+    commandsExecuted: List[str]
     
 
 
 
 class SessionConversionOptions(BaseModel):
-    """SessionConversionOptions model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
-    output_dir: str | None = Field(default=None)
+    outputDir: str | None = Field(default=None)
     
     format: Literal['light', 'native', 'readable'] | None = Field(default=None)
     
-    auto_execute: bool | None = Field(default=None)
+    autoExecute: bool | None = Field(default=None)
     
-    merge_reads: bool | None = Field(default=None)
+    mergeReads: bool | None = Field(default=None)
     
     simplify: bool | None = Field(default=None)
     
-    preserve_thinking: bool | None = Field(default=None)
+    preserveThinking: bool | None = Field(default=None)
     
 
 
 
 class WatchOptions(BaseModel):
-    """WatchOptions model"""
+    """"""
     model_config = ConfigDict(extra='forbid', populate_by_name=True)
 
     
     interval: float | None = Field(default=None)
     
-    auto_convert: bool | None = Field(default=None)
+    autoConvert: bool | None = Field(default=None)
     
-    notify_on_new: bool | None = Field(default=None)
+    notifyOnNew: bool | None = Field(default=None)
     
 
 
 
 
 # Type aliases that reference models
-
-SerializedNodeOutput = SerializedEnvelope
-
-PersonMemoryMessage = Message
 
 
 # Validation-related models moved from validation/ directory

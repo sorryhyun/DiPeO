@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces using simplified type resolver.
 
-Generated at: 2025-09-28T14:23:21.976913
+Generated at: 2025-09-30T06:10:09.144894
 """
 
 import strawberry
@@ -102,11 +102,6 @@ from ..enums import (
     QueryEntity,
     FieldPreset,
     FieldGroup,
-)
-
-# Import GraphQL enums for proper serialization
-from .enums import (
-    StatusGraphQL,
 )
 
 # Import scalar types from shared file
@@ -568,7 +563,7 @@ class EnvelopeMetaType:
 @strawberry.type
 class SerializedEnvelopeType:
     """SerializedEnvelope domain type"""
-    envelope_format: bool = True
+    envelope_format: str
     id: str
     trace_id: str
     produced_by: str
@@ -713,7 +708,7 @@ class NodeUpdateType:
     """NodeUpdate domain type"""
     execution_id: ExecutionIDScalar
     node_id: NodeIDScalar
-    status: StatusGraphQL
+    status: Status
     progress: Optional[float] = None
     output: Optional[JSONScalar] = None
     error: Optional[str] = None
@@ -811,7 +806,7 @@ class RelationshipConfigType:
 @strawberry.type
 class NodeStateType:
     """NodeState domain type"""
-    status: StatusGraphQL
+    status: Status
     started_at: Optional[str] = None
     ended_at: Optional[str] = None
     error: Optional[str] = None
@@ -822,7 +817,7 @@ class NodeStateType:
     def from_pydantic(obj: NodeState) -> "NodeStateType":
         """Convert from Pydantic model"""
         return NodeStateType(
-            status=StatusGraphQL[obj.status.name] if hasattr(obj.status, 'name') else StatusGraphQL[obj.status],
+            status=obj.status,
             started_at=obj.started_at,
             ended_at=obj.ended_at,
             error=obj.error,
@@ -831,22 +826,16 @@ class NodeStateType:
         )
 
 @strawberry.type
-class LLMUsageSimpleType:
-    """Simple LLM usage type for ExecutionStateType"""
-    input: Optional[int] = None
-    output: Optional[int] = None
-    cached: Optional[int] = None
-    total: Optional[int] = None
-
-@strawberry.type
 class ExecutionStateType:
     """ExecutionState domain type"""
     id: ExecutionIDScalar
-    status: StatusGraphQL
+    status: Status
     diagram_id: Optional[DiagramIDScalar] = None
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
     error: Optional[str] = None
+    current_node_ids: List[NodeIDScalar]
+    completed_node_ids: List[NodeIDScalar]
     variables: Optional[JSONScalar] = None
     output: Optional[JSONScalar] = None
     execution_stats: Optional[ExecutionMetricsType] = None
@@ -854,43 +843,30 @@ class ExecutionStateType:
     triggered_by: Optional[NodeIDScalar] = None
     nodes: Optional[JSONScalar] = None
     execution_options: Optional[ExecutionOptionsType] = None
-    # Additional fields for frontend compatibility
-    node_states: Optional[JSONScalar] = None
-    node_outputs: Optional[JSONScalar] = None
-    llm_usage: Optional[LLMUsageSimpleType] = None
-
-    @strawberry.field
-    def ended_at(self) -> Optional[str]:
-        """Alias for completed_at for frontend compatibility"""
-        return self.completed_at
-
-    @strawberry.field
-    def metrics(self) -> Optional[ExecutionMetricsType]:
-        """Alias for execution_stats for frontend compatibility"""
-        return self.execution_stats
 
     @staticmethod
     def from_pydantic(obj: ExecutionState) -> "ExecutionStateType":
         """Convert from Pydantic model"""
+        # Derive current_node_ids from node_states (nodes that are running/pending)
+        current_node_ids = [
+            node_id for node_id, node_state in obj.node_states.items()
+            if node_state.status in ["running", "pending"]
+        ] if hasattr(obj, 'node_states') else []
+
         return ExecutionStateType(
             id=obj.id,
-            status=StatusGraphQL[obj.status.name] if hasattr(obj.status, 'name') else StatusGraphQL[obj.status],
+            status=obj.status,
             diagram_id=obj.diagram_id,
             started_at=obj.started_at,
-            completed_at=obj.ended_at,  # Map ended_at to completed_at
+            completed_at=obj.ended_at,
             error=obj.error,
+            current_node_ids=current_node_ids,
+            completed_node_ids=obj.executed_nodes if hasattr(obj, 'executed_nodes') else [],
             variables=obj.variables,
-            # Additional fields for frontend compatibility
-            node_states={
-                node_id: {
-                    "status": str(state.status) if hasattr(state, "status") else "UNKNOWN",
-                    "started_at": state.started_at if hasattr(state, "started_at") else None,
-                    "ended_at": state.ended_at if hasattr(state, "ended_at") else None,
-                    "error": state.error if hasattr(state, "error") else None,
-                    "output": state.output if hasattr(state, "output") else None,
-                }
-                for node_id, state in (obj.node_states or {}).items()
-            } if obj.node_states else None,
-            node_outputs=obj.node_outputs,
-            llm_usage=None,  # Will be populated from execution data if available
+            output=obj.metadata if hasattr(obj, 'metadata') else None,
+            execution_stats=ExecutionMetricsType.from_pydantic(obj.metrics) if hasattr(obj, 'metrics') and obj.metrics else None,
+            parent_execution_id=obj.metadata.get('parent_execution_id') if hasattr(obj, 'metadata') and obj.metadata else None,
+            triggered_by=obj.metadata.get('triggered_by') if hasattr(obj, 'metadata') and obj.metadata else None,
+            nodes=obj.metadata.get('nodes') if hasattr(obj, 'metadata') and obj.metadata else None,
+            execution_options=None,  # Not stored in domain model
         )

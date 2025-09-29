@@ -9,11 +9,11 @@
 import { gql } from '@apollo/client';
 
 {%- macro render_field(field, indent=0) -%}
-{{ '  ' * indent }}{{ field['name'] }}
+{{ '  ' * indent }}{{ field['name'] | camel_case }}
 {%- if field.get('args') and field['args']|length > 0 -%}
 (
 {%- for arg in field['args'] -%}
-{{ arg['name'] }}: {{ '$' if arg.get('isVariable') else '' }}{{ arg['value'] }}{{ ', ' if not loop.last else '' }}
+{{ arg['name'] | camel_case }}: {{ '$' if arg.get('isVariable') else '' }}{{ arg['value'] }}{{ ', ' if not loop.last else '' }}
 {%- endfor -%}
 )
 {%- endif -%}

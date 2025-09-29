@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2025-09-29T21:48:20.117344",
+  "generated_at": "2025-09-30T06:36:21.916497",
   "node_specs": [
     {
       "node_type": "api_job",
@@ -13128,7 +13128,14 @@
           "name": "api_keys",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "service",
+              "value": "service",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -13175,7 +13182,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "api_key_id",
+              "value": "api_key_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -13213,7 +13227,19 @@
           "name": "available_models",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "service",
+              "value": "service",
+              "isVariable": true
+            },
+            {
+              "name": "api_key_id",
+              "value": "api_key_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -13285,7 +13311,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -13332,7 +13365,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "api_key_id",
+              "value": "api_key_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -13373,7 +13413,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "api_key_id",
+              "value": "api_key_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -13420,7 +13467,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -13467,7 +13521,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -13555,7 +13616,44 @@
           "name": "conversations",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "person_id",
+              "value": "person_id",
+              "isVariable": true
+            },
+            {
+              "name": "execution_id",
+              "value": "execution_id",
+              "isVariable": true
+            },
+            {
+              "name": "search",
+              "value": "search",
+              "isVariable": true
+            },
+            {
+              "name": "show_forgotten",
+              "value": "show_forgotten",
+              "isVariable": true
+            },
+            {
+              "name": "limit",
+              "value": "limit",
+              "isVariable": true
+            },
+            {
+              "name": "offset",
+              "value": "offset",
+              "isVariable": true
+            },
+            {
+              "name": "since",
+              "value": "since",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -13825,7 +13923,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -13923,7 +14028,24 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "filter",
+              "value": "filter",
+              "isVariable": true
+            },
+            {
+              "name": "limit",
+              "value": "limit",
+              "isVariable": true
+            },
+            {
+              "name": "offset",
+              "value": "offset",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -13996,7 +14118,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -14056,7 +14185,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -14103,7 +14239,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -14297,7 +14440,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "execution_id",
+              "value": "execution_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -14382,7 +14532,24 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "filter",
+              "value": "filter",
+              "isVariable": true
+            },
+            {
+              "name": "limit",
+              "value": "limit",
+              "isVariable": true
+            },
+            {
+              "name": "offset",
+              "value": "offset",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -14435,7 +14602,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "execution_id",
+              "value": "execution_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -14501,7 +14675,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -14548,7 +14729,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -14614,7 +14802,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -14652,7 +14847,19 @@
           "name": "upload_file",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "file",
+              "value": "file",
+              "isVariable": true
+            },
+            {
+              "name": "path",
+              "value": "path",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -14690,7 +14897,19 @@
           "name": "upload_diagram",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "file",
+              "value": "file",
+              "isVariable": true
+            },
+            {
+              "name": "format",
+              "value": "format",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -14728,7 +14947,19 @@
           "name": "validate_diagram",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "content",
+              "value": "content",
+              "isVariable": true
+            },
+            {
+              "name": "format",
+              "value": "format",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -14807,7 +15038,24 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "content",
+              "value": "content",
+              "isVariable": true
+            },
+            {
+              "name": "from_format",
+              "value": "from_format",
+              "isVariable": true
+            },
+            {
+              "name": "to_format",
+              "value": "to_format",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -14925,7 +15173,19 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            },
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -14992,7 +15252,24 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            },
+            {
+              "name": "node_id",
+              "value": "node_id",
+              "isVariable": true
+            },
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -15049,7 +15326,19 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            },
+            {
+              "name": "node_id",
+              "value": "node_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -15127,7 +15416,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "person_id",
+              "value": "person_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -15199,7 +15495,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "limit",
+              "value": "limit",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -15265,7 +15568,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -15341,7 +15651,19 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "person_id",
+              "value": "person_id",
+              "isVariable": true
+            },
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -15388,7 +15710,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "person_id",
+              "value": "person_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -15433,7 +15762,14 @@
           "name": "prompt_file",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "filename",
+              "value": "filename",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -15478,7 +15814,14 @@
           "name": "provider_operations",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "provider",
+              "value": "provider",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -15516,7 +15859,19 @@
           "name": "operation_schema",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "provider",
+              "value": "provider",
+              "isVariable": true
+            },
+            {
+              "name": "operation",
+              "value": "operation",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -15595,7 +15950,14 @@
           "name": "execution_order",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "execution_id",
+              "value": "execution_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -15623,7 +15985,14 @@
           "name": "execution_metrics",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "execution_id",
+              "value": "execution_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -15671,7 +16040,24 @@
           "name": "execution_history",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            },
+            {
+              "name": "limit",
+              "value": "limit",
+              "isVariable": true
+            },
+            {
+              "name": "include_metrics",
+              "value": "include_metrics",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -15718,7 +16104,14 @@
           "name": "api_keys",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "service",
+              "value": "service",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -15765,7 +16158,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "api_key_id",
+              "value": "api_key_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -15803,7 +16203,19 @@
           "name": "available_models",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "service",
+              "value": "service",
+              "isVariable": true
+            },
+            {
+              "name": "api_key_id",
+              "value": "api_key_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -15891,7 +16303,44 @@
           "name": "conversations",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "person_id",
+              "value": "person_id",
+              "isVariable": true
+            },
+            {
+              "name": "execution_id",
+              "value": "execution_id",
+              "isVariable": true
+            },
+            {
+              "name": "search",
+              "value": "search",
+              "isVariable": true
+            },
+            {
+              "name": "show_forgotten",
+              "value": "show_forgotten",
+              "isVariable": true
+            },
+            {
+              "name": "limit",
+              "value": "limit",
+              "isVariable": true
+            },
+            {
+              "name": "offset",
+              "value": "offset",
+              "isVariable": true
+            },
+            {
+              "name": "since",
+              "value": "since",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -16161,7 +16610,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -16259,7 +16715,24 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "filter",
+              "value": "filter",
+              "isVariable": true
+            },
+            {
+              "name": "limit",
+              "value": "limit",
+              "isVariable": true
+            },
+            {
+              "name": "offset",
+              "value": "offset",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -16453,7 +16926,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "execution_id",
+              "value": "execution_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -16538,7 +17018,24 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "filter",
+              "value": "filter",
+              "isVariable": true
+            },
+            {
+              "name": "limit",
+              "value": "limit",
+              "isVariable": true
+            },
+            {
+              "name": "offset",
+              "value": "offset",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -16633,7 +17130,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "person_id",
+              "value": "person_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -16705,7 +17209,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "limit",
+              "value": "limit",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -16750,7 +17261,14 @@
           "name": "prompt_file",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "filename",
+              "value": "filename",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -16795,7 +17313,14 @@
           "name": "provider_operations",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "provider",
+              "value": "provider",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -16833,7 +17358,19 @@
           "name": "operation_schema",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "provider",
+              "value": "provider",
+              "isVariable": true
+            },
+            {
+              "name": "operation",
+              "value": "operation",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -16912,7 +17449,14 @@
           "name": "execution_order",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "execution_id",
+              "value": "execution_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -16940,7 +17484,14 @@
           "name": "execution_metrics",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "execution_id",
+              "value": "execution_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -16988,7 +17539,24 @@
           "name": "execution_history",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            },
+            {
+              "name": "limit",
+              "value": "limit",
+              "isVariable": true
+            },
+            {
+              "name": "include_metrics",
+              "value": "include_metrics",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -17079,7 +17647,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -17126,7 +17701,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "api_key_id",
+              "value": "api_key_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -17167,7 +17749,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "api_key_id",
+              "value": "api_key_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -17214,7 +17803,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -17261,7 +17857,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -17334,7 +17937,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -17394,7 +18004,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -17441,7 +18058,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -17507,7 +18131,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -17554,7 +18185,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -17620,7 +18258,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -17658,7 +18303,19 @@
           "name": "upload_file",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "file",
+              "value": "file",
+              "isVariable": true
+            },
+            {
+              "name": "path",
+              "value": "path",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -17696,7 +18353,19 @@
           "name": "upload_diagram",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "file",
+              "value": "file",
+              "isVariable": true
+            },
+            {
+              "name": "format",
+              "value": "format",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -17734,7 +18403,19 @@
           "name": "validate_diagram",
           "fields": [],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "content",
+              "value": "content",
+              "isVariable": true
+            },
+            {
+              "name": "format",
+              "value": "format",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -17813,7 +18494,24 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "content",
+              "value": "content",
+              "isVariable": true
+            },
+            {
+              "name": "from_format",
+              "value": "from_format",
+              "isVariable": true
+            },
+            {
+              "name": "to_format",
+              "value": "to_format",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -17914,7 +18612,19 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            },
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -17981,7 +18691,24 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            },
+            {
+              "name": "node_id",
+              "value": "node_id",
+              "isVariable": true
+            },
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -18038,7 +18765,19 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "diagram_id",
+              "value": "diagram_id",
+              "isVariable": true
+            },
+            {
+              "name": "node_id",
+              "value": "node_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -18104,7 +18843,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -18180,7 +18926,19 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "person_id",
+              "value": "person_id",
+              "isVariable": true
+            },
+            {
+              "name": "input",
+              "value": "input",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -18227,7 +18985,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "person_id",
+              "value": "person_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -18282,7 +19047,14 @@
             }
           ],
           "type": null,
-          "description": ""
+          "description": "",
+          "args": [
+            {
+              "name": "execution_id",
+              "value": "execution_id",
+              "isVariable": true
+            }
+          ]
         }
       ],
       "description": "",
@@ -18313,7 +19085,14 @@
             "name": "api_keys",
             "fields": [],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "service",
+                "value": "service",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -18360,7 +19139,14 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "api_key_id",
+                "value": "api_key_id",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -18398,7 +19184,19 @@
             "name": "available_models",
             "fields": [],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "service",
+                "value": "service",
+                "isVariable": true
+              },
+              {
+                "name": "api_key_id",
+                "value": "api_key_id",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -18470,7 +19268,14 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "input",
+                "value": "input",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -18517,7 +19322,14 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "api_key_id",
+                "value": "api_key_id",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -18558,7 +19370,14 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "api_key_id",
+                "value": "api_key_id",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -18607,7 +19426,14 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "input",
+                "value": "input",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -18654,7 +19480,14 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "input",
+                "value": "input",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -18744,7 +19577,44 @@
             "name": "conversations",
             "fields": [],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "person_id",
+                "value": "person_id",
+                "isVariable": true
+              },
+              {
+                "name": "execution_id",
+                "value": "execution_id",
+                "isVariable": true
+              },
+              {
+                "name": "search",
+                "value": "search",
+                "isVariable": true
+              },
+              {
+                "name": "show_forgotten",
+                "value": "show_forgotten",
+                "isVariable": true
+              },
+              {
+                "name": "limit",
+                "value": "limit",
+                "isVariable": true
+              },
+              {
+                "name": "offset",
+                "value": "offset",
+                "isVariable": true
+              },
+              {
+                "name": "since",
+                "value": "since",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -19016,7 +19886,14 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "diagram_id",
+                "value": "diagram_id",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -19114,7 +19991,24 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "filter",
+                "value": "filter",
+                "isVariable": true
+              },
+              {
+                "name": "limit",
+                "value": "limit",
+                "isVariable": true
+              },
+              {
+                "name": "offset",
+                "value": "offset",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -19187,7 +20081,14 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "input",
+                "value": "input",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -19247,7 +20148,14 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "input",
+                "value": "input",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -19294,7 +20202,14 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "diagram_id",
+                "value": "diagram_id",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -19490,7 +20405,14 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "execution_id",
+                "value": "execution_id",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -19575,7 +20497,24 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "filter",
+                "value": "filter",
+                "isVariable": true
+              },
+              {
+                "name": "limit",
+                "value": "limit",
+                "isVariable": true
+              },
+              {
+                "name": "offset",
+                "value": "offset",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -19628,7 +20567,14 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "execution_id",
+                "value": "execution_id",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -19694,7 +20640,14 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "input",
+                "value": "input",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -19741,7 +20694,14 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "input",
+                "value": "input",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -19807,7 +20767,14 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "input",
+                "value": "input",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -19847,7 +20814,19 @@
             "name": "upload_file",
             "fields": [],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "file",
+                "value": "file",
+                "isVariable": true
+              },
+              {
+                "name": "path",
+                "value": "path",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -19885,7 +20864,19 @@
             "name": "upload_diagram",
             "fields": [],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "file",
+                "value": "file",
+                "isVariable": true
+              },
+              {
+                "name": "format",
+                "value": "format",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -19923,7 +20914,19 @@
             "name": "validate_diagram",
             "fields": [],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "content",
+                "value": "content",
+                "isVariable": true
+              },
+              {
+                "name": "format",
+                "value": "format",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -20002,7 +21005,24 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "content",
+                "value": "content",
+                "isVariable": true
+              },
+              {
+                "name": "from_format",
+                "value": "from_format",
+                "isVariable": true
+              },
+              {
+                "name": "to_format",
+                "value": "to_format",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -20124,7 +21144,19 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "diagram_id",
+                "value": "diagram_id",
+                "isVariable": true
+              },
+              {
+                "name": "input",
+                "value": "input",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -20191,7 +21223,24 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "diagram_id",
+                "value": "diagram_id",
+                "isVariable": true
+              },
+              {
+                "name": "node_id",
+                "value": "node_id",
+                "isVariable": true
+              },
+              {
+                "name": "input",
+                "value": "input",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -20248,7 +21297,19 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "diagram_id",
+                "value": "diagram_id",
+                "isVariable": true
+              },
+              {
+                "name": "node_id",
+                "value": "node_id",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -20328,7 +21389,14 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "person_id",
+                "value": "person_id",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -20400,7 +21468,14 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "limit",
+                "value": "limit",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -20466,7 +21541,14 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "input",
+                "value": "input",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -20542,7 +21624,19 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "person_id",
+                "value": "person_id",
+                "isVariable": true
+              },
+              {
+                "name": "input",
+                "value": "input",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -20589,7 +21683,14 @@
               }
             ],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "person_id",
+                "value": "person_id",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -20636,7 +21737,14 @@
             "name": "prompt_file",
             "fields": [],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "filename",
+                "value": "filename",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -20683,7 +21791,14 @@
             "name": "provider_operations",
             "fields": [],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "provider",
+                "value": "provider",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -20721,7 +21836,19 @@
             "name": "operation_schema",
             "fields": [],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "provider",
+                "value": "provider",
+                "isVariable": true
+              },
+              {
+                "name": "operation",
+                "value": "operation",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -20802,7 +21929,14 @@
             "name": "execution_order",
             "fields": [],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "execution_id",
+                "value": "execution_id",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -20830,7 +21964,14 @@
             "name": "execution_metrics",
             "fields": [],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "execution_id",
+                "value": "execution_id",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
@@ -20878,7 +22019,24 @@
             "name": "execution_history",
             "fields": [],
             "type": null,
-            "description": ""
+            "description": "",
+            "args": [
+              {
+                "name": "diagram_id",
+                "value": "diagram_id",
+                "isVariable": true
+              },
+              {
+                "name": "limit",
+                "value": "limit",
+                "isVariable": true
+              },
+              {
+                "name": "include_metrics",
+                "value": "include_metrics",
+                "isVariable": true
+              }
+            ]
           }
         ],
         "description": "",
