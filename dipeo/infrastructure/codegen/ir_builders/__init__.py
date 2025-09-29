@@ -1,7 +1,7 @@
 """IR builder implementations."""
 
-from .backend_refactored import BackendIRBuilder
-from .frontend import FrontendIRBuilder
-from .strawberry_refactored import StrawberryIRBuilder
+from .builders.backend import BackendBuilder as BackendIRBuilder
+from .builders.frontend import FrontendBuilder as FrontendIRBuilder
+from .builders.strawberry import StrawberryBuilder as StrawberryIRBuilder
 
 __all__ = ["BackendIRBuilder", "FrontendIRBuilder", "StrawberryIRBuilder"]
