@@ -71,10 +71,12 @@ class ClaudeCodeMessageProcessor:
         formatted_messages: list[dict[str, Any]] = []
 
         for msg in messages:
+            metadata = None
             if isinstance(msg, dict):
                 role = msg.get("role")
                 raw_content = msg.get("content", "")
                 message_type = msg.get("message_type")
+                metadata = msg.get("metadata")
 
                 # Memory selector may provide nested message objects under the
                 # "message" key. Use them as the authoritative source when
@@ -84,6 +86,7 @@ class ClaudeCodeMessageProcessor:
                     if isinstance(nested, dict):
                         role = role or nested.get("role")
                         raw_content = nested.get("content", raw_content)
+                        metadata = metadata or nested.get("metadata")
                     else:
                         role = role or getattr(nested, "role", None)
                         raw_content = getattr(nested, "content", raw_content)
@@ -91,6 +94,7 @@ class ClaudeCodeMessageProcessor:
                 role = getattr(msg, "role", None)
                 raw_content = getattr(msg, "content", "")
                 message_type = getattr(msg, "message_type", None)
+                metadata = getattr(msg, "metadata", None)
 
             if not role:
                 if message_type == "system_to_person":
@@ -102,6 +106,15 @@ class ClaudeCodeMessageProcessor:
                 else:
                     role = "user"
 
+            tool_metadata = None
+            if isinstance(metadata, dict):
+                claude_metadata = metadata.get("claude_code")
+                if isinstance(claude_metadata, dict):
+                    tool_metadata = claude_metadata.get("tool_result")
+
+            if tool_metadata:
+                role = "assistant"
+
             if role == "system":
                 system_messages.append(
                     ClaudeCodeMessageProcessor._stringify_content(raw_content).strip()
@@ -112,7 +125,9 @@ class ClaudeCodeMessageProcessor:
 
             message_payload = {
                 "role": role,
-                "content": ClaudeCodeMessageProcessor._build_sdk_content(raw_content),
+                "content": ClaudeCodeMessageProcessor._build_sdk_content(
+                    raw_content, metadata
+                ),
             }
 
             if role == "assistant":
@@ -136,7 +151,9 @@ class ClaudeCodeMessageProcessor:
             fallback_text = system_message or "Please respond"
             fallback_payload = {
                 "role": "user",
-                "content": ClaudeCodeMessageProcessor._build_sdk_content(fallback_text),
+                "content": ClaudeCodeMessageProcessor._build_sdk_content(
+                    fallback_text, None
+                ),
             }
             formatted_messages.append(
                 {
@@ -148,8 +165,52 @@ class ClaudeCodeMessageProcessor:
         return system_message, formatted_messages
 
     @staticmethod
-    def _build_sdk_content(raw_content: Any) -> list[dict[str, Any]]:
+    def _build_sdk_content(
+        raw_content: Any, metadata: dict[str, Any] | None = None
+    ) -> list[dict[str, Any]]:
         """Convert message content into Claude SDK block format."""
+
+        if metadata and isinstance(metadata, dict):
+            claude_metadata = metadata.get("claude_code")
+            if isinstance(claude_metadata, dict):
+                tool_metadata = claude_metadata.get("tool_result")
+                if isinstance(tool_metadata, dict):
+                    tool_name = tool_metadata.get("tool_name", "select_memory_messages")
+                    tool_use_id = tool_metadata.get("tool_use_id")
+                    result_payload = tool_metadata.get("result")
+
+                    summary_text = ClaudeCodeMessageProcessor._stringify_content(raw_content)
+                    tool_block: dict[str, Any] = {
+                        "type": "tool_result",
+                        "tool_name": tool_name,
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": summary_text,
+                            }
+                        ],
+                    }
+
+                    if tool_use_id:
+                        tool_block["tool_use_id"] = tool_use_id
+
+                    if result_payload is not None:
+                        try:
+                            serialized = json.dumps(
+                                result_payload, ensure_ascii=False, default=str
+                            )
+                        except (TypeError, ValueError):
+                            serialized = str(result_payload)
+
+                        tool_block["content"].append(
+                            {
+                                "type": "text",
+                                "text": serialized,
+                            }
+                        )
+
+                    return [tool_block]
+
         if isinstance(raw_content, list):
             # Only flatten if all items are content blocks (have 'type' field)
             # This prevents flattening of separate messages into a single content array
@@ -187,7 +248,9 @@ class ClaudeCodeMessageProcessor:
             if raw_content.get("type"):
                 return [raw_content]
             if "content" in raw_content and isinstance(raw_content["content"], list):
-                return ClaudeCodeMessageProcessor._build_sdk_content(raw_content["content"])
+                return ClaudeCodeMessageProcessor._build_sdk_content(
+                    raw_content["content"], metadata
+                )
 
         return [
             {

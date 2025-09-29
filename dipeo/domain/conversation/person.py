@@ -188,7 +188,13 @@ class Person:
             )
 
             if selected_messages is not None:
-                messages_for_completion = selected_messages
+                service_name = getattr(self.llm_config.service, "value", self.llm_config.service)
+                if isinstance(service_name, str) and service_name.lower() == "claude_code":
+                    messages_for_completion = [
+                        self._build_memory_tool_result_message(selected_messages)
+                    ]
+                else:
+                    messages_for_completion = selected_messages
 
         result, incoming, response = await self.complete(
             prompt=prompt,
@@ -199,6 +205,60 @@ class Person:
         )
 
         return result, incoming, response, selected_messages
+
+    def _build_memory_tool_result_message(self, selected_messages: list[Message]) -> Message:
+        """Create a synthetic tool result message for Claude Code memory selection."""
+
+        from textwrap import shorten
+
+        message_entries: list[dict[str, Any]] = []
+        message_ids: list[str] = []
+        summary_lines: list[str] = []
+
+        for index, msg in enumerate(selected_messages, start=1):
+            message_id = str(msg.id) if getattr(msg, "id", None) else f"memory_{index}"
+            message_ids.append(message_id)
+
+            sender = str(getattr(msg, "from_person_id", "unknown"))
+            recipient = str(getattr(msg, "to_person_id", "unknown"))
+            snippet = shorten((msg.content or "").replace("\n", " ").strip(), width=200, placeholder="…")
+            summary_lines.append(f"- {message_id} ({sender} → {recipient}): {snippet}")
+
+            message_entries.append(
+                {
+                    "id": message_id,
+                    "from_person_id": sender,
+                    "to_person_id": recipient,
+                    "content": msg.content,
+                    "timestamp": getattr(msg, "timestamp", None),
+                }
+            )
+
+        if summary_lines:
+            summary_text = "Memory selection tool returned the following messages:\n" + "\n".join(summary_lines)
+        else:
+            summary_text = "Memory selection tool returned no messages."
+
+        metadata = {
+            "claude_code": {
+                "tool_result": {
+                    "tool_name": "select_memory_messages",
+                    "tool_use_id": "dipeo_memory_selection",
+                    "result": {
+                        "message_ids": message_ids,
+                        "messages": message_entries,
+                    },
+                }
+            }
+        }
+
+        return Message(
+            from_person_id=self.id,
+            to_person_id=self.id,
+            content=summary_text,
+            message_type="person_to_person",
+            metadata=metadata,
+        )
 
     def __repr__(self) -> str:
         memory_info = "with_strategy" if self._memory_strategy else "no_memory"
