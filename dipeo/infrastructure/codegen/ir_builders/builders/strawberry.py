@@ -20,6 +20,12 @@ from dipeo.infrastructure.codegen.ir_builders.modules.graphql_operations import 
     GroupOperationsByEntityStep,
 )
 from dipeo.infrastructure.codegen.ir_builders.modules.node_specs import ExtractNodeSpecsStep
+from dipeo.infrastructure.codegen.ir_builders.modules.strawberry_assembly import (
+    BuildCompleteIRStep,
+    BuildDomainIRStep,
+    BuildOperationsIRStep,
+)
+from dipeo.domain.codegen.ir_builder_port import IRData, IRMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -239,11 +245,6 @@ class StrawberryAssemblerStep(BuildStep):
             StepResult with assembled Strawberry IR
         """
         try:
-            from dipeo.infrastructure.codegen.ir_builders.strawberry_builders import (
-                build_complete_ir,
-                build_domain_ir,
-                build_operations_ir,
-            )
 
             # Get results from previous steps
             config_data = context.get_step_data("load_strawberry_config")
@@ -271,29 +272,58 @@ class StrawberryAssemblerStep(BuildStep):
                 operations or [], operation_strings or {}
             )
 
-            operations_ir = build_operations_ir(
-                enriched_operations,
-                input_types_list,
-                result_types_list,
-            )
+            # Use new step class for operations IR
+            operations_step = BuildOperationsIRStep()
+            operations_input = {
+                "extract_graphql_operations": {
+                    "operations": enriched_operations,
+                    "input_types": input_types_list,
+                    "result_types": result_types_list,
+                }
+            }
+            operations_result = operations_step.execute(context, operations_input)
+            if not operations_result.success:
+                return StepResult(
+                    success=False,
+                    error=f"Failed to build operations IR: {operations_result.error}",
+                )
+            operations_ir = operations_result.data
 
-            domain_ir = build_domain_ir(
-                transformed_types.get("domain_types", []) if transformed_types else [],
-                graphql_types.get("interfaces", []) if graphql_types else [],
-                enums or [],
-                graphql_types.get("branded_scalars", []) if graphql_types else [],
-                graphql_types.get("input_types", []) if graphql_types else [],
-            )
+            # Use new step class for domain IR
+            domain_step = BuildDomainIRStep()
+            domain_input = {
+                "extract_domain_models": {
+                    "models": transformed_types.get("domain_types", []) if transformed_types else [],
+                    "interfaces": graphql_types.get("interfaces", []) if graphql_types else [],
+                    "enums": enums or [],
+                    "scalars": graphql_types.get("branded_scalars", []) if graphql_types else [],
+                    "inputs": graphql_types.get("input_types", []) if graphql_types else [],
+                }
+            }
+            domain_result = domain_step.execute(context, domain_input)
+            if not domain_result.success:
+                return StepResult(
+                    success=False,
+                    error=f"Failed to build domain IR: {domain_result.error}",
+                )
+            domain_ir = domain_result.data
 
-            # Build complete IR
-            # build_complete_ir expects: operations_data, domain_data, config, source_files, node_specs
-            complete_ir = build_complete_ir(
-                operations_ir,
-                domain_ir,
-                config,
-                None,  # source_files - optional
-                node_specs or [],
-            )
+            # Use new step class for complete IR
+            complete_step = BuildCompleteIRStep()
+            complete_input = {
+                "build_operations_ir": operations_ir,
+                "build_domain_ir": domain_ir,
+            }
+            # Set optional data in context
+            context.set_step_data("extract_node_specs", node_specs or [])
+
+            complete_result = complete_step.execute(context, complete_input)
+            if not complete_result.success:
+                return StepResult(
+                    success=False,
+                    error=f"Failed to build complete IR: {complete_result.error}",
+                )
+            complete_ir = complete_result.data
 
             # If build_complete_ir returns an IRData, extract the data
             if isinstance(complete_ir, IRData):
@@ -367,8 +397,8 @@ class StrawberryValidatorStep(BuildStep):
             StepResult with validation status
         """
         try:
-            from dipeo.infrastructure.codegen.ir_builders.strawberry_builders import (
-                validate_strawberry_ir,
+            from dipeo.infrastructure.codegen.ir_builders.validators.strawberry import (
+                StrawberryValidator,
             )
 
             # Get assembled data
@@ -386,8 +416,6 @@ class StrawberryValidatorStep(BuildStep):
             # Validate - wrap in IRData if needed for the validator
             if isinstance(strawberry_data, dict):
                 # Create a temporary IRData for validation
-                from dipeo.domain.codegen.ir_builder_port import IRData, IRMetadata
-
                 temp_ir = IRData(
                     metadata=IRMetadata(
                         version=strawberry_data.get("version", 1),
@@ -397,9 +425,21 @@ class StrawberryValidatorStep(BuildStep):
                     ),
                     data=strawberry_data,
                 )
-                is_valid, errors = validate_strawberry_ir(temp_ir)
+                validator = StrawberryValidator()
+                is_valid, errors = validator.validate_strawberry_ir(temp_ir)
             else:
-                is_valid, errors = validate_strawberry_ir(strawberry_data)
+                # For dictionary data, wrap it in IRData for validation
+                temp_ir = IRData(
+                    metadata=IRMetadata(
+                        version=1,
+                        generated_at="",
+                        source_files=0,
+                        builder_type="strawberry",
+                    ),
+                    data=strawberry_data,
+                )
+                validator = StrawberryValidator()
+                is_valid, errors = validator.validate_strawberry_ir(temp_ir)
 
             # is_valid is already a bool, errors is a list
             # For empty test data scenarios, treat missing operations as a warning, not error

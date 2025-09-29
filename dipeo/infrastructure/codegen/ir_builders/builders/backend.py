@@ -19,6 +19,9 @@ from dipeo.infrastructure.codegen.ir_builders.modules.node_specs import (
     BuildNodeFactoryStep,
     ExtractNodeSpecsStep,
 )
+from dipeo.infrastructure.codegen.ir_builders.modules.typescript_indexes import (
+    ExtractTypescriptIndexesStep,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +41,7 @@ class BackendAssemblerStep(BuildStep):
             "extract_domain_models",
             "extract_integrations",
             "extract_conversions",
+            "extract_typescript_indexes",
             "build_node_factory",
             "build_category_metadata",
         ]
@@ -59,19 +63,9 @@ class BackendAssemblerStep(BuildStep):
             domain_models = context.get_step_data("extract_domain_models")
             integrations = context.get_step_data("extract_integrations")
             conversions = context.get_step_data("extract_conversions")
+            typescript_indexes = context.get_step_data("extract_typescript_indexes")
             node_factory = context.get_step_data("build_node_factory")
             category_metadata = context.get_step_data("build_category_metadata")
-
-            # Extract TypeScript indexes
-            import os
-            from pathlib import Path
-
-            from dipeo.infrastructure.codegen.ir_builders.backend_extractors import (
-                extract_typescript_indexes,
-            )
-
-            base_dir = Path(os.environ.get("DIPEO_BASE_DIR", "."))
-            typescript_indexes = extract_typescript_indexes(base_dir)
 
             # Assemble backend data matching original structure
             # Handle domain_models structure properly
@@ -148,6 +142,7 @@ class BackendBuilder(BaseIRBuilder):
                 ExtractDomainModelsStep(),
                 ExtractIntegrationsStep(),
                 ExtractConversionsStep(),
+                ExtractTypescriptIndexesStep(),
             ]
         )
 

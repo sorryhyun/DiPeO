@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from dipeo.domain.codegen.ir_builder_port import IRData
 from .base import BaseValidator, ValidationResult
 
 
@@ -342,3 +343,48 @@ class StrawberryValidator(BaseValidator):
             )
 
         return True, "Domain field coverage check passed"
+
+    def validate_strawberry_ir(self, ir_data: IRData) -> tuple[bool, list[str]]:
+        """Validate Strawberry IR data structure (legacy compatibility method).
+
+        Args:
+            ir_data: IR data to validate
+
+        Returns:
+            Tuple of (is_valid, list_of_errors)
+        """
+        errors = []
+
+        if not ir_data.data:
+            errors.append("Strawberry data is missing")
+            return False, errors
+
+        strawberry_data = ir_data.data
+
+        # Check required fields
+        required_fields = ["operations", "domain_types", "config"]
+        for field in required_fields:
+            if field not in strawberry_data:
+                errors.append(f"Missing required field: {field}")
+
+        # Validate operations
+        operations = strawberry_data.get("operations", [])
+        if not operations:
+            errors.append("No operations defined")
+        else:
+            for i, op in enumerate(operations):
+                if not op.get("name"):
+                    errors.append(f"Operation {i} missing name")
+                if not op.get("query_string"):
+                    errors.append(f"Operation {op.get('name', i)} missing query_string")
+
+        # Validate domain types
+        domain_types = strawberry_data.get("domain_types", [])
+        for dtype in domain_types:
+            if not dtype.get("name"):
+                errors.append("Domain type missing name")
+            if not dtype.get("fields"):
+                errors.append(f"Domain type {dtype.get('name', 'unknown')} has no fields")
+
+        is_valid = len(errors) == 0
+        return is_valid, errors

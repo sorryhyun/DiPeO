@@ -32,6 +32,7 @@ class BuildContext:
     _base_dir: Optional[Path] = None
     _cache: dict[str, Any] = field(default_factory=dict)
     _step_results: dict[str, Any] = field(default_factory=dict)
+    _metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         """Initialize build context."""
@@ -206,16 +207,17 @@ class BuildContext:
         # Clear type converter cache when config changes
         self._type_converter = None
 
-    def get_step_data(self, step_name: str) -> Any:
+    def get_step_data(self, step_name: str, default: Any = None) -> Any:
         """Get data from a previously executed step.
 
         Args:
             step_name: Name of the step
+            default: Default value if step hasn't been executed
 
         Returns:
-            Step's output data or None if step hasn't been executed
+            Step's output data or default if step hasn't been executed
         """
-        return self._step_results.get(step_name)
+        return self._step_results.get(step_name, default)
 
     def set_step_data(self, step_name: str, data: Any) -> None:
         """Store data from a step execution.
@@ -225,3 +227,32 @@ class BuildContext:
             data: Step's output data
         """
         self._step_results[step_name] = data
+
+    def get_metadata(self, key: str, default: Any = None) -> Any:
+        """Get metadata value by key.
+
+        Args:
+            key: Metadata key
+            default: Default value if key not found
+
+        Returns:
+            Metadata value or default if not found
+        """
+        return self._metadata.get(key, default)
+
+    def set_metadata(self, key: str, value: Any) -> None:
+        """Store metadata value.
+
+        Args:
+            key: Metadata key
+            value: Metadata value to store
+        """
+        self._metadata[key] = value
+
+    def update_metadata(self, metadata: dict[str, Any]) -> None:
+        """Update metadata with new values.
+
+        Args:
+            metadata: Dictionary of metadata updates
+        """
+        self._metadata.update(metadata)

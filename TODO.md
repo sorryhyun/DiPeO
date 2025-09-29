@@ -1,83 +1,129 @@
-# TODO
+# TODO - IR Builders Migration Completion
 
-## IR builder re-architecture
+## Overview
 
-**Observations**
-- Backend, frontend, and strawberry builders all mix extraction, transformation, and assembly logic inside domain-specific modules.
-- Cross-domain dependencies already exist (e.g. strawberry builder imports backend extractors and shared `TypeConverter` helpers), which makes the current separation feel arbitrary and hard to extend.
-- Utility functions such as node spec extraction, domain model shaping, and GraphQL operation handling are duplicated with small variations, increasing coupling and cognitive load.
+The IR builders have been partially migrated from legacy monolithic files to a new pipeline-based architecture. However, several legacy files are still being used by the new builders and need to be fully migrated before they can be removed.
 
-**Current responsibilities (catalogue)**
-- _BackendIRBuilder (`ir_builders/backend_refactored.py`)_: orchestrates AST ingestion and glues together `extract_node_specs`, `extract_enums_all`, `extract_domain_models`, `extract_integrations`, `extract_conversions`, and `extract_typescript_indexes` from `backend_extractors.py`, then feeds results into `build_factory_data` / `build_conversions_data` from `backend_builders.py` before emitting a single IR payload with inline metadata. Maintains its own `TypeConverter` instance and touches environment (`DIPEO_BASE_DIR`) for filesystem lookups.
-- _FrontendIRBuilder (`ir_builders/frontend.py`)_: keeps bespoke extract/transform helpers in the same file (`extract_node_configs`, `generate_field_configs`, `extract_graphql_queries`, `build_registry_data`, `generate_typescript_models`); writes a snapshot JSON to `projects/codegen/ir/frontend_ir.json`. Relies on shared `TypeConverter` utilities but otherwise duplicates node-spec parsing and GraphQL query handling.
-- _StrawberryIRBuilder (`ir_builders/strawberry_refactored.py`)_: composes configuration loading, `extract_operations_from_ast` (`strawberry_extractors.py`), `extract_interfaces_from_ast` / `extract_enums_from_ast` / `extract_graphql_input_types_from_ast` (`utils.py`), and reuses backend `extract_node_specs`. Transforms data via `strawberry_transformers.py`, then assembles/validates IR through `strawberry_builders.py`. Also instantiates `StrawberryConfig` objects for disk-backed overrides.
-- _Shared utilities (`ir_builders/utils.py`, `base.py`)_: house global type converters, case helpers, config loading, and minimal validation but offer no structured abstraction for step composition, so each builder curates its own mini-pipeline.
+## Current Migration Status
 
-**Goals**
-- Reorganize the IR build pipeline around shared stages (ingest -> extract -> transform -> assemble -> validate) instead of per-domain files.
-- Make cross-cutting data producers (node specs, domain models, GraphQL operations, UI configs) reusable modules with clear contracts.
-- Reduce the size and responsibility of the final builder classes so that adding a new output surface is mostly composition, not bespoke logic.
+### ✅ Completed - New Architecture
+- `ir_builders/builders/` - New pipeline-based builders (backend.py, frontend.py, strawberry.py)
+- `ir_builders/modules/` - Reusable step modules for extraction/transformation
+- `ir_builders/core/` - Pipeline orchestration framework (context, steps, base)
+- `ir_builders/validators/` - Validation framework for IR data
 
-**Refactor plan**
+### ⚠️ Legacy Dependencies Still Active
 
-_Phase 1 – Foundation_ ✅ COMPLETED
-- ✅ Introduced `ir_builders/core/` package with:
-  - `context.py` for build context/config + cached helpers (TypeConverter)
-  - `steps.py` with BuildStep interface, PipelineOrchestrator, and StepRegistry
-  - `base.py` with refactored BaseIRBuilder using the new step system
-- ✅ Created reusable step modules under `ir_builders/modules/`:
-  - `node_specs.py` (ExtractNodeSpecsStep, BuildNodeFactoryStep, BuildCategoryMetadataStep)
-  - `domain_models.py` (ExtractDomainModelsStep, ExtractEnumsStep, ExtractIntegrationsStep, ExtractConversionsStep)
-  - `graphql_operations.py` (ExtractGraphQLOperationsStep, BuildOperationStringsStep, GroupOperationsByEntityStep)
-  - `ui_configs.py` (ExtractNodeConfigsStep, BuildNodeRegistryStep, GenerateFieldConfigsStep, GenerateTypeScriptModelsStep)
+**Critical Dependencies Blocking Removal:**
+1. **`strawberry_builders.py`** - Referenced in `builders/strawberry.py:242, 370`:
+   - `build_complete_ir()` - Assembles final strawberry IR
+   - `build_domain_ir()` - Builds domain type IR structure
+   - `build_operations_ir()` - Builds GraphQL operations IR
+   - `validate_strawberry_ir()` - Validates assembled IR
 
-_Phase 2 – Adoption_ ✅ CORE COMPLETED, COMPATIBILITY ISSUES REMAIN
-1. ✅ Re-implemented builder entry points in `ir_builders/builders/`:
-   - Backend builder = node specs + domain models + conversions/integrations assembler + backend validator.
-   - Strawberry builder = operations step + domain models step + node specs feed + GraphQL config assembler.
-   - Frontend builder = node specs step + UI config/registry step + GraphQL operations step.
-2. ✅ Provided targeted validators under `ir_builders/validators/`:
-   - Base validator framework with ValidationResult and ValidationError
-   - Domain-specific validators: BackendValidator, FrontendValidator, StrawberryValidator
-   - Composite validator for combining multiple validators
-3. ✅ Updated codegen workflow to use new builders:
-   - ✅ Updated ir_registry.py to import new builders
-   - ✅ Fixed async/await compatibility with IRBuilderPort interface
-   - ✅ Basic code generation runs successfully
-4. ⏳ After full parity is verified, deprecate legacy modules and update documentation
+2. **`backend_extractors.py`** - Referenced in `builders/backend.py:69`:
+   - `extract_typescript_indexes()` - Extracts TypeScript index files
 
-_Phase 3 – Fix Compatibility Issues_ ⏳ IN PROGRESS
-**Issues found during `make codegen` (from server.log):**
-1. **Strawberry builder validation errors:**
-   - All GraphQL operations missing `query_string` field
-   - BuildOperationStringsStep may not be generating query strings correctly
-   - Need to ensure operations data includes query_string for each operation
+**Other Legacy Files (Potentially Removable):**
+- `backend_builders.py` - Contains build utility functions
+- `strawberry_extractors.py` - GraphQL extraction logic (moved to modules)
+- `strawberry_transformers.py` - Type transformation logic (moved to modules)
+- `strawberry_config.py` - Configuration handling (still used)
+- `frontend.py` - Legacy frontend builder (replaced by builders/frontend.py)
+- `base.py` - Legacy base class (replaced by core/base.py)
+- `utils.py` - Shared utilities (may still be needed)
 
-2. **Template compatibility errors:**
-   - `integrations.j2`: Expects dict with `.get()` method but receives list
-     - Backend assembler may be passing wrong data structure for integrations
-   - `generated_nodes.j2`: Expects object with `.imports` attribute
-     - Node factory structure differs from template expectations
+## Migration Plan
 
-3. **Data structure mismatches:**
-   - New builders produce different IR structure than templates expect
-   - Need to either:
-     a. Update templates to match new IR structure, OR
-     b. Adjust builders to produce backward-compatible structure
+### Phase 1: Migrate Critical Functions to Modules
 
-**Action items:**
-- [ ] Fix BuildOperationStringsStep to generate query_string for operations
-- [ ] Ensure backend assembler provides integrations as expected structure
-- [ ] Fix node_factory data structure to include imports attribute
-- [ ] Run comprehensive test comparing old vs new IR outputs
-- [ ] Update validators to be less strict during migration period
-- [ ] Add integration tests that verify template rendering works
+#### 1.1 Move Strawberry Builder Functions
+**Target:** Create `modules/strawberry_assembly.py`
+- Extract `build_complete_ir()`, `build_domain_ir()`, `build_operations_ir()` from `strawberry_builders.py`
+- Convert to step classes following existing module patterns:
+  - `BuildDomainIRStep`
+  - `BuildOperationsIRStep`
+  - `BuildCompleteIRStep`
 
-**Open questions / risks**
-- Need to confirm there are no hidden runtime imports that expect current module paths; plan to provide deprecation shims during migration.
-- Strawberry builder currently reads config from disk—decide whether that remains a direct dependency or becomes a configurable step.
-- Ensure the pipeline remains async-friendly if future builders need async extraction work (e.g. loading additional metadata).
+#### 1.2 Move Strawberry Validation
+**Target:** Enhance `validators/strawberry.py`
+- Move `validate_strawberry_ir()` from `strawberry_builders.py`
+- Integrate into existing validation framework
 
-**Next validation steps**
-- Add unit coverage for the new step modules (mock AST inputs) and integration tests that compare generated IR JSON to current snapshots for each builder.
-- Test the refactored pipeline end-to-end by running `make codegen` and verifying no diff in generated artifacts before deleting legacy code.
+#### 1.3 Move TypeScript Index Extraction
+**Target:** Create `modules/typescript_indexes.py`
+- Extract `extract_typescript_indexes()` from `backend_extractors.py`
+- Convert to step class: `ExtractTypescriptIndexesStep`
+
+### Phase 2: Update New Builders
+
+#### 2.1 Update `builders/strawberry.py`
+- Replace imports from `strawberry_builders` with new module imports
+- Update `StrawberryAssemblerStep` to use new step classes instead of direct function calls
+- Ensure pipeline dependencies are correct
+
+#### 2.2 Update `builders/backend.py`
+- Replace import from `backend_extractors` with new module import
+- Add `ExtractTypescriptIndexesStep` to pipeline
+
+### Phase 3: Verification & Safe Removal
+
+#### 3.1 Verify No External References
+```bash
+# Search for any remaining references to legacy files
+grep -r "backend_extractors\|strawberry_builders\|backend_builders" \
+  --exclude-dir=__pycache__ \
+  --exclude-dir=.git \
+  /home/sorryhyun/PycharmProjects/DiPeO
+```
+
+#### 3.2 Test Complete Pipeline
+```bash
+make codegen          # Generate code with new pipeline
+make diff-staged      # Review changes
+make apply-test       # Apply with server test
+```
+
+#### 3.3 Remove Legacy Files
+**Priority Order (safest first):**
+1. `backend_extractors.py` - Single function dependency
+2. `strawberry_builders.py` - Multiple function dependencies
+3. `backend_builders.py` - May have external references
+4. `strawberry_extractors.py` - Already migrated to modules
+5. `strawberry_transformers.py` - Already migrated to modules
+6. `frontend.py` - Check for external usage first
+7. `base.py` - Check for external usage first
+
+### Phase 4: Clean Dependencies & Documentation
+
+#### 4.1 Update Registry
+- Verify `ir_registry.py` uses new builders correctly
+- Update any remaining imports or references
+
+#### 4.2 Update Documentation
+- Update `dipeo/infrastructure/codegen/CLAUDE.md`
+- Remove references to legacy files
+- Update architecture diagrams if needed
+
+## Implementation Priority
+
+1. **Start with `extract_typescript_indexes`** (simple, single function)
+2. **Move strawberry builder functions** (complex, multiple functions)
+3. **Validate and test** after each migration step
+4. **Remove files** only after confirming zero external dependencies
+
+## Risk Mitigation
+
+- **Test after each phase** - Don't batch all changes
+- **Keep legacy files** until complete verification
+- **Check git history** for any external usage patterns
+- **Run full codegen pipeline** before final removal
+- **Backup IR snapshots** for comparison testing
+
+## Success Criteria
+
+- [ ] All new builders use only `modules/`, `core/`, `validators/` imports
+- [ ] Legacy files have zero references in codebase
+- [ ] `make codegen && make apply-test` passes completely
+- [ ] Generated code output matches pre-migration behavior
+- [ ] Documentation reflects new architecture only
