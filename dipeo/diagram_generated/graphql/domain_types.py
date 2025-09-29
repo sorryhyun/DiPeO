@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces using simplified type resolver.
 
-Generated at: 2025-09-30T06:10:09.144894
+Generated at: 2025-09-30T07:54:32.456710
 """
 
 import strawberry
@@ -832,41 +832,35 @@ class ExecutionStateType:
     status: Status
     diagram_id: Optional[DiagramIDScalar] = None
     started_at: Optional[str] = None
-    completed_at: Optional[str] = None
+    ended_at: Optional[str] = None
     error: Optional[str] = None
-    current_node_ids: List[NodeIDScalar]
-    completed_node_ids: List[NodeIDScalar]
+    llm_usage: Optional[LLMUsageType] = None
+    is_active: Optional[bool] = None
+    executed_nodes: List[str]
+    node_states: JSONScalar
+    node_outputs: JSONScalar
     variables: Optional[JSONScalar] = None
+    exec_counts: JSONScalar
+    metrics: Optional[JSONScalar] = None
     output: Optional[JSONScalar] = None
-    execution_stats: Optional[ExecutionMetricsType] = None
-    parent_execution_id: Optional[ExecutionIDScalar] = None
-    triggered_by: Optional[NodeIDScalar] = None
-    nodes: Optional[JSONScalar] = None
-    execution_options: Optional[ExecutionOptionsType] = None
 
     @staticmethod
     def from_pydantic(obj: ExecutionState) -> "ExecutionStateType":
         """Convert from Pydantic model"""
-        # Derive current_node_ids from node_states (nodes that are running/pending)
-        current_node_ids = [
-            node_id for node_id, node_state in obj.node_states.items()
-            if node_state.status in ["running", "pending"]
-        ] if hasattr(obj, 'node_states') else []
-
         return ExecutionStateType(
             id=obj.id,
             status=obj.status,
             diagram_id=obj.diagram_id,
             started_at=obj.started_at,
-            completed_at=obj.ended_at,
+            ended_at=obj.ended_at,
             error=obj.error,
-            current_node_ids=current_node_ids,
-            completed_node_ids=obj.executed_nodes if hasattr(obj, 'executed_nodes') else [],
+            llm_usage=LLMUsageType.from_pydantic(obj.llm_usage) if obj.llm_usage else None,
+            is_active=obj.is_active,
+            executed_nodes=obj.executed_nodes,
+            node_states=obj.node_states,
+            node_outputs=obj.node_outputs,
             variables=obj.variables,
-            output=obj.metadata if hasattr(obj, 'metadata') else None,
-            execution_stats=ExecutionMetricsType.from_pydantic(obj.metrics) if hasattr(obj, 'metrics') and obj.metrics else None,
-            parent_execution_id=obj.metadata.get('parent_execution_id') if hasattr(obj, 'metadata') and obj.metadata else None,
-            triggered_by=obj.metadata.get('triggered_by') if hasattr(obj, 'metadata') and obj.metadata else None,
-            nodes=obj.metadata.get('nodes') if hasattr(obj, 'metadata') and obj.metadata else None,
-            execution_options=None,  # Not stored in domain model
+            output=obj.output,
+            exec_counts=obj.exec_counts,
+            metrics=obj.metrics,
         )
