@@ -34,22 +34,13 @@ export const nodeQueries: EntityQueryDefinitions = {
         { name: 'input', type: 'CreateNodeInput', required: true }
       ],
       fields: [
+        { name: 'success' },
         {
-          name: 'create_node',
-          args: [
-            { name: 'diagram_id', value: 'diagram_id', isVariable: true },
-            { name: 'input', value: 'input', isVariable: true }
-          ],
-          fields: [
-            { name: 'success' },
-            {
-              name: 'node',
-              fields: NODE_FIELDS
-            },
-            { name: 'message' },
-            { name: 'error' }
-          ]
-        }
+          name: 'node',
+          fields: NODE_FIELDS
+        },
+        { name: 'message' },
+        { name: 'error' }
       ]
     },
     {
@@ -60,17 +51,7 @@ export const nodeQueries: EntityQueryDefinitions = {
         { name: 'node_id', type: 'String', required: true },
         { name: 'input', type: 'UpdateNodeInput', required: true }
       ],
-      fields: [
-        {
-          name: 'update_node',
-          args: [
-            { name: 'diagram_id', value: 'diagram_id', isVariable: true },
-            { name: 'node_id', value: 'node_id', isVariable: true },
-            { name: 'input', value: 'input', isVariable: true }
-          ],
-          fields: RESULT_FIELDS
-        }
-      ]
+      fields: RESULT_FIELDS
     },
     {
       name: 'DeleteNode',
@@ -79,16 +60,7 @@ export const nodeQueries: EntityQueryDefinitions = {
         { name: 'diagram_id', type: 'String', required: true },
         { name: 'node_id', type: 'String', required: true }
       ],
-      fields: [
-        {
-          name: 'delete_node',
-          args: [
-            { name: 'diagram_id', value: 'diagram_id', isVariable: true },
-            { name: 'node_id', value: 'node_id', isVariable: true }
-          ],
-          fields: RESULT_FIELDS
-        }
-      ]
+      fields: RESULT_FIELDS
     }
   ]
 };

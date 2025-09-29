@@ -61,7 +61,7 @@ export enum EventType {
 ```bash
 cd /dipeo/models && pnpm build
 dipeo run codegen/diagrams/generate_all --light --debug
-make apply-syntax-only
+make apply-test
 ```
 
 ### 2단계: GraphQL 구독 생성
@@ -154,7 +154,7 @@ cd dipeo/models && pnpm build
 
 # Run code generation
 dipeo run codegen/diagrams/generate_all --light --debug
-make apply-syntax-only
+make apply-test
 
 # Update GraphQL schema and TypeScript types
 make graphql-schema

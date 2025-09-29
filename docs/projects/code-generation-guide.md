@@ -21,7 +21,7 @@ DiPeO uses a diagram-driven, IR-based (Intermediate Representation) code generat
    ↓
 3. Verify staged code in /dipeo/diagram_generated_staged/
    ↓
-4. Apply Staged Changes (make apply-syntax-only)
+4. Apply Staged Changes (make apply-test)
    ↓
 5. Export GraphQL Schema → /apps/server/schema.graphql
    ↓
@@ -88,7 +88,7 @@ The `generate_all` diagram orchestrates all generation in parallel:
 **Action**: Manual copy from `/dipeo/diagram_generated_staged/` → `/dipeo/diagram_generated/`  
 **Validation**: Syntax-only by default (Python compilation check)
 
-Use `make apply-syntax-only` or `make apply` to move staged backend code to active directory. This ensures:
+Use `make apply-test` to move staged backend code to active directory. This ensures:
 - Validated code before activation
 - Ability to review changes before applying
 - Rollback safety if generation has issues
@@ -127,9 +127,7 @@ make diff-staged           # Compare staged vs active files
 ls -la projects/codegen/ir/  # Inspect IR files if needed
 
 # Step 4: Apply staged backend code
-make apply-syntax-only     # Apply with syntax validation only
-# OR
-make apply                 # Apply with full mypy type checking
+make apply-test                 # Apply with full mypy type checking
 
 # Step 5: Update GraphQL schema and types
 make graphql-schema        # Export schema and generate TypeScript types
@@ -149,7 +147,7 @@ make diff-staged           # Compare staged vs active generated files
 make validate-staged       # Full validation with mypy type checking
 make validate-staged-syntax # Syntax validation only (faster)
 make apply                 # Apply with full validation
-make apply-syntax-only     # Apply with syntax validation only
+make apply-test            # Apply with syntax validation only
 make backup-generated      # Backup before applying changes
 ```
 
@@ -243,7 +241,7 @@ The staging directory (`diagram_generated_staged`) serves critical purposes:
    make codegen
 
    # Apply staged changes
-   make apply-syntax-only
+   make apply-test
 
    # Update GraphQL schema
    make graphql-schema

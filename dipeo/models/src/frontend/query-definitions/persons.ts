@@ -88,21 +88,13 @@ export const personQueries: EntityQueryDefinitions = {
         { name: 'input', type: 'CreatePersonInput', required: true }
       ],
       fields: [
+        { name: 'success' },
         {
-          name: 'create_person',
-          args: [
-            { name: 'input', value: 'input', isVariable: true }
-          ],
-          fields: [
-            { name: 'success' },
-            {
-              name: 'person',
-              fields: PERSON_COMPACT_FIELDS
-            },
-            { name: 'message' },
-            { name: 'error' }
-          ]
-        }
+          name: 'person',
+          fields: PERSON_COMPACT_FIELDS
+        },
+        { name: 'message' },
+        { name: 'error' }
       ]
     },
     {
@@ -113,22 +105,13 @@ export const personQueries: EntityQueryDefinitions = {
         { name: 'input', type: 'UpdatePersonInput', required: true }
       ],
       fields: [
+        { name: 'success' },
         {
-          name: 'update_person',
-          args: [
-            { name: 'person_id', value: 'person_id', isVariable: true },
-            { name: 'input', value: 'input', isVariable: true }
-          ],
-          fields: [
-            { name: 'success' },
-            {
-              name: 'person',
-              fields: PERSON_COMPACT_FIELDS
-            },
-            { name: 'message' },
-            { name: 'error' }
-          ]
-        }
+          name: 'person',
+          fields: PERSON_COMPACT_FIELDS
+        },
+        { name: 'message' },
+        { name: 'error' }
       ]
     },
     {
@@ -137,15 +120,7 @@ export const personQueries: EntityQueryDefinitions = {
       variables: [
         { name: 'person_id', type: 'String', required: true }
       ],
-      fields: [
-        {
-          name: 'delete_person',
-          args: [
-            { name: 'person_id', value: 'person_id', isVariable: true }
-          ],
-          fields: RESULT_FIELDS
-        }
-      ]
+      fields: RESULT_FIELDS
     }
   ]
 };

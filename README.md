@@ -113,7 +113,6 @@ If you need to modify the codebase or add new features:
 cd dipeo/models && pnpm build     # Build TypeScript models
 make codegen                      # Generate code (includes parse-typescript)
 make diff-staged                  # Review changes
-make apply-syntax-only            # Apply staged changes
 make graphql-schema              # Update GraphQL types
 ```
 

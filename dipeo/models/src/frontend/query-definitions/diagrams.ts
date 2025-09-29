@@ -143,29 +143,21 @@ export const diagramQueries: EntityQueryDefinitions = {
         { name: 'input', type: 'CreateDiagramInput', required: true }
       ],
       fields: [
+        { name: 'success' },
         {
-          name: 'create_diagram',
-          args: [
-            { name: 'input', value: 'input', isVariable: true }
-          ],
+          name: 'diagram',
           fields: [
-            { name: 'success' },
             {
-              name: 'diagram',
+              name: 'metadata',
               fields: [
-                {
-                  name: 'metadata',
-                  fields: [
-                    { name: 'id' },
-                    { name: 'name' }
-                  ]
-                }
+                { name: 'id' },
+                { name: 'name' }
               ]
-            },
-            { name: 'message' },
-            { name: 'error' }
+            }
           ]
-        }
+        },
+        { name: 'message' },
+        { name: 'error' }
       ]
     },
     {
@@ -175,23 +167,15 @@ export const diagramQueries: EntityQueryDefinitions = {
         { name: 'input', type: 'ExecuteDiagramInput', required: true }
       ],
       fields: [
+        { name: 'success' },
         {
-          name: 'execute_diagram',
-          args: [
-            { name: 'input', value: 'input', isVariable: true }
-          ],
+          name: 'execution',
           fields: [
-            { name: 'success' },
-            {
-              name: 'execution',
-              fields: [
-                { name: 'id' }
-              ]
-            },
-            { name: 'message' },
-            { name: 'error' }
+            { name: 'id' }
           ]
-        }
+        },
+        { name: 'message' },
+        { name: 'error' }
       ]
     },
     {
@@ -200,15 +184,7 @@ export const diagramQueries: EntityQueryDefinitions = {
       variables: [
         { name: 'diagram_id', type: 'String', required: true }
       ],
-      fields: [
-        {
-          name: 'delete_diagram',
-          args: [
-            { name: 'diagram_id', value: 'diagram_id', isVariable: true }
-          ],
-          fields: RESULT_FIELDS
-        }
-      ]
+      fields: RESULT_FIELDS
     }
   ]
 };

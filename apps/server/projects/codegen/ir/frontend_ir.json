@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2025-09-29T21:48:20.117344",
+  "generated_at": "2025-09-29T23:06:08.758049",
   "node_specs": [
     {
       "node_type": "api_job",
@@ -13238,52 +13238,45 @@
       ],
       "fields": [
         {
-          "name": "create_api_key",
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "api_key",
           "fields": [
             {
-              "name": "success",
+              "name": "id",
               "fields": [],
               "type": null,
               "description": ""
             },
             {
-              "name": "api_key",
-              "fields": [
-                {
-                  "name": "id",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                },
-                {
-                  "name": "label",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                },
-                {
-                  "name": "service",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                }
-              ],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
+              "name": "label",
               "fields": [],
               "type": null,
               "description": ""
             },
             {
-              "name": "error",
+              "name": "service",
               "fields": [],
               "type": null,
               "description": ""
             }
           ],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -13310,27 +13303,20 @@
       ],
       "fields": [
         {
-          "name": "test_api_key",
-          "fields": [
-            {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
-              "fields": [],
-              "type": null,
-              "description": ""
-            }
-          ],
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -13357,21 +13343,14 @@
       ],
       "fields": [
         {
-          "name": "delete_api_key",
-          "fields": [
-            {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            }
-          ],
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -13398,27 +13377,20 @@
       ],
       "fields": [
         {
-          "name": "register_cli_session",
-          "fields": [
-            {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
-              "fields": [],
-              "type": null,
-              "description": ""
-            }
-          ],
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -13445,27 +13417,20 @@
       ],
       "fields": [
         {
-          "name": "unregister_cli_session",
-          "fields": [
-            {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
-              "fields": [],
-              "type": null,
-              "description": ""
-            }
-          ],
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -13948,53 +13913,46 @@
       ],
       "fields": [
         {
-          "name": "create_diagram",
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "diagram",
           "fields": [
             {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "diagram",
+              "name": "metadata",
               "fields": [
                 {
-                  "name": "metadata",
-                  "fields": [
-                    {
-                      "name": "id",
-                      "fields": [],
-                      "type": null,
-                      "description": ""
-                    },
-                    {
-                      "name": "name",
-                      "fields": [],
-                      "type": null,
-                      "description": ""
-                    }
-                  ],
+                  "name": "id",
+                  "fields": [],
+                  "type": null,
+                  "description": ""
+                },
+                {
+                  "name": "name",
+                  "fields": [],
                   "type": null,
                   "description": ""
                 }
               ],
               "type": null,
               "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
-              "fields": [],
-              "type": null,
-              "description": ""
             }
           ],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -14021,40 +13979,33 @@
       ],
       "fields": [
         {
-          "name": "execute_diagram",
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "execution",
           "fields": [
             {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "execution",
-              "fields": [
-                {
-                  "name": "id",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                }
-              ],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
+              "name": "id",
               "fields": [],
               "type": null,
               "description": ""
             }
           ],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -14081,27 +14032,20 @@
       ],
       "fields": [
         {
-          "name": "delete_diagram",
-          "fields": [
-            {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
-              "fields": [],
-              "type": null,
-              "description": ""
-            }
-          ],
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -14460,46 +14404,39 @@
       ],
       "fields": [
         {
-          "name": "control_execution",
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "execution",
           "fields": [
             {
-              "name": "success",
+              "name": "id",
               "fields": [],
               "type": null,
               "description": ""
             },
             {
-              "name": "execution",
-              "fields": [
-                {
-                  "name": "id",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                },
-                {
-                  "name": "status",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                }
-              ],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
+              "name": "status",
               "fields": [],
               "type": null,
               "description": ""
             }
           ],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -14526,27 +14463,20 @@
       ],
       "fields": [
         {
-          "name": "send_interactive_response",
-          "fields": [
-            {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
-              "fields": [],
-              "type": null,
-              "description": ""
-            }
-          ],
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -14573,46 +14503,39 @@
       ],
       "fields": [
         {
-          "name": "update_node_state",
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "execution",
           "fields": [
             {
-              "name": "success",
+              "name": "id",
               "fields": [],
               "type": null,
               "description": ""
             },
             {
-              "name": "execution",
-              "fields": [
-                {
-                  "name": "id",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                },
-                {
-                  "name": "status",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                }
-              ],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
+              "name": "status",
               "fields": [],
               "type": null,
               "description": ""
             }
           ],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -14647,14 +14570,7 @@
           "default": null
         }
       ],
-      "fields": [
-        {
-          "name": "upload_file",
-          "fields": [],
-          "type": null,
-          "description": ""
-        }
-      ],
+      "fields": [],
       "description": "",
       "return_type": null
     },
@@ -14685,14 +14601,7 @@
           "default": null
         }
       ],
-      "fields": [
-        {
-          "name": "upload_diagram",
-          "fields": [],
-          "type": null,
-          "description": ""
-        }
-      ],
+      "fields": [],
       "description": "",
       "return_type": null
     },
@@ -14723,14 +14632,7 @@
           "default": null
         }
       ],
-      "fields": [
-        {
-          "name": "validate_diagram",
-          "fields": [],
-          "type": null,
-          "description": ""
-        }
-      ],
+      "fields": [],
       "description": "",
       "return_type": null
     },
@@ -14773,39 +14675,32 @@
       ],
       "fields": [
         {
-          "name": "convert_diagram_format",
-          "fields": [
-            {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "data",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "format",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
-              "fields": [],
-              "type": null,
-              "description": ""
-            }
-          ],
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "data",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "format",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -14859,50 +14754,37 @@
       ],
       "fields": [
         {
-          "name": "create_node",
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "node",
           "fields": [
             {
-              "name": "success",
+              "name": "id",
               "fields": [],
               "type": null,
               "description": ""
             },
             {
-              "name": "node",
+              "name": "type",
+              "fields": [],
+              "type": null,
+              "description": ""
+            },
+            {
+              "name": "position",
               "fields": [
                 {
-                  "name": "id",
+                  "name": "x",
                   "fields": [],
                   "type": null,
                   "description": ""
                 },
                 {
-                  "name": "type",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                },
-                {
-                  "name": "position",
-                  "fields": [
-                    {
-                      "name": "x",
-                      "fields": [],
-                      "type": null,
-                      "description": ""
-                    },
-                    {
-                      "name": "y",
-                      "fields": [],
-                      "type": null,
-                      "description": ""
-                    }
-                  ],
-                  "type": null,
-                  "description": ""
-                },
-                {
-                  "name": "data",
+                  "name": "y",
                   "fields": [],
                   "type": null,
                   "description": ""
@@ -14912,18 +14794,24 @@
               "description": ""
             },
             {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
+              "name": "data",
               "fields": [],
               "type": null,
               "description": ""
             }
           ],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -14970,27 +14858,20 @@
       ],
       "fields": [
         {
-          "name": "update_node",
-          "fields": [
-            {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
-              "fields": [],
-              "type": null,
-              "description": ""
-            }
-          ],
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -15027,27 +14908,20 @@
       ],
       "fields": [
         {
-          "name": "delete_node",
-          "fields": [
-            {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
-              "fields": [],
-              "type": null,
-              "description": ""
-            }
-          ],
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -15224,46 +15098,39 @@
       ],
       "fields": [
         {
-          "name": "create_person",
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "person",
           "fields": [
             {
-              "name": "success",
+              "name": "id",
               "fields": [],
               "type": null,
               "description": ""
             },
             {
-              "name": "person",
-              "fields": [
-                {
-                  "name": "id",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                },
-                {
-                  "name": "label",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                }
-              ],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
+              "name": "label",
               "fields": [],
               "type": null,
               "description": ""
             }
           ],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -15300,46 +15167,39 @@
       ],
       "fields": [
         {
-          "name": "update_person",
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "person",
           "fields": [
             {
-              "name": "success",
+              "name": "id",
               "fields": [],
               "type": null,
               "description": ""
             },
             {
-              "name": "person",
-              "fields": [
-                {
-                  "name": "id",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                },
-                {
-                  "name": "label",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                }
-              ],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
+              "name": "label",
               "fields": [],
               "type": null,
               "description": ""
             }
           ],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -15366,27 +15226,20 @@
       ],
       "fields": [
         {
-          "name": "delete_person",
-          "fields": [
-            {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
-              "fields": [],
-              "type": null,
-              "description": ""
-            }
-          ],
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -17032,52 +16885,45 @@
       ],
       "fields": [
         {
-          "name": "create_api_key",
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "api_key",
           "fields": [
             {
-              "name": "success",
+              "name": "id",
               "fields": [],
               "type": null,
               "description": ""
             },
             {
-              "name": "api_key",
-              "fields": [
-                {
-                  "name": "id",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                },
-                {
-                  "name": "label",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                },
-                {
-                  "name": "service",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                }
-              ],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
+              "name": "label",
               "fields": [],
               "type": null,
               "description": ""
             },
             {
-              "name": "error",
+              "name": "service",
               "fields": [],
               "type": null,
               "description": ""
             }
           ],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -17104,27 +16950,20 @@
       ],
       "fields": [
         {
-          "name": "test_api_key",
-          "fields": [
-            {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
-              "fields": [],
-              "type": null,
-              "description": ""
-            }
-          ],
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -17151,21 +16990,14 @@
       ],
       "fields": [
         {
-          "name": "delete_api_key",
-          "fields": [
-            {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            }
-          ],
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -17192,27 +17024,20 @@
       ],
       "fields": [
         {
-          "name": "register_cli_session",
-          "fields": [
-            {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
-              "fields": [],
-              "type": null,
-              "description": ""
-            }
-          ],
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -17239,27 +17064,20 @@
       ],
       "fields": [
         {
-          "name": "unregister_cli_session",
-          "fields": [
-            {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
-              "fields": [],
-              "type": null,
-              "description": ""
-            }
-          ],
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -17286,53 +17104,46 @@
       ],
       "fields": [
         {
-          "name": "create_diagram",
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "diagram",
           "fields": [
             {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "diagram",
+              "name": "metadata",
               "fields": [
                 {
-                  "name": "metadata",
-                  "fields": [
-                    {
-                      "name": "id",
-                      "fields": [],
-                      "type": null,
-                      "description": ""
-                    },
-                    {
-                      "name": "name",
-                      "fields": [],
-                      "type": null,
-                      "description": ""
-                    }
-                  ],
+                  "name": "id",
+                  "fields": [],
+                  "type": null,
+                  "description": ""
+                },
+                {
+                  "name": "name",
+                  "fields": [],
                   "type": null,
                   "description": ""
                 }
               ],
               "type": null,
               "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
-              "fields": [],
-              "type": null,
-              "description": ""
             }
           ],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -17359,40 +17170,33 @@
       ],
       "fields": [
         {
-          "name": "execute_diagram",
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "execution",
           "fields": [
             {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "execution",
-              "fields": [
-                {
-                  "name": "id",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                }
-              ],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
+              "name": "id",
               "fields": [],
               "type": null,
               "description": ""
             }
           ],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -17419,27 +17223,20 @@
       ],
       "fields": [
         {
-          "name": "delete_diagram",
-          "fields": [
-            {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
-              "fields": [],
-              "type": null,
-              "description": ""
-            }
-          ],
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -17466,46 +17263,39 @@
       ],
       "fields": [
         {
-          "name": "control_execution",
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "execution",
           "fields": [
             {
-              "name": "success",
+              "name": "id",
               "fields": [],
               "type": null,
               "description": ""
             },
             {
-              "name": "execution",
-              "fields": [
-                {
-                  "name": "id",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                },
-                {
-                  "name": "status",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                }
-              ],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
+              "name": "status",
               "fields": [],
               "type": null,
               "description": ""
             }
           ],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -17532,27 +17322,20 @@
       ],
       "fields": [
         {
-          "name": "send_interactive_response",
-          "fields": [
-            {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
-              "fields": [],
-              "type": null,
-              "description": ""
-            }
-          ],
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -17579,46 +17362,39 @@
       ],
       "fields": [
         {
-          "name": "update_node_state",
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "execution",
           "fields": [
             {
-              "name": "success",
+              "name": "id",
               "fields": [],
               "type": null,
               "description": ""
             },
             {
-              "name": "execution",
-              "fields": [
-                {
-                  "name": "id",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                },
-                {
-                  "name": "status",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                }
-              ],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
+              "name": "status",
               "fields": [],
               "type": null,
               "description": ""
             }
           ],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -17653,14 +17429,7 @@
           "default": null
         }
       ],
-      "fields": [
-        {
-          "name": "upload_file",
-          "fields": [],
-          "type": null,
-          "description": ""
-        }
-      ],
+      "fields": [],
       "description": "",
       "return_type": null
     },
@@ -17691,14 +17460,7 @@
           "default": null
         }
       ],
-      "fields": [
-        {
-          "name": "upload_diagram",
-          "fields": [],
-          "type": null,
-          "description": ""
-        }
-      ],
+      "fields": [],
       "description": "",
       "return_type": null
     },
@@ -17729,14 +17491,7 @@
           "default": null
         }
       ],
-      "fields": [
-        {
-          "name": "validate_diagram",
-          "fields": [],
-          "type": null,
-          "description": ""
-        }
-      ],
+      "fields": [],
       "description": "",
       "return_type": null
     },
@@ -17779,39 +17534,32 @@
       ],
       "fields": [
         {
-          "name": "convert_diagram_format",
-          "fields": [
-            {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "data",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "format",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
-              "fields": [],
-              "type": null,
-              "description": ""
-            }
-          ],
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "data",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "format",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -17848,50 +17596,37 @@
       ],
       "fields": [
         {
-          "name": "create_node",
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "node",
           "fields": [
             {
-              "name": "success",
+              "name": "id",
               "fields": [],
               "type": null,
               "description": ""
             },
             {
-              "name": "node",
+              "name": "type",
+              "fields": [],
+              "type": null,
+              "description": ""
+            },
+            {
+              "name": "position",
               "fields": [
                 {
-                  "name": "id",
+                  "name": "x",
                   "fields": [],
                   "type": null,
                   "description": ""
                 },
                 {
-                  "name": "type",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                },
-                {
-                  "name": "position",
-                  "fields": [
-                    {
-                      "name": "x",
-                      "fields": [],
-                      "type": null,
-                      "description": ""
-                    },
-                    {
-                      "name": "y",
-                      "fields": [],
-                      "type": null,
-                      "description": ""
-                    }
-                  ],
-                  "type": null,
-                  "description": ""
-                },
-                {
-                  "name": "data",
+                  "name": "y",
                   "fields": [],
                   "type": null,
                   "description": ""
@@ -17901,18 +17636,24 @@
               "description": ""
             },
             {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
+              "name": "data",
               "fields": [],
               "type": null,
               "description": ""
             }
           ],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -17959,27 +17700,20 @@
       ],
       "fields": [
         {
-          "name": "update_node",
-          "fields": [
-            {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
-              "fields": [],
-              "type": null,
-              "description": ""
-            }
-          ],
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -18016,27 +17750,20 @@
       ],
       "fields": [
         {
-          "name": "delete_node",
-          "fields": [
-            {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
-              "fields": [],
-              "type": null,
-              "description": ""
-            }
-          ],
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -18063,46 +17790,39 @@
       ],
       "fields": [
         {
-          "name": "create_person",
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "person",
           "fields": [
             {
-              "name": "success",
+              "name": "id",
               "fields": [],
               "type": null,
               "description": ""
             },
             {
-              "name": "person",
-              "fields": [
-                {
-                  "name": "id",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                },
-                {
-                  "name": "label",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                }
-              ],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
+              "name": "label",
               "fields": [],
               "type": null,
               "description": ""
             }
           ],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -18139,46 +17859,39 @@
       ],
       "fields": [
         {
-          "name": "update_person",
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "person",
           "fields": [
             {
-              "name": "success",
+              "name": "id",
               "fields": [],
               "type": null,
               "description": ""
             },
             {
-              "name": "person",
-              "fields": [
-                {
-                  "name": "id",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                },
-                {
-                  "name": "label",
-                  "fields": [],
-                  "type": null,
-                  "description": ""
-                }
-              ],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
+              "name": "label",
               "fields": [],
               "type": null,
               "description": ""
             }
           ],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -18205,27 +17918,20 @@
       ],
       "fields": [
         {
-          "name": "delete_person",
-          "fields": [
-            {
-              "name": "success",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "message",
-              "fields": [],
-              "type": null,
-              "description": ""
-            },
-            {
-              "name": "error",
-              "fields": [],
-              "type": null,
-              "description": ""
-            }
-          ],
+          "name": "success",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "message",
+          "fields": [],
+          "type": null,
+          "description": ""
+        },
+        {
+          "name": "error",
+          "fields": [],
           "type": null,
           "description": ""
         }
@@ -18423,52 +18129,45 @@
         ],
         "fields": [
           {
-            "name": "create_api_key",
+            "name": "success",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "api_key",
             "fields": [
               {
-                "name": "success",
+                "name": "id",
                 "fields": [],
                 "type": null,
                 "description": ""
               },
               {
-                "name": "api_key",
-                "fields": [
-                  {
-                    "name": "id",
-                    "fields": [],
-                    "type": null,
-                    "description": ""
-                  },
-                  {
-                    "name": "label",
-                    "fields": [],
-                    "type": null,
-                    "description": ""
-                  },
-                  {
-                    "name": "service",
-                    "fields": [],
-                    "type": null,
-                    "description": ""
-                  }
-                ],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "message",
+                "name": "label",
                 "fields": [],
                 "type": null,
                 "description": ""
               },
               {
-                "name": "error",
+                "name": "service",
                 "fields": [],
                 "type": null,
                 "description": ""
               }
             ],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "message",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "error",
+            "fields": [],
             "type": null,
             "description": ""
           }
@@ -18495,27 +18194,20 @@
         ],
         "fields": [
           {
-            "name": "test_api_key",
-            "fields": [
-              {
-                "name": "success",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "message",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "error",
-                "fields": [],
-                "type": null,
-                "description": ""
-              }
-            ],
+            "name": "success",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "message",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "error",
+            "fields": [],
             "type": null,
             "description": ""
           }
@@ -18542,21 +18234,14 @@
         ],
         "fields": [
           {
-            "name": "delete_api_key",
-            "fields": [
-              {
-                "name": "success",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "message",
-                "fields": [],
-                "type": null,
-                "description": ""
-              }
-            ],
+            "name": "success",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "message",
+            "fields": [],
             "type": null,
             "description": ""
           }
@@ -18585,27 +18270,20 @@
         ],
         "fields": [
           {
-            "name": "register_cli_session",
-            "fields": [
-              {
-                "name": "success",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "message",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "error",
-                "fields": [],
-                "type": null,
-                "description": ""
-              }
-            ],
+            "name": "success",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "message",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "error",
+            "fields": [],
             "type": null,
             "description": ""
           }
@@ -18632,27 +18310,20 @@
         ],
         "fields": [
           {
-            "name": "unregister_cli_session",
-            "fields": [
-              {
-                "name": "success",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "message",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "error",
-                "fields": [],
-                "type": null,
-                "description": ""
-              }
-            ],
+            "name": "success",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "message",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "error",
+            "fields": [],
             "type": null,
             "description": ""
           }
@@ -19139,53 +18810,46 @@
         ],
         "fields": [
           {
-            "name": "create_diagram",
+            "name": "success",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "diagram",
             "fields": [
               {
-                "name": "success",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "diagram",
+                "name": "metadata",
                 "fields": [
                   {
-                    "name": "metadata",
-                    "fields": [
-                      {
-                        "name": "id",
-                        "fields": [],
-                        "type": null,
-                        "description": ""
-                      },
-                      {
-                        "name": "name",
-                        "fields": [],
-                        "type": null,
-                        "description": ""
-                      }
-                    ],
+                    "name": "id",
+                    "fields": [],
+                    "type": null,
+                    "description": ""
+                  },
+                  {
+                    "name": "name",
+                    "fields": [],
                     "type": null,
                     "description": ""
                   }
                 ],
                 "type": null,
                 "description": ""
-              },
-              {
-                "name": "message",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "error",
-                "fields": [],
-                "type": null,
-                "description": ""
               }
             ],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "message",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "error",
+            "fields": [],
             "type": null,
             "description": ""
           }
@@ -19212,40 +18876,33 @@
         ],
         "fields": [
           {
-            "name": "execute_diagram",
+            "name": "success",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "execution",
             "fields": [
               {
-                "name": "success",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "execution",
-                "fields": [
-                  {
-                    "name": "id",
-                    "fields": [],
-                    "type": null,
-                    "description": ""
-                  }
-                ],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "message",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "error",
+                "name": "id",
                 "fields": [],
                 "type": null,
                 "description": ""
               }
             ],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "message",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "error",
+            "fields": [],
             "type": null,
             "description": ""
           }
@@ -19272,27 +18929,20 @@
         ],
         "fields": [
           {
-            "name": "delete_diagram",
-            "fields": [
-              {
-                "name": "success",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "message",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "error",
-                "fields": [],
-                "type": null,
-                "description": ""
-              }
-            ],
+            "name": "success",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "message",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "error",
+            "fields": [],
             "type": null,
             "description": ""
           }
@@ -19653,46 +19303,39 @@
         ],
         "fields": [
           {
-            "name": "control_execution",
+            "name": "success",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "execution",
             "fields": [
               {
-                "name": "success",
+                "name": "id",
                 "fields": [],
                 "type": null,
                 "description": ""
               },
               {
-                "name": "execution",
-                "fields": [
-                  {
-                    "name": "id",
-                    "fields": [],
-                    "type": null,
-                    "description": ""
-                  },
-                  {
-                    "name": "status",
-                    "fields": [],
-                    "type": null,
-                    "description": ""
-                  }
-                ],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "message",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "error",
+                "name": "status",
                 "fields": [],
                 "type": null,
                 "description": ""
               }
             ],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "message",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "error",
+            "fields": [],
             "type": null,
             "description": ""
           }
@@ -19719,27 +19362,20 @@
         ],
         "fields": [
           {
-            "name": "send_interactive_response",
-            "fields": [
-              {
-                "name": "success",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "message",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "error",
-                "fields": [],
-                "type": null,
-                "description": ""
-              }
-            ],
+            "name": "success",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "message",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "error",
+            "fields": [],
             "type": null,
             "description": ""
           }
@@ -19766,46 +19402,39 @@
         ],
         "fields": [
           {
-            "name": "update_node_state",
+            "name": "success",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "execution",
             "fields": [
               {
-                "name": "success",
+                "name": "id",
                 "fields": [],
                 "type": null,
                 "description": ""
               },
               {
-                "name": "execution",
-                "fields": [
-                  {
-                    "name": "id",
-                    "fields": [],
-                    "type": null,
-                    "description": ""
-                  },
-                  {
-                    "name": "status",
-                    "fields": [],
-                    "type": null,
-                    "description": ""
-                  }
-                ],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "message",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "error",
+                "name": "status",
                 "fields": [],
                 "type": null,
                 "description": ""
               }
             ],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "message",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "error",
+            "fields": [],
             "type": null,
             "description": ""
           }
@@ -19842,14 +19471,7 @@
             "default": null
           }
         ],
-        "fields": [
-          {
-            "name": "upload_file",
-            "fields": [],
-            "type": null,
-            "description": ""
-          }
-        ],
+        "fields": [],
         "description": "",
         "return_type": null
       },
@@ -19880,14 +19502,7 @@
             "default": null
           }
         ],
-        "fields": [
-          {
-            "name": "upload_diagram",
-            "fields": [],
-            "type": null,
-            "description": ""
-          }
-        ],
+        "fields": [],
         "description": "",
         "return_type": null
       },
@@ -19918,14 +19533,7 @@
             "default": null
           }
         ],
-        "fields": [
-          {
-            "name": "validate_diagram",
-            "fields": [],
-            "type": null,
-            "description": ""
-          }
-        ],
+        "fields": [],
         "description": "",
         "return_type": null
       },
@@ -19968,39 +19576,32 @@
         ],
         "fields": [
           {
-            "name": "convert_diagram_format",
-            "fields": [
-              {
-                "name": "success",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "data",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "format",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "message",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "error",
-                "fields": [],
-                "type": null,
-                "description": ""
-              }
-            ],
+            "name": "success",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "data",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "format",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "message",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "error",
+            "fields": [],
             "type": null,
             "description": ""
           }
@@ -20058,50 +19659,37 @@
         ],
         "fields": [
           {
-            "name": "create_node",
+            "name": "success",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "node",
             "fields": [
               {
-                "name": "success",
+                "name": "id",
                 "fields": [],
                 "type": null,
                 "description": ""
               },
               {
-                "name": "node",
+                "name": "type",
+                "fields": [],
+                "type": null,
+                "description": ""
+              },
+              {
+                "name": "position",
                 "fields": [
                   {
-                    "name": "id",
+                    "name": "x",
                     "fields": [],
                     "type": null,
                     "description": ""
                   },
                   {
-                    "name": "type",
-                    "fields": [],
-                    "type": null,
-                    "description": ""
-                  },
-                  {
-                    "name": "position",
-                    "fields": [
-                      {
-                        "name": "x",
-                        "fields": [],
-                        "type": null,
-                        "description": ""
-                      },
-                      {
-                        "name": "y",
-                        "fields": [],
-                        "type": null,
-                        "description": ""
-                      }
-                    ],
-                    "type": null,
-                    "description": ""
-                  },
-                  {
-                    "name": "data",
+                    "name": "y",
                     "fields": [],
                     "type": null,
                     "description": ""
@@ -20111,18 +19699,24 @@
                 "description": ""
               },
               {
-                "name": "message",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "error",
+                "name": "data",
                 "fields": [],
                 "type": null,
                 "description": ""
               }
             ],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "message",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "error",
+            "fields": [],
             "type": null,
             "description": ""
           }
@@ -20169,27 +19763,20 @@
         ],
         "fields": [
           {
-            "name": "update_node",
-            "fields": [
-              {
-                "name": "success",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "message",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "error",
-                "fields": [],
-                "type": null,
-                "description": ""
-              }
-            ],
+            "name": "success",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "message",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "error",
+            "fields": [],
             "type": null,
             "description": ""
           }
@@ -20226,27 +19813,20 @@
         ],
         "fields": [
           {
-            "name": "delete_node",
-            "fields": [
-              {
-                "name": "success",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "message",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "error",
-                "fields": [],
-                "type": null,
-                "description": ""
-              }
-            ],
+            "name": "success",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "message",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "error",
+            "fields": [],
             "type": null,
             "description": ""
           }
@@ -20425,46 +20005,39 @@
         ],
         "fields": [
           {
-            "name": "create_person",
+            "name": "success",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "person",
             "fields": [
               {
-                "name": "success",
+                "name": "id",
                 "fields": [],
                 "type": null,
                 "description": ""
               },
               {
-                "name": "person",
-                "fields": [
-                  {
-                    "name": "id",
-                    "fields": [],
-                    "type": null,
-                    "description": ""
-                  },
-                  {
-                    "name": "label",
-                    "fields": [],
-                    "type": null,
-                    "description": ""
-                  }
-                ],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "message",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "error",
+                "name": "label",
                 "fields": [],
                 "type": null,
                 "description": ""
               }
             ],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "message",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "error",
+            "fields": [],
             "type": null,
             "description": ""
           }
@@ -20501,46 +20074,39 @@
         ],
         "fields": [
           {
-            "name": "update_person",
+            "name": "success",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "person",
             "fields": [
               {
-                "name": "success",
+                "name": "id",
                 "fields": [],
                 "type": null,
                 "description": ""
               },
               {
-                "name": "person",
-                "fields": [
-                  {
-                    "name": "id",
-                    "fields": [],
-                    "type": null,
-                    "description": ""
-                  },
-                  {
-                    "name": "label",
-                    "fields": [],
-                    "type": null,
-                    "description": ""
-                  }
-                ],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "message",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "error",
+                "name": "label",
                 "fields": [],
                 "type": null,
                 "description": ""
               }
             ],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "message",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "error",
+            "fields": [],
             "type": null,
             "description": ""
           }
@@ -20567,27 +20133,20 @@
         ],
         "fields": [
           {
-            "name": "delete_person",
-            "fields": [
-              {
-                "name": "success",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "message",
-                "fields": [],
-                "type": null,
-                "description": ""
-              },
-              {
-                "name": "error",
-                "fields": [],
-                "type": null,
-                "description": ""
-              }
-            ],
+            "name": "success",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "message",
+            "fields": [],
+            "type": null,
+            "description": ""
+          },
+          {
+            "name": "error",
+            "fields": [],
             "type": null,
             "description": ""
           }
