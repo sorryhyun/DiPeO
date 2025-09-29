@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2025-09-28T15:22:25.852879",
+  "generated_at": "2025-09-29T20:26:28.855282",
   "node_specs": [
     {
       "node_type": "api_job",
@@ -14630,8 +14630,8 @@
           "name": "file",
           "type": "Upload",
           "graphql_type": "Upload",
-          "python_type": "File",
-          "typescript_type": "File",
+          "python_type": "Upload",
+          "typescript_type": "Upload",
           "required": true,
           "description": "",
           "default": null
@@ -14668,8 +14668,8 @@
           "name": "file",
           "type": "Upload",
           "graphql_type": "Upload",
-          "python_type": "File",
-          "typescript_type": "File",
+          "python_type": "Upload",
+          "typescript_type": "Upload",
           "required": true,
           "description": "",
           "default": null
@@ -17636,8 +17636,8 @@
           "name": "file",
           "type": "Upload",
           "graphql_type": "Upload",
-          "python_type": "File",
-          "typescript_type": "File",
+          "python_type": "Upload",
+          "typescript_type": "Upload",
           "required": true,
           "description": "",
           "default": null
@@ -17674,8 +17674,8 @@
           "name": "file",
           "type": "Upload",
           "graphql_type": "Upload",
-          "python_type": "File",
-          "typescript_type": "File",
+          "python_type": "Upload",
+          "typescript_type": "Upload",
           "required": true,
           "description": "",
           "default": null
@@ -19825,8 +19825,8 @@
             "name": "file",
             "type": "Upload",
             "graphql_type": "Upload",
-            "python_type": "File",
-            "typescript_type": "File",
+            "python_type": "Upload",
+            "typescript_type": "Upload",
             "required": true,
             "description": "",
             "default": null
@@ -19863,8 +19863,8 @@
             "name": "file",
             "type": "Upload",
             "graphql_type": "Upload",
-            "python_type": "File",
-            "typescript_type": "File",
+            "python_type": "Upload",
+            "typescript_type": "Upload",
             "required": true,
             "description": "",
             "default": null

@@ -266,16 +266,23 @@ class StrawberryAssemblerStep(BuildStep):
                 transformed_types.get("result_types", []) if transformed_types else []
             )
 
+            # Merge operation strings into operations before building IR
+            enriched_operations = self._merge_operation_strings(
+                operations or [], operation_strings or {}
+            )
+
             operations_ir = build_operations_ir(
-                operations or [],
+                enriched_operations,
                 input_types_list,
                 result_types_list,
             )
 
             domain_ir = build_domain_ir(
                 transformed_types.get("domain_types", []) if transformed_types else [],
+                graphql_types.get("interfaces", []) if graphql_types else [],
                 enums or [],
-                domain_fields,
+                graphql_types.get("branded_scalars", []) if graphql_types else [],
+                graphql_types.get("input_types", []) if graphql_types else [],
             )
 
             # Build complete IR
@@ -306,6 +313,37 @@ class StrawberryAssemblerStep(BuildStep):
                 error=str(e),
                 metadata={"message": f"Strawberry assembly failed: {e}"},
             )
+
+    def _merge_operation_strings(
+        self, operations: list[dict[str, Any]], operation_strings: dict[str, str]
+    ) -> list[dict[str, Any]]:
+        """Merge GraphQL operation strings into operation definitions.
+
+        Args:
+            operations: List of operation definitions
+            operation_strings: Dictionary mapping operation names to GraphQL strings
+
+        Returns:
+            List of operations enriched with query_string fields
+        """
+        enriched_operations = []
+
+        for operation in operations:
+            # Create a copy of the operation to avoid modifying the original
+            enriched_operation = operation.copy()
+
+            # Get the operation name and add the corresponding query string
+            operation_name = operation.get("name", "")
+            if operation_name in operation_strings:
+                enriched_operation["query_string"] = operation_strings[operation_name]
+            else:
+                # Log warning but don't fail - set empty string as fallback
+                logger.warning(f"No query string found for operation: {operation_name}")
+                enriched_operation["query_string"] = ""
+
+            enriched_operations.append(enriched_operation)
+
+        return enriched_operations
 
 
 class StrawberryValidatorStep(BuildStep):

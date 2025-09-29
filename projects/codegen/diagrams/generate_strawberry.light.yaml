@@ -36,6 +36,16 @@ nodes:
       cache_enabled: false
       validate_output: true
 
+  # Save IR for debugging
+  - label: Save strawberry IR
+    type: db
+    position: {x: 600, y: 300}
+    props:
+      operation: write
+      sub_type: file
+      format: json
+      file: projects/codegen/ir/strawberry_ir.json
+
   # Render all templates using template_job nodes
   # Note: Templates will receive the IR data from the Build Unified IR node
   - label: Render Strawberry Types
@@ -160,6 +170,7 @@ connections:
 
   # Parallel template rendering from unified IR
   - {from: Build Unified IR, to: Render Strawberry Types, content_type: object}
+  - {from: Build Unified IR, to: Save strawberry IR, content_type: object }
   - {from: Build Unified IR, to: Render Scalars, content_type: object}
   - {from: Build Unified IR, to: Render Scalar Aliases, content_type: object}
   - {from: Build Unified IR, to: Render Domain Types, content_type: object}

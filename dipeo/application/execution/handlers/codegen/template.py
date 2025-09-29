@@ -168,7 +168,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         template_vars = {}
 
         # Add default variables
-        template_vars["now"] = datetime.now().isoformat()
+        template_vars["generated_at"] = datetime.now().isoformat()
 
         # Add node-defined variables
         if request.node.variables:
