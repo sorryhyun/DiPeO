@@ -474,6 +474,7 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
                 messages = []
 
             execution_phase = kwargs.pop("execution_phase", None)
+            memory_tool_messages = kwargs.pop("memory_tool_messages", None)
 
             # Use the explicit service parameter if provided, otherwise infer from model
             if service_name:
@@ -492,6 +493,16 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
             # Add person_name back only for Claude Code
             if service_name == "claude_code" and "person_name" in kwargs:
                 client_kwargs["person_name"] = kwargs["person_name"]
+
+            if memory_tool_messages is not None:
+                service_slug = (
+                    service_name.value
+                    if hasattr(service_name, "value")
+                    else str(service_name)
+                )
+                normalized_slug = service_slug.replace("-", "_")
+                if normalized_slug in {"claude_code", "claude_code_custom"}:
+                    client_kwargs["memory_tool_messages"] = memory_tool_messages
 
             if execution_phase:
                 client_kwargs["execution_phase"] = execution_phase

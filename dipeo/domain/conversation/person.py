@@ -188,7 +188,15 @@ class Person:
             )
 
             if selected_messages is not None:
-                messages_for_completion = selected_messages
+                service_value = getattr(self.llm_config.service, "value", str(self.llm_config.service))
+                service_slug = str(service_value).replace("_", "-")
+
+                if service_slug in {"claude-code", "claude-code-custom"}:
+                    if selected_messages:
+                        llm_options["memory_tool_messages"] = selected_messages
+                    messages_for_completion = []
+                else:
+                    messages_for_completion = selected_messages
 
         result, incoming, response = await self.complete(
             prompt=prompt,

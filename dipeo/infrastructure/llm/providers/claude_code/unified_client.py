@@ -89,6 +89,45 @@ class UnifiedClaudeCodeClient:
             # Remove trace_id if present since we're not using it
             kwargs.pop("trace_id", None)
 
+    def _build_memory_tool_block(self, messages: list[Message]) -> str:
+        """Format memory tool messages as a tool result block."""
+
+        entries: list[dict[str, Any]] = []
+        message_ids: list[str] = []
+
+        for msg in messages:
+            msg_id = getattr(msg, "id", None)
+            if msg_id:
+                message_ids.append(str(msg_id))
+
+            sender = getattr(msg, "from_person_id", None)
+            recipient = getattr(msg, "to_person_id", None)
+            content = (getattr(msg, "content", "") or "").strip()
+
+            if len(content) > 600:
+                content = content[:600].rstrip() + "…"
+
+            entries.append(
+                {
+                    "id": str(msg_id) if msg_id else "",
+                    "from": str(sender) if sender is not None else "unknown",
+                    "to": str(recipient) if recipient is not None else "",
+                    "content": content,
+                }
+            )
+
+        payload = {
+            "tool": "select_memory_messages",
+            "count": len(entries),
+            "message_ids": message_ids,
+            "messages": entries,
+        }
+
+        return (
+            "Tool Result — mcp__dipeo_structured_output__select_memory_messages\n"
+            + json.dumps(payload, ensure_ascii=False)
+        )
+
     async def async_chat(
         self,
         messages: list[Message],
@@ -99,10 +138,14 @@ class UnifiedClaudeCodeClient:
         response_format: type[BaseModel] | dict[str, Any] | None = None,
         execution_phase: ExecutionPhase | None = None,
         hooks_config: dict[str, list[dict]] | None = None,
+        memory_tool_messages: list[Message] | None = None,
         **kwargs,
     ) -> LLMResponse:
         """Execute async chat completion with retry logic."""
         # Prepare messages for Claude SDK
+        if memory_tool_messages is None:
+            memory_tool_messages = kwargs.pop("memory_tool_messages", None)
+
         logger.debug(
             "[ClaudeCode] Preparing %d messages for phase %s",
             len(messages),
@@ -160,6 +203,14 @@ class UnifiedClaudeCodeClient:
                 # Combine all messages into a single user prompt string
                 # This avoids issues with assistant messages and AsyncIterable mode
                 combined_content = []
+
+                if memory_tool_messages:
+                    tool_block = self._build_memory_tool_block(memory_tool_messages)
+                    combined_content.append(tool_block)
+                    logger.debug(
+                        "[ClaudeCode] Injected memory selection tool result block with %d messages",
+                        len(memory_tool_messages),
+                    )
 
                 for msg in formatted_messages:
                     message_data = json.loads(msg["message"])
@@ -236,6 +287,10 @@ class UnifiedClaudeCodeClient:
                 parsed = self._parser.parse_response(result_text, execution_phase)
                 parsed.provider = self.provider_type
                 parsed.raw_response = result_text
+                if memory_tool_messages:
+                    parsed.metadata["memory_tool_messages"] = [
+                        getattr(m, "id", None) for m in memory_tool_messages
+                    ]
                 return parsed
 
         async for attempt in retry:
@@ -255,6 +310,7 @@ class UnifiedClaudeCodeClient:
         response_format: type[BaseModel] | dict[str, Any] | None = None,
         execution_phase: ExecutionPhase | None = None,
         hooks_config: dict[str, list[dict]] | None = None,
+        memory_tool_messages: list[Message] | None = None,
         **kwargs,
     ) -> AsyncIterator[str]:
         """Stream chat completion response."""
