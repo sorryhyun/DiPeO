@@ -93,7 +93,7 @@ class TypeConverter:
         "DateTime": "string",
         "JSON": "any",
         "JSONScalar": "any",
-        "Upload": "File",
+        "Upload": "Upload",
     }
 
     def __init__(self, custom_mappings: Optional[dict[str, dict[str, str]]] = None):
