@@ -229,9 +229,10 @@ class BuildOperationsIRStep(BuildStep):
         subscriptions = []
 
         for op in operations:
-            if op.get("is_subscription"):
+            op_type = op.get("type", "query").lower()
+            if op_type == "subscription":
                 subscriptions.append(op)
-            elif op.get("is_mutation"):
+            elif op_type == "mutation":
                 mutations.append(op)
             else:
                 queries.append(op)

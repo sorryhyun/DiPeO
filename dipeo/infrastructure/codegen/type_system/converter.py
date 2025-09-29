@@ -135,6 +135,12 @@ class TypeConverter:
         if self._is_string_literal(ts_type):
             return f"Literal[{ts_type}]"
 
+        # Handle boolean literals
+        if ts_type == "true":
+            return "Literal[True]"
+        if ts_type == "false":
+            return "Literal[False]"
+
         # Handle array syntax (T[])
         if ts_type.endswith("[]"):
             inner_type = ts_type[:-2]

@@ -64,8 +64,8 @@ class Query:
 
 {% for operation in queries %}
     # GraphQL field using noun form
-    @strawberry.field{% if operation.get('alias_name') %}(name="{{ operation.get('alias_name') }}"){% endif %}
-    async def {{ operation.get('alias_name', operation['operation_name'] | snake_case) }}_resolver(
+    @strawberry.field(name="{{ operation['operation_name'] | camel_case }}")
+    async def {{ operation['operation_name'] | snake_case }}_resolver(
         self,
         info: Info{% if operation.get('variables') %},{% endif %}
         {%- for param in operation.get('variables', []) %}
@@ -101,7 +101,7 @@ class Mutation:
     """Auto-generated Mutation type from TypeScript definitions"""
 
 {% for operation in mutations %}
-    @strawberry.field
+    @strawberry.field(name="{{ operation['operation_name'] | camel_case }}")
     async def {{ operation['operation_name'] | snake_case }}(
         self,
         info: Info{% if operation.get('variables') %},{% endif %}
@@ -138,7 +138,7 @@ class Subscription:
     """Auto-generated Subscription type from TypeScript definitions"""
 
 {% for operation in subscriptions %}
-    @strawberry.subscription
+    @strawberry.subscription(name="{{ operation['operation_name'] | camel_case }}")
     async def {{ operation['operation_name'] | snake_case }}(
         self,
         info: Info{% if operation.get('variables') %},{% endif %}
