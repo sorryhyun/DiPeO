@@ -265,7 +265,7 @@ class BuildNodeFactoryStep(BuildStep):
 
     def __init__(self):
         """Initialize factory builder step."""
-        super().__init__(name="build_factory_data", step_type=StepType.TRANSFORM, required=True)
+        super().__init__(name="build_node_factory", step_type=StepType.TRANSFORM, required=True)
         self.add_dependency("extract_node_specs")
 
     def execute(self, context: BuildContext, input_data: Any) -> StepResult:
