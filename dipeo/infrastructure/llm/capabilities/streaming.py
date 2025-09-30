@@ -2,13 +2,14 @@
 
 import json
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from collections.abc import AsyncIterator, Iterator
 from typing import Any
 
 from ..drivers.types import ProviderType, StreamConfig, StreamingMode
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class StreamingHandler:
     """Handles streaming responses for different providers."""
@@ -114,7 +115,6 @@ class StreamingHandler:
 
         return json.dumps(message)
 
-
 class StreamBuffer:
     """Buffer for accumulating streamed content."""
 
@@ -142,7 +142,6 @@ class StreamBuffer:
         """Clear the buffer."""
         self.buffer.clear()
         self.total_chars = 0
-
 
 class StreamAggregator:
     """Aggregates streamed chunks for final processing."""

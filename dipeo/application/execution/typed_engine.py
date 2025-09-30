@@ -2,6 +2,8 @@
 
 import asyncio
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import time
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Any, Optional
@@ -18,8 +20,7 @@ if TYPE_CHECKING:
     from dipeo.application.bootstrap import Container
     from dipeo.application.registry import ServiceRegistry
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class TypedExecutionEngine:
     """Refactored execution engine with clean separation of concerns."""

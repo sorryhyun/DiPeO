@@ -5,6 +5,8 @@ in the execution engine, ensuring proper metadata, routing, and validation.
 """
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import time
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -28,8 +30,7 @@ if TYPE_CHECKING:
     from dipeo.application.execution.state_manager import StateManager
     from dipeo.domain.execution.state_tracker import StateTracker
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class EventPipeline:
     """Centralized event pipeline for all execution events.

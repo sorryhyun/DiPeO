@@ -2,6 +2,8 @@
 
 import logging
 
+from dipeo.config.base_logger import get_module_logger
+
 import strawberry
 from strawberry.file_uploads import Upload
 
@@ -14,8 +16,7 @@ from dipeo.diagram_generated.graphql.enums import (
 )
 from dipeo.diagram_generated.graphql.results import DiagramResult, FileOperationResult
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 # Standalone resolver functions for operation executor
 async def upload_file(
@@ -93,7 +94,6 @@ async def upload_file(
         logger.error(f"Failed to upload file: {e}")
         return FileOperationResult.error_result(error=f"Failed to upload file: {e!s}")
 
-
 async def upload_diagram(
     registry: ServiceRegistry, file: Upload, format: DiagramFormatGraphQL
 ) -> DiagramResult:
@@ -123,7 +123,6 @@ async def upload_diagram(
     except Exception as e:
         logger.error(f"Failed to upload diagram: {e}")
         return DiagramResult.error_result(error=f"Failed to upload diagram: {e!s}")
-
 
 async def convert_diagram_format(
     registry: ServiceRegistry,
@@ -161,7 +160,6 @@ async def convert_diagram_format(
         logger.error(f"Failed to convert diagram: {e}")
         return FileOperationResult.error_result(error=f"Failed to convert diagram: {e!s}")
 
-
 @strawberry.type
 class DiagramValidationResult:
     """Result of diagram validation."""
@@ -170,7 +168,6 @@ class DiagramValidationResult:
     message: str | None = None
     errors: list[str] | None = None
     warnings: list[str] | None = None
-
 
 @strawberry.type
 class DiagramConvertResult:

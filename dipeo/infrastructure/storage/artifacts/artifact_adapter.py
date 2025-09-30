@@ -2,6 +2,8 @@
 
 import json
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
@@ -10,8 +12,7 @@ from dipeo.domain.base import StorageError
 from dipeo.domain.base.mixins import InitializationMixin, LoggingMixin
 from dipeo.domain.base.storage_port import Artifact, ArtifactRef, ArtifactStorePort, BlobStorePort
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class ArtifactStoreAdapter(LoggingMixin, InitializationMixin, ArtifactStorePort):
     """High-level artifact management built on BlobStorePort."""

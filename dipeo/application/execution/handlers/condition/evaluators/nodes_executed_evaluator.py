@@ -1,6 +1,8 @@
 """Evaluator for checking if specific nodes have been executed."""
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
 from dipeo.diagram_generated.unified_nodes.condition_node import ConditionNode
@@ -9,8 +11,7 @@ from dipeo.domain.execution.execution_context import ExecutionContext
 from .base import BaseConditionEvaluator, EvaluationResult
 from .expression_evaluator import ConditionEvaluator as EvaluationService
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class NodesExecutedEvaluator(BaseConditionEvaluator):
     """Evaluates whether specific nodes have been executed."""

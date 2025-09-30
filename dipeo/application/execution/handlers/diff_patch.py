@@ -3,6 +3,8 @@
 import difflib
 import hashlib
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import os
 import re
 import shutil
@@ -21,8 +23,7 @@ from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 if TYPE_CHECKING:
     pass
 
-log = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 @register_handler
 @requires_services()
@@ -62,8 +63,8 @@ class DiffPatchHandler(TypedNodeHandler[DiffPatchNode]):
             ignore_whitespace = node.ignore_whitespace or False
             create_missing = node.create_missing or False
 
-            log.info(f"Applying {format_type} diff to {target_path}")
-            log.debug(f"Mode: {apply_mode}, Backup: {create_backup}, Validate: {validate_patch}")
+            logger.info(f"Applying {format_type} diff to {target_path}")
+            logger.debug(f"Mode: {apply_mode}, Backup: {create_backup}, Validate: {validate_patch}")
 
             # Initialize result tracking
             result = {
@@ -80,12 +81,12 @@ class DiffPatchHandler(TypedNodeHandler[DiffPatchNode]):
             # Check if target file exists
             if not target_path.exists():
                 if create_missing:
-                    log.info(f"Creating missing file: {target_path}")
+                    logger.info(f"Creating missing file: {target_path}")
                     target_path.parent.mkdir(parents=True, exist_ok=True)
                     target_path.write_text("")
                 else:
                     error_msg = f"Target file does not exist: {target_path}"
-                    log.error(error_msg)
+                    logger.error(error_msg)
                     result["status"] = "error"
                     result["errors"].append(error_msg)
                     return self.serialize_output(result, request)
@@ -99,7 +100,7 @@ class DiffPatchHandler(TypedNodeHandler[DiffPatchNode]):
             if create_backup and apply_mode != "dry_run":
                 backup_path = self._create_backup(target_path, backup_dir)
                 result["backup_path"] = str(backup_path)
-                log.info(f"Created backup at: {backup_path}")
+                logger.info(f"Created backup at: {backup_path}")
 
             # Parse and validate the diff
             if validate_patch:
@@ -107,7 +108,7 @@ class DiffPatchHandler(TypedNodeHandler[DiffPatchNode]):
                 if validation_errors:
                     result["status"] = "invalid"
                     result["errors"].extend(validation_errors)
-                    log.error(f"Diff validation failed: {validation_errors}")
+                    logger.error(f"Diff validation failed: {validation_errors}")
                     return self.serialize_output(result, request)
 
             # Apply the diff based on format and mode
@@ -130,18 +131,18 @@ class DiffPatchHandler(TypedNodeHandler[DiffPatchNode]):
 
             # Handle rejected hunks
             if rejected_hunks:
-                log.warning(f"Rejected {len(rejected_hunks)} hunks")
+                logger.warning(f"Rejected {len(rejected_hunks)} hunks")
                 if reject_file_path:
                     self._save_rejected_hunks(reject_file_path, rejected_hunks)
-                    log.info(f"Saved rejected hunks to: {reject_file_path}")
+                    logger.info(f"Saved rejected hunks to: {reject_file_path}")
 
                 if apply_mode == "force":
-                    log.warning("Force mode: Continuing despite rejected hunks")
+                    logger.warning("Force mode: Continuing despite rejected hunks")
                 elif apply_mode != "dry_run":
                     # In normal mode, fail if there are rejected hunks
                     result["status"] = "partial"
                     if backup_path:
-                        log.info("Restoring from backup due to rejected hunks")
+                        logger.info("Restoring from backup due to rejected hunks")
                         shutil.copy2(backup_path, target_path)
                     return self.serialize_output(result, request)
 
@@ -149,7 +150,7 @@ class DiffPatchHandler(TypedNodeHandler[DiffPatchNode]):
             patched_content = "".join(patched_lines)
             if apply_mode != "dry_run":
                 target_path.write_text(patched_content)
-                log.info(f"Successfully patched {target_path}")
+                logger.info(f"Successfully patched {target_path}")
 
             # Calculate file hash for verification
             file_hash = hashlib.sha256(patched_content.encode()).hexdigest()
@@ -159,7 +160,7 @@ class DiffPatchHandler(TypedNodeHandler[DiffPatchNode]):
             return self.serialize_output(result, request)
 
         except Exception as exc:
-            log.exception("Failed to apply diff patch for %s", target_path)
+            logger.exception("Failed to apply diff patch for %s", target_path)
             error_result = {
                 "status": "error",
                 "target_path": str(target_path),
@@ -278,7 +279,7 @@ class DiffPatchHandler(TypedNodeHandler[DiffPatchNode]):
         # In production, you might want to use the actual patch command
 
         if format_type not in ["unified", "git"]:
-            log.warning(f"Format {format_type} not fully supported, treating as unified")
+            logger.warning(f"Format {format_type} not fully supported, treating as unified")
 
         hunks = self._parse_hunks(diff_content)
         patched_lines = original_lines.copy()

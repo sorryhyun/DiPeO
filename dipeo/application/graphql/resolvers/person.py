@@ -3,6 +3,8 @@
 import asyncio
 import logging
 
+from dipeo.config.base_logger import get_module_logger
+
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import API_KEY_SERVICE, DIAGRAM_PORT, LLM_SERVICE
 from dipeo.diagram_generated.domain_models import (
@@ -13,8 +15,7 @@ from dipeo.diagram_generated.domain_models import (
     PersonLLMConfig,
 )
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class PersonResolver:
     """Resolver for person and API key related queries using service registry."""

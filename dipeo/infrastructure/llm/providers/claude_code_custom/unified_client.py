@@ -2,6 +2,8 @@
 
 import asyncio
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import os
 import re
 from collections.abc import AsyncIterator
@@ -33,11 +35,10 @@ from ..claude_code.prompts import (
 )
 from ..claude_code.transport.session_wrapper import SessionQueryWrapper
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger(__name__)
 
 # Session pooling configuration
 SESSION_POOL_ENABLED = os.getenv("DIPEO_SESSION_POOL_ENABLED", "false").lower() == "true"
-
 
 class UnifiedClaudeCodeCustomClient:
     """Unified Claude Code Custom client with full system prompt override support.

@@ -6,6 +6,8 @@ and phase-specific prompt construction for the Claude Code adapter.
 
 import json
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import re
 from typing import Any
 
@@ -14,8 +16,7 @@ from dipeo.diagram_generated.enums import ExecutionPhase
 
 from .prompts import DIRECT_EXECUTION_PROMPT, LLM_DECISION_PROMPT, MEMORY_SELECTION_PROMPT
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class ClaudeCodeMessageProcessor:
     """Processor for Claude Code messages and prompts."""

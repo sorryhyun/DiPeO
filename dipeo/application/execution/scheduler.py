@@ -2,6 +2,8 @@
 
 import asyncio
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -12,8 +14,7 @@ from dipeo.domain.execution.token_types import ConcurrencyPolicy, EdgeRef, JoinP
 if TYPE_CHECKING:
     from dipeo.application.execution.typed_execution_context import TypedExecutionContext
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class NodeScheduler:
     """Manages node scheduling with indegree tracking and ready queue management."""

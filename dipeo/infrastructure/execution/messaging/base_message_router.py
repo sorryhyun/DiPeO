@@ -6,6 +6,8 @@ between the in-memory and Redis-backed routers.
 
 import asyncio
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import time
 from abc import abstractmethod
 from collections import deque
@@ -20,8 +22,7 @@ from dipeo.domain.events.unified_ports import EventBus as MessageRouterPort
 from dipeo.domain.events.unified_ports import EventHandler
 from dipeo.infrastructure.events.serialize import event_to_json_payload
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 @dataclass
 class ConnectionHealth:
@@ -29,7 +30,6 @@ class ConnectionHealth:
     failed_attempts: int = 0
     total_messages: int = 0
     avg_latency: float = 0.0
-
 
 class BaseMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
     """Base message router with shared functionality.

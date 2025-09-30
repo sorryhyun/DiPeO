@@ -4,6 +4,8 @@
 """
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
 from dipeo.application.registry import ServiceKey
@@ -22,7 +24,6 @@ from dipeo.application.registry.keys import (
     TEMPLATE_PROCESSOR,
 )
 from dipeo.config import AppSettings, get_settings
-
 
 class ApplicationContainer:
     """Application services and use cases.
@@ -103,7 +104,6 @@ class ApplicationContainer:
             ),
         )
 
-
 class InfrastructureContainer:
     """External integration adapters.
 
@@ -118,7 +118,6 @@ class InfrastructureContainer:
         self.registry = registry
         self.config = config
         # Services are set up by bootstrap_services() in wiring.py
-
 
 class Container:
     """Main container orchestrating the 2-container architecture."""
@@ -139,7 +138,7 @@ class Container:
 
         from .lifecycle import InitializeOnly, Lifecycle
 
-        logger = logging.getLogger(__name__)
+        logger = get_module_logger(__name__)
 
         # Validate dependencies before initialization
         missing_dependencies = self.registry.validate_dependencies()
@@ -205,7 +204,7 @@ class Container:
 
         from .lifecycle import Lifecycle, ShutdownOnly
 
-        logger = logging.getLogger(__name__)
+        logger = get_module_logger(__name__)
 
         # Shutdown all services that implement lifecycle protocols in reverse order
         services = list(self.registry.list_services())
@@ -230,10 +229,8 @@ class Container:
         except Exception as e:
             logger.error(f"Error shutting down warm pool manager: {e}")
 
-
 async def init_resources(container: Container):
     await container.initialize()
-
 
 async def shutdown_resources(container: Container):
     await container.shutdown()

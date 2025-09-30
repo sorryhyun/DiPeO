@@ -2,6 +2,8 @@
 
 import asyncio
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -25,8 +27,7 @@ from dipeo.infrastructure.llm.drivers.types import (
     ProviderCapabilities,
 )
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class UnifiedOllamaClient:
     """Unified Ollama client that combines adapter and wrapper functionality."""

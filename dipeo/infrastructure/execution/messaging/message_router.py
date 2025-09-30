@@ -6,13 +6,14 @@ execution events directly to local GraphQL subscriptions.
 
 import asyncio
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import threading
 from collections import deque
 
 from dipeo.infrastructure.execution.messaging.base_message_router import BaseMessageRouter
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class MessageRouter(BaseMessageRouter):
     """In-memory message router for single-process deployments.
@@ -271,7 +272,6 @@ class MessageRouter(BaseMessageRouter):
         }
 
         return stats
-
 
 # Singleton instance for backward compatibility
 message_router = MessageRouter()

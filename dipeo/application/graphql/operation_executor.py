@@ -7,6 +7,8 @@ generated operation definitions from TypeScript query definitions.
 
 import inspect
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import re
 from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass
@@ -46,12 +48,10 @@ RESOLVER_MODULES = [
     "dipeo.application.graphql.schema.subscription_resolvers",
 ]
 
-
 def _camel_to_snake(s: str) -> str:
     """Convert CamelCase to snake_case."""
     s = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", s)
     return re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s).lower()
-
 
 def _op_to_func_name(op_cls: type) -> str:
     """Convert operation class name to expected function name.
@@ -60,19 +60,19 @@ def _op_to_func_name(op_cls: type) -> str:
     """
     return _camel_to_snake(op_cls.__name__.removesuffix("Operation"))
 
-
 def _iter_operation_classes():
     """Iterate over all operation classes from the generated module."""
     for name in dir(operations):
         if name.endswith("Operation") and not name.startswith("_"):
             yield getattr(operations, name)
 
-
 def _import_modules(paths: list[str]):
     """Import resolver modules, ignoring import errors."""
     import logging
 
-    logger = logging.getLogger(__name__)
+from dipeo.config.base_logger import get_module_logger
+
+    logger = get_module_logger(__name__)
     out = []
     for p in paths:
         try:
@@ -82,7 +82,6 @@ def _import_modules(paths: list[str]):
             logger.debug(f"Failed to import module {p}: {e}")
     return out
 
-
 @dataclass
 class OperationMapping:
     """Mapping between an operation and its resolver implementation."""
@@ -91,7 +90,6 @@ class OperationMapping:
     resolver_method: Callable
     result_type: type | None = None
     is_async: bool = True
-
 
 class OperationExecutor:
     """
@@ -170,7 +168,7 @@ class OperationExecutor:
             results_mod = import_module("dipeo.diagram_generated.graphql.results")
             return getattr(results_mod, candidate, None)
         except Exception as e:
-            logger = logging.getLogger(__name__)
+            logger = get_module_logger(__name__)
             logger.debug(f"Could not resolve result type for {op_name}: {e}")
             return None
 
@@ -200,7 +198,7 @@ class OperationExecutor:
                     break
 
             if not found:
-                logger = logging.getLogger(__name__)
+                logger = get_module_logger(__name__)
                 # logger.debug(
                 #     f"No resolver found for operation {op_cls.__name__}, expected function name: {func_name}"
                 # )

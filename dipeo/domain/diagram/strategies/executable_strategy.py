@@ -13,6 +13,8 @@ expensive compilation step and preserves all computed information.
 from __future__ import annotations
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
 from dipeo.diagram_generated import (
@@ -31,8 +33,7 @@ from dipeo.domain.diagram.utils import _JsonMixin
 
 from .base_strategy import BaseConversionStrategy
 
-log = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class ExecutableJsonStrategy(_JsonMixin, BaseConversionStrategy):
     """Compiled executable diagram format.

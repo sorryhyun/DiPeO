@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import re
 from typing import Any
 
@@ -24,8 +26,7 @@ from dipeo.domain.diagram.utils import (
 from ..utils.conversion_utils import diagram_maps_to_arrays
 from .base_strategy import BaseConversionStrategy
 
-log = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
     """Human-friendly workflow YAML."""
@@ -365,7 +366,7 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
             try:
                 node_type = node_kind_to_domain_type(node_type_str)
             except ValueError:
-                log.warning(f"Unknown node type '{node_type_str}', defaulting to 'person_job'")
+                logger.warning(f"Unknown node type '{node_type_str}', defaulting to 'person_job'")
                 node_type = node_kind_to_domain_type("person_job")
 
             position = node_data.get("position")
@@ -438,7 +439,7 @@ class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
 
             arrows.append(arrow_dict)
         else:
-            log.warning(f"Could not find nodes for flow: {src_label} -> {dst_label}")
+            logger.warning(f"Could not find nodes for flow: {src_label} -> {dst_label}")
 
         return arrows
 

@@ -1,6 +1,8 @@
 """Node mutations using ServiceRegistry with type-specific input handling."""
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
 import strawberry
@@ -17,8 +19,7 @@ from dipeo.diagram_generated.graphql.inputs import (
 )
 from dipeo.diagram_generated.graphql.results import DeleteResult, NodeResult
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 # Standalone resolver functions for operation executor
 async def create_node(
@@ -68,7 +69,6 @@ async def create_node(
     except Exception as e:
         logger.error(f"Failed to create node: {e}")
         return NodeResult.error_result(error=f"Failed to create node: {e!s}")
-
 
 async def update_node(
     registry: ServiceRegistry,
@@ -144,7 +144,6 @@ async def update_node(
     except Exception as e:
         logger.error(f"Failed to update node {node_id}: {e}")
         return NodeResult.error_result(error=f"Failed to update node: {e!s}")
-
 
 async def delete_node(
     registry: ServiceRegistry, diagram_id: strawberry.ID, node_id: strawberry.ID

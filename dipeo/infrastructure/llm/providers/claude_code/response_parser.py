@@ -6,14 +6,15 @@ including tool result extraction, phase-specific parsing, and structured output 
 
 import json
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import re
 from typing import Any
 
 from dipeo.diagram_generated.enums import ExecutionPhase
 from dipeo.infrastructure.llm.drivers.types import LLMResponse, LLMUsage
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class ClaudeCodeResponseParser:
     """Parser for Claude Code responses with phase-specific handling."""

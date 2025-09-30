@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class StrawberryConfig:
     """Manages configuration for Strawberry GraphQL code generation."""

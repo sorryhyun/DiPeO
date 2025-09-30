@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
 from dipeo.diagram_generated import DomainDiagram
@@ -9,8 +11,7 @@ from dipeo.domain.diagram.utils import _JsonMixin
 
 from .base_strategy import BaseConversionStrategy
 
-log = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class NativeJsonStrategy(_JsonMixin, BaseConversionStrategy):
     """Canonical domain JSON."""
@@ -63,7 +64,7 @@ class NativeJsonStrategy(_JsonMixin, BaseConversionStrategy):
             native_diagram = NativeDiagram(**data)
             return native_diagram
         except Exception as e:
-            log.error(f"Failed to parse native diagram: {e}")
+            logger.error(f"Failed to parse native diagram: {e}")
             raise ValueError(f"Invalid native diagram format: {e}") from e
 
     def serialize_from_domain(self, diagram: DomainDiagram) -> str:

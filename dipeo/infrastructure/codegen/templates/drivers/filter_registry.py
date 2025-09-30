@@ -1,10 +1,11 @@
 """Filter registry for managing template filter collections."""
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from collections.abc import Callable
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class FilterRegistry:
     """Registry for managing collections of template filters.
@@ -72,7 +73,6 @@ class FilterRegistry:
             for collection in self._filter_collections.values():
                 all_names.update(collection.keys())
             return all_names
-
 
 def create_filter_registry() -> FilterRegistry:
     """Create a filter registry with standard filter collections loaded.

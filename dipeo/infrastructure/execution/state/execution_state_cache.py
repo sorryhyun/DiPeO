@@ -3,6 +3,8 @@
 import asyncio
 import contextlib
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import time
 from typing import Any
 
@@ -12,8 +14,7 @@ from dipeo.diagram_generated import (
     Status,
 )
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class ExecutionCache:
     """Per-execution cache without global locks."""
@@ -115,7 +116,6 @@ class ExecutionCache:
     def get_last_access_time(self) -> float:
         """Get the last access timestamp."""
         return self._last_access
-
 
 class ExecutionStateCache:
     """Manages per-execution caches to eliminate global lock contention."""

@@ -3,14 +3,15 @@
 import hashlib
 import json
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
 from dipeo.config.paths import CACHE_DIR
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class IRCache:
     """Cache for IR data with TTL support."""

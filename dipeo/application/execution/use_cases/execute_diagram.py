@@ -1,6 +1,8 @@
 import asyncio
 import contextlib
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from collections.abc import AsyncGenerator, Callable
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Optional
@@ -26,8 +28,7 @@ if TYPE_CHECKING:
 
     from ...registry import ServiceRegistry
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class ExecuteDiagramUseCase(LoggingMixin, InitializationMixin):
     def __init__(
@@ -135,9 +136,8 @@ class ExecuteDiagramUseCase(LoggingMixin, InitializationMixin):
                 # Engine handles completion events internally
 
             except Exception as e:
-                import logging
-
-                logger = logging.getLogger(__name__)
+                from dipeo.config.base_logger import get_module_logger
+                logger = get_module_logger(__name__)
                 logger.error(f"Engine execution failed: {e}", exc_info=True)
                 # Error event will be emitted by the engine
                 raise

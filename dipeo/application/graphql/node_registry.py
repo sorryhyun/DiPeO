@@ -5,6 +5,8 @@ corresponding GraphQL input types (Create/Update) and validation logic.
 """
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
 import strawberry
@@ -12,8 +14,7 @@ import strawberry
 from dipeo.diagram_generated.graphql import node_mutations as nm
 from dipeo.diagram_generated.graphql.enums import NodeTypeGraphQL
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 def _pascal_from_enum(node_type: NodeTypeGraphQL) -> str:
     """Convert node type enum to Pascal case.
@@ -23,7 +24,6 @@ def _pascal_from_enum(node_type: NodeTypeGraphQL) -> str:
         "json_schema_validator" -> "JsonSchemaValidator"
     """
     return "".join(part.title() for part in node_type.value.split("_"))
-
 
 def get_input_types(node_type: NodeTypeGraphQL) -> tuple[type | None, type | None]:
     """Get the create and update input types for a node type.
@@ -38,7 +38,6 @@ def get_input_types(node_type: NodeTypeGraphQL) -> tuple[type | None, type | Non
     create = getattr(nm, f"Create{base}Input", None)
     update = getattr(nm, f"Update{base}Input", None)
     return create, update
-
 
 class NodeTypeRegistry:
     """Registry for mapping node types to their input classes and validation logic."""

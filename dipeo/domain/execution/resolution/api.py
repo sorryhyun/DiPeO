@@ -5,6 +5,8 @@ orchestrating all the domain resolution functions.
 """
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import os
 from typing import Any
 
@@ -19,9 +21,8 @@ from .errors import TransformationError
 from .selectors import compute_special_inputs, select_incoming_edges
 from .transformation_engine import StandardTransformationEngine
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger(__name__)
 STRICT_IO = os.getenv("DIPEO_LOOSE_EDGE_VALUE", "0") != "1"
-
 
 def resolve_inputs(
     node: ExecutableNode, diagram: ExecutableDiagram, ctx: ExecutionContext
@@ -61,7 +62,6 @@ def resolve_inputs(
     final_inputs = apply_defaults(node, transformed)
 
     return final_inputs
-
 
 def transform_edge_values(
     edges: list, node: ExecutableNode, diagram: ExecutableDiagram, ctx: ExecutionContext
@@ -136,7 +136,6 @@ def transform_edge_values(
         transformed[key] = env
 
     return transformed
-
 
 def extract_edge_value(source_output: Any, edge: Any) -> Any:
     """Extract the value from a source node's output with smart conversions.

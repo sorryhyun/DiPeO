@@ -1,5 +1,7 @@
 import hashlib
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import time
 from importlib import import_module
 from pathlib import Path
@@ -19,8 +21,7 @@ from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 if TYPE_CHECKING:
     pass
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 @register_handler
 @requires_services(

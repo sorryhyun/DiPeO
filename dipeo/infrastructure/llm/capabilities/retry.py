@@ -2,6 +2,8 @@
 
 import asyncio
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import random
 import time
 from collections.abc import Callable
@@ -16,10 +18,9 @@ from ..drivers.types import (
     TimeoutError,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger(__name__)
 
 T = TypeVar("T")
-
 
 class RetryHandler:
     """Handles retry logic for different providers."""
@@ -204,7 +205,6 @@ class RetryHandler:
             raise last_error
 
         return wrapper
-
 
 class CircuitBreaker:
     """Circuit breaker pattern for preventing cascading failures."""

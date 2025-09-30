@@ -2,7 +2,6 @@ import ast
 import operator
 from typing import Any
 
-
 class ConditionEvaluator:
     def check_nodes_executed(
         self,
@@ -235,7 +234,9 @@ class ConditionEvaluator:
             result = eval_node(tree)
             import logging
 
-            logger = logging.getLogger(__name__)
+from dipeo.config.base_logger import get_module_logger
+
+            logger = get_module_logger(__name__)
             logger.debug(
                 f"safe_evaluate_expression_with_context: expression='{expression}' -> result={result}"
             )
@@ -243,7 +244,9 @@ class ConditionEvaluator:
         except Exception as e:
             import logging
 
-            logger = logging.getLogger(__name__)
+from dipeo.config.base_logger import get_module_logger
+
+            logger = get_module_logger(__name__)
             logger.debug(
                 f"safe_evaluate_expression_with_context: expression='{expression}' failed with error: {e}"
             )

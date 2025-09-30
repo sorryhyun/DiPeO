@@ -5,6 +5,8 @@ management from other execution concerns.
 """
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from collections import defaultdict
 
 from dipeo.diagram_generated import NodeID, NodeType
@@ -12,8 +14,7 @@ from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 from dipeo.domain.execution.envelope import Envelope
 from dipeo.domain.execution.token_types import EdgeRef, Token
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class TokenManager:
     """Manages token flow through the execution graph.

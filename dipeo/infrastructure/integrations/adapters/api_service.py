@@ -2,6 +2,8 @@
 
 import asyncio
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
 import aiohttp
@@ -10,8 +12,7 @@ from dipeo.domain.base.exceptions import ServiceError
 from dipeo.domain.base.storage_port import BlobStorePort as FileServicePort
 from dipeo.domain.integrations.api_services import APIBusinessLogic
 
-log = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class APIService:
     def __init__(
@@ -148,7 +149,7 @@ class APIService:
                     retry_after=rate_limit_info.get("retry_after"),
                 )
 
-                log.warning(
+                logger.warning(
                     f"Request failed with status {status}, "
                     f"retrying in {delay}s (attempt {attempt + 1}/{max_retries})"
                 )
@@ -159,7 +160,7 @@ class APIService:
             except Exception as e:
                 if attempt < max_retries - 1:
                     delay = self.business_logic.calculate_retry_delay(attempt, retry_delay)
-                    log.warning(
+                    logger.warning(
                         f"Request error: {e}, retrying in {delay}s "
                         f"(attempt {attempt + 1}/{max_retries})"
                     )
@@ -222,7 +223,7 @@ class APIService:
 
             except Exception as e:
                 if step.get("continue_on_error", False):
-                    log.error(f"Step '{step_name}' failed but continuing: {e}")
+                    logger.error(f"Step '{step_name}' failed but continuing: {e}")
                     results = self.business_logic.merge_workflow_results(
                         results, step_name, e, include_errors=True
                     )

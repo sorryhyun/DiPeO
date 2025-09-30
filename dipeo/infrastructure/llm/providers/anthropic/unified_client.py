@@ -1,6 +1,8 @@
 """Unified Anthropic client that merges adapter and wrapper layers."""
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import os
 from collections.abc import AsyncIterator
 from typing import Any
@@ -24,8 +26,7 @@ from dipeo.infrastructure.llm.drivers.types import (
     ProviderCapabilities,
 )
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class UnifiedAnthropicClient:
     """Unified Anthropic client that combines adapter and wrapper functionality."""

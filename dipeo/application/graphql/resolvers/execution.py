@@ -2,13 +2,14 @@
 
 import logging
 
+from dipeo.config.base_logger import get_module_logger
+
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import STATE_STORE
 from dipeo.diagram_generated.domain_models import ExecutionID, ExecutionState
 from dipeo.diagram_generated.graphql.inputs import ExecutionFilterInput
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class ExecutionResolver:
     """Resolver for execution-related queries using service registry."""

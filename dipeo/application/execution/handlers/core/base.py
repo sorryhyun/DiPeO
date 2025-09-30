@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar
 
@@ -12,11 +14,10 @@ from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 if TYPE_CHECKING:
     from dipeo.application.execution.execution_request import ExecutionRequest
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger(__name__)
 
 T = TypeVar("T", bound=ExecutableNode)
 TNode = TypeVar("TNode")
-
 
 class TokenHandlerMixin:
     """Mixin for handlers to support token-based execution."""
@@ -44,7 +45,6 @@ class TokenHandlerMixin:
 
         outputs = {port: output}
         context.emit_outputs_as_tokens(node_id, outputs)
-
 
 class TypedNodeHandler[T](TokenHandlerMixin, ABC):
     """Base handler for type-safe node execution with envelope communication."""

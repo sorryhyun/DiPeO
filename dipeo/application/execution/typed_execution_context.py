@@ -1,6 +1,8 @@
 """Simplified execution context using focused components."""
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from collections import defaultdict
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -19,8 +21,7 @@ if TYPE_CHECKING:
     from dipeo.application.bootstrap import Container
     from dipeo.application.registry import ServiceRegistry
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 @dataclass
 class TypedExecutionContext(ExecutionContextProtocol):
@@ -82,10 +83,6 @@ class TypedExecutionContext(ExecutionContextProtocol):
     def emit_outputs_as_tokens(
         self, node_id: NodeID, outputs: dict[str, Envelope], epoch: int | None = None
     ) -> None:
-        import logging
-
-        logger = logging.getLogger(__name__)
-
         self._token_manager.emit_outputs(node_id, outputs, epoch)
 
         if self.scheduler:

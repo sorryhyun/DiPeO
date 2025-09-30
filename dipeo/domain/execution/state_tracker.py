@@ -5,6 +5,8 @@ UI visualization and reporting. Actual execution is driven by tokens.
 """
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import threading
 from collections import defaultdict
 from typing import Any
@@ -13,8 +15,7 @@ from dipeo.diagram_generated import NodeID, NodeState, Status
 from dipeo.domain.execution.envelope import Envelope
 from dipeo.domain.execution.execution_tracker import CompletionStatus, ExecutionTracker
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class StateTracker:
     """Tracks node execution states and history.

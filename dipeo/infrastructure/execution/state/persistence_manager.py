@@ -3,6 +3,8 @@
 import asyncio
 import json
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import sqlite3
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -15,8 +17,7 @@ from dipeo.diagram_generated import ExecutionState, NodeState, Status
 
 from .models import CacheEntry, CacheMetrics
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class PersistenceManager:
     """Manages database operations and persistence."""

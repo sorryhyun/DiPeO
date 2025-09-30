@@ -1,14 +1,15 @@
 """Base executor for sub-diagram execution with common functionality."""
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import uuid
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from dipeo.diagram_generated.unified_nodes.sub_diagram_node import SubDiagramNode
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class BaseSubDiagramExecutor:
     """Base class for sub-diagram executors with common functionality."""

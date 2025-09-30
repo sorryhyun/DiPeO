@@ -1,6 +1,8 @@
 """Unified OpenAI client that merges adapter and wrapper layers."""
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import os
 from collections.abc import AsyncIterator
 from typing import Any
@@ -29,8 +31,7 @@ from dipeo.infrastructure.llm.drivers.types import (
 
 from .prompts import LLM_DECISION_PROMPT, MEMORY_SELECTION_PROMPT
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class UnifiedOpenAIClient:
     """Unified OpenAI client combining adapter and wrapper functionality."""
@@ -44,7 +45,9 @@ class UnifiedOpenAIClient:
         # Initialize logger
         import logging
 
-        self.logger = logging.getLogger(__name__)
+from dipeo.config.base_logger import get_module_logger
+
+        self.logger = get_module_logger(__name__)
 
         if not self.api_key:
             raise ValueError("OpenAI API key not provided")

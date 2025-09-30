@@ -5,6 +5,8 @@ import importlib
 import importlib.metadata
 import json
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from collections.abc import Callable
 from pathlib import Path
 
@@ -15,8 +17,7 @@ from dipeo.infrastructure.integrations.drivers.integrated_api.providers.mcp_prov
     MCPTool,
 )
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class MCPToolRegistry:
     """Registry for discovering, validating, and managing MCP tools.
@@ -348,10 +349,8 @@ class MCPToolRegistry:
 
         return manifest
 
-
 # Global registry instance
 _mcp_registry: MCPToolRegistry | None = None
-
 
 async def get_mcp_registry() -> MCPToolRegistry:
     """Get the global MCP tool registry instance.

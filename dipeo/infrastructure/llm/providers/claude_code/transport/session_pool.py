@@ -7,6 +7,8 @@ need for complex state management and session reuse tracking.
 
 import asyncio
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import os
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
@@ -15,7 +17,7 @@ from typing import Any
 
 from claude_code_sdk import ClaudeAgentOptions, ClaudeSDKClient
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger(__name__)
 
 # Session pool configuration
 SESSION_POOL_ENABLED = os.getenv("DIPEO_SESSION_POOL_ENABLED", "false").lower() == "true"
@@ -31,7 +33,6 @@ logger.info(
     f"FORK_SUPPORTED={FORK_SESSION_SUPPORTED}, "
     f"FORK_ENABLED={FORK_SESSION_ENABLED}"
 )
-
 
 @dataclass
 class SessionClient:
@@ -105,7 +106,6 @@ class SessionClient:
             logger.debug(f"[SessionClient] Disconnected session {self.session_id}")
         except Exception as e:
             logger.warning(f"[SessionClient] Error disconnecting session {self.session_id}: {e}")
-
 
 class SimplifiedSessionPool:
     """Simplified session pool using fork_session for fresh sessions.
@@ -235,7 +235,6 @@ class SimplifiedSessionPool:
 
         logger.info("[SimplifiedSessionPool] Session pool shutdown complete")
 
-
 class SessionPoolManager:
     """Manager for the simplified session pool.
 
@@ -270,11 +269,9 @@ class SessionPoolManager:
         await self._pool.shutdown()
         logger.info("[SessionPoolManager] Manager shutdown complete")
 
-
 # Global session pool manager
 _global_session_manager: SessionPoolManager | None = None
 _session_manager_lock = asyncio.Lock()
-
 
 async def get_global_session_manager() -> SessionPoolManager:
     """Get the global session pool manager, creating if needed.
@@ -290,7 +287,6 @@ async def get_global_session_manager() -> SessionPoolManager:
             logger.info("[SessionPoolManager] Created global session manager")
 
         return _global_session_manager
-
 
 async def shutdown_global_session_manager() -> None:
     """Shutdown the global session pool manager."""

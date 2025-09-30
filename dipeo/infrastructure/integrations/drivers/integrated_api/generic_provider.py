@@ -5,6 +5,8 @@ import contextlib
 import importlib.util
 import json
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from pathlib import Path
 from typing import Any
 
@@ -28,8 +30,7 @@ from dipeo.infrastructure.integrations.drivers.integrated_api.providers.base_pro
 )
 from dipeo.infrastructure.integrations.drivers.integrated_api.rate_limiter import RateLimiter
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class GenericHTTPProvider(BaseApiProvider):
     """A zero-code API provider driven by manifest configuration.

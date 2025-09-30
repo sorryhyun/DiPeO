@@ -1,12 +1,13 @@
 """Prompt file resolution utility for PersonJob handler."""
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import os
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class PromptFileResolver:
     """Resolves prompt file paths and loads prompt content."""

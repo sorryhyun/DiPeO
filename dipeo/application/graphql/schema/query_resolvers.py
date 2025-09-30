@@ -5,6 +5,8 @@ Each resolver function takes a ServiceRegistry as its first parameter.
 """
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from datetime import datetime
 from pathlib import Path
 
@@ -38,9 +40,8 @@ from dipeo.diagram_generated.graphql.domain_types import (
 )
 from dipeo.diagram_generated.graphql.inputs import DiagramFilterInput, ExecutionFilterInput
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger(__name__)
 DIAGRAM_VERSION = "1.0.0"
-
 
 # Query resolvers - Diagrams
 async def get_diagram(
@@ -51,7 +52,6 @@ async def get_diagram(
     diagram_id_typed = DiagramID(str(diagram_id))
     return await diagram_resolver.get_diagram(diagram_id_typed)
 
-
 async def list_diagrams(
     registry: ServiceRegistry,
     filter: DiagramFilterInput | None = None,
@@ -61,7 +61,6 @@ async def list_diagrams(
     """List diagrams with optional filtering."""
     diagram_resolver = DiagramResolver(registry)
     return await diagram_resolver.list_diagrams(filter, limit, offset)
-
 
 # Query resolvers - Executions
 async def get_execution(
@@ -78,7 +77,6 @@ async def get_execution(
     # Convert Pydantic model to Strawberry type
     return ExecutionStateType.from_pydantic(execution_state)
 
-
 async def list_executions(
     registry: ServiceRegistry,
     filter: ExecutionFilterInput | None = None,
@@ -91,7 +89,6 @@ async def list_executions(
 
     # Convert Pydantic models to Strawberry types
     return [ExecutionStateType.from_pydantic(state) for state in execution_states]
-
 
 async def get_execution_order(registry: ServiceRegistry, execution_id: strawberry.ID) -> JSON:
     """Get the execution order for a given execution."""
@@ -174,7 +171,6 @@ async def get_execution_order(registry: ServiceRegistry, execution_id: strawberr
 
     return result
 
-
 async def get_execution_metrics(
     registry: ServiceRegistry, execution_id: strawberry.ID
 ) -> JSON | None:
@@ -217,7 +213,6 @@ async def get_execution_metrics(
 
     return execution.metrics or {}
 
-
 async def get_execution_history(
     registry: ServiceRegistry,
     diagram_id: strawberry.ID | None = None,
@@ -242,7 +237,6 @@ async def get_execution_history(
     # Convert Pydantic models to Strawberry types
     return [ExecutionStateType.from_pydantic(execution) for execution in executions]
 
-
 # Query resolvers - Persons
 async def get_person(
     registry: ServiceRegistry, person_id: strawberry.ID
@@ -252,12 +246,10 @@ async def get_person(
     person_id_typed = PersonID(str(person_id))
     return await person_resolver.get_person(person_id_typed)
 
-
 async def list_persons(registry: ServiceRegistry, limit: int = 100) -> list[DomainPersonType]:
     """List all persons."""
     person_resolver = PersonResolver(registry)
     return await person_resolver.list_persons(limit)
-
 
 # Query resolvers - API Keys
 async def get_api_key(
@@ -268,14 +260,12 @@ async def get_api_key(
     api_key_id_typed = ApiKeyID(str(api_key_id))
     return await person_resolver.get_api_key(api_key_id_typed)
 
-
 async def get_api_keys(
     registry: ServiceRegistry, service: str | None = None
 ) -> list[DomainApiKeyType]:
     """List API keys, optionally filtered by service."""
     person_resolver = PersonResolver(registry)
     return await person_resolver.list_api_keys(service)
-
 
 async def get_available_models(
     registry: ServiceRegistry, service: str, api_key_id: strawberry.ID
@@ -285,25 +275,21 @@ async def get_available_models(
     api_key_id_typed = ApiKeyID(str(api_key_id))
     return await person_resolver.get_available_models(service, api_key_id_typed)
 
-
 # Query resolvers - Providers
 async def get_providers(registry: ServiceRegistry) -> list[ProviderType]:
     """List all providers."""
     provider_resolver = ProviderResolver(registry)
     return await provider_resolver.list_providers()
 
-
 async def get_provider(registry: ServiceRegistry, name: str) -> ProviderType | None:
     """Get a single provider by name."""
     provider_resolver = ProviderResolver(registry)
     return await provider_resolver.get_provider(name)
 
-
 async def get_provider_operations(registry: ServiceRegistry, provider: str) -> list[OperationType]:
     """Get operations for a specific provider."""
     provider_resolver = ProviderResolver(registry)
     return await provider_resolver.get_provider_operations(provider)
-
 
 async def get_operation_schema(
     registry: ServiceRegistry, provider: str, operation: str
@@ -312,12 +298,10 @@ async def get_operation_schema(
     provider_resolver = ProviderResolver(registry)
     return await provider_resolver.get_operation_schema(provider, operation)
 
-
 async def get_provider_statistics(registry: ServiceRegistry) -> ProviderStatisticsType:
     """Get provider statistics."""
     provider_resolver = ProviderResolver(registry)
     return await provider_resolver.get_provider_statistics()
-
 
 # Query resolvers - System
 async def get_system_info(registry: ServiceRegistry) -> JSON:
@@ -329,7 +313,6 @@ async def get_system_info(registry: ServiceRegistry) -> JSON:
         "max_upload_size_mb": 100,
         "graphql_subscriptions_enabled": True,
     }
-
 
 async def get_execution_capabilities(registry: ServiceRegistry) -> JSON:
     """Get execution capabilities including available persons."""
@@ -365,7 +348,6 @@ async def get_execution_capabilities(registry: ServiceRegistry) -> JSON:
         },
     }
 
-
 async def health_check(registry: ServiceRegistry) -> JSON:
     """Check system health."""
     checks = {"database": False, "redis": False, "file_system": False}
@@ -395,7 +377,6 @@ async def health_check(registry: ServiceRegistry) -> JSON:
         "version": DIAGRAM_VERSION,
     }
 
-
 async def list_conversations(
     registry: ServiceRegistry,
     person_id: strawberry.ID | None = None,
@@ -415,10 +396,8 @@ async def list_conversations(
     # Return empty list for now - full implementation pending
     return []
 
-
 # Note: get_supported_formats removed as DIAGRAM_CONVERTER service was unused
 # If needed in future, implement using DIAGRAM_SERIALIZER or other appropriate service
-
 
 async def list_prompt_files(registry: ServiceRegistry) -> list[JSON]:
     """List available prompt files."""
@@ -449,7 +428,6 @@ async def list_prompt_files(registry: ServiceRegistry) -> list[JSON]:
                 logger.warning(f"Failed to process prompt file {item}: {e}")
 
     return prompt_files
-
 
 async def get_prompt_file(registry: ServiceRegistry, filename: str) -> JSON:
     """Get a specific prompt file."""
@@ -493,7 +471,6 @@ async def get_prompt_file(registry: ServiceRegistry, filename: str) -> JSON:
             "error": f"Failed to read file: {e!s}",
             "filename": filename,
         }
-
 
 async def get_active_cli_session(registry: ServiceRegistry) -> dict:
     """Get the active CLI session if any."""

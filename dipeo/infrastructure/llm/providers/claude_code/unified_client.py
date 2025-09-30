@@ -3,6 +3,8 @@
 import asyncio
 import json
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import os
 from collections.abc import AsyncIterator
 from typing import Any
@@ -29,11 +31,10 @@ from .message_processor import ClaudeCodeMessageProcessor
 from .response_parser import ClaudeCodeResponseParser
 from .transport.session_wrapper import SessionQueryWrapper
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger(__name__)
 
 # Session pooling configuration
 SESSION_POOL_ENABLED = os.getenv("DIPEO_SESSION_POOL_ENABLED", "false").lower() == "true"
-
 
 class UnifiedClaudeCodeClient:
     """Unified Claude Code client that combines adapter and wrapper functionality."""

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
 from dipeo.domain.codegen.ir_builder_port import IRData, IRMetadata
@@ -22,8 +24,7 @@ from dipeo.infrastructure.codegen.ir_builders.modules.ui_configs import (
     GenerateTypeScriptModelsStep,
 )
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class FrontendAssemblerStep(BuildStep):
     """Assemble final frontend IR data from pipeline results."""
@@ -127,7 +128,6 @@ class FrontendAssemblerStep(BuildStep):
                 metadata={"message": f"Frontend assembly failed: {e}"},
             )
 
-
 class ExtractFrontendEnumsStep(BuildStep):
     """Extract enums specifically for frontend use."""
 
@@ -164,7 +164,6 @@ class ExtractFrontendEnumsStep(BuildStep):
                 error=str(e),
                 metadata={"message": f"Enum extraction failed: {e}"},
             )
-
 
 class WriteSnapshotStep(BuildStep):
     """Write frontend IR snapshot to disk for debugging."""
@@ -219,7 +218,6 @@ class WriteSnapshotStep(BuildStep):
                 error=str(e),
                 metadata={"message": f"Snapshot write failed: {e}"},
             )
-
 
 class FrontendBuilder(BaseIRBuilder):
     """Frontend IR builder using step-based pipeline.

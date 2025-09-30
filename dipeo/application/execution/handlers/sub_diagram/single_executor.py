@@ -1,6 +1,8 @@
 """Single sub-diagram executor - handles execution of individual sub-diagrams."""
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.execution_request import ExecutionRequest
@@ -13,8 +15,7 @@ from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 if TYPE_CHECKING:
     pass
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
     """Executor for single sub-diagram execution with state tracking."""

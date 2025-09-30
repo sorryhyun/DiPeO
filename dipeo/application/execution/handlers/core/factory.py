@@ -1,4 +1,6 @@
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from typing import TYPE_CHECKING, TypeVar
 
 from pydantic import BaseModel
@@ -13,8 +15,7 @@ if TYPE_CHECKING:
 
 T = TypeVar("T", bound=BaseModel)
 
-log = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 def _get_node_handlers() -> dict[str, type[TypedNodeHandler]]:
     from ..api_job import ApiJobNodeHandler
@@ -53,7 +54,6 @@ def _get_node_handlers() -> dict[str, type[TypedNodeHandler]]:
         NodeType.IR_BUILDER: IrBuilderNodeHandler,
     }
 
-
 class HandlerRegistry:
     def __init__(self):
         self._handler_classes: dict[str, type[TypedNodeHandler]] = {}
@@ -81,26 +81,22 @@ class HandlerRegistry:
         handler_class = self._handler_classes.get(node_type)
         if not handler_class:
             available_types = list(self._handler_classes.keys())
-            log.error(
+            logger.error(
                 f"No handler class registered for node type: {node_type}. Available types: {available_types}"
             )
             raise ValueError(f"No handler class registered for node type: {node_type}")
 
         return handler_class()
 
-
 _global_registry = HandlerRegistry()
-
 
 def register_handler(handler_class: type[TypedNodeHandler]) -> type[TypedNodeHandler]:
     """Decorator to register a handler class."""
     _global_registry.register_class(handler_class)
     return handler_class
 
-
 def get_global_registry() -> HandlerRegistry:
     return _global_registry
-
 
 class HandlerFactory:
     def __init__(self, service_registry: ServiceRegistry):
@@ -112,7 +108,6 @@ class HandlerFactory:
 
     def create_handler(self, node_type: str) -> TypedNodeHandler:
         return _global_registry.create_handler(node_type)
-
 
 def create_handler_factory_provider():
     def factory(service_registry: ServiceRegistry) -> HandlerFactory:
