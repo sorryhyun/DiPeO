@@ -1,6 +1,12 @@
 """Core pipeline components for IR builders."""
 
 from dipeo.infrastructure.codegen.ir_builders.core.base import BaseIRBuilder
+from dipeo.infrastructure.codegen.ir_builders.core.base_steps import (
+    BaseAssemblerStep,
+    BaseExtractionStep,
+    BaseTransformStep,
+    BaseValidatorStep,
+)
 from dipeo.infrastructure.codegen.ir_builders.core.context import BuildContext
 from dipeo.infrastructure.codegen.ir_builders.core.steps import (
     BuildStep,
@@ -14,6 +20,10 @@ from dipeo.infrastructure.codegen.ir_builders.core.steps import (
 
 __all__ = [
     "BaseIRBuilder",
+    "BaseAssemblerStep",
+    "BaseExtractionStep",
+    "BaseTransformStep",
+    "BaseValidatorStep",
     "BuildContext",
     "BuildStep",
     "CompositeStep",

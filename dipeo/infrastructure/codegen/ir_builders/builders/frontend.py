@@ -11,6 +11,7 @@ from dipeo.domain.codegen.ir_builder_port import IRData, IRMetadata
 from dipeo.infrastructure.codegen.ir_builders.core.base import BaseIRBuilder
 from dipeo.infrastructure.codegen.ir_builders.core.context import BuildContext
 from dipeo.infrastructure.codegen.ir_builders.core.steps import BuildStep, StepResult, StepType
+from dipeo.infrastructure.codegen.ir_builders.core.base_steps import BaseAssemblerStep
 from dipeo.infrastructure.codegen.ir_builders.modules.graphql_operations import (
     ExtractGraphQLOperationsStep,
     BuildOperationStringsStep,
@@ -26,15 +27,23 @@ from dipeo.infrastructure.codegen.ir_builders.modules.ui_configs import (
 
 logger = get_module_logger(__name__)
 
-class FrontendAssemblerStep(BuildStep):
-    """Assemble final frontend IR data from pipeline results."""
+class FrontendAssemblerStep(BaseAssemblerStep):
+    """Assemble final frontend IR data from pipeline results.
+
+    Migrated to use BaseAssemblerStep template method pattern for reduced code duplication.
+    """
 
     def __init__(self):
-        super().__init__(
-            name="frontend_assembler",
-            step_type=StepType.ASSEMBLE,
-        )
-        self._dependencies = [
+        """Initialize frontend assembler step."""
+        super().__init__(name="frontend_assembler", required=True)
+
+    def get_dependency_names(self) -> list[str]:
+        """Get required dependency step names.
+
+        Returns:
+            List of dependency names
+        """
+        return [
             "extract_node_specs",
             "extract_node_configs",
             "build_node_registry",
@@ -44,89 +53,107 @@ class FrontendAssemblerStep(BuildStep):
             "group_operations_by_entity",
         ]
 
-    def execute(self, context: BuildContext, data: Any) -> StepResult:
-        """Assemble frontend IR from previous step results.
+    def handle_missing_dependency(self, dep_name: str) -> Any:
+        """Handle missing dependency data with appropriate defaults.
 
         Args:
-            context: Build context
-            data: Results from previous steps
+            dep_name: Name of missing dependency
 
         Returns:
-            StepResult with assembled frontend IR
+            Default value for the dependency
         """
-        try:
-            # Get results from previous steps
-            node_specs = context.get_step_data("extract_node_specs")
-            node_configs = context.get_step_data("extract_node_configs")
-            node_registry = context.get_step_data("build_node_registry")
-            field_configs = context.get_step_data("generate_field_configs")
-            typescript_models = context.get_step_data("generate_typescript_models")
-            operations = context.get_step_data("extract_graphql_operations")
-            grouped_operations = context.get_step_data("group_operations_by_entity")
+        # Most dependencies can default to empty collections
+        logger.warning(f"Dependency '{dep_name}' missing in {self.name}, using empty default")
+        if dep_name in ["extract_node_specs", "extract_graphql_operations"]:
+            return []
+        else:
+            return {}
 
-            # Get enums (if extracted by other steps)
-            from dipeo.infrastructure.codegen.ir_builders.utils import extract_enums_from_ast
+    def assemble_ir(
+        self, dependency_data: dict[str, Any], context: BuildContext
+    ) -> dict[str, Any]:
+        """Assemble frontend IR from dependency data.
 
-            enums = []
-            # Note: We would need the original AST data to extract enums
-            # For now, we'll leave it empty or get from context if available
+        Args:
+            dependency_data: Dictionary with all dependency data
+            context: Build context
 
-            # Separate operations into queries, mutations, subscriptions for backward compatibility
-            queries = []
-            mutations = []
-            subscriptions = []
+        Returns:
+            Assembled frontend IR dictionary
+        """
+        # Extract dependency data
+        node_specs = dependency_data.get("extract_node_specs")
+        node_configs = dependency_data.get("extract_node_configs")
+        node_registry = dependency_data.get("build_node_registry")
+        field_configs = dependency_data.get("generate_field_configs")
+        typescript_models = dependency_data.get("generate_typescript_models")
+        operations = dependency_data.get("extract_graphql_operations")
+        grouped_operations = dependency_data.get("group_operations_by_entity")
 
-            if operations:
-                for op in operations:
-                    if isinstance(op, dict):
-                        op_type = op.get("type", "").lower()
-                        if op_type == "query":
-                            queries.append(op)
-                        elif op_type == "mutation":
-                            mutations.append(op)
-                        elif op_type == "subscription":
-                            subscriptions.append(op)
+        # Get enums (if extracted by other steps)
+        enums = []
+        # Note: We would need the original AST data to extract enums
+        # For now, we'll leave it empty or get from context if available
 
-            # Assemble frontend data matching original structure
-            frontend_data = {
-                "version": 1,
-                "generated_at": context.create_metadata({})["generated_at"],
-                "node_specs": node_specs or [],
-                "node_configs": node_configs or {},
-                "node_registry": node_registry or {},
-                # Also keep registry_data for backward compatibility
-                "registry_data": node_registry or {},
-                "field_configs": field_configs or {},
-                "typescript_models": typescript_models or {},
-                "graphql_queries": operations or [],
-                # Add separate lists for backward compatibility
-                "queries": queries,
-                "mutations": mutations,
-                "subscriptions": subscriptions,
-                "grouped_queries": grouped_operations or {},
-                "enums": enums,
-                "metadata": {
-                    "node_count": len(node_specs) if node_specs else 0,
-                    "config_count": len(node_configs) if node_configs else 0,
-                    "field_config_count": len(field_configs) if field_configs else 0,
-                    "model_count": len(typescript_models) if typescript_models else 0,
-                    "query_count": len(operations) if operations else 0,
-                    "enum_count": len(enums),
-                },
-            }
+        # Separate operations into queries, mutations, subscriptions for backward compatibility
+        queries, mutations, subscriptions = self._separate_operations_by_type(operations or [])
 
-            return StepResult(
-                success=True,
-                data=frontend_data,
-                metadata={"message": "Successfully assembled frontend IR data"},
-            )
-        except Exception as e:
-            logger.error(f"Failed to assemble frontend IR: {e}")
-            return StepResult(
-                success=False,
-                error=str(e),
-                metadata={"message": f"Frontend assembly failed: {e}"},
-            )
+        # Assemble frontend data matching original structure
+        frontend_data = {
+            "version": 1,
+            "generated_at": context.create_metadata({})["generated_at"],
+            "node_specs": node_specs or [],
+            "node_configs": node_configs or {},
+            "node_registry": node_registry or {},
+            # Also keep registry_data for backward compatibility
+            "registry_data": node_registry or {},
+            "field_configs": field_configs or {},
+            "typescript_models": typescript_models or {},
+            "graphql_queries": operations or [],
+            # Add separate lists for backward compatibility
+            "queries": queries,
+            "mutations": mutations,
+            "subscriptions": subscriptions,
+            "grouped_queries": grouped_operations or {},
+            "enums": enums,
+            "metadata": {
+                "node_count": len(node_specs) if node_specs else 0,
+                "config_count": len(node_configs) if node_configs else 0,
+                "field_config_count": len(field_configs) if field_configs else 0,
+                "model_count": len(typescript_models) if typescript_models else 0,
+                "query_count": len(operations) if operations else 0,
+                "enum_count": len(enums),
+            },
+        }
+
+        return frontend_data
+
+    def _separate_operations_by_type(
+        self, operations: list[dict[str, Any]]
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+        """Separate operations by type for backward compatibility.
+
+        Args:
+            operations: List of all operations
+
+        Returns:
+            Tuple of (queries, mutations, subscriptions) lists
+        """
+        queries = []
+        mutations = []
+        subscriptions = []
+
+        for op in operations:
+            if isinstance(op, dict):
+                op_type = op.get("type", "").lower()
+                if op_type == "query":
+                    queries.append(op)
+                elif op_type == "mutation":
+                    mutations.append(op)
+                elif op_type == "subscription":
+                    subscriptions.append(op)
+
+        return queries, mutations, subscriptions
 
 class ExtractFrontendEnumsStep(BuildStep):
     """Extract enums specifically for frontend use."""

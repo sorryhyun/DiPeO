@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from dipeo.infrastructure.codegen.ir_builders.core import (
+    BaseExtractionStep,
     BuildContext,
     BuildStep,
     StepResult,
@@ -18,41 +19,31 @@ from dipeo.infrastructure.codegen.ir_builders.utils import (
 )
 
 
-class ExtractNodeSpecsStep(BuildStep):
+class ExtractNodeSpecsStep(BaseExtractionStep):
     """Step to extract node specifications from TypeScript AST."""
 
     def __init__(self):
         """Initialize node specs extraction step."""
-        super().__init__(name="extract_node_specs", step_type=StepType.EXTRACT, required=True)
+        super().__init__(name="extract_node_specs", required=True)
 
-    def execute(self, context: BuildContext, input_data: Any) -> StepResult:
-        """Extract node specifications from AST data.
+    def should_process_file(self, file_path: str, file_data: dict[str, Any]) -> bool:
+        """Filter to only process node spec files.
 
         Args:
-            context: Build context with utilities
-            input_data: TypeScript AST data
+            file_path: Path to the AST file
+            file_data: AST data for the file
 
         Returns:
-            StepResult with extracted node specifications
+            True if file is a node spec file
         """
-        if not isinstance(input_data, dict):
-            return StepResult(success=False, error="Input data must be a dictionary of AST files")
+        return file_path.endswith(".spec.ts.json")
 
-        type_converter = context.type_converter
-        node_specs = []
-
-        for file_path, file_data in input_data.items():
-            if not file_path.endswith(".spec.ts.json"):
-                continue
-
-            node_spec = self._extract_from_file(file_path, file_data, type_converter)
-            if node_spec:
-                node_specs.append(node_spec)
-
-        return StepResult(success=True, data=node_specs, metadata={"node_count": len(node_specs)})
-
-    def _extract_from_file(
-        self, file_path: str, file_data: dict[str, Any], type_converter: TypeConverter
+    def extract_from_file(
+        self,
+        file_path: str,
+        file_data: dict[str, Any],
+        type_converter: TypeConverter,
+        context: BuildContext,
     ) -> Optional[dict[str, Any]]:
         """Extract node specification from a single AST file.
 
@@ -244,6 +235,17 @@ class ExtractNodeSpecsStep(BuildStep):
         graphql_type = type_converter.ts_to_graphql(field_type)
 
         return python_type or field_type, graphql_type or field_type, is_object_type
+
+    def get_metadata(self, extracted_data: list[Any]) -> dict[str, Any]:
+        """Generate metadata for extraction result.
+
+        Args:
+            extracted_data: Extracted node specifications
+
+        Returns:
+            Metadata dictionary
+        """
+        return {"node_count": len(extracted_data)}
 
     def _to_camel_case(self, node_type: str) -> str:
         """Convert node type to camel case.
