@@ -82,7 +82,7 @@ export const executionQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'execution',
+          name: 'getExecution',
           args: [
             { name: 'execution_id', value: 'execution_id', isVariable: true }
           ],
@@ -100,7 +100,7 @@ export const executionQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'executions',
+          name: 'listExecutions',
           args: [
             { name: 'filter', value: 'filter', isVariable: true },
             { name: 'limit', value: 'limit', isVariable: true },
@@ -118,7 +118,7 @@ export const executionQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'execution_updates',
+          name: 'executionUpdates',
           args: [
             { name: 'execution_id', value: 'execution_id', isVariable: true }
           ],
@@ -134,7 +134,7 @@ export const executionQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'control_execution',
+          name: 'controlExecution',
           args: [
             { name: 'input', value: 'input', isVariable: true }
           ],
@@ -158,7 +158,7 @@ export const executionQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'send_interactive_response',
+          name: 'sendInteractiveResponse',
           args: [
             { name: 'input', value: 'input', isVariable: true }
           ],
@@ -174,7 +174,7 @@ export const executionQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'update_node_state',
+          name: 'updateNodeState',
           args: [
             { name: 'input', value: 'input', isVariable: true }
           ],

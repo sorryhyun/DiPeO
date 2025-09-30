@@ -75,7 +75,7 @@ parse-typescript:
 	@if command -v dipeo >/dev/null 2>&1; then \
 		dipeo run projects/codegen/diagrams/parse_typescript_batch_direct --light --debug --simple --timeout=20; \
 	else \
-		python -m dipeo_cli run projects/codegen/diagrams/parse_typescript_batch_direct --light --debug --timeout=20; \
+		uv run python -m dipeo_cli run projects/codegen/diagrams/parse_typescript_batch_direct --light --debug --timeout=20; \
 	fi
 	@echo "✓ TypeScript parsing complete"
 
@@ -86,7 +86,7 @@ codegen: parse-typescript
 	@if command -v dipeo >/dev/null 2>&1; then \
 		dipeo run projects/codegen/diagrams/generate_all --light --debug --simple --timeout=35; \
 	else \
-		python -m dipeo_cli run projects/codegen/diagrams/generate_all --light --debug --timeout=35; \
+		uv run python -m dipeo_cli run projects/codegen/diagrams/generate_all --light --debug --timeout=35; \
 	fi
 	@echo "✓ Code generation complete. Next: make apply-test→ make graphql-schema"
 
@@ -97,7 +97,7 @@ codegen-auto: parse-typescript
 	@if command -v dipeo >/dev/null 2>&1; then \
 		dipeo run projects/codegen/diagrams/generate_all --light --simple --timeout=45; \
 	else \
-		python -m dipeo_cli run projects/codegen/diagrams/generate_all --light --timeout=45; \
+		uv run python -m dipeo_cli run projects/codegen/diagrams/generate_all --light --timeout=45; \
 	fi
 	@sleep 1
 	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
@@ -221,7 +221,7 @@ validate-staged:
 		exit 1; \
 	fi
 	@echo "Running Python compilation check..."
-	@find dipeo/diagram_generated_staged -name "*.py" -type f | xargs python -m py_compile || \
+	@find dipeo/diagram_generated_staged -name "*.py" -type f | xargs uv run python -m py_compile || \
 		(echo "Python compilation check failed!" && exit 1)
 	@echo "Running mypy type check on staged files only..."
 	@PYTHONPATH="$(shell pwd):$$PYTHONPATH" mypy dipeo/diagram_generated_staged \
@@ -240,7 +240,7 @@ validate-staged-syntax:
 		exit 1; \
 	fi
 	@echo "Running Python compilation check..."
-	@find dipeo/diagram_generated_staged -name "*.py" -type f | xargs python -m py_compile || \
+	@find dipeo/diagram_generated_staged -name "*.py" -type f | xargs uv run python -m py_compile || \
 		(echo "Python compilation check failed!" && exit 1)
 	@echo "Python syntax validation passed!"
 
@@ -274,7 +274,7 @@ apply-test: validate-staged-syntax
 		exit 1; \
 	fi
 	@echo "Running server validation with staged imports..."
-	@python scripts/test_staged_server.py || \
+	@uv run python scripts/test_staged_server.py || \
 		(echo "Server test failed! Staged code not applied." && exit 1)
 	@echo "Server test passed! Applying staged changes..."
 	@cp -r dipeo/diagram_generated_staged/* dipeo/diagram_generated/

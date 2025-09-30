@@ -1,7 +1,7 @@
 """
 Compatibility shim for generated_nodes.py
 Re-exports from individual files for backward compatibility.
-Generated at: 2025-09-30T07:54:33.725974
+Generated at: 2025-09-29T23:28:46.771328
 """
 
 # Re-export all node classes from individual files
