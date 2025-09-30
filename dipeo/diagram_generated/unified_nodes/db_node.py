@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for db.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-29T23:28:47.333414
+Generated at: 2025-09-30T00:55:43.486141
 """
 
 from typing import *

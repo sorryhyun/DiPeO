@@ -24,13 +24,6 @@ type ApiKeyResult {
 """Branded scalar type for ArrowID"""
 scalar ArrowID
 
-type BottleneckType {
-  node_id: String!
-  node_type: String!
-  duration_ms: Float!
-  percentage: Float!
-}
-
 type CliSessionResult {
   success: Boolean!
   message: String
@@ -226,24 +219,6 @@ input ExecutionFilterInput {
 """Branded scalar type for ExecutionID"""
 scalar ExecutionID
 
-type ExecutionMetricsType {
-  execution_id: ID!
-  start_time: Float!
-  end_time: Float
-  total_duration_ms: Float
-  node_metrics: JSON!
-  critical_path: [String!]
-  parallelizable_groups: [[String!]!]
-  bottlenecks: [BottleneckType!]
-}
-
-type ExecutionOptionsType {
-  mode: String
-  timeout: Float
-  variables: JSON
-  debug: Boolean
-}
-
 type ExecutionResult {
   success: Boolean!
   message: String
@@ -259,17 +234,16 @@ type ExecutionStateType {
   status: Status!
   diagram_id: ID
   started_at: String
-  completed_at: String
+  ended_at: String
   error: String
-  current_node_ids: [ID!]!
-  completed_node_ids: [ID!]!
+  llm_usage: LLMUsageType
+  is_active: Boolean
+  executed_nodes: [String!]!
+  node_states: JSON!
+  node_outputs: JSON!
   variables: JSON
-  output: JSON
-  execution_stats: ExecutionMetricsType
-  parent_execution_id: ID
-  triggered_by: ID
-  nodes: JSON
-  execution_options: ExecutionOptionsType
+  exec_counts: JSON!
+  metrics: JSON
 }
 
 type ExecutionUpdateType {
@@ -338,6 +312,13 @@ enum LLMService {
   GOOGLE
   GEMINI
   OLLAMA
+}
+
+type LLMUsageType {
+  input: Float!
+  output: Float!
+  cached: Float
+  total: Float
 }
 
 type Mutation {

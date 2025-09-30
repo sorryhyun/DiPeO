@@ -311,12 +311,11 @@ class BuildOperationStringsStep(BuildStep):
                         arg_name = arg.get("name", "")
                         arg_value = arg.get("value", "")
                         is_var = arg.get("isVariable", False)
-                        # Convert argument name to camelCase for GraphQL
-                        camel_arg_name = self._to_camel_case(arg_name)
+                        # Keep argument name in original format (snake_case)
                         if is_var:
-                            arg_strs.append(f"{camel_arg_name}: ${arg_value}")
+                            arg_strs.append(f"{arg_name}: ${arg_value}")
                         else:
-                            arg_strs.append(f"{camel_arg_name}: {arg_value}")
+                            arg_strs.append(f"{arg_name}: {arg_value}")
                     op_string += f"({', '.join(arg_strs)})"
 
                 op_string += " {\n"
@@ -377,15 +376,15 @@ class BuildOperationStringsStep(BuildStep):
             field_name = field.get("name", "")
             sub_fields = field.get("fields", [])
 
-            # Convert field name to camelCase for GraphQL
-            camel_field_name = self._to_camel_case(field_name)
+            # Keep field name in original format (snake_case)
+            # No conversion needed as fields are defined in snake_case in the schema
 
             if sub_fields:
-                lines.append(f"{indent_str}{camel_field_name} {{")
+                lines.append(f"{indent_str}{field_name} {{")
                 lines.append(self._build_field_selections(sub_fields, indent + 1))
                 lines.append(f"{indent_str}}}")
             else:
-                lines.append(f"{indent_str}{camel_field_name}")
+                lines.append(f"{indent_str}{field_name}")
 
         return "\n".join(lines) + "\n"
 
