@@ -65,7 +65,7 @@ llm_service = registry.resolve(LLM_SERVICE)  # Type-safe
 ## Event Architecture
 
 - **AsyncEventBus**: Fire-and-forget event distribution
-- **CacheFirstStateStore**: Cache-first persistence with Phase 4 optimizations
+- **CacheFirstStateStore**: Cache-first persistence with optimized performance
 - **Benefits**: No global locks, true parallel execution, clean separation
 
 ## Execution Flow

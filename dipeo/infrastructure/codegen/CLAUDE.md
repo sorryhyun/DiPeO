@@ -9,7 +9,7 @@ This directory contains the code generation infrastructure that transforms TypeS
 #### IR Builders (`ir_builders/`)
 The heart of the code generation system. IR (Intermediate Representation) builders parse TypeScript AST and generate structured data used by templates.
 
-**Pipeline Architecture (Phase 2 - Complete)**:
+**Pipeline Architecture**:
 - **`ir_builders/core/`** - Pipeline orchestration framework
   - `context.py` - Build context with caching and configuration
   - `steps.py` - Step interface and pipeline orchestrator
@@ -33,23 +33,18 @@ The heart of the code generation system. IR (Intermediate Representation) builde
   - `frontend.py` - Frontend IR validation
   - `strawberry.py` - GraphQL IR validation
 
-- **`ir_builders/type_system_unified/`** - Unified type conversion system (Phase 3 - Complete)
+- **`ir_builders/type_system_unified/`** - Unified type conversion system
   - `converter.py` - UnifiedTypeConverter for all type conversions
   - `resolver.py` - UnifiedTypeResolver for Strawberry field resolution
   - `registry.py` - TypeRegistry for runtime type registration
   - `type_mappings.yaml` - TypeScript → Python mappings
   - `graphql_mappings.yaml` - GraphQL → Python mappings
-  - 46 comprehensive tests covering all conversion paths
+  - Comprehensive test suite covering all conversion paths
 
-- **`ir_builders/ast/`** - AST processing framework (Phase 2 - Complete)
+- **`ir_builders/ast/`** - AST processing framework
   - `walker.py` - AST traversal with visitor pattern
   - `filters.py` - File and node filtering with composition
   - `extractors.py` - Reusable extraction classes
-
-**Legacy Components** (to be deprecated):
-- `backend_refactored.py`, `frontend.py`, `strawberry_refactored.py` - Old builder implementations
-- `backend_extractors.py`, `strawberry_extractors.py` - Legacy extraction logic
-- `backend_builders.py`, `strawberry_builders.py` - Legacy assembly logic
 
 #### Templates (`templates/`)
 Jinja2 templates that consume IR data to generate code:
@@ -213,9 +208,9 @@ result = validator.validate(ir_data)
 print(result.get_summary())
 ```
 
-## Unified Type System (Phase 3 - Complete ✅)
+## Unified Type System
 
-The unified type system consolidates three previously separate type conversion systems into one configuration-driven implementation.
+Configuration-driven type conversion system handling all type transformations across the codebase.
 
 ### Architecture
 
@@ -307,16 +302,7 @@ graphql_scalars:
   JSON: JSON
 ```
 
-### Migration from Legacy Systems
-
-**Old Way** (deprecated, removed in Phase 3):
-```python
-# REMOVED - No longer available
-from dipeo.infrastructure.codegen.type_system import TypeConverter
-from dipeo.infrastructure.codegen.type_resolver import StrawberryTypeResolver
-```
-
-**New Way** (use this):
+### Usage
 ```python
 from dipeo.infrastructure.codegen.ir_builders.type_system_unified import (
     UnifiedTypeConverter,
@@ -353,38 +339,6 @@ Run the comprehensive test suite:
 python dipeo/infrastructure/codegen/ir_builders/type_system_unified/test_unified_type_system.py
 ```
 
-All 46 tests should pass ✅
-
-## Migration Status
-
-### Phase 1: Base Step Classes ✅
-- Core pipeline infrastructure (`core/`)
-- Reusable base step classes (`base_steps.py`)
-- Migration of extraction, transform, and assembler steps
-- ~35% code reduction achieved
-
-### Phase 2: AST Processing Framework ✅
-- AST walker and visitor pattern (`ast/`)
-- Flexible file and node filtering
-- Reusable extractor classes
-- Backward compatible wrappers
-- Consolidation of 6 extraction functions
-
-### Phase 3: Type System Consolidation ✅
-- Unified type converter (`type_system_unified/`)
-- Configuration-driven mappings (YAML)
-- 46 comprehensive tests (all passing)
-- Legacy code removal complete
-- ~40% reduction in type conversion code
-
-### Remaining Work
-
-📝 **Future Improvements**:
-- Deprecate legacy builder modules after full validation
-- Update documentation in `docs/projects/code-generation-guide.md`
-- Add golden fixtures for regression testing
-- GraphQL input type extraction from graphql-inputs.ts (architectural improvement)
-
 ## Best Practices
 
 1. **Always test changes**: Run `make codegen` and verify outputs
@@ -405,28 +359,3 @@ All 46 tests should pass ✅
 | TypeConverter import errors | Use `UnifiedTypeConverter` from `ir_builders/type_system_unified/` |
 | Type conversion not working | Check YAML config files in `type_system_unified/` |
 | StrawberryTypeResolver not found | Use `UnifiedTypeResolver` from `type_system_unified/` |
-
-## Recent Changes (2025-09-30)
-
-### Phase 3 Completion: Type System Consolidation
-- **Removed**: Deprecated `type_resolver.py` module
-- **Removed**: `TypeConverter` class (kept case conversion utilities)
-- **Updated**: All type hints to use `UnifiedTypeConverter`
-- **Fixed**: Two strawberry IR builder bugs:
-  1. Input type detection now checks `type == "mutation"` instead of `is_mutation`
-  2. Domain IR now correctly uses `input_types_list` from `transformed_types`
-
-### Breaking Changes
-- `TypeConverter` from `type_system` is no longer available
-- `StrawberryTypeResolver` from `type_resolver` is no longer available
-- Import from `ir_builders/type_system_unified/` instead
-
-### Migration Path
-All code has been migrated. No action needed for existing code. For new code:
-```python
-# Import unified type system
-from dipeo.infrastructure.codegen.ir_builders.type_system_unified import (
-    UnifiedTypeConverter,
-    UnifiedTypeResolver
-)
-```

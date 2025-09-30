@@ -46,7 +46,6 @@ import { useGetDiagramQuery } from '@/__generated__/graphql';
 
 ### Path Aliases
 - `@` - Resolves to `src/` directory
-- **Note**: Removed unused aliases (`@core`, `@shared`, `@features`, `@lib`) in Phase 2 cleanup to align with actual directory structure
 
 ## Key Concepts
 
