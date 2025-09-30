@@ -3,6 +3,8 @@
 import asyncio
 import json
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -10,7 +12,6 @@ from typing import Any
 import yaml
 
 from dipeo.infrastructure.diagram.adapters import UnifiedSerializerAdapter
-
 
 @dataclass
 class CliSessionData:
@@ -24,9 +25,7 @@ class CliSessionData:
     diagram_data: str | None = None
     node_states: dict[str, Any] | None = None  # Initial node states for immediate highlighting
 
-
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class CliSessionService:
     """Manages active CLI execution sessions."""

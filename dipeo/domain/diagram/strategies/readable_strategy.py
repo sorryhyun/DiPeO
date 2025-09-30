@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import re
 from typing import Any
 
@@ -24,8 +26,7 @@ from dipeo.domain.diagram.utils import (
 from ..utils.conversion_utils import diagram_maps_to_arrays
 from .base_strategy import BaseConversionStrategy
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class ReadableYamlStrategy(_YamlMixin, BaseConversionStrategy):
     """Human-friendly workflow YAML."""

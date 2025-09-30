@@ -15,7 +15,6 @@ from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 if TYPE_CHECKING:
     pass
 
-
 @register_handler
 @requires_services(ast_parser=AST_PARSER)
 class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
@@ -60,7 +59,9 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         """Validate the TypeScript AST parser configuration - static checks only."""
         import logging
 
-        logger = logging.getLogger(__name__)
+from dipeo.config.base_logger import get_module_logger
+
+        logger = get_module_logger(__name__)
         node = request.node
         logger.info(f"[TypescriptAstNode {node.id}] Validating node")
 
@@ -81,7 +82,9 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         """Runtime validation and setup."""
         import logging
 
-        logger = logging.getLogger(__name__)
+from dipeo.config.base_logger import get_module_logger
+
+        logger = get_module_logger(__name__)
 
         # Set debug flag for later use
         self._current_debug = False  # Will be set based on context if needed
@@ -95,7 +98,9 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     ) -> Any:
         import logging
 
-        logger = logging.getLogger(__name__)
+from dipeo.config.base_logger import get_module_logger
+
+        logger = get_module_logger(__name__)
         """Execute TypeScript AST parsing."""
         node = request.node
 
@@ -233,7 +238,9 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         """Custom serialization for TypeScript AST results."""
         import logging
 
-        logger = logging.getLogger(__name__)
+from dipeo.config.base_logger import get_module_logger
+
+        logger = get_module_logger(__name__)
         node = request.node
         trace_id = request.execution_id or ""
 

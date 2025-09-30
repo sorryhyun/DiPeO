@@ -5,6 +5,8 @@ reducing layers of abstraction from 8 to 4-5 as per the simplification plan.
 """
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
@@ -39,8 +41,7 @@ from .text_format_handler import TextFormatHandler
 if TYPE_CHECKING:
     pass
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 @register_handler
 @requires_services(

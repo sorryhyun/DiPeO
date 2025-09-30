@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
 from dipeo.diagram_generated import (
@@ -16,8 +18,7 @@ from dipeo.diagram_generated import (
 
 from .handle_utils import create_handle_id
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class NodeFieldMapper:
     """Maps node fields between different formats and node types."""
@@ -95,7 +96,6 @@ class NodeFieldMapper:
                 props.pop("memory_settings")
 
         return props
-
 
 class HandleParser:
     """Parses and creates handle references."""
@@ -262,7 +262,6 @@ class HandleParser:
         else:
             arrow["target"] = expected_handle_id
 
-
 class PersonExtractor:
     """Extracts person data from different formats."""
 
@@ -341,7 +340,6 @@ class PersonExtractor:
 
         return persons_dict
 
-
 class ArrowDataProcessor:
     """Processes arrow data for import/export."""
 
@@ -379,7 +377,6 @@ class ArrowDataProcessor:
     def should_include_branch_data(source_handle: str, arrow_data: dict[str, Any]) -> bool:
         """Check if branch data should be included."""
         return "branch" in arrow_data and source_handle not in ["condtrue", "condfalse"]
-
 
 def process_dotted_keys(props: dict[str, Any]) -> dict[str, Any]:
     """Convert dot notation keys to nested dictionaries."""

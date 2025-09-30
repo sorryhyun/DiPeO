@@ -7,6 +7,8 @@ during diagram compilation, eliminating runtime filesystem I/O.
 from __future__ import annotations
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import os
 from pathlib import Path
 from typing import Any
@@ -14,8 +16,7 @@ from typing import Any
 from dipeo.config.paths import BASE_DIR
 from dipeo.diagram_generated import DomainNode, NodeType
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class PromptFileCompiler:
     """Resolves prompt file references to actual content during compilation.

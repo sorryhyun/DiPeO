@@ -8,6 +8,8 @@ This modular structure follows the pattern of condition and code_job handlers:
 """
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel
@@ -33,8 +35,7 @@ from .single_executor import SingleSubDiagramExecutor
 if TYPE_CHECKING:
     pass
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 @register_handler
 @requires_services(

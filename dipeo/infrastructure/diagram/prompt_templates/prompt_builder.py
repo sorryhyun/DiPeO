@@ -1,11 +1,12 @@
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import warnings
 from typing import Any
 
 from dipeo.domain.diagram.ports import TemplateProcessorPort
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class PromptBuilder:
     def __init__(self, template_processor: TemplateProcessorPort | None = None):

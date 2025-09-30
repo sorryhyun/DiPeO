@@ -4,6 +4,8 @@ import asyncio
 import hashlib
 import json
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import os
 import subprocess
 import tempfile
@@ -16,8 +18,7 @@ from dipeo.domain.base.exceptions import ServiceError
 
 from .platform_utils import get_tsx_command, setup_github_actions_env
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class TypeScriptParser:
     """TypeScript AST parser using ts-morph via Node.js subprocess."""

@@ -7,6 +7,8 @@ and maintainability.
 
 import logging
 
+from dipeo.config.base_logger import get_module_logger
+
 # Explicitly import all handler classes
 from .api_job import ApiJobNodeHandler
 from .code_job import CodeJobNodeHandler
@@ -45,5 +47,5 @@ __all__ = [
     "UserResponseNodeHandler",
 ]
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger(__name__)
 logger.info(f"✅ Loaded {len(__all__)} handlers")

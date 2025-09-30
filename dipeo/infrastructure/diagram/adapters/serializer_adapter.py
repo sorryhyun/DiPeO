@@ -6,6 +6,8 @@ to implement the domain DiagramStorageSerializer port.
 
 import contextlib
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from typing import TYPE_CHECKING
 
 from dipeo.domain.diagram.ports import DiagramStorageSerializer, FormatStrategy
@@ -13,8 +15,7 @@ from dipeo.domain.diagram.ports import DiagramStorageSerializer, FormatStrategy
 if TYPE_CHECKING:
     from dipeo.diagram_generated import DomainDiagram
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class UnifiedSerializerAdapter(DiagramStorageSerializer):
     """Adapter that uses format strategies directly for serialization.
@@ -110,7 +111,6 @@ class UnifiedSerializerAdapter(DiagramStorageSerializer):
 
         return "native"
 
-
 class FormatStrategyAdapter(DiagramStorageSerializer):
     """Adapter that uses format strategies for serialization.
 
@@ -192,7 +192,6 @@ class FormatStrategyAdapter(DiagramStorageSerializer):
                 continue
 
         raise ValueError("Could not detect format or deserialize content")
-
 
 class CachingSerializerAdapter(DiagramStorageSerializer):
     """Decorator that adds caching to serialization operations.

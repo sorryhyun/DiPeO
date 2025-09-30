@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from abc import ABC, abstractmethod
 from typing import Any
 
 from dipeo.diagram_generated import DomainDiagram
 from dipeo.domain.diagram.ports import FormatStrategy
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class BaseConversionStrategy(FormatStrategy, ABC):
     """Template Method pattern for diagram conversion with customizable node/arrow extraction."""

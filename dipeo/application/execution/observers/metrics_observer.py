@@ -3,6 +3,8 @@
 import asyncio
 import contextlib
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import time
 from dataclasses import dataclass, field
 from typing import Any, cast
@@ -18,8 +20,7 @@ from dipeo.domain.events import (
     NodeStartedPayload,
 )
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 @dataclass
 class NodeMetrics:
@@ -33,7 +34,6 @@ class NodeMetrics:
     error: str | None = None
     dependencies: set[str] = field(default_factory=set)
 
-
 @dataclass
 class ExecutionMetrics:
     execution_id: str
@@ -44,7 +44,6 @@ class ExecutionMetrics:
     critical_path: list[str] = field(default_factory=list)
     parallelizable_groups: list[list[str]] = field(default_factory=list)
     bottlenecks: list[str] = field(default_factory=list)
-
 
 @dataclass
 class DiagramOptimization:
@@ -62,7 +61,6 @@ class DiagramOptimization:
             "parallelizable": self.parallelizable,
             "suggested_changes": self.suggested_changes,
         }
-
 
 class MetricsObserver(EventBus):
     """Collects execution metrics for analysis and optimization suggestions."""

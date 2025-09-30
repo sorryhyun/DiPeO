@@ -3,6 +3,8 @@ from __future__ import annotations
 import io
 import json
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import os
 import time
 from dataclasses import dataclass, field, replace
@@ -16,8 +18,7 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 @dataclass(frozen=True)
 class Envelope:
@@ -128,7 +129,6 @@ class Envelope:
             raise TypeError(f"BINARY body must be bytes-like, got {type(self.body)}")
         return bytes(self.body)
 
-
 class EnvelopeFactory:
     @staticmethod
     def numpy_array(array: np.ndarray, **kwargs) -> Envelope:
@@ -194,7 +194,6 @@ class EnvelopeFactory:
                 content_type = ContentType.OBJECT
 
         return Envelope(content_type=content_type, body=body, meta=meta, **kwargs)
-
 
 class StrictEnvelopeFactory:
     """Strict envelope factory with no implicit conversions or fallbacks.
@@ -378,13 +377,11 @@ class StrictEnvelopeFactory:
             meta=error_meta,
         )
 
-
 def get_envelope_factory() -> type[EnvelopeFactory] | type[StrictEnvelopeFactory]:
     if os.getenv("DIPEO_STRICT_ENVELOPE") == "1":
         logger.info("Using StrictEnvelopeFactory (DIPEO_STRICT_ENVELOPE=1)")
         return StrictEnvelopeFactory
     return EnvelopeFactory
-
 
 def serialize_protocol(output: Envelope) -> dict[str, Any]:
     return {
@@ -400,7 +397,6 @@ def serialize_protocol(output: Envelope) -> dict[str, Any]:
         "body": output.body,
         "meta": output.meta,
     }
-
 
 def deserialize_protocol(data: dict[str, Any]) -> Envelope:
     if not (data.get("envelope_format") or data.get("_envelope_format")):

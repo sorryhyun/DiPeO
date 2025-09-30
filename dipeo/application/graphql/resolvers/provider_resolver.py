@@ -1,6 +1,8 @@
 """GraphQL resolver for API provider queries and mutations."""
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import time
 from typing import Any
 
@@ -29,8 +31,7 @@ from ..graphql_types.provider_types import (
     TestIntegrationInput,
 )
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class ProviderResolver:
     """Resolves provider-related GraphQL queries and mutations."""

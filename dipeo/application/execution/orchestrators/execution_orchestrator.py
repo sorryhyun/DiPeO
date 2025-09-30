@@ -1,6 +1,8 @@
 """Execution orchestrator that coordinates repositories during diagram execution."""
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.diagram_generated import ApiKeyID, Message, PersonID, PersonLLMConfig
@@ -11,8 +13,7 @@ if TYPE_CHECKING:
     from dipeo.application.execution.use_cases.prompt_loading import PromptLoadingUseCase
     from dipeo.domain.integrations.ports import LLMService as LLMServicePort
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class ExecutionOrchestrator:
     """Orchestrates person and conversation management during execution."""

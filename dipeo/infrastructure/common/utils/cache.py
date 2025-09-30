@@ -7,13 +7,14 @@ a model) while others wait for its result.
 
 import asyncio
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from collections.abc import Callable, Coroutine
 from typing import Any, TypeVar
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger(__name__)
 
 T = TypeVar("T")
-
 
 class SingleFlightCache:
     """Cache that deduplicates concurrent requests for the same key.

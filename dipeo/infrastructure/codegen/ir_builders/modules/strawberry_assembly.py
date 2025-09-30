@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from datetime import datetime
 from typing import Any, Optional
 
@@ -14,8 +16,7 @@ from dipeo.infrastructure.codegen.ir_builders.core import (
     StepType,
 )
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class BuildDomainIRStep(BuildStep):
     """Step to build domain IR data structure."""
@@ -160,7 +161,6 @@ class BuildDomainIRStep(BuildStep):
 
         return organized
 
-
 class BuildOperationsIRStep(BuildStep):
     """Step to build operations IR data structure."""
 
@@ -258,7 +258,6 @@ class BuildOperationsIRStep(BuildStep):
         }
 
         return operations_data
-
 
 class BuildCompleteIRStep(BuildStep):
     """Step to build complete IR data structure."""

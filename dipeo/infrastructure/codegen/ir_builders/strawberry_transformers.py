@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from pathlib import Path
 from typing import Any, Optional
 
@@ -13,8 +15,7 @@ from dipeo.infrastructure.codegen.ir_builders.utils import (
 )
 from dipeo.infrastructure.codegen.type_resolver import StrawberryTypeResolver
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 def transform_domain_types(
     interfaces: list[dict[str, Any]],
@@ -50,7 +51,6 @@ def transform_domain_types(
 
     # logger.info(f"Created {len(domain_types)} domain types")
     return domain_types
-
 
 def transform_input_types(
     operations: list[dict[str, Any]], type_converter: Optional[TypeConverter] = None
@@ -88,7 +88,6 @@ def transform_input_types(
     # logger.info(f"Created {len(result)} input types")
     return result
 
-
 def transform_result_types(
     operations: list[dict[str, Any]], type_converter: Optional[TypeConverter] = None
 ) -> list[dict[str, Any]]:
@@ -114,7 +113,6 @@ def transform_result_types(
 
     # logger.info(f"Created {len(result_types)} result types")
     return result_types
-
 
 def _is_domain_type(interface_name: str) -> bool:
     """Check if an interface should be treated as a domain type.
@@ -164,7 +162,6 @@ def _is_domain_type(interface_name: str) -> bool:
 
     # Allow all other interfaces (including PersonLLMConfig, ToolConfig, etc.)
     return True
-
 
 def _create_domain_type(
     interface: dict[str, Any],
@@ -248,7 +245,6 @@ def _create_domain_type(
         "description": interface.get("description", f"{interface_name} domain type"),
     }
 
-
 def _create_input_type(
     operation_name: str, variable: dict[str, Any], type_converter: TypeConverter
 ) -> dict[str, Any]:
@@ -277,7 +273,6 @@ def _create_input_type(
         "description": f"Input type for {operation_name}",
     }
 
-
 def _create_result_type(operation: dict[str, Any], type_converter: TypeConverter) -> dict[str, Any]:
     """Create a result type definition from operation fields.
 
@@ -296,7 +291,6 @@ def _create_result_type(operation: dict[str, Any], type_converter: TypeConverter
         "fields": fields,
         "description": f"Result type for {operation_name}",
     }
-
 
 def _extract_fields_as_types(
     fields: list[Any], type_converter: TypeConverter

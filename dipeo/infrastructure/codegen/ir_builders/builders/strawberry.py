@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from pathlib import Path
 from typing import Any, Optional
 
@@ -27,8 +29,7 @@ from dipeo.infrastructure.codegen.ir_builders.modules.strawberry_assembly import
 )
 from dipeo.domain.codegen.ir_builder_port import IRData, IRMetadata
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class LoadStrawberryConfigStep(BuildStep):
     """Load Strawberry configuration from disk or use defaults."""
@@ -89,7 +90,6 @@ class LoadStrawberryConfigStep(BuildStep):
                 metadata={"message": f"Config loading failed: {e}"},
             )
 
-
 class ExtractGraphQLTypesStep(BuildStep):
     """Extract GraphQL-specific types from AST."""
 
@@ -137,7 +137,6 @@ class ExtractGraphQLTypesStep(BuildStep):
                 error=str(e),
                 metadata={"message": f"GraphQL type extraction failed: {e}"},
             )
-
 
 class TransformStrawberryTypesStep(BuildStep):
     """Transform types for Strawberry GraphQL."""
@@ -214,7 +213,6 @@ class TransformStrawberryTypesStep(BuildStep):
                 error=str(e),
                 metadata={"message": f"Type transformation failed: {e}"},
             )
-
 
 class StrawberryAssemblerStep(BuildStep):
     """Assemble final Strawberry IR data from pipeline results."""
@@ -375,7 +373,6 @@ class StrawberryAssemblerStep(BuildStep):
 
         return enriched_operations
 
-
 class StrawberryValidatorStep(BuildStep):
     """Validate Strawberry IR data."""
 
@@ -473,7 +470,6 @@ class StrawberryValidatorStep(BuildStep):
                 error=str(e),
                 metadata={"message": f"Validation failed: {e}"},
             )
-
 
 class StrawberryBuilder(BaseIRBuilder):
     """Strawberry (GraphQL) IR builder using step-based pipeline.

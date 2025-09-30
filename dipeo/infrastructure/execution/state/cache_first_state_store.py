@@ -3,6 +3,8 @@
 import asyncio
 import contextlib
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import os
 import time
 from datetime import datetime
@@ -31,8 +33,7 @@ from .cache_manager import CacheManager
 from .models import CacheEntry, PersistenceCheckpoint
 from .persistence_manager import PersistenceManager
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class CacheFirstStateStore(StateStorePort, ExecutionStateService, ExecutionCachePort):
     """Cache-first state store with Phase 4 optimizations.

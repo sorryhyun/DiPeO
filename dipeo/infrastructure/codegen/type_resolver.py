@@ -8,6 +8,8 @@ scattered hardcoded logic in templates and IR builders.
 from __future__ import annotations
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,8 +17,7 @@ from typing import Any, Optional
 
 import yaml
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 @dataclass
 class ResolvedField:
@@ -33,7 +34,6 @@ class ResolvedField:
     needs_conversion: bool
     conversion_expr: Optional[str] = None  # Expression for from_pydantic conversion
 
-
 @dataclass
 class ConversionMethod:
     """Generated conversion method for a type."""
@@ -41,7 +41,6 @@ class ConversionMethod:
     type_name: str
     method_code: str
     needs_method: bool
-
 
 class TypeConversionRegistry:
     """Registry of reusable type conversion patterns."""
@@ -76,7 +75,6 @@ class TypeConversionRegistry:
     def optional_nested(field_name: str, type_name: str, source: str = "obj") -> str:
         """Convert optional nested type."""
         return f"{type_name}.from_pydantic({source}.{field_name}) if {source}.{field_name} and hasattr({type_name}, 'from_pydantic') else {source}.{field_name}"
-
 
 class StrawberryTypeResolver:
     """Centralized type resolution for Strawberry GraphQL generation."""

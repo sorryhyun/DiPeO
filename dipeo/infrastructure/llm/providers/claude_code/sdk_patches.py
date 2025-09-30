@@ -6,8 +6,9 @@ particularly with newer versions of the Claude Code CLI.
 
 import logging
 
-logger = logging.getLogger(__name__)
+from dipeo.config.base_logger import get_module_logger
 
+logger = get_module_logger(__name__)
 
 def patch_subprocess_transport():
     """Patch SubprocessCLITransport to handle --setting-sources flag issue.
@@ -56,7 +57,6 @@ def patch_subprocess_transport():
 
     except Exception as e:
         logger.warning(f"[SDK Patch] Failed to patch SubprocessCLITransport: {e}")
-
 
 def apply_all_patches():
     """Apply all SDK patches."""

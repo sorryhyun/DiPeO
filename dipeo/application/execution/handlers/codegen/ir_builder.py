@@ -1,6 +1,8 @@
 """Handler for IR builder nodes."""
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
 from pydantic import BaseModel
@@ -13,8 +15,7 @@ from dipeo.application.registry.keys import IR_BUILDER_REGISTRY, IR_CACHE, Servi
 from dipeo.diagram_generated.unified_nodes.ir_builder_node import IrBuilderNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 @register_handler
 @requires_services(

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
 from dipeo.domain.codegen.ir_builder_port import IRData, IRMetadata
@@ -23,8 +25,7 @@ from dipeo.infrastructure.codegen.ir_builders.modules.typescript_indexes import 
     ExtractTypescriptIndexesStep,
 )
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class BackendAssemblerStep(BuildStep):
     """Assemble final backend IR data from pipeline results."""
@@ -120,7 +121,6 @@ class BackendAssemblerStep(BuildStep):
                 error=str(e),
                 metadata={"message": f"Backend assembly failed: {e}"},
             )
-
 
 class BackendBuilder(BaseIRBuilder):
     """Backend IR builder using step-based pipeline.

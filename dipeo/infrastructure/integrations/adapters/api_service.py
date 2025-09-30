@@ -2,6 +2,8 @@
 
 import asyncio
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
 import aiohttp
@@ -10,8 +12,7 @@ from dipeo.domain.base.exceptions import ServiceError
 from dipeo.domain.base.storage_port import BlobStorePort as FileServicePort
 from dipeo.domain.integrations.api_services import APIBusinessLogic
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class APIService:
     def __init__(

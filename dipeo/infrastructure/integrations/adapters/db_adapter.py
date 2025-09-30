@@ -9,7 +9,6 @@ from dipeo.domain.base.storage_port import FileSystemPort
 from dipeo.domain.integrations.db_services import DBOperationsDomainService
 from dipeo.domain.integrations.validators import DataValidator
 
-
 class DBOperationsAdapter:
     """
     Infrastructure adapter that bridges domain service with file system operations.
@@ -76,7 +75,9 @@ class DBOperationsAdapter:
         try:
             import logging
 
-            logger = logging.getLogger(__name__)
+from dipeo.config.base_logger import get_module_logger
+
+            logger = get_module_logger(__name__)
 
             exists = self.file_system.exists(file_path)
             if not exists:

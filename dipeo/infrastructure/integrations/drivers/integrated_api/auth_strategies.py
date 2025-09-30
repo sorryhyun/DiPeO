@@ -2,6 +2,8 @@
 
 import base64
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -14,8 +16,7 @@ from dipeo.infrastructure.integrations.drivers.integrated_api.manifest_schema im
     AuthStrategy,
 )
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class BaseAuthStrategy(ABC):
     """Base class for authentication strategies."""
@@ -85,14 +86,12 @@ class BaseAuthStrategy(ABC):
             logger.error(f"Failed to resolve API key: {e}")
             return {"token": api_key, "api_key": api_key}
 
-
 class NoAuthStrategy(BaseAuthStrategy):
     """No authentication required."""
 
     async def get_auth_headers(self, api_key: str, context: dict[str, Any]) -> dict[str, str]:
         """No auth headers needed."""
         return {}
-
 
 class ApiKeyHeaderStrategy(BaseAuthStrategy):
     """API key in header authentication."""
@@ -122,7 +121,6 @@ class ApiKeyHeaderStrategy(BaseAuthStrategy):
             header_value = secret.get("api_key", api_key)
 
         return {header_name: header_value}
-
 
 class ApiKeyQueryStrategy(BaseAuthStrategy):
     """API key in query parameter authentication."""
@@ -157,7 +155,6 @@ class ApiKeyQueryStrategy(BaseAuthStrategy):
         """No headers needed for query param auth."""
         return {}
 
-
 class OAuth2BearerStrategy(BaseAuthStrategy):
     """OAuth2 Bearer token authentication."""
 
@@ -187,7 +184,6 @@ class OAuth2BearerStrategy(BaseAuthStrategy):
             header_value = f"Bearer {token}"
 
         return {header_name: header_value}
-
 
 class BasicAuthStrategy(BaseAuthStrategy):
     """HTTP Basic authentication."""
@@ -227,7 +223,6 @@ class BasicAuthStrategy(BaseAuthStrategy):
             header_value = f"Basic {encoded}"
 
         return {header_name: header_value}
-
 
 class OAuth2ClientCredentialsStrategy(BaseAuthStrategy):
     """OAuth2 Client Credentials flow authentication.
@@ -290,7 +285,6 @@ class OAuth2ClientCredentialsStrategy(BaseAuthStrategy):
         )
         return secret.get("client_secret", "")
 
-
 class CustomAuthStrategy(BaseAuthStrategy):
     """Custom authentication strategy using a Python handler."""
 
@@ -335,7 +329,6 @@ class CustomAuthStrategy(BaseAuthStrategy):
             raise ServiceError(f"Custom auth handler failed: {e}")
 
         return {}
-
 
 class AuthStrategyFactory:
     """Factory for creating auth strategy instances."""

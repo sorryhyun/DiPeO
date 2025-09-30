@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from abc import ABC, abstractmethod
 from typing import Any
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class ValidationError:
     """Represents a validation error."""
@@ -26,7 +27,6 @@ class ValidationError:
 
     def __str__(self) -> str:
         return f"[{self.severity.upper()}] {self.field}: {self.message}"
-
 
 class ValidationResult:
     """Result of validation check."""
@@ -92,7 +92,6 @@ class ValidationResult:
                 return f"Validation passed with {len(self.warnings)} warning(s)"
             return "Validation passed"
         return f"Validation failed with {len(self.errors)} error(s) and {len(self.warnings)} warning(s)"
-
 
 class BaseValidator(ABC):
     """Base class for IR validators."""
@@ -200,7 +199,6 @@ class BaseValidator(ABC):
                 result.add_error(check_name, f"Consistency check raised exception: {e}")
 
         return result
-
 
 class CompositeValidator(BaseValidator):
     """Validator that combines multiple validators."""

@@ -3,6 +3,8 @@
 import asyncio
 import contextlib
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from collections import defaultdict
 from collections.abc import Callable
 from uuid import uuid4
@@ -19,8 +21,7 @@ from dipeo.domain.events.unified_ports import (
     EventHandler,
 )
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class InMemoryEventBus(EventBus):
     """In-memory event bus for single-process applications.

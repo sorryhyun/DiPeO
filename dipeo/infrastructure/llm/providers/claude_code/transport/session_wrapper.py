@@ -5,6 +5,8 @@ for each query, leveraging fork_session for clean session state.
 """
 
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -12,8 +14,7 @@ from claude_code_sdk import ClaudeAgentOptions
 
 from .session_pool import get_global_session_manager
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class SessionQueryWrapper:
     """Wrapper that uses simplified session pooling for Claude Code queries.

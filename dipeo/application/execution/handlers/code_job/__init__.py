@@ -1,4 +1,6 @@
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import os
 from pathlib import Path
 from typing import Any
@@ -21,8 +23,7 @@ from .executors import (
     TypeScriptExecutor,
 )
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 @register_handler
 @requires_services()  # No services actually used
@@ -186,6 +187,8 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     async def run(self, inputs: dict[str, Any], request: ExecutionRequest[CodeJobNode]) -> Any:
         """Execute code with prepared context."""
         import logging
+
+from dipeo.config.base_logger import get_module_logger
         import time
 
         node = request.node

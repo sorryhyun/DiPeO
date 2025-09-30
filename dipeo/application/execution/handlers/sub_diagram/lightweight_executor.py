@@ -7,6 +7,8 @@ without creating separate execution contexts or state persistence.
 import contextlib
 import copy
 import logging
+
+from dipeo.config.base_logger import get_module_logger
 import os
 import uuid
 from datetime import UTC, datetime
@@ -24,8 +26,7 @@ from .parallel_executor import ParallelExecutionManager
 if TYPE_CHECKING:
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 
-logger = logging.getLogger(__name__)
-
+logger = get_module_logger(__name__)
 
 class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
     """Executes sub-diagrams without state persistence, treating them as internal node operations."""
