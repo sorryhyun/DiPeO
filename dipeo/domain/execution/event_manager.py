@@ -187,8 +187,7 @@ class EventManager:
                     if token_usage:
                         import logging
 
-from dipeo.config.base_logger import get_module_logger
-
+                        from dipeo.config.base_logger import get_module_logger
                         logger = get_module_logger(__name__)
                         logger.debug(
                             f"[EventManager] Emitting NODE_COMPLETED with token_usage: {token_usage}"

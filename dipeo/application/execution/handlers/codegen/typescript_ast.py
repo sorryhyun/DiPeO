@@ -57,10 +57,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
 
     def validate(self, request: ExecutionRequest[TypescriptAstNode]) -> str | None:
         """Validate the TypeScript AST parser configuration - static checks only."""
-        import logging
-
-from dipeo.config.base_logger import get_module_logger
-
+        from dipeo.config.base_logger import get_module_logger
         logger = get_module_logger(__name__)
         node = request.node
         logger.info(f"[TypescriptAstNode {node.id}] Validating node")
@@ -80,10 +77,7 @@ from dipeo.config.base_logger import get_module_logger
 
     async def pre_execute(self, request: ExecutionRequest[TypescriptAstNode]) -> Envelope | None:
         """Runtime validation and setup."""
-        import logging
-
-from dipeo.config.base_logger import get_module_logger
-
+        from dipeo.config.base_logger import get_module_logger
         logger = get_module_logger(__name__)
 
         # Set debug flag for later use
@@ -96,12 +90,9 @@ from dipeo.config.base_logger import get_module_logger
     async def run(
         self, inputs: dict[str, Any], request: ExecutionRequest[TypescriptAstNode]
     ) -> Any:
-        import logging
-
-from dipeo.config.base_logger import get_module_logger
-
-        logger = get_module_logger(__name__)
         """Execute TypeScript AST parsing."""
+        from dipeo.config.base_logger import get_module_logger
+        logger = get_module_logger(__name__)
         node = request.node
 
         # Check if parsing should be skipped (cache already exists)
@@ -236,10 +227,7 @@ from dipeo.config.base_logger import get_module_logger
         self, result: Any, request: ExecutionRequest[TypescriptAstNode]
     ) -> Envelope:
         """Custom serialization for TypeScript AST results."""
-        import logging
-
-from dipeo.config.base_logger import get_module_logger
-
+        from dipeo.config.base_logger import get_module_logger
         logger = get_module_logger(__name__)
         node = request.node
         trace_id = request.execution_id or ""

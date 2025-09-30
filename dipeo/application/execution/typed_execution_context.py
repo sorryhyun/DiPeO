@@ -83,12 +83,6 @@ class TypedExecutionContext(ExecutionContextProtocol):
     def emit_outputs_as_tokens(
         self, node_id: NodeID, outputs: dict[str, Envelope], epoch: int | None = None
     ) -> None:
-        import logging
-
-from dipeo.config.base_logger import get_module_logger
-
-        logger = get_module_logger(__name__)
-
         self._token_manager.emit_outputs(node_id, outputs, epoch)
 
         if self.scheduler:
