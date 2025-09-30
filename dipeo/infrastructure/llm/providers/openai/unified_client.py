@@ -43,10 +43,6 @@ class UnifiedOpenAIClient:
         self.provider_type = "openai"
 
         # Initialize logger
-        import logging
-
-from dipeo.config.base_logger import get_module_logger
-
         self.logger = get_module_logger(__name__)
 
         if not self.api_key:
