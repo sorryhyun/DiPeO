@@ -27,12 +27,9 @@ from dipeo.infrastructure.llm.drivers.types import (
 
 from .message_processor import ClaudeCodeMessageProcessor
 from .response_parser import ClaudeCodeResponseParser
-from .transport.session_wrapper import SessionQueryWrapper
+from .transport.session_helper import DirectSessionClient
 
 logger = logging.getLogger(__name__)
-
-# Session pooling configuration
-SESSION_POOL_ENABLED = os.getenv("DIPEO_SESSION_POOL_ENABLED", "false").lower() == "true"
 
 
 class UnifiedClaudeCodeClient:
@@ -59,7 +56,7 @@ class UnifiedClaudeCodeClient:
         self._parser = ClaudeCodeResponseParser()
         self._processor = ClaudeCodeMessageProcessor()
 
-        logger.info(f"[ClaudeCode] Initialized with SESSION_POOL_ENABLED={SESSION_POOL_ENABLED}")
+        logger.info("[ClaudeCode] Initialized with direct fork session approach")
 
     def _get_capabilities(self) -> ProviderCapabilities:
         """Get Claude Code provider capabilities."""
@@ -146,11 +143,11 @@ class UnifiedClaudeCodeClient:
         )
 
         async def _make_request():
-            # Use QueryClientWrapper with context manager
-            async with SessionQueryWrapper(
+            # Use DirectSessionClient with context manager
+            async with DirectSessionClient(
                 options=options,
                 execution_phase=execution_phase.value if execution_phase else "default",
-            ) as wrapper:
+            ) as session:
                 # Collect messages and detect tool invocations
                 # When MCP tools are used, we need to capture the tool input data
                 # which contains our structured output, not the final text response
@@ -197,7 +194,7 @@ class UnifiedClaudeCodeClient:
                     "\n\n".join(combined_content) if combined_content else "Please respond"
                 )
 
-                async for message in wrapper.query(query_input):
+                async for message in session.query(query_input):
                     # Check for tool invocations in assistant messages
                     if hasattr(message, "content") and not hasattr(message, "result"):
                         # Check if this message contains tool invocations
@@ -285,10 +282,10 @@ class UnifiedClaudeCodeClient:
         )
         options = ClaudeAgentOptions(**options_dict)
 
-        # Use QueryClientWrapper with context manager
-        async with SessionQueryWrapper(
+        # Use DirectSessionClient with context manager
+        async with DirectSessionClient(
             options=options, execution_phase=execution_phase.value if execution_phase else "default"
-        ) as wrapper:
+        ) as session:
             # Stream messages from Claude Code SDK
             # For streaming, we need to handle both AssistantMessage (for real-time streaming)
             # and ResultMessage (for final result)
@@ -305,7 +302,7 @@ class UnifiedClaudeCodeClient:
             else:
                 query_input = json.dumps(formatted_messages, ensure_ascii=False)
 
-            async for message in wrapper.query(query_input):
+            async for message in session.query(query_input):
                 if hasattr(message, "content") and not hasattr(message, "result"):
                     # Stream content from AssistantMessage (real-time streaming)
                     for block in message.content:

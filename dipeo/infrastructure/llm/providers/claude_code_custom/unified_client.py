@@ -31,12 +31,9 @@ from ..claude_code.prompts import (
     LLM_DECISION_PROMPT,
     MEMORY_SELECTION_PROMPT,
 )
-from ..claude_code.transport.session_wrapper import SessionQueryWrapper
+from ..claude_code.transport.session_helper import DirectSessionClient
 
 logger = logging.getLogger(__name__)
-
-# Session pooling configuration
-SESSION_POOL_ENABLED = os.getenv("DIPEO_SESSION_POOL_ENABLED", "false").lower() == "true"
 
 
 class UnifiedClaudeCodeCustomClient:
@@ -61,7 +58,7 @@ class UnifiedClaudeCodeCustomClient:
         self.retry_backoff = config.retry_backoff or 2.0
 
         logger.info(
-            f"[ClaudeCodeCustom] Initialized with SESSION_POOL_ENABLED={SESSION_POOL_ENABLED}"
+            "[ClaudeCodeCustom] Initialized with direct fork session approach"
         )
 
     def _get_capabilities(self) -> ProviderCapabilities:
@@ -414,16 +411,16 @@ class UnifiedClaudeCodeCustomClient:
         )
 
         async def _make_request():
-            # Use QueryClientWrapper with context manager
-            async with SessionQueryWrapper(
+            # Use DirectSessionClient with context manager
+            async with DirectSessionClient(
                 options=options,
                 execution_phase=str(execution_phase) if execution_phase else "default",
-            ) as wrapper:
+            ) as session:
                 # Collect only the final result from Claude Code SDK
                 # Claude Code sends multiple messages: SystemMessage, AssistantMessage, ResultMessage
                 # We only want the ResultMessage to avoid duplication
                 result_text = ""
-                async for message in wrapper.query(message_text):
+                async for message in session.query(message_text):
                     # Only process ResultMessage for the final response
                     if hasattr(message, "result"):
                         # This is the final, authoritative response
@@ -529,15 +526,15 @@ class UnifiedClaudeCodeCustomClient:
         # Create options
         options = ClaudeAgentOptions(**options_dict)
 
-        # Use QueryClientWrapper with context manager
-        async with SessionQueryWrapper(
+        # Use DirectSessionClient with context manager
+        async with DirectSessionClient(
             options=options, execution_phase=str(execution_phase) if execution_phase else "default"
-        ) as wrapper:
+        ) as session:
             # Stream messages from Claude Code SDK
             # For streaming, we need to handle both AssistantMessage (for real-time streaming)
             # and ResultMessage (for final result)
             has_yielded_content = False
-            async for message in wrapper.query(message_text):
+            async for message in session.query(message_text):
                 if hasattr(message, "content") and not hasattr(message, "result"):
                     # Stream content from AssistantMessage (real-time streaming)
                     for block in message.content:

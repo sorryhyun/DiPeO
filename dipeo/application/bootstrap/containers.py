@@ -218,17 +218,7 @@ class Container:
             except Exception as e:
                 logger.error(f"Error shutting down {service_name}: {e}")
 
-        # Shutdown warm pools (specific legacy cleanup)
-        try:
-            from dipeo.infrastructure.llm.providers.claude_code.transport.session_pool import (
-                shutdown_global_session_manager,
-            )
-
-            await shutdown_global_session_manager()
-        except ImportError:
-            pass
-        except Exception as e:
-            logger.error(f"Error shutting down warm pool manager: {e}")
+        # Note: Session pool removed in favor of direct fork approach
 
 
 async def init_resources(container: Container):
