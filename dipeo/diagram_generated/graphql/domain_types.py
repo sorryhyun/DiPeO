@@ -511,6 +511,16 @@ class LLMUsageType:
     cached: Optional[float] = None
     total: Optional[float] = None
 
+    @staticmethod
+    def from_pydantic(obj) -> "LLMUsageType":
+        """Convert from Pydantic model"""
+        return LLMUsageType(
+            input=obj.input,
+            output=obj.output,
+            cached=obj.cached,
+            total=obj.total
+        )
+
 
 @strawberry.type
 class NodeMetricsType:
@@ -842,6 +852,7 @@ class ExecutionStateType:
     variables: Optional[JSONScalar] = None
     exec_counts: JSONScalar
     metrics: Optional[JSONScalar] = None
+    output: Optional[JSONScalar] = None
 
     @staticmethod
     def from_pydantic(obj: ExecutionState) -> "ExecutionStateType":
@@ -859,6 +870,7 @@ class ExecutionStateType:
             node_states=obj.node_states,
             node_outputs=obj.node_outputs,
             variables=obj.variables,
+            output=getattr(obj, "output", None),
             exec_counts=obj.exec_counts,
             metrics=obj.metrics,
         )
