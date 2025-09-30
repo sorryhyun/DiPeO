@@ -511,6 +511,16 @@ class LLMUsageType:
     cached: Optional[float] = None
     total: Optional[float] = None
 
+    @staticmethod
+    def from_pydantic(obj: LLMUsage) -> "LLMUsageType":
+        """Convert from Pydantic model"""
+        return LLMUsageType(
+            input=obj.input,
+            output=obj.output,
+            cached=obj.cached,
+            total=obj.total,
+        )
+
 
 @strawberry.type
 class NodeMetricsType:
