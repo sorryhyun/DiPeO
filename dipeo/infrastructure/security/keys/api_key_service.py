@@ -52,7 +52,7 @@ class APIKeyService(LoggingMixin, InitializationMixin, ValidationMixin, APIKeyPo
         if key_id not in self._store:
             import logging
 
-from dipeo.config.base_logger import get_module_logger
+            from dipeo.config.base_logger import get_module_logger
 
             logger = get_module_logger(__name__)
             logger.error(

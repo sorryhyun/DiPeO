@@ -234,7 +234,7 @@ class ConditionEvaluator:
             result = eval_node(tree)
             import logging
 
-from dipeo.config.base_logger import get_module_logger
+            from dipeo.config.base_logger import get_module_logger
 
             logger = get_module_logger(__name__)
             logger.debug(
@@ -244,7 +244,7 @@ from dipeo.config.base_logger import get_module_logger
         except Exception as e:
             import logging
 
-from dipeo.config.base_logger import get_module_logger
+            from dipeo.config.base_logger import get_module_logger
 
             logger = get_module_logger(__name__)
             logger.debug(

@@ -113,7 +113,7 @@ dipeo run codegen/diagrams/generate_all --light --debug --timeout=90
 make diff-staged           # 스테이징 vs 활성 파일 비교
 
 # 3단계: 스테이징 백엔드 코드 적용
-make apply-syntax-only     # 문법 검증만 수행하여 적용
+make apply-test     # 문법 검증만 수행하여 적용
 # 또는
 make apply                 # mypy 타입 체크를 포함한 전체 검증 적용
 
