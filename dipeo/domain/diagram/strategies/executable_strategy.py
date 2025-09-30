@@ -31,7 +31,7 @@ from dipeo.domain.diagram.utils import _JsonMixin
 
 from .base_strategy import BaseConversionStrategy
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class ExecutableJsonStrategy(_JsonMixin, BaseConversionStrategy):

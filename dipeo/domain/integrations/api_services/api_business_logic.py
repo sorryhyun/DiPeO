@@ -9,7 +9,7 @@ from dipeo.domain.base.exceptions import ServiceError, ValidationError
 from dipeo.domain.diagram.ports import TemplateProcessorPort
 from dipeo.domain.integrations.api_value_objects import RetryPolicy, RetryStrategy
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class APIBusinessLogic:
@@ -114,7 +114,7 @@ class APIBusinessLogic:
             return True
 
         except Exception as e:
-            log.warning(f"Failed to evaluate condition '{condition}': {e}")
+            logger.warning(f"Failed to evaluate condition '{condition}': {e}")
             return False
 
     def validate_workflow_step(self, step: dict[str, Any]) -> None:
@@ -156,7 +156,7 @@ class APIBusinessLogic:
 
                 return yaml.dump(response_data, default_flow_style=False, allow_unicode=True)
             except ImportError:
-                log.warning("PyYAML not available, falling back to JSON")
+                logger.warning("PyYAML not available, falling back to JSON")
                 return json.dumps(response_data, indent=2, ensure_ascii=False)
         else:
             return str(response_data)

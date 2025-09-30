@@ -26,7 +26,7 @@ from dipeo.domain.diagram.utils import (
 from ..utils.conversion_utils import diagram_maps_to_arrays
 from .base_strategy import BaseConversionStrategy
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
@@ -201,7 +201,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             )
 
             if not (src_id and dst_id):
-                log.warning(
+                logger.warning(
                     f"Skipping connection: could not find nodes for '{src_label}' -> '{dst_label}'"
                 )
                 continue

@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 T = TypeVar("T", bound=BaseModel)
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def _get_node_handlers() -> dict[str, type[TypedNodeHandler]]:
@@ -81,7 +81,7 @@ class HandlerRegistry:
         handler_class = self._handler_classes.get(node_type)
         if not handler_class:
             available_types = list(self._handler_classes.keys())
-            log.error(
+            logger.error(
                 f"No handler class registered for node type: {node_type}. Available types: {available_types}"
             )
             raise ValueError(f"No handler class registered for node type: {node_type}")

@@ -10,7 +10,7 @@ from dipeo.diagram_generated import DataType, HandleDirection, HandleLabel, Node
 
 from .handle_utils import create_handle_id
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     pass

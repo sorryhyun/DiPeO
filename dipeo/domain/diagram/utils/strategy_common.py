@@ -16,7 +16,7 @@ from dipeo.diagram_generated import (
 
 from .handle_utils import create_handle_id
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class NodeFieldMapper:
@@ -245,7 +245,7 @@ class HandleParser:
         expected_handle_id = create_handle_id(NodeID(actual_node_id), handle_label, direction)
 
         if expected_handle_id not in handles_dict:
-            log.debug(
+            logger.debug(
                 f"Creating handle: handle_ref={handle_ref}, handle_name={handle_name}, handle_label={handle_label}, type={type(handle_label)}"
             )
             handles_dict[expected_handle_id] = {
