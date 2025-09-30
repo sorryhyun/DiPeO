@@ -26,7 +26,7 @@ nodes:
     position: {x: 350, y: 200}
     props:
       language: python
-      filePath: projects/codegen/code/frontend/simple_registry_v2.py
+      filePath: dipeo/infrastructure/codegen/generators/registry_generator.py
       functionName: main
 
   - label: Write Registry

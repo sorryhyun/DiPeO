@@ -10,7 +10,7 @@ import re
 import sys
 from typing import Any, Optional, Union
 
-from projects.codegen.code.core.utils import parse_dipeo_output
+from dipeo.infrastructure.codegen.utils import parse_dipeo_output
 
 sys.path.append(os.environ.get('DIPEO_BASE_DIR', '/home/soryhyun/DiPeO'))
 from dipeo.infrastructure.codegen.parsers.typescript.type_transformer import map_ts_type_to_python

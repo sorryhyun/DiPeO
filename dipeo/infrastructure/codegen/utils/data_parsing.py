@@ -1,4 +1,4 @@
-"""Core utilities for codegen system."""
+"""Core utilities for codegen system - DiPeO output parsing."""
 import ast
 import json
 

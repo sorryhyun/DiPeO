@@ -47,7 +47,7 @@ nodes:
     position: {x: 550, y: 200}
     props:
       language: python
-      filePath: projects/codegen/code/frontend_node_extractor.py
+      filePath: dipeo/infrastructure/codegen/generators/node_extractor.py
       functionName: main
 
   # Generate all three file using template_job

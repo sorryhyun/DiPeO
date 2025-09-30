@@ -4,7 +4,7 @@ Handles glob results directly without intermediate extraction.
 from typing import Any
 
 from dipeo.infrastructure.codegen.templates.filters.case_filters import CaseFilters
-from projects.codegen.code.core.utils import parse_dipeo_output
+from dipeo.infrastructure.codegen.utils import parse_dipeo_output
 
 
 def extract_node_types_from_glob(glob_results: dict[str, Any]) -> list[str]:

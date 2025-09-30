@@ -6,8 +6,8 @@ Templates handle case conversions using Jinja2 filters.
 
 from typing import Any
 
-from projects.codegen.code.core.utils import parse_dipeo_output
-from projects.codegen.code.shared.typescript_spec_parser import extract_spec_from_ast
+from dipeo.infrastructure.codegen.utils import parse_dipeo_output
+from dipeo.infrastructure.codegen.generators.spec_parser import extract_spec_from_ast
 
 
 def snake_to_pascal(text: str) -> str:
