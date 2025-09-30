@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces using simplified type resolver.
 
-Generated at: 2025-09-30T20:02:07.651287
+Generated at: 2025-09-30T20:07:52.863695
 """
 
 import strawberry
@@ -856,18 +856,6 @@ class ExecutionStateType:
     @staticmethod
     def from_pydantic(obj: ExecutionState) -> "ExecutionStateType":
         """Convert from Pydantic model"""
-        # Convert node_states dict - each NodeState must be serialized
-        node_states_json = {
-            node_id: state.model_dump() if hasattr(state, 'model_dump') else state
-            for node_id, state in obj.node_states.items()
-        } if obj.node_states else {}
-
-        # Convert node_outputs dict - each SerializedEnvelope must be serialized
-        node_outputs_json = {
-            node_id: output.model_dump() if hasattr(output, 'model_dump') else output
-            for node_id, output in obj.node_outputs.items()
-        } if obj.node_outputs else {}
-
         return ExecutionStateType(
             id=obj.id,
             status=obj.status,
@@ -878,8 +866,8 @@ class ExecutionStateType:
             llm_usage=LLMUsageType.from_pydantic(obj.llm_usage) if obj.llm_usage else None,
             is_active=obj.is_active,
             executed_nodes=obj.executed_nodes,
-            node_states=node_states_json,
-            node_outputs=node_outputs_json,
+            node_states={k: v.model_dump() for k, v in obj.node_states.items()},
+            node_outputs={k: v.model_dump() for k, v in obj.node_outputs.items()},
             variables=obj.variables,
             exec_counts=obj.exec_counts,
             metrics=obj.metrics,

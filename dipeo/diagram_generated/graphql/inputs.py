@@ -2,7 +2,7 @@
 GraphQL input types for DiPeO mutations.
 Auto-generated from TypeScript definitions.
 
-Generated at: 2025-09-30T20:02:07.651287
+Generated at: 2025-09-30T20:07:52.863695
 """
 
 from datetime import datetime

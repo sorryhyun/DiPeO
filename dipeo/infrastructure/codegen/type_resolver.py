@@ -133,7 +133,7 @@ class StrawberryTypeResolver:
         "PersonLLMConfig",
         "DomainApiKey",
         "DiagramMetadata",
-        "LLMUsage",
+        # "LLMUsage",  # Removed: referenced by NodeStateType.from_pydantic() and ExecutionStateType.from_pydantic()
         "NodeState",
         "NodeMetrics",
         "Bottleneck",

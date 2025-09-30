@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for user_response.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-30T20:02:09.960364
+Generated at: 2025-09-30T20:07:55.050375
 """
 
 from typing import *
