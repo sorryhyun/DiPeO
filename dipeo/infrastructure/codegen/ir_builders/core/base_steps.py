@@ -22,7 +22,7 @@ from typing import Any, Optional
 from dipeo.config.base_logger import get_module_logger
 from dipeo.infrastructure.codegen.ir_builders.core.context import BuildContext
 from dipeo.infrastructure.codegen.ir_builders.core.steps import BuildStep, StepResult, StepType
-from dipeo.infrastructure.codegen.ir_builders.utils import TypeConverter
+from dipeo.infrastructure.codegen.ir_builders.type_system_unified import UnifiedTypeConverter
 
 logger = get_module_logger(__name__)
 
@@ -103,7 +103,7 @@ class BaseExtractionStep(BuildStep):
         self,
         file_path: str,
         file_data: dict[str, Any],
-        type_converter: TypeConverter,
+        type_converter: UnifiedTypeConverter,
         context: BuildContext,
     ) -> Any:
         """Extract data from a single AST file.

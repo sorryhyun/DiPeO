@@ -175,9 +175,10 @@ class ExtractFrontendEnumsStep(BuildStep):
             StepResult with enums
         """
         try:
-            from dipeo.infrastructure.codegen.ir_builders.utils import extract_enums_from_ast
+            from dipeo.infrastructure.codegen.ir_builders.ast import EnumExtractor
 
-            enums = extract_enums_from_ast(data)
+            extractor = EnumExtractor()
+            enums = extractor.extract(data)
 
             return StepResult(
                 success=True,

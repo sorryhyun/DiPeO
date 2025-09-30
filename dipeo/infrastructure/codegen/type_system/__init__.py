@@ -1,7 +1,12 @@
-"""Shared type system utilities for code generation components."""
+"""Shared type system utilities for code generation components.
+
+This module provides case conversion utilities for code generation.
+
+NOTE: TypeConverter has been removed. Use UnifiedTypeConverter from
+dipeo.infrastructure.codegen.ir_builders.type_system_unified instead.
+"""
 
 from .converter import (
-    TypeConverter,
     camel_case,
     camel_to_snake,
     kebab_case,
@@ -12,7 +17,6 @@ from .converter import (
 )
 
 __all__ = [
-    "TypeConverter",
     "snake_case",
     "camel_case",
     "pascal_case",

@@ -11,7 +11,7 @@ from dipeo.infrastructure.codegen.ir_builders.core import (
     StepResult,
     StepType,
 )
-from dipeo.infrastructure.codegen.ir_builders.utils import TypeConverter
+from dipeo.infrastructure.codegen.ir_builders.type_system_unified import UnifiedTypeConverter
 
 
 class ExtractDomainModelsStep(BaseExtractionStep):
@@ -55,7 +55,7 @@ class ExtractDomainModelsStep(BaseExtractionStep):
         self,
         file_path: str,
         file_data: dict[str, Any],
-        type_converter: TypeConverter,
+        type_converter: UnifiedTypeConverter,
         context: BuildContext,
     ) -> None:
         """Extract domain models from a single AST file.
@@ -111,7 +111,7 @@ class ExtractDomainModelsStep(BaseExtractionStep):
         return {"newtype_count": 0, "model_count": 0, "alias_count": 0}
 
     def _extract_newtypes(
-        self, file_data: dict[str, Any], type_converter: TypeConverter, processed: set[str]
+        self, file_data: dict[str, Any], type_converter: UnifiedTypeConverter, processed: set[str]
     ) -> list[dict[str, Any]]:
         """Extract branded NewType declarations.
 
@@ -143,7 +143,7 @@ class ExtractDomainModelsStep(BaseExtractionStep):
         return newtypes
 
     def _extract_models(
-        self, file_data: dict[str, Any], type_converter: TypeConverter, processed: set[str]
+        self, file_data: dict[str, Any], type_converter: UnifiedTypeConverter, processed: set[str]
     ) -> list[dict[str, Any]]:
         """Extract model interfaces.
 
@@ -188,7 +188,7 @@ class ExtractDomainModelsStep(BaseExtractionStep):
         return models
 
     def _convert_property_to_field(
-        self, prop: dict[str, Any], type_converter: TypeConverter
+        self, prop: dict[str, Any], type_converter: UnifiedTypeConverter
     ) -> Optional[dict[str, Any]]:
         """Convert interface property to field definition.
 
@@ -234,7 +234,7 @@ class ExtractEnumsStep(BaseExtractionStep):
         self,
         file_path: str,
         file_data: dict[str, Any],
-        type_converter: TypeConverter,
+        type_converter: UnifiedTypeConverter,
         context: BuildContext,
     ) -> list[dict[str, Any]]:
         """Extract enum definitions from a single AST file.
@@ -330,7 +330,7 @@ class ExtractIntegrationsStep(BaseExtractionStep):
         self,
         file_path: str,
         file_data: dict[str, Any],
-        type_converter: TypeConverter,
+        type_converter: UnifiedTypeConverter,
         context: BuildContext,
     ) -> list[dict[str, Any]]:
         """Extract integration definitions from a single AST file.
@@ -405,7 +405,7 @@ class ExtractConversionsStep(BaseExtractionStep):
         self,
         file_path: str,
         file_data: dict[str, Any],
-        type_converter: TypeConverter,
+        type_converter: UnifiedTypeConverter,
         context: BuildContext,
     ) -> None:
         """Extract conversion data from a single AST file.

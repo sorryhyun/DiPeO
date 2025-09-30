@@ -13,10 +13,10 @@ from dipeo.infrastructure.codegen.ir_builders.core import (
     StepType,
 )
 from dipeo.infrastructure.codegen.ir_builders.utils import (
-    TypeConverter,
     camel_to_snake,
     snake_to_pascal,
 )
+from dipeo.infrastructure.codegen.ir_builders.type_system_unified import UnifiedTypeConverter
 
 
 class ExtractNodeSpecsStep(BaseExtractionStep):
@@ -42,7 +42,7 @@ class ExtractNodeSpecsStep(BaseExtractionStep):
         self,
         file_path: str,
         file_data: dict[str, Any],
-        type_converter: TypeConverter,
+        type_converter: UnifiedTypeConverter,
         context: BuildContext,
     ) -> Optional[dict[str, Any]]:
         """Extract node specification from a single AST file.
@@ -77,7 +77,7 @@ class ExtractNodeSpecsStep(BaseExtractionStep):
         node_type: str,
         node_name: str,
         spec_value: dict[str, Any],
-        type_converter: TypeConverter,
+        type_converter: UnifiedTypeConverter,
     ) -> dict[str, Any]:
         """Build node specification from spec value.
 
@@ -126,7 +126,7 @@ class ExtractNodeSpecsStep(BaseExtractionStep):
         }
 
     def _process_fields(
-        self, fields: list[dict[str, Any]], node_type: str, type_converter: TypeConverter
+        self, fields: list[dict[str, Any]], node_type: str, type_converter: UnifiedTypeConverter
     ) -> list[dict[str, Any]]:
         """Process and normalize field definitions.
 
@@ -146,7 +146,7 @@ class ExtractNodeSpecsStep(BaseExtractionStep):
         return processed
 
     def _process_field(
-        self, field: dict[str, Any], node_type: str, type_converter: TypeConverter
+        self, field: dict[str, Any], node_type: str, type_converter: UnifiedTypeConverter
     ) -> dict[str, Any]:
         """Normalize a single field definition.
 
@@ -196,7 +196,7 @@ class ExtractNodeSpecsStep(BaseExtractionStep):
         field_name: str,
         node_type: str,
         enum_values: list[Any],
-        type_converter: TypeConverter,
+        type_converter: UnifiedTypeConverter,
     ) -> tuple[str, str, bool]:
         """Determine Python and GraphQL types along with object flag.
 

@@ -9,7 +9,6 @@ from typing import Any, Optional
 import yaml
 
 from dipeo.infrastructure.codegen.type_system import (
-    TypeConverter,
     camel_case,
     camel_to_snake,
     kebab_case,
@@ -18,17 +17,34 @@ from dipeo.infrastructure.codegen.type_system import (
     snake_case,
     snake_to_pascal,
 )
+from dipeo.infrastructure.codegen.ir_builders.type_system_unified import UnifiedTypeConverter
 
 
 # ============================================================================
 # AST PROCESSING UTILITIES
 # ============================================================================
 
+# NOTE: These functions are DEPRECATED as of Phase 2 refactoring.
+# Use the new AST framework from dipeo.infrastructure.codegen.ir_builders.ast instead.
+#
+# Migration guide:
+#   from dipeo.infrastructure.codegen.ir_builders.ast import (
+#       InterfaceExtractor, EnumExtractor, TypeAliasExtractor,
+#       ConstantExtractor, BrandedScalarExtractor, GraphQLInputTypeExtractor
+#   )
+#
+# Example:
+#   Old: interfaces = extract_interfaces_from_ast(ast_data, suffix='Config')
+#   New: extractor = InterfaceExtractor(suffix='Config')
+#        interfaces = extractor.extract(ast_data)
+
 
 def extract_constants_from_ast(
     ast_data: dict[str, Any], pattern: Optional[str] = None
 ) -> list[dict[str, Any]]:
     """Extract constants from TypeScript AST data.
+
+    DEPRECATED: Use ConstantExtractor from the ast module instead.
 
     Args:
         ast_data: TypeScript AST data
@@ -37,35 +53,18 @@ def extract_constants_from_ast(
     Returns:
         List of constant dictionaries
     """
-    constants = []
+    from dipeo.infrastructure.codegen.ir_builders.ast import ConstantExtractor
 
-    for file_path, file_data in ast_data.items():
-        if not isinstance(file_data, dict):
-            continue
-
-        for const in file_data.get("constants", []):
-            const_name = const.get("name", "")
-
-            # Apply pattern filter if provided
-            if pattern and not re.match(pattern, const_name):
-                continue
-
-            constants.append(
-                {
-                    "name": const_name,
-                    "value": const.get("value"),
-                    "type": const.get("type"),
-                    "file": file_path,
-                }
-            )
-
-    return constants
+    extractor = ConstantExtractor(pattern=pattern)
+    return extractor.extract(ast_data)
 
 
 def extract_interfaces_from_ast(
     ast_data: dict[str, Any], suffix: Optional[str] = None
 ) -> list[dict[str, Any]]:
     """Extract interfaces from TypeScript AST data.
+
+    DEPRECATED: Use InterfaceExtractor from the ast module instead.
 
     Args:
         ast_data: TypeScript AST data
@@ -74,33 +73,16 @@ def extract_interfaces_from_ast(
     Returns:
         List of interface dictionaries
     """
-    interfaces = []
+    from dipeo.infrastructure.codegen.ir_builders.ast import InterfaceExtractor
 
-    for file_path, file_data in ast_data.items():
-        if not isinstance(file_data, dict):
-            continue
-
-        for interface in file_data.get("interfaces", []):
-            interface_name = interface.get("name", "")
-
-            # Apply suffix filter if provided
-            if suffix and not interface_name.endswith(suffix):
-                continue
-
-            interfaces.append(
-                {
-                    "name": interface_name,
-                    "properties": interface.get("properties", []),
-                    "extends": interface.get("extends", []),
-                    "file": file_path,
-                }
-            )
-
-    return interfaces
+    extractor = InterfaceExtractor(suffix=suffix)
+    return extractor.extract(ast_data)
 
 
 def extract_enums_from_ast(ast_data: dict[str, Any]) -> list[dict[str, Any]]:
     """Extract enums from TypeScript AST data.
+
+    DEPRECATED: Use EnumExtractor from the ast module instead.
 
     Args:
         ast_data: TypeScript AST data
@@ -108,26 +90,16 @@ def extract_enums_from_ast(ast_data: dict[str, Any]) -> list[dict[str, Any]]:
     Returns:
         List of enum dictionaries
     """
-    enums = []
+    from dipeo.infrastructure.codegen.ir_builders.ast import EnumExtractor
 
-    for file_path, file_data in ast_data.items():
-        if not isinstance(file_data, dict):
-            continue
-
-        for enum in file_data.get("enums", []):
-            enums.append(
-                {
-                    "name": enum.get("name", ""),
-                    "members": enum.get("members", []),
-                    "file": file_path,
-                }
-            )
-
-    return enums
+    extractor = EnumExtractor()
+    return extractor.extract(ast_data)
 
 
 def extract_type_aliases_from_ast(ast_data: dict[str, Any]) -> list[dict[str, Any]]:
     """Extract type aliases from TypeScript AST data.
+
+    DEPRECATED: Use TypeAliasExtractor from the ast module instead.
 
     Args:
         ast_data: TypeScript AST data
@@ -135,26 +107,16 @@ def extract_type_aliases_from_ast(ast_data: dict[str, Any]) -> list[dict[str, An
     Returns:
         List of type alias dictionaries
     """
-    type_aliases = []
+    from dipeo.infrastructure.codegen.ir_builders.ast import TypeAliasExtractor
 
-    for file_path, file_data in ast_data.items():
-        if not isinstance(file_data, dict):
-            continue
-
-        for type_alias in file_data.get("typeAliases", []):
-            type_aliases.append(
-                {
-                    "name": type_alias.get("name", ""),
-                    "type": type_alias.get("type"),
-                    "file": file_path,
-                }
-            )
-
-    return type_aliases
+    extractor = TypeAliasExtractor()
+    return extractor.extract(ast_data)
 
 
 def extract_graphql_input_types_from_ast(ast_data: dict[str, Any]) -> list[dict[str, Any]]:
     """Extract GraphQL input types from TypeScript AST data.
+
+    DEPRECATED: Use GraphQLInputTypeExtractor from the ast module instead.
 
     Looks for type aliases ending with 'Input' from graphql-inputs.ts
 
@@ -164,91 +126,16 @@ def extract_graphql_input_types_from_ast(ast_data: dict[str, Any]) -> list[dict[
     Returns:
         List of input type definitions
     """
-    input_types = []
+    from dipeo.infrastructure.codegen.ir_builders.ast import GraphQLInputTypeExtractor
 
-    for file_path, file_data in ast_data.items():
-        if not isinstance(file_data, dict):
-            continue
-
-        # Only process graphql-inputs.ts
-        if "graphql-inputs" not in file_path:
-            continue
-
-        # Extract type aliases ending with Input
-        for type_alias in file_data.get("typeAliases", []):
-            name = type_alias.get("name", "")
-            if name.endswith("Input"):
-                # Parse the type definition
-                type_def = type_alias.get("type", {})
-                fields = []
-
-                # Extract fields from object type
-                if isinstance(type_def, dict) and type_def.get("type") == "object":
-                    for prop in type_def.get("properties", []):
-                        field = {
-                            "name": prop.get("name", ""),
-                            "type": prop.get("type", "String"),
-                            "is_optional": prop.get("optional", False),
-                            "description": prop.get("comment", ""),
-                        }
-                        fields.append(field)
-
-                input_types.append(
-                    {"name": name, "fields": fields, "description": type_alias.get("comment", "")}
-                )
-
-        # Also look in types array for types ending with Input
-        for type_def in file_data.get("types", []):
-            if isinstance(type_def, dict):
-                name = type_def.get("name", "")
-                if name.endswith("Input"):
-                    # Parse the type string to extract fields
-                    type_str = type_def.get("type", "")
-                    fields = []
-
-                    # Simple parser for object type string like "{ x: Float; y: Float; }"
-                    if "{" in type_str and "}" in type_str:
-                        # Remove braces and split by semicolon
-                        content = type_str.strip().strip("{}").strip()
-                        if content:
-                            field_lines = content.split(";")
-                            for line in field_lines:
-                                line = line.strip()
-                                if ":" in line:
-                                    parts = line.split(":", 1)
-                                    field_name = parts[0].strip()
-                                    field_type = parts[1].strip() if len(parts) > 1 else "Any"
-
-                                    # Simplify Scalars['Type']['input'] to Type
-                                    if "Scalars[" in field_type:
-                                        # Extract the type name
-                                        import re
-
-                                        match = re.search(r"Scalars\['(\w+)'\]", field_type)
-                                        if match:
-                                            field_type = match.group(1)
-
-                                    # Check if optional
-                                    is_optional = "?" in field_name or "InputMaybe<" in field_type
-                                    field_name = field_name.rstrip("?")
-
-                                    fields.append(
-                                        {
-                                            "name": field_name,
-                                            "type": field_type,
-                                            "is_optional": is_optional,
-                                            "description": "",
-                                        }
-                                    )
-
-                    if fields:  # Only add if we found fields
-                        input_types.append({"name": name, "fields": fields, "description": ""})
-
-    return input_types
+    extractor = GraphQLInputTypeExtractor()
+    return extractor.extract(ast_data)
 
 
 def extract_branded_scalars_from_ast(ast_data: dict[str, Any]) -> list[dict[str, Any]]:
     """Extract branded scalars from TypeScript AST data.
+
+    DEPRECATED: Use BrandedScalarExtractor from the ast module instead.
 
     Args:
         ast_data: TypeScript AST data
@@ -256,79 +143,26 @@ def extract_branded_scalars_from_ast(ast_data: dict[str, Any]) -> list[dict[str,
     Returns:
         List of branded scalar dictionaries
     """
-    scalars = []
-    seen_names = set()
+    from dipeo.infrastructure.codegen.ir_builders.ast import BrandedScalarExtractor
 
-    for _file_path, file_data in ast_data.items():
-        if not isinstance(file_data, dict):
-            continue
-
-        # Look for branded scalars in the AST
-        for scalar in file_data.get("brandedScalars", []):
-            scalar_name = scalar.get("name", "")
-            if scalar_name and scalar_name not in seen_names:
-                scalars.append(
-                    {
-                        "name": scalar_name,
-                        "type": scalar.get("baseType", "string"),
-                        "description": f"Branded scalar type for {scalar_name}",
-                    }
-                )
-                seen_names.add(scalar_name)
-
-        # Also look for NewType declarations that end with ID
-        for type_alias in file_data.get("typeAliases", []):
-            name = type_alias.get("name", "")
-            if name.endswith("ID") and name not in seen_names:
-                scalars.append(
-                    {
-                        "name": name,
-                        "type": "string",
-                        "description": f"Branded scalar type for {name}",
-                    }
-                )
-                seen_names.add(name)
-
-        # Look in types array for branded types (pattern: string & { readonly __brand: ... })
-        for type_def in file_data.get("types", []):
-            if isinstance(type_def, dict):
-                type_name = type_def.get("name", "")
-                type_value = type_def.get("type", "")
-                # Check if it's a branded type pattern
-                if "__brand" in type_value and type_name and type_name not in seen_names:
-                    # Extract base type (usually "string" before the &)
-                    base_type = "string"  # Default to string
-                    if "string &" in type_value:
-                        base_type = "string"
-                    elif "number &" in type_value:
-                        base_type = "number"
-
-                    scalars.append(
-                        {
-                            "name": type_name,
-                            "type": base_type,
-                            "description": f"Branded scalar type for {type_name}",
-                        }
-                    )
-                    seen_names.add(type_name)
-
-    return scalars
+    extractor = BrandedScalarExtractor()
+    return extractor.extract(ast_data)
 
 
 def process_field_definition(
-    field: dict[str, Any], type_converter: Optional[TypeConverter] = None
+    field: dict[str, Any], type_converter: Optional[UnifiedTypeConverter] = None
 ) -> dict[str, Any]:
     """Process a field definition from TypeScript AST.
 
     Args:
         field: Field definition from AST
-        type_converter: Optional TypeConverter instance for type conversion
+        type_converter: Optional UnifiedTypeConverter instance for type conversion
 
     Returns:
         Processed field dictionary
     """
     if not type_converter:
-        type_converter = TypeConverter()
+        type_converter = UnifiedTypeConverter()
 
     field_type = field.get("type", "any")
     is_required = field.get("required", False)

@@ -14,7 +14,7 @@ from dipeo.infrastructure.codegen.ir_builders.core.base_steps import (
     BaseExtractionStep,
     BaseTransformStep,
 )
-from dipeo.infrastructure.codegen.ir_builders.utils import TypeConverter
+from dipeo.infrastructure.codegen.ir_builders.type_system_unified import UnifiedTypeConverter
 
 
 class ExtractGraphQLOperationsStep(BaseExtractionStep):
@@ -43,7 +43,7 @@ class ExtractGraphQLOperationsStep(BaseExtractionStep):
         self,
         file_path: str,
         file_data: dict[str, Any],
-        type_converter: TypeConverter,
+        type_converter: UnifiedTypeConverter,
         context: BuildContext,
     ) -> list[dict[str, Any]]:
         """Extract GraphQL operations from a single AST file.
@@ -92,7 +92,7 @@ class ExtractGraphQLOperationsStep(BaseExtractionStep):
         self,
         const: dict[str, Any],
         operations: list[dict[str, Any]],
-        type_converter: TypeConverter,
+        type_converter: UnifiedTypeConverter,
     ) -> None:
         """Process a query constant and extract operations.
 
@@ -116,7 +116,7 @@ class ExtractGraphQLOperationsStep(BaseExtractionStep):
             operations.append(operation)
 
     def _build_operation(
-        self, query: dict[str, Any], entity_name: str, type_converter: TypeConverter
+        self, query: dict[str, Any], entity_name: str, type_converter: UnifiedTypeConverter
     ) -> dict[str, Any]:
         """Build an operation definition from query data.
 
@@ -167,7 +167,7 @@ class ExtractGraphQLOperationsStep(BaseExtractionStep):
         return "query"
 
     def _transform_variables(
-        self, variables: list[dict[str, Any]], type_converter: TypeConverter
+        self, variables: list[dict[str, Any]], type_converter: UnifiedTypeConverter
     ) -> list[dict[str, Any]]:
         """Transform GraphQL variables.
 

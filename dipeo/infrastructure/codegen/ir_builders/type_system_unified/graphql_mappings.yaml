@@ -1,0 +1,230 @@
+# GraphQL and Strawberry Type Mappings Configuration
+# Consolidates logic from StrawberryTypeResolver
+
+# Scalar type mappings for Strawberry GraphQL
+scalar_mappings:
+  CliSessionID: CliSessionIDScalar
+  NodeID: NodeIDScalar
+  ArrowID: ArrowIDScalar
+  HandleID: HandleIDScalar
+  PersonID: PersonIDScalar
+  ApiKeyID: ApiKeyIDScalar
+  DiagramID: DiagramIDScalar
+  ExecutionID: ExecutionIDScalar
+  FileID: FileIDScalar
+  HookID: HookIDScalar
+  TaskID: TaskIDScalar
+
+# Types that should be rendered as JSON scalars in GraphQL
+json_types:
+  - JsonDict
+  - JsonValue
+  - JSONScalar
+  - "Dict[str, Any]"
+  - "dict[str, Any]"
+  - "Dict[str, str]"
+  - "dict[str, str]"
+  - "Dict[str, JSONScalar]"
+  - "dict[str, JSONScalar]"
+
+# Types that need manual conversion due to complex logic or nested structures
+# These types will have custom from_pydantic() methods generated
+manual_conversion_types:
+  # Complex nested conversions
+  - DomainDiagram  # Complex nested conversion of nodes, handles, arrows, persons lists
+  - ExecutionMetrics  # Complex nested structure with metrics aggregation
+  - ExecutionState  # Complex state management with multiple nested types
+  - ExecutionOptions  # Complex options with nested configurations
+  - ExecutionUpdate  # Complex update structure with discriminated unions
+  - ExecutionLogEntry  # Complex log structure with nested fields
+
+  # Domain models with special handling
+  - DomainNode  # Has JsonDict field that needs JSONScalar conversion
+  - DomainArrow  # Has JsonDict field that needs JSONScalar conversion
+  - DomainPerson  # Has nested complex types
+
+  # Session and message types
+  - CliSession  # Has dict fields that need JSONScalar conversion
+  - Message  # Has union types and complex fields
+  - Conversation  # Has nested message lists
+
+# Types that can use @strawberry.experimental.pydantic.type decorator
+# These have simple field mappings or basic type conversions
+pydantic_decorator_types:
+  # Simple types with direct field mappings
+  - KeepalivePayload
+  - ConversationMetadata
+  - Vec2
+  - DomainHandle
+  - PersonLLMConfig
+  - DomainApiKey
+  - DiagramMetadata
+
+  # State and metrics
+  - NodeState
+  - NodeMetrics
+  - Bottleneck
+
+  # Envelope types
+  - EnvelopeMeta
+  - SerializedEnvelope
+
+  # Prompt and node types
+  - InteractivePromptData
+  - NodeDefinition
+  - NodeUpdate
+  - InteractivePrompt
+
+  # File and tool types
+  - File
+  - ToolConfig
+  - ToolOutput
+
+  # LLM and API types
+  - LLMRequestOptions
+  - WebSearchResult
+  - ImageGenerationResult
+
+# Field name patterns that suggest JSON data
+json_field_patterns:
+  - data
+  - variables
+  - metadata
+  - output
+  - input
+  - diagram_data
+  - node_data
+  - body
+  - headers
+  - params
+  - config
+  - options
+  - settings
+  - props
+  - properties
+  # Pattern: ends with _data
+  - "*_data"
+
+# Python → Strawberry type resolution rules
+strawberry_type_rules:
+  # Domain types get "Type" suffix
+  domain_types:
+    prefix: Domain
+    suffix: Type
+
+  # Message types
+  message_types:
+    - Message
+    - MessageType
+
+  # List handling for domain types
+  list_domain_pattern: "^(List|list)\\[Domain(.+)\\]$"
+  list_domain_replacement: "List[Domain{inner}Type]"
+
+  # Optional type handling
+  optional_pattern: "^Optional\\[(.+)\\]$"
+
+  # Known enum types (keep as-is)
+  enum_types:
+    - NodeType
+    - ContentType
+    - EventType
+    - Status
+    - HandleLabel
+    - HandleDirection
+    - DataType
+    - LLMService
+    - APIServiceType
+    - ToolType
+
+  # Types that get "Type" suffix but aren't domain types
+  type_suffix_types:
+    - Vec2
+    - PersonLLMConfig
+    - DiagramMetadata
+    - EnvelopeMeta
+    - ExecutionMetrics
+    - LLMUsage
+    - ConversationMetadata
+    - NodeState
+    - NodeMetrics
+
+# Conversion expression templates for from_pydantic() methods
+conversion_templates:
+  # Enum value conversion
+  enum_value: "str({source}.{field}.value) if hasattr({source}.{field}, 'value') else str({source}.{field})"
+
+  # JSON scalar (pass through)
+  json_scalar: "{source}.{field}"
+
+  # Nested type conversion
+  nested_type: "{type}.from_pydantic({source}.{field}) if hasattr({type}, 'from_pydantic') else {source}.{field}"
+
+  # Optional nested type
+  optional_nested: "{type}.from_pydantic({source}.{field}) if {source}.{field} and hasattr({type}, 'from_pydantic') else {source}.{field}"
+
+  # List of nested types
+  nested_list: "[{type}.from_pydantic(item) for item in {source}.{field}] if {source}.{field} else []"
+
+  # Dict to JSON
+  dict_to_json: |
+    {{k: v.model_dump() if hasattr(v, 'model_dump') else v
+      for k, v in {source}.{field}.items()}} if {source}.{field} else {{}}
+
+# GraphQL input type conversions (for GraphQL codegen patterns)
+graphql_input_mappings:
+  # Scalars['Type']['input'] patterns
+  scalar_inputs:
+    ID: str
+    String: str
+    Int: int
+    Float: float
+    Boolean: bool
+    DateTime: datetime
+    Date: datetime
+    Time: str
+    JSON: JSON
+    BigInt: int
+
+  # InputMaybe<T> → Optional[T]
+  input_maybe_pattern: "^InputMaybe<(.+)>$"
+  input_maybe_replacement: "Optional[{inner}]"
+
+  # Maybe<T> → Optional[T]
+  maybe_pattern: "^Maybe<(.+)>$"
+  maybe_replacement: "Optional[{inner}]"
+
+  # Array<T> → List[T]
+  array_pattern: "^Array<(.+)>$"
+  array_replacement: "List[{inner}]"
+
+  # Types ending with "Input" are kept as-is
+  input_type_suffix: Input
+
+# Special field name → type overrides for person_job node
+person_job_field_overrides:
+  person_id: PersonID
+  llm_config: PersonLLMConfig
+  memory_settings: MemorySettings
+  memory_profile: str
+  tools: "List[ToolConfig]"
+
+# Dict value type → GraphQL type rules
+dict_value_to_graphql:
+  # If dict value is any of these, use JSONScalar
+  json_scalar_values:
+    - NodeState
+    - SerializedNodeOutput
+    - SerializedEnvelope
+    - NodeMetrics
+    - Domain*  # Any type starting with Domain
+    - float
+    - int
+    - bool
+    - Any
+
+  # Only simple Dict[str, str] can be used directly
+  allowed_direct_dict: "Dict[str, str]"
+
+  # Default for complex dicts
+  default: JSONScalar

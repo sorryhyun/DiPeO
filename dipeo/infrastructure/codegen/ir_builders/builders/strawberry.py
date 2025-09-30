@@ -114,16 +114,21 @@ class ExtractGraphQLTypesStep(BuildStep):
             StepResult with GraphQL types
         """
         try:
-            from dipeo.infrastructure.codegen.ir_builders.utils import (
-                extract_branded_scalars_from_ast,
-                extract_graphql_input_types_from_ast,
-                extract_interfaces_from_ast,
+            from dipeo.infrastructure.codegen.ir_builders.ast import (
+                BrandedScalarExtractor,
+                GraphQLInputTypeExtractor,
+                InterfaceExtractor,
             )
 
-            # extract_interfaces_from_ast takes optional suffix string, not TypeConverter
-            interfaces = extract_interfaces_from_ast(data)  # No suffix filter needed here
-            input_types = extract_graphql_input_types_from_ast(data)
-            branded_scalars = extract_branded_scalars_from_ast(data)
+            # Use new extractor classes from ast module
+            interface_extractor = InterfaceExtractor()
+            interfaces = interface_extractor.extract(data)
+
+            input_type_extractor = GraphQLInputTypeExtractor()
+            input_types = input_type_extractor.extract(data)
+
+            branded_scalar_extractor = BrandedScalarExtractor()
+            branded_scalars = branded_scalar_extractor.extract(data)
 
             return StepResult(
                 success=True,
@@ -360,7 +365,7 @@ class StrawberryAssemblerStep(BaseAssemblerStep):
                 "interfaces": graphql_types.get("interfaces", []) if graphql_types else [],
                 "enums": enums or [],
                 "scalars": graphql_types.get("branded_scalars", []) if graphql_types else [],
-                "inputs": graphql_types.get("input_types", []) if graphql_types else [],
+                "inputs": input_types_list,  # Use input_types from transformed_types
             }
         }
         domain_result = domain_step.execute(context, domain_input)

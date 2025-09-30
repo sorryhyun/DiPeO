@@ -9,31 +9,33 @@ from pathlib import Path
 from typing import Any, Optional
 
 from dipeo.infrastructure.codegen.ir_builders.utils import (
-    TypeConverter,
     pascal_case,
     snake_to_pascal,
 )
-from dipeo.infrastructure.codegen.type_resolver import StrawberryTypeResolver
+from dipeo.infrastructure.codegen.ir_builders.type_system_unified import (
+    UnifiedTypeConverter,
+    UnifiedTypeResolver,
+)
 
 logger = get_module_logger(__name__)
 
 def transform_domain_types(
     interfaces: list[dict[str, Any]],
     config: dict[str, Any],
-    type_converter: Optional[TypeConverter] = None,
+    type_converter: Optional[UnifiedTypeConverter] = None,
 ) -> list[dict[str, Any]]:
     """Transform TypeScript interfaces to Strawberry domain types.
 
     Args:
         interfaces: List of TypeScript interface definitions
         config: Configuration data for domain fields
-        type_converter: Optional type converter instance
+        type_converter: Optional UnifiedTypeConverter instance
 
     Returns:
         List of transformed domain type definitions
     """
     if not type_converter:
-        type_converter = TypeConverter()
+        type_converter = UnifiedTypeConverter()
 
     domain_types = []
     # logger.debug(f"Transforming {len(interfaces)} interfaces to domain types")
@@ -53,25 +55,27 @@ def transform_domain_types(
     return domain_types
 
 def transform_input_types(
-    operations: list[dict[str, Any]], type_converter: Optional[TypeConverter] = None
+    operations: list[dict[str, Any]], type_converter: Optional[UnifiedTypeConverter] = None
 ) -> list[dict[str, Any]]:
     """Transform operation variables to GraphQL input types.
 
     Args:
         operations: List of operation definitions
-        type_converter: Optional type converter instance
+        type_converter: Optional UnifiedTypeConverter instance
 
     Returns:
         List of input type definitions
     """
     if not type_converter:
-        type_converter = TypeConverter()
+        type_converter = UnifiedTypeConverter()
 
     input_types = {}
     # logger.debug(f"Extracting input types from {len(operations)} operations")
 
     for operation in operations:
-        if not operation.get("is_mutation"):
+        # Check both 'is_mutation' (legacy) and 'type' == 'mutation' (current)
+        is_mutation = operation.get("is_mutation") or operation.get("type") == "mutation"
+        if not is_mutation:
             continue
 
         operation_name = operation.get("name", "")
@@ -89,19 +93,19 @@ def transform_input_types(
     return result
 
 def transform_result_types(
-    operations: list[dict[str, Any]], type_converter: Optional[TypeConverter] = None
+    operations: list[dict[str, Any]], type_converter: Optional[UnifiedTypeConverter] = None
 ) -> list[dict[str, Any]]:
     """Transform operation fields to GraphQL result types.
 
     Args:
         operations: List of operation definitions
-        type_converter: Optional type converter instance
+        type_converter: Optional UnifiedTypeConverter instance
 
     Returns:
         List of result type definitions
     """
     if not type_converter:
-        type_converter = TypeConverter()
+        type_converter = UnifiedTypeConverter()
 
     result_types = []
     # logger.debug(f"Creating result types for {len(operations)} operations")
@@ -166,7 +170,7 @@ def _is_domain_type(interface_name: str) -> bool:
 def _create_domain_type(
     interface: dict[str, Any],
     config: dict[str, Any],
-    type_converter: TypeConverter,
+    type_converter: UnifiedTypeConverter,
 ) -> dict[str, Any]:
     """Create a domain type definition from an interface.
 
@@ -204,8 +208,8 @@ def _create_domain_type(
         for field_def in domain_fields[interface_name]:
             fields.append(field_def)
 
-    # Use StrawberryTypeResolver to create resolved fields with proper types
-    type_resolver = StrawberryTypeResolver()
+    # Use UnifiedTypeResolver to create resolved fields with proper types
+    type_resolver = UnifiedTypeResolver()
     resolved_fields = []
 
     for prop in interface.get("properties", []):
@@ -246,7 +250,7 @@ def _create_domain_type(
     }
 
 def _create_input_type(
-    operation_name: str, variable: dict[str, Any], type_converter: TypeConverter
+    operation_name: str, variable: dict[str, Any], type_converter: UnifiedTypeConverter
 ) -> dict[str, Any]:
     """Create an input type definition from operation variable.
 
@@ -273,7 +277,7 @@ def _create_input_type(
         "description": f"Input type for {operation_name}",
     }
 
-def _create_result_type(operation: dict[str, Any], type_converter: TypeConverter) -> dict[str, Any]:
+def _create_result_type(operation: dict[str, Any], type_converter: UnifiedTypeConverter) -> dict[str, Any]:
     """Create a result type definition from operation fields.
 
     Args:
@@ -293,7 +297,7 @@ def _create_result_type(operation: dict[str, Any], type_converter: TypeConverter
     }
 
 def _extract_fields_as_types(
-    fields: list[Any], type_converter: TypeConverter
+    fields: list[Any], type_converter: UnifiedTypeConverter
 ) -> list[dict[str, Any]]:
     """Extract fields and convert to type definitions.
 
