@@ -182,11 +182,14 @@ class TransformStrawberryTypesStep(BaseTransformStep):
         Returns:
             Dictionary with all dependency data
         """
+        graphql_types = context.get_step_data("extract_graphql_types")
         return {
-            "graphql_types": context.get_step_data("extract_graphql_types"),
+            "graphql_types": graphql_types,
             "enums": context.get_step_data("extract_enums"),
             "config_data": context.get_step_data("load_strawberry_config"),
             "operations": context.get_step_data("extract_graphql_operations") or [],
+            # Pass the extracted input types from AST
+            "extracted_input_types": graphql_types.get("input_types", []) if graphql_types else [],
         }
 
     def validate_input(self, input_data: Any) -> Optional[str]:
@@ -210,7 +213,7 @@ class TransformStrawberryTypesStep(BaseTransformStep):
         """Transform types for Strawberry GraphQL schema.
 
         Args:
-            input_data: Dictionary with graphql_types, enums, config_data, operations
+            input_data: Dictionary with graphql_types, enums, config_data, operations, extracted_input_types
             context: Build context
 
         Returns:
@@ -225,6 +228,7 @@ class TransformStrawberryTypesStep(BaseTransformStep):
         graphql_types = input_data["graphql_types"]
         config_data = input_data["config_data"]
         operations = input_data["operations"]
+        extracted_input_types = input_data.get("extracted_input_types", [])
 
         # Get domain fields config
         domain_fields = config_data.get("domain_fields", {}) if config_data else {}
@@ -235,7 +239,8 @@ class TransformStrawberryTypesStep(BaseTransformStep):
             domain_fields,
             context.type_converter,
         )
-        input_types = transform_input_types(operations, context.type_converter)
+        # Use extracted input types from AST instead of creating from operations
+        input_types = transform_input_types(extracted_input_types, context.type_converter)
         result_types = transform_result_types(operations, context.type_converter)
 
         return {

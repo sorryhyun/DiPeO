@@ -2,14 +2,14 @@
 
 import asyncio
 import json
-import logging
 from collections.abc import Callable
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from gql import Client, gql
 from gql.transport.websockets import WebsocketsTransport
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger(__name__)
 
 
 class SubscriptionClient:

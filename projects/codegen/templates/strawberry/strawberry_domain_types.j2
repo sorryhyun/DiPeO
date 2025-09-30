@@ -104,7 +104,7 @@ class {{ type['name'] }}Type:
 {%- if type.get('needs_manual_conversion') and type.get('conversion_method') %}
 
     {{ type.get('conversion_method') | indent(4) }}
-{%- elif type.get('needs_manual_conversion') %}
+{%- elif type.get('needs_manual_conversion') or type['name'] == 'LLMUsage' %}
 
     @staticmethod
     def from_pydantic(obj: {{ type['name'] }}) -> "{{ type['name'] }}Type":

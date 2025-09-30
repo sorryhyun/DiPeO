@@ -55,42 +55,55 @@ def transform_domain_types(
     return domain_types
 
 def transform_input_types(
-    operations: list[dict[str, Any]], type_converter: Optional[UnifiedTypeConverter] = None
+    extracted_input_types: list[dict[str, Any]], type_converter: Optional[UnifiedTypeConverter] = None
 ) -> list[dict[str, Any]]:
-    """Transform operation variables to GraphQL input types.
+    """Transform extracted GraphQL input types from TypeScript to Python.
 
     Args:
-        operations: List of operation definitions
+        extracted_input_types: List of input type definitions extracted from TypeScript AST
         type_converter: Optional UnifiedTypeConverter instance
 
     Returns:
-        List of input type definitions
+        List of transformed input type definitions
     """
     if not type_converter:
         type_converter = UnifiedTypeConverter()
 
-    input_types = {}
-    # logger.debug(f"Extracting input types from {len(operations)} operations")
+    transformed_types = []
+    # logger.debug(f"Transforming {len(extracted_input_types)} input types")
 
-    for operation in operations:
-        # Check both 'is_mutation' (legacy) and 'type' == 'mutation' (current)
-        is_mutation = operation.get("is_mutation") or operation.get("type") == "mutation"
-        if not is_mutation:
-            continue
+    for input_type in extracted_input_types:
+        # Transform each field's type from TypeScript to Python
+        transformed_fields = []
+        for field in input_type.get("fields", []):
+            ts_type = field.get("type", "String")
+            is_optional = field.get("is_optional", False)
 
-        operation_name = operation.get("name", "")
-        variables = operation.get("variables", [])
+            # Remove InputMaybe wrapper if present (it's a TypeScript utility type)
+            if ts_type.startswith("InputMaybe<") and ts_type.endswith(">"):
+                ts_type = ts_type[11:-1]  # Extract the inner type
+                is_optional = True  # InputMaybe means optional
 
-        # Create input type from variables
-        if variables and len(variables) == 1 and variables[0].get("type", "").endswith("Input"):
-            input_type_name = variables[0].get("type", "").replace("!", "")
-            if input_type_name not in input_types:
-                input_type = _create_input_type(operation_name, variables[0], type_converter)
-                input_types[input_type_name] = input_type
+            # Convert TypeScript type to Python type
+            python_type = type_converter.ts_to_python(ts_type)
 
-    result = list(input_types.values())
-    # logger.info(f"Created {len(result)} input types")
-    return result
+            transformed_field = {
+                "name": field.get("name", ""),
+                "type": python_type,
+                "is_optional": is_optional,
+                "description": field.get("description", ""),
+            }
+            transformed_fields.append(transformed_field)
+
+        transformed_type = {
+            "name": input_type.get("name", ""),
+            "fields": transformed_fields,
+            "description": input_type.get("description", ""),
+        }
+        transformed_types.append(transformed_type)
+
+    # logger.info(f"Transformed {len(transformed_types)} input types")
+    return transformed_types
 
 def transform_result_types(
     operations: list[dict[str, Any]], type_converter: Optional[UnifiedTypeConverter] = None
@@ -249,33 +262,37 @@ def _create_domain_type(
         "description": interface.get("description", f"{interface_name} domain type"),
     }
 
-def _create_input_type(
-    operation_name: str, variable: dict[str, Any], type_converter: UnifiedTypeConverter
-) -> dict[str, Any]:
-    """Create an input type definition from operation variable.
-
-    Args:
-        operation_name: Name of the operation
-        variable: Variable definition
-        type_converter: Type converter instance
-
-    Returns:
-        Input type definition
-    """
-    input_type_name = variable.get("type", "").replace("!", "")
-
-    return {
-        "name": input_type_name,
-        "fields": [
-            {
-                "name": variable.get("name", "input"),
-                "type": type_converter.ts_to_graphql(variable.get("type", "String")),
-                "required": variable.get("required", False),
-                "description": variable.get("description", ""),
-            }
-        ],
-        "description": f"Input type for {operation_name}",
-    }
+# DEPRECATED: This function created circular references by trying to create input types
+# from operation variables. Input types should be extracted from TypeScript AST instead.
+# Kept for reference but no longer used.
+#
+# def _create_input_type(
+#     operation_name: str, variable: dict[str, Any], type_converter: UnifiedTypeConverter
+# ) -> dict[str, Any]:
+#     """Create an input type definition from operation variable.
+#
+#     Args:
+#         operation_name: Name of the operation
+#         variable: Variable definition
+#         type_converter: Type converter instance
+#
+#     Returns:
+#         Input type definition
+#     """
+#     input_type_name = variable.get("type", "").replace("!", "")
+#
+#     return {
+#         "name": input_type_name,
+#         "fields": [
+#             {
+#                 "name": variable.get("name", "input"),
+#                 "type": type_converter.ts_to_graphql(variable.get("type", "String")),
+#                 "required": variable.get("required", False),
+#                 "description": variable.get("description", ""),
+#             }
+#         ],
+#         "description": f"Input type for {operation_name}",
+#     }
 
 def _create_result_type(operation: dict[str, Any], type_converter: UnifiedTypeConverter) -> dict[str, Any]:
     """Create a result type definition from operation fields.

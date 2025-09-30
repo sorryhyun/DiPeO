@@ -313,8 +313,8 @@ class GraphQLInputTypeExtractor(BaseExtractor):
 
     def __init__(self):
         """Initialize GraphQL input type extractor."""
-        # Only process graphql-inputs files
-        file_filter = FileFilter(patterns=["**/graphql-inputs.ts"])
+        # Only process graphql-inputs files (matches both .ts and .ts.json)
+        file_filter = FileFilter(patterns=["**/graphql-inputs.ts*"])
         super().__init__(file_filter=file_filter)
 
     def _extract_from_file(self, file_data: dict[str, Any], file_path: str):
@@ -385,7 +385,12 @@ class GraphQLInputTypeExtractor(BaseExtractor):
                         if "Scalars[" in field_type:
                             match = re.search(r"Scalars\['(\w+)'\]", field_type)
                             if match:
-                                field_type = match.group(1)
+                                scalar_type = match.group(1)
+                                # Preserve Array wrapper if present
+                                if field_type.strip().startswith("Array<"):
+                                    field_type = f"Array<{scalar_type}>"
+                                else:
+                                    field_type = scalar_type
 
                         # Check if optional
                         is_optional = "?" in field_name or "InputMaybe<" in field_type

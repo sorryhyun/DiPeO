@@ -6,8 +6,10 @@ import os
 
 from dipeo.application.bootstrap import Container
 from dipeo.config import BASE_DIR, get_settings
+from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.events import EventType
 
+logger = get_module_logger(__name__)
 _container: Container | None = None
 
 
@@ -22,8 +24,6 @@ async def create_server_container() -> Container:
     # Create container with unified settings
     container = Container(settings)
     # Use minimal wiring for thin startup
-    import logging
-
     from apps.server.bootstrap import (
         bootstrap_services,
         execute_event_subscriptions,
@@ -36,8 +36,6 @@ async def create_server_container() -> Container:
         PROVIDER_REGISTRY,
         STATE_STORE,
     )
-
-    logger = logging.getLogger(__name__)
     # Bootstrap all services
     bootstrap_services(container.registry, redis_client=None)
 
@@ -148,15 +146,10 @@ async def create_server_container() -> Container:
         await provider_registry.load_manifests(str(BASE_DIR / "integrations/**/provider.json"))
 
         # Log what was loaded
-        import logging
-
-        logger = logging.getLogger(__name__)
         loaded_providers = provider_registry.list_providers()
     except Exception as e:
         # Log but don't fail if no providers found
-        import logging
-
-        logging.getLogger(__name__).warning(f"Failed to load provider manifests: {e}")
+        logger.warning(f"Failed to load provider manifests: {e}")
 
     container.registry.register(PROVIDER_REGISTRY, provider_registry)
 
@@ -174,9 +167,6 @@ async def create_server_container() -> Container:
         container.registry.register(CLI_SESSION_SERVICE, CliSessionService())
 
     # Report unused services
-    import logging
-
-    logger = logging.getLogger(__name__)
     unused = container.registry.report_unused()
     if unused:
         logger.info(f"🔎 Unused registrations this run ({len(unused)}): {', '.join(unused)}")

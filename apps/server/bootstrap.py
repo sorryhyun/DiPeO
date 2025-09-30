@@ -6,7 +6,6 @@ import infrastructure directly - that's the responsibility of the
 composition root at the edge of the system (server/CLI).
 """
 
-import logging
 import os
 from pathlib import Path
 from typing import Any
@@ -29,8 +28,9 @@ from dipeo.application.registry.keys import (
     TEMPLATE_PROCESSOR,
     TEMPLATE_RENDERER,
 )
+from dipeo.config.base_logger import get_module_logger
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger(__name__)
 
 
 def wire_state_services(registry: ServiceRegistry, redis_client: Any = None) -> None:

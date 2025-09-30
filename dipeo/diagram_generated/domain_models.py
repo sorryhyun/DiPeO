@@ -2,7 +2,7 @@
 # __generated__ by DiPeO
 """
 Domain models generated from TypeScript interfaces.
-Generated at: 2025-09-30T20:07:54.154359
+Generated at: 2025-09-30T22:08:23.712781
 """
 from __future__ import annotations
 

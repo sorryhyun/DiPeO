@@ -2,7 +2,7 @@
 GraphQL input types for DiPeO mutations.
 Auto-generated from TypeScript definitions.
 
-Generated at: 2025-09-30T20:07:52.863695
+Generated at: 2025-09-30T22:13:39.282731
 """
 
 from datetime import datetime
@@ -59,7 +59,7 @@ class CreateDiagramInput:
     author: Optional[String] = None
     description: Optional[String] = None
     name: String
-    tags: Optional[String] = None
+    tags: Optional[List[String]] = None
 
 
 @strawberry.input
