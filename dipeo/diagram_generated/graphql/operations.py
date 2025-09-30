@@ -170,34 +170,34 @@ LIST_DIAGRAMS_QUERY = """query ListDiagrams($filter: DiagramFilterInput, $limit:
 
 
 GET_EXECUTION_QUERY = """query GetExecution($execution_id: String!) {
-  execution(executionId: $execution_id) {
+  getExecution(execution_id: $execution_id) {
     id
     status
-    diagramId
-    startedAt
-    endedAt
+    diagram_id
+    started_at
+    ended_at
     error
-    nodeStates
-    nodeOutputs
+    node_states
+    node_outputs
     variables
     metrics {
-      executionId
-      startTime
-      endTime
-      totalDurationMs
-      nodeMetrics
-      criticalPath
-      parallelizableGroups
+      execution_id
+      start_time
+      end_time
+      total_duration_ms
+      node_metrics
+      critical_path
+      parallelizable_groups
       bottlenecks {
-        nodeId
-        nodeType
-        durationMs
+        node_id
+        node_type
+        duration_ms
         percentage
 
       }
 
     }
-    llmUsage {
+    llm_usage {
       input
       output
       cached
@@ -210,12 +210,12 @@ GET_EXECUTION_QUERY = """query GetExecution($execution_id: String!) {
 
 
 LIST_EXECUTIONS_QUERY = """query ListExecutions($filter: ExecutionFilterInput, $limit: Int, $offset: Int) {
-  executions(filter: $filter, limit: $limit, offset: $offset) {
+  listExecutions(filter: $filter, limit: $limit, offset: $offset) {
     id
     status
-    diagramId
-    startedAt
-    endedAt
+    diagram_id
+    started_at
+    ended_at
     error
   }
 }"""
@@ -600,8 +600,8 @@ DELETE_PERSON_MUTATION = """mutation DeletePerson($person_id: String!) {
 
 
 EXECUTION_UPDATES_SUBSCRIPTION = """subscription ExecutionUpdates($execution_id: String!) {
-  executionUpdates(executionId: $execution_id) {
-    executionId
+  executionUpdates(execution_id: $execution_id) {
+    execution_id
     type
     data
     timestamp
