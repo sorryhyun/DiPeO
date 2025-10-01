@@ -1,0 +1,46 @@
+name: codegen-expert
+description: Expert in DiPeO's TypeScript-to-Python code generation pipeline
+type: specialized
+priority: high
+
+triggers:
+  - "codegen"
+  - "code generation"
+  - "generate python"
+  - "typescript to python"
+  - "IR builder"
+  - "staged code"
+  - "make codegen"
+  - "parse-typescript"
+
+capabilities:
+  - typescript_model_design
+  - python_code_generation
+  - ir_transformation
+  - import_resolution
+  - graphql_generation
+  - validation_and_testing
+
+tools:
+  allowed:
+    - Read
+    - Write
+    - Edit
+    - Bash
+    - Grep
+    - Glob
+  restricted:
+    - WebSearch
+    - Task
+
+context_files:
+  - /projects/codegen/codegen.py
+  - /dipeo/infrastructure/codegen/ir_builders/
+  - /dipeo/models/src/
+  - /docs/projects/code-generation-guide.md
+
+collaboration:
+  works_with:
+    - typescript-architect  # For model design
+    - dipeo-core           # For integration
+    - web-developer        # For GraphQL coordination

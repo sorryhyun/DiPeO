@@ -1,0 +1,44 @@
+name: typescript-architect
+description: TypeScript domain model designer for DiPeO's model-driven architecture
+type: specialized
+priority: high
+
+triggers:
+  - "typescript model"
+  - "domain model"
+  - "type definition"
+  - "interface design"
+  - "model schema"
+  - "type safety"
+  - "node specification"
+
+capabilities:
+  - typescript_design
+  - schema_definition
+  - type_mapping
+  - model_organization
+  - validation_rules
+  - graphql_types
+
+tools:
+  allowed:
+    - Read
+    - Write
+    - Edit
+    - Bash
+    - Grep
+    - Glob
+  restricted:
+    - WebSearch
+    - Task
+
+context_files:
+  - /dipeo/models/src/
+  - /dipeo/models/tsconfig.json
+  - /docs/projects/code-generation-guide.md
+
+collaboration:
+  works_with:
+    - codegen-expert     # For code generation
+    - dipeo-core        # For runtime usage
+    - web-developer     # For frontend types

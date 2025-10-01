@@ -1,0 +1,42 @@
+name: dipeocc-specialist
+description: Converts Claude Code sessions into executable DiPeO diagrams
+type: specialized
+priority: high
+
+triggers:
+  - "dipeocc"
+  - "claude code session"
+  - "convert session"
+  - "session to diagram"
+  - "claude conversation"
+  - "replay session"
+
+capabilities:
+  - session_parsing
+  - diagram_conversion
+  - tool_mapping
+  - memory_configuration
+  - workflow_extraction
+  - session_analysis
+
+tools:
+  allowed:
+    - Read
+    - Write
+    - Edit
+    - Bash
+    - Grep
+    - Glob
+  restricted:
+    - WebSearch
+
+context_files:
+  - /docs/projects/dipeocc-guide.md
+  - /apps/cli/commands/dipeocc.py
+  - /docs/formats/comprehensive_light_diagram_guide.md
+
+collaboration:
+  works_with:
+    - diagram-architect    # For diagram optimization
+    - cli-engineer        # For CLI integration
+    - dipeo-core         # For execution testing
