@@ -76,7 +76,7 @@ export const systemQueries: EntityQueryDefinitions = {
       type: QueryOperationType.QUERY,
       variables: [
         { name: 'diagram_id', type: 'String' },
-        { name: 'limit', type: 'Int' },
+        { name: 'limit', type: 'Float' },
         { name: 'include_metrics', type: 'Boolean' }
       ],
       fields: [
