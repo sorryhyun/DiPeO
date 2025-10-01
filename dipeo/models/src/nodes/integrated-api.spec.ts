@@ -19,6 +19,7 @@ export const integratedApiSpec: NodeSpecification = {
       name: "provider",
       type: "string",
       required: true,
+      defaultValue: "NOTION",
       description: "API provider to connect to",
       // UI remains a select, but options are loaded dynamically in fieldOverrides
       uiConfig: {
@@ -29,6 +30,7 @@ export const integratedApiSpec: NodeSpecification = {
       name: "operation",
       type: "string",
       required: true,
+      defaultValue: "",
       description: "Operation to perform (provider-specific)",
       uiConfig: {
         inputType: "select",
@@ -50,6 +52,7 @@ export const integratedApiSpec: NodeSpecification = {
       name: "config",
       type: "object",
       required: false,
+      defaultValue: {},
       description: "Provider-specific configuration",
       uiConfig: {
         inputType: "code",
@@ -60,6 +63,7 @@ export const integratedApiSpec: NodeSpecification = {
       name: "timeout",
       type: "number",
       required: false,
+      defaultValue: 30,
       description: "Request timeout in seconds",
       validation: {
         min: 1,
@@ -74,6 +78,7 @@ export const integratedApiSpec: NodeSpecification = {
       name: "max_retries",
       type: "number",
       required: false,
+      defaultValue: 3,
       description: "Maximum retry attempts",
       validation: {
         min: 0,

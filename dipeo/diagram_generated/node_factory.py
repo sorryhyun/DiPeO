@@ -1,7 +1,7 @@
 """
 Node factory for creating executable nodes from data.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-01T22:18:23.347485
+Generated at: 2025-10-01T22:51:39.914896
 
 """
 
@@ -71,8 +71,8 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            url=data.get('url', None),
-            method=data.get('method', None),
+            url=data.get('url', ""),
+            method=data.get('method', "GET"),
             headers=data.get('headers', None),
             params=data.get('params', None),
             body=data.get('body', None),
@@ -88,7 +88,7 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            language=data.get('language', None),
+            language=data.get('language', "python"),
             file_path=data.get('filePath', None),
             code=data.get('code', None),
             function_name=data.get('functionName', None),
@@ -126,8 +126,8 @@ def create_executable_node(
             # DB node special handling for backward compatibility
             collection=data.get('collection', None),
             # Sub type field may have camelCase variants
-            sub_type=data.get('sub_type', data.get('subType', None)),
-            operation=data.get('operation', None),
+            sub_type=data.get('sub_type', data.get('subType', "fixed_prompt")),
+            operation=data.get('operation', ""),
             # DB node special handling for backward compatibility
             query=data.get('query', None),
             keys=data.get('keys', None),
@@ -167,7 +167,7 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            save_to_file=data.get('save_to_file', None),
+            save_to_file=data.get('save_to_file', False),
             file_name=data.get('file_name', None),
         )
 
@@ -192,12 +192,12 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            provider=data.get('provider', None),
-            operation=data.get('operation', None),
+            provider=data.get('provider', "NOTION"),
+            operation=data.get('operation', ""),
             resource_id=data.get('resource_id', None),
-            config=data.get('config', None),
-            timeout=data.get('timeout', None),
-            max_retries=data.get('max_retries', None),
+            config=data.get('config', {}),
+            timeout=data.get('timeout', 30),
+            max_retries=data.get('max_retries', 3),
         )
 
     elif node_type == NodeType.IR_BUILDER:
@@ -225,8 +225,8 @@ def create_executable_node(
             schema_path=data.get('schema_path', None),
             json_schema=data.get('json_schema', None),
             data_path=data.get('data_path', None),
-            strict_mode=data.get('strict_mode', None),
-            error_on_extra=data.get('error_on_extra', None),
+            strict_mode=data.get('strict_mode', False),
+            error_on_extra=data.get('error_on_extra', False),
         )
 
     elif node_type == NodeType.PERSON_JOB:
@@ -238,7 +238,7 @@ def create_executable_node(
             metadata=metadata,
             person=data.get('person', None),
             # PersonJob backward compatibility: first_only_prompt could be 'prompt'
-            first_only_prompt=data.get('first_only_prompt', data.get('prompt', None)),
+            first_only_prompt=data.get('first_only_prompt', data.get('prompt', "")),
             first_prompt_file=data.get('first_prompt_file', None),
             default_prompt=data.get('default_prompt', None),
             prompt_file=data.get('prompt_file', None),
@@ -265,8 +265,8 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             trigger_mode=data.get('trigger_mode', "none"),
-            custom_data=data.get('custom_data', None),
-            output_data_structure=data.get('output_data_structure', None),
+            custom_data=data.get('custom_data', {}),
+            output_data_structure=data.get('output_data_structure', {}),
             hook_event=data.get('hook_event', None),
             hook_filters=data.get('hook_filters', None),
         )
@@ -288,8 +288,8 @@ def create_executable_node(
             ignore_if_sub=data.get('ignoreIfSub', False),
             diagram_format=data.get('diagram_format', None),
             batch=data.get('batch', False),
-            batch_input_key=data.get('batch_input_key', None),
-            batch_parallel=data.get('batch_parallel', False),
+            batch_input_key=data.get('batch_input_key', "items"),
+            batch_parallel=data.get('batch_parallel', True),
         )
 
     elif node_type == NodeType.TEMPLATE_JOB:
@@ -332,8 +332,8 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            prompt=data.get('prompt', None),
-            timeout=data.get('timeout', 300),
+            prompt=data.get('prompt', ""),
+            timeout=data.get('timeout', 60),
         )
 
     else:

@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for typescript_ast.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-01T22:18:24.239296
+Generated at: 2025-10-01T22:51:41.115210
 """
 
 from typing import *
@@ -40,19 +40,19 @@ class TypescriptAstNode(BaseModel):
     
     extract_patterns: Optional[List[Any]] = Field(default_factory=list, alias="extractPatterns", description="Patterns to extract from the AST")
     
-    include_js_doc: Optional[bool] = Field(default=None, alias="includeJSDoc", description="Include JSDoc comments in the extracted data")
+    include_js_doc: bool = Field(default=False, alias="includeJSDoc", description="Include JSDoc comments in the extracted data")
     
-    parse_mode: Optional[Literal["module", "script"]] = Field(default=None, alias="parseMode", description="TypeScript parsing mode")
+    parse_mode: Literal["module", "script"] = Field(default="module", alias="parseMode", description="TypeScript parsing mode")
     
-    transform_enums: Optional[bool] = Field(default=None, alias="transformEnums", description="Transform enum definitions to a simpler format")
+    transform_enums: bool = Field(default=False, alias="transformEnums", description="Transform enum definitions to a simpler format")
     
-    flatten_output: Optional[bool] = Field(default=None, alias="flattenOutput", description="Flatten the output structure for easier consumption")
+    flatten_output: bool = Field(default=False, alias="flattenOutput", description="Flatten the output structure for easier consumption")
     
-    output_format: Optional[Literal["standard", "for_codegen", "for_analysis"]] = Field(default=None, alias="outputFormat", description="Output format for the parsed data")
+    output_format: Literal["standard", "for_codegen", "for_analysis"] = Field(default="standard", alias="outputFormat", description="Output format for the parsed data")
     
-    batch: Optional[bool] = Field(default=None, description="Enable batch processing mode")
+    batch: bool = Field(default=False, description="Enable batch processing mode")
     
-    batch_input_key: Optional[str] = Field(default=None, alias="batchInputKey", description="Key to extract batch items from input")
+    batch_input_key: str = Field(default="sources", alias="batchInputKey", description="Key to extract batch items from input")
 
     class Config:
         # Make the instance immutable after creation

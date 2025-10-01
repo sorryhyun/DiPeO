@@ -15,6 +15,7 @@ export const codeJobSpec: NodeSpecification = {
       name: "language",
       type: "enum",
       required: true,
+      defaultValue: "python",
       description: "Programming language",
       validation: {
         allowedValues: ["python", "typescript", "bash", "shell"]

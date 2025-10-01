@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for user_response.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-01T22:18:24.240055
+Generated at: 2025-10-01T22:51:41.120055
 """
 
 from typing import *
@@ -37,7 +37,7 @@ class UserResponseNode(BaseModel):
 
     # Optional node-specific fields
     
-    timeout: Optional[int] = Field(default=None, description="Response timeout in seconds")
+    timeout: int = Field(default=60, description="Response timeout in seconds")
 
     class Config:
         # Make the instance immutable after creation

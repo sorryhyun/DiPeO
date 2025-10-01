@@ -93,7 +93,7 @@ nodes:
       template_path: projects/codegen/templates/frontend/field_configs.j2
       output_path: apps/web/src/__generated__/fields.ts
 
-  # Zod schemas
+  # Zod schemas for web app
   - label: Generate Zod Schemas
     type: template_job
     position: {x: 800, y: 360}
@@ -101,6 +101,15 @@ nodes:
       engine: jinja2
       template_path: projects/codegen/templates/frontend/zod_schemas_simplified.j2
       output_path: apps/web/src/__generated__/schemas.ts
+
+  # Zod schemas for @dipeo/models package
+  - label: Generate Models Zod Schemas
+    type: template_job
+    position: {x: 800, y: 400}
+    props:
+      engine: jinja2
+      template_path: projects/codegen/templates/frontend/zod_schemas_models.j2
+      output_path: dipeo/models/src/__generated__/schemas.ts
 
   # GraphQL queries
   - label: Generate GraphQL Queries
@@ -135,7 +144,8 @@ nodes:
             "generated": [
                 "Frontend components (batch)",
                 "Field configurations",
-                "Zod validation schemas",
+                "Zod validation schemas (web app)",
+                "Zod validation schemas (@dipeo/models)",
                 "GraphQL queries",
                 "Frontend registry"
             ]
@@ -148,8 +158,10 @@ nodes:
 
         print("\nNext steps:")
         print("  1. Review generated code in apps/web/src/__generated__/")
-        print("  2. Run 'pnpm typecheck' to verify TypeScript")
-        print("  3. Run 'make graphql-schema' to update GraphQL types")
+        print("  2. Review Zod schemas in dipeo/models/src/__generated__/")
+        print("  3. Run 'cd dipeo/models && pnpm build' to compile @dipeo/models")
+        print("  4. Run 'pnpm typecheck' to verify TypeScript")
+        print("  5. Run 'make graphql-schema' to update GraphQL types")
 
         return results
 
@@ -176,6 +188,7 @@ connections:
   # Generate templates from IR
   - {from: Build Frontend IR, to: Generate Field Configs, content_type: object}
   - {from: Build Frontend IR, to: Generate Zod Schemas, content_type: object}
+  - {from: Build Frontend IR, to: Generate Models Zod Schemas, content_type: object}
   - {from: Build Frontend IR, to: Generate GraphQL Queries, content_type: object}
   - {from: Build Frontend IR, to: Generate Frontend Registry, content_type: object}
 
@@ -183,6 +196,7 @@ connections:
   - {from: Batch Generate Frontend, to: Summary}
   - {from: Generate Field Configs, to: Summary}
   - {from: Generate Zod Schemas, to: Summary}
+  - {from: Generate Models Zod Schemas, to: Summary}
   - {from: Generate GraphQL Queries, to: Summary}
   - {from: Generate Frontend Registry, to: Summary}
 

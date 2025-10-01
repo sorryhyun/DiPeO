@@ -7,7 +7,6 @@ export const conditionFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: '"Condition type"',
     required: false,
-    defaultValue: "custom",
     description: '"Type of condition to evaluate"',
     options: [
       { value: '"detect_max_iterations"', label: '"Detect Max Iterations"' },
@@ -69,7 +68,6 @@ export const conditionFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: '"Memorize to"',
     required: false,
-    defaultValue: "GOLDFISH",
     placeholder: '"e.g., GOLDFISH"',
     description: '"Memory control strategy (e.g., GOLDFISH for fresh evaluation)"',
   },
@@ -94,7 +92,6 @@ export const conditionFields: UnifiedFieldDefinition[] = [
     type: 'checkbox',
     label: '"Skippable"',
     required: false,
-    defaultValue: false,
     description: '"When true, downstream nodes can execute even if this condition hasn\'t been evaluated yet"',
   },
 ];

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2025-10-01T22:18:23.403996",
+  "generated_at": "2025-10-01T22:51:39.968675",
   "node_specs": [
     {
       "node_type": "api_job",
@@ -22,7 +22,7 @@
             "inputType": "text",
             "placeholder": "https://example.com"
           },
-          "default": null,
+          "default": "",
           "is_object_type": false,
           "is_dict_type": false,
           "is_enum": false,
@@ -69,7 +69,7 @@
               }
             ]
           },
-          "default": null,
+          "default": "GET",
           "is_object_type": false,
           "is_dict_type": false,
           "is_enum": true,
@@ -255,7 +255,7 @@
               "inputType": "text",
               "placeholder": "https://example.com"
             },
-            "default": null,
+            "default": "",
             "is_object_type": false,
             "is_dict_type": false,
             "is_enum": false,
@@ -302,7 +302,7 @@
                 }
               ]
             },
-            "default": null,
+            "default": "GET",
             "is_object_type": false,
             "is_dict_type": false,
             "is_enum": true,
@@ -500,6 +500,7 @@
             "name": "url",
             "type": "string",
             "required": true,
+            "defaultValue": "",
             "description": "API endpoint URL",
             "uiConfig": {
               "inputType": "text",
@@ -510,6 +511,7 @@
             "name": "method",
             "type": "enum",
             "required": true,
+            "defaultValue": "GET",
             "description": "HTTP method",
             "validation": {
               "allowedValues": [
@@ -712,7 +714,7 @@
               }
             ]
           },
-          "default": null,
+          "default": "python",
           "is_object_type": false,
           "is_dict_type": false,
           "is_enum": true,
@@ -844,7 +846,7 @@
                 }
               ]
             },
-            "default": null,
+            "default": "python",
             "is_object_type": false,
             "is_dict_type": false,
             "is_enum": true,
@@ -964,6 +966,7 @@
             "name": "language",
             "type": "enum",
             "required": true,
+            "defaultValue": "python",
             "description": "Programming language",
             "validation": {
               "allowedValues": [
@@ -1835,7 +1838,7 @@
               }
             ]
           },
-          "default": null,
+          "default": "fixed_prompt",
           "is_object_type": false,
           "is_dict_type": false,
           "is_enum": true,
@@ -1865,7 +1868,7 @@
           "uiConfig": {
             "inputType": "text"
           },
-          "default": null,
+          "default": "",
           "is_object_type": false,
           "is_dict_type": false,
           "is_enum": true,
@@ -2086,7 +2089,7 @@
                 }
               ]
             },
-            "default": null,
+            "default": "fixed_prompt",
             "is_object_type": false,
             "is_dict_type": false,
             "is_enum": true,
@@ -2116,7 +2119,7 @@
             "uiConfig": {
               "inputType": "text"
             },
-            "default": null,
+            "default": "",
             "is_object_type": false,
             "is_dict_type": false,
             "is_enum": true,
@@ -2309,6 +2312,7 @@
             "name": "sub_type",
             "type": "enum",
             "required": true,
+            "defaultValue": "fixed_prompt",
             "description": "Database operation type",
             "validation": {
               "allowedValues": [
@@ -2344,6 +2348,7 @@
             "name": "operation",
             "type": "string",
             "required": true,
+            "defaultValue": "",
             "description": "Operation configuration",
             "validation": {
               "allowedValues": [
@@ -3375,7 +3380,7 @@
           "uiConfig": {
             "inputType": "checkbox"
           },
-          "default": null,
+          "default": false,
           "is_object_type": false,
           "is_dict_type": false,
           "is_enum": false,
@@ -3421,7 +3426,7 @@
             "uiConfig": {
               "inputType": "checkbox"
             },
-            "default": null,
+            "default": false,
             "is_object_type": false,
             "is_dict_type": false,
             "is_enum": false,
@@ -3473,6 +3478,7 @@
             "name": "save_to_file",
             "type": "boolean",
             "required": false,
+            "defaultValue": false,
             "description": "Save results to file",
             "uiConfig": {
               "inputType": "checkbox"
@@ -4020,7 +4026,7 @@
           "uiConfig": {
             "inputType": "select"
           },
-          "default": null,
+          "default": "NOTION",
           "is_object_type": false,
           "is_dict_type": false,
           "is_enum": false,
@@ -4038,7 +4044,7 @@
             "inputType": "select",
             "placeholder": "Select an operation"
           },
-          "default": null,
+          "default": "",
           "is_object_type": false,
           "is_dict_type": false,
           "is_enum": false,
@@ -4074,7 +4080,7 @@
             "inputType": "code",
             "placeholder": "{ /* provider-specific config */ }"
           },
-          "default": null,
+          "default": {},
           "is_object_type": true,
           "is_dict_type": true,
           "is_enum": false,
@@ -4095,7 +4101,7 @@
             "inputType": "number",
             "placeholder": "30"
           },
-          "default": null,
+          "default": 30,
           "is_object_type": false,
           "is_dict_type": false,
           "is_enum": false,
@@ -4116,7 +4122,7 @@
             "inputType": "number",
             "placeholder": "3"
           },
-          "default": null,
+          "default": 3,
           "is_object_type": false,
           "is_dict_type": false,
           "is_enum": false,
@@ -4145,7 +4151,7 @@
             "uiConfig": {
               "inputType": "select"
             },
-            "default": null,
+            "default": "NOTION",
             "is_object_type": false,
             "is_dict_type": false,
             "is_enum": false,
@@ -4163,7 +4169,7 @@
               "inputType": "select",
               "placeholder": "Select an operation"
             },
-            "default": null,
+            "default": "",
             "is_object_type": false,
             "is_dict_type": false,
             "is_enum": false,
@@ -4199,7 +4205,7 @@
               "inputType": "code",
               "placeholder": "{ /* provider-specific config */ }"
             },
-            "default": null,
+            "default": {},
             "is_object_type": true,
             "is_dict_type": true,
             "is_enum": false,
@@ -4220,7 +4226,7 @@
               "inputType": "number",
               "placeholder": "30"
             },
-            "default": null,
+            "default": 30,
             "is_object_type": false,
             "is_dict_type": false,
             "is_enum": false,
@@ -4241,7 +4247,7 @@
               "inputType": "number",
               "placeholder": "3"
             },
-            "default": null,
+            "default": 3,
             "is_object_type": false,
             "is_dict_type": false,
             "is_enum": false,
@@ -4288,6 +4294,7 @@
             "name": "provider",
             "type": "string",
             "required": true,
+            "defaultValue": "NOTION",
             "description": "API provider to connect to",
             "uiConfig": {
               "inputType": "select"
@@ -4297,6 +4304,7 @@
             "name": "operation",
             "type": "string",
             "required": true,
+            "defaultValue": "",
             "description": "Operation to perform (provider-specific)",
             "uiConfig": {
               "inputType": "select",
@@ -4317,6 +4325,7 @@
             "name": "config",
             "type": "object",
             "required": false,
+            "defaultValue": {},
             "description": "Provider-specific configuration",
             "uiConfig": {
               "inputType": "code",
@@ -4327,6 +4336,7 @@
             "name": "timeout",
             "type": "number",
             "required": false,
+            "defaultValue": 30,
             "description": "Request timeout in seconds",
             "validation": {
               "min": 1,
@@ -4341,6 +4351,7 @@
             "name": "max_retries",
             "type": "number",
             "required": false,
+            "defaultValue": 3,
             "description": "Maximum retry attempts",
             "validation": {
               "min": 0,
@@ -5037,7 +5048,7 @@
           "uiConfig": {
             "inputType": "checkbox"
           },
-          "default": null,
+          "default": false,
           "is_object_type": false,
           "is_dict_type": false,
           "is_enum": false,
@@ -5054,7 +5065,7 @@
           "uiConfig": {
             "inputType": "checkbox"
           },
-          "default": null,
+          "default": false,
           "is_object_type": false,
           "is_dict_type": false,
           "is_enum": false,
@@ -5137,7 +5148,7 @@
             "uiConfig": {
               "inputType": "checkbox"
             },
-            "default": null,
+            "default": false,
             "is_object_type": false,
             "is_dict_type": false,
             "is_enum": false,
@@ -5154,7 +5165,7 @@
             "uiConfig": {
               "inputType": "checkbox"
             },
-            "default": null,
+            "default": false,
             "is_object_type": false,
             "is_dict_type": false,
             "is_enum": false,
@@ -5226,6 +5237,7 @@
             "name": "strict_mode",
             "type": "boolean",
             "required": false,
+            "defaultValue": false,
             "description": "Strict Mode configuration",
             "uiConfig": {
               "inputType": "checkbox"
@@ -5235,6 +5247,7 @@
             "name": "error_on_extra",
             "type": "boolean",
             "required": false,
+            "defaultValue": false,
             "description": "Error On Extra configuration",
             "uiConfig": {
               "inputType": "checkbox"
@@ -5304,7 +5317,7 @@
             "adjustable": true,
             "showPromptFileButton": true
           },
-          "default": null,
+          "default": "",
           "is_object_type": false,
           "is_dict_type": false,
           "is_enum": false,
@@ -5694,7 +5707,7 @@
               "adjustable": true,
               "showPromptFileButton": true
             },
-            "default": null,
+            "default": "",
             "is_object_type": false,
             "is_dict_type": false,
             "is_enum": false,
@@ -6085,6 +6098,7 @@
             "name": "first_only_prompt",
             "type": "string",
             "required": false,
+            "defaultValue": "",
             "description": "Prompt used only on first execution",
             "uiConfig": {
               "inputType": "textarea",
@@ -6398,7 +6412,7 @@
           "uiConfig": {
             "inputType": "text"
           },
-          "default": null,
+          "default": {},
           "is_object_type": false,
           "is_dict_type": false,
           "is_enum": false,
@@ -6416,7 +6430,7 @@
             "inputType": "code",
             "collapsible": true
           },
-          "default": null,
+          "default": {},
           "is_object_type": true,
           "is_dict_type": true,
           "is_enum": false,
@@ -6522,7 +6536,7 @@
             "uiConfig": {
               "inputType": "text"
             },
-            "default": null,
+            "default": {},
             "is_object_type": false,
             "is_dict_type": false,
             "is_enum": false,
@@ -6540,7 +6554,7 @@
               "inputType": "code",
               "collapsible": true
             },
-            "default": null,
+            "default": {},
             "is_object_type": true,
             "is_dict_type": true,
             "is_enum": false,
@@ -6647,6 +6661,7 @@
             "name": "custom_data",
             "type": "any",
             "required": false,
+            "defaultValue": {},
             "description": "Custom data to pass when manually triggered",
             "conditional": {
               "field": "trigger_mode",
@@ -6662,6 +6677,7 @@
             "name": "output_data_structure",
             "type": "object",
             "required": false,
+            "defaultValue": {},
             "description": "Expected output data structure",
             "conditional": {
               "field": "trigger_mode",
@@ -6949,7 +6965,7 @@
             "inputType": "text",
             "placeholder": "items"
           },
-          "default": null,
+          "default": "items",
           "is_object_type": false,
           "is_dict_type": false,
           "is_enum": false,
@@ -6966,7 +6982,7 @@
           "uiConfig": {
             "inputType": "checkbox"
           },
-          "default": false,
+          "default": true,
           "is_object_type": false,
           "is_dict_type": false,
           "is_enum": false,
@@ -7199,7 +7215,7 @@
               "inputType": "text",
               "placeholder": "items"
             },
-            "default": null,
+            "default": "items",
             "is_object_type": false,
             "is_dict_type": false,
             "is_enum": false,
@@ -7216,7 +7232,7 @@
             "uiConfig": {
               "inputType": "checkbox"
             },
-            "default": false,
+            "default": true,
             "is_object_type": false,
             "is_dict_type": false,
             "is_enum": false,
@@ -7383,6 +7399,7 @@
             "name": "batch_input_key",
             "type": "string",
             "required": false,
+            "defaultValue": "items",
             "description": "Key in inputs containing the array of items for batch processing",
             "uiConfig": {
               "inputType": "text",
@@ -7393,7 +7410,7 @@
             "name": "batch_parallel",
             "type": "boolean",
             "required": false,
-            "defaultValue": false,
+            "defaultValue": true,
             "description": "Execute batch items in parallel",
             "uiConfig": {
               "inputType": "checkbox"
@@ -8592,7 +8609,7 @@
             "inputType": "textarea",
             "placeholder": "Enter prompt template..."
           },
-          "default": null,
+          "default": "",
           "is_object_type": false,
           "is_dict_type": false,
           "is_enum": false,
@@ -8611,7 +8628,7 @@
             "min": 0,
             "max": 3600
           },
-          "default": 300,
+          "default": 60,
           "is_object_type": false,
           "is_dict_type": false,
           "is_enum": false,
@@ -8641,7 +8658,7 @@
               "inputType": "textarea",
               "placeholder": "Enter prompt template..."
             },
-            "default": null,
+            "default": "",
             "is_object_type": false,
             "is_dict_type": false,
             "is_enum": false,
@@ -8660,7 +8677,7 @@
               "min": 0,
               "max": 3600
             },
-            "default": 300,
+            "default": 60,
             "is_object_type": false,
             "is_dict_type": false,
             "is_enum": false,
@@ -8702,6 +8719,7 @@
             "name": "prompt",
             "type": "string",
             "required": true,
+            "defaultValue": "",
             "description": "Question to ask the user",
             "uiConfig": {
               "inputType": "textarea",
@@ -8712,7 +8730,7 @@
             "name": "timeout",
             "type": "number",
             "required": false,
-            "defaultValue": 300,
+            "defaultValue": 60,
             "description": "Response timeout in seconds",
             "uiConfig": {
               "inputType": "number",
@@ -8762,7 +8780,7 @@
           "required": true,
           "description": "API endpoint URL",
           "help_text": "API endpoint URL",
-          "default": null,
+          "default": "",
           "validation": {},
           "uiConfig": {
             "inputType": "text",
@@ -8778,7 +8796,7 @@
           "required": true,
           "description": "HTTP method",
           "help_text": "HTTP method",
-          "default": null,
+          "default": "GET",
           "validation": {
             "allowedValues": [
               "GET",
@@ -8982,7 +9000,7 @@
           "required": true,
           "description": "Programming language",
           "help_text": "Programming language",
-          "default": null,
+          "default": "python",
           "validation": {
             "allowedValues": [
               "python",
@@ -9373,7 +9391,7 @@
           "required": true,
           "description": "Database operation type",
           "help_text": "Database operation type",
-          "default": null,
+          "default": "fixed_prompt",
           "validation": {
             "allowedValues": [
               "fixed_prompt",
@@ -9418,7 +9436,7 @@
           "required": true,
           "description": "Operation configuration",
           "help_text": "Operation configuration",
-          "default": null,
+          "default": "",
           "validation": {
             "allowedValues": [
               "prompt",
@@ -9891,7 +9909,7 @@
           "required": false,
           "description": "Save results to file",
           "help_text": "Save results to file",
-          "default": null,
+          "default": false,
           "validation": {},
           "uiConfig": {
             "inputType": "checkbox"
@@ -10092,7 +10110,7 @@
           "required": true,
           "description": "API provider to connect to",
           "help_text": "API provider to connect to",
-          "default": null,
+          "default": "NOTION",
           "validation": {},
           "uiConfig": {
             "inputType": "select"
@@ -10107,7 +10125,7 @@
           "required": true,
           "description": "Operation to perform (provider-specific)",
           "help_text": "Operation to perform (provider-specific)",
-          "default": null,
+          "default": "",
           "validation": {},
           "uiConfig": {
             "inputType": "select",
@@ -10139,7 +10157,7 @@
           "required": false,
           "description": "Provider-specific configuration",
           "help_text": "Provider-specific configuration",
-          "default": null,
+          "default": {},
           "validation": {},
           "uiConfig": {
             "inputType": "code",
@@ -10155,7 +10173,7 @@
           "required": false,
           "description": "Request timeout in seconds",
           "help_text": "Request timeout in seconds",
-          "default": null,
+          "default": 30,
           "validation": {
             "min": 1,
             "max": 300
@@ -10174,7 +10192,7 @@
           "required": false,
           "description": "Maximum retry attempts",
           "help_text": "Maximum retry attempts",
-          "default": null,
+          "default": 3,
           "validation": {
             "min": 0,
             "max": 10
@@ -10475,7 +10493,7 @@
           "required": false,
           "description": "Strict Mode configuration",
           "help_text": "Strict Mode configuration",
-          "default": null,
+          "default": false,
           "validation": {},
           "uiConfig": {
             "inputType": "checkbox"
@@ -10490,7 +10508,7 @@
           "required": false,
           "description": "Error On Extra configuration",
           "help_text": "Error On Extra configuration",
-          "default": null,
+          "default": false,
           "validation": {},
           "uiConfig": {
             "inputType": "checkbox"
@@ -10547,7 +10565,7 @@
           "required": false,
           "description": "Prompt used only on first execution",
           "help_text": "Prompt used only on first execution",
-          "default": null,
+          "default": "",
           "validation": {},
           "uiConfig": {
             "inputType": "textarea",
@@ -10927,7 +10945,7 @@
           "required": false,
           "description": "Custom data to pass when manually triggered",
           "help_text": "Custom data to pass when manually triggered",
-          "default": null,
+          "default": {},
           "validation": {},
           "uiConfig": {
             "inputType": "text"
@@ -10942,7 +10960,7 @@
           "required": false,
           "description": "Expected output data structure",
           "help_text": "Expected output data structure",
-          "default": null,
+          "default": {},
           "validation": {},
           "uiConfig": {
             "inputType": "code",
@@ -11198,7 +11216,7 @@
           "required": false,
           "description": "Key in inputs containing the array of items for batch processing",
           "help_text": "Key in inputs containing the array of items for batch processing",
-          "default": null,
+          "default": "items",
           "validation": {},
           "uiConfig": {
             "inputType": "text",
@@ -11214,7 +11232,7 @@
           "required": false,
           "description": "Execute batch items in parallel",
           "help_text": "Execute batch items in parallel",
-          "default": false,
+          "default": true,
           "validation": {},
           "uiConfig": {
             "inputType": "checkbox"
@@ -11642,7 +11660,7 @@
           "required": true,
           "description": "Question to ask the user",
           "help_text": "Question to ask the user",
-          "default": null,
+          "default": "",
           "validation": {},
           "uiConfig": {
             "inputType": "textarea",
@@ -11658,7 +11676,7 @@
           "required": false,
           "description": "Response timeout in seconds",
           "help_text": "Response timeout in seconds",
-          "default": 300,
+          "default": 60,
           "validation": {},
           "uiConfig": {
             "inputType": "number",
@@ -12151,14 +12169,14 @@
           "type": "string",
           "optional": false,
           "description": "API endpoint URL",
-          "default": null
+          "default": ""
         },
         {
           "name": "method",
           "type": "\"GET\" | \"POST\" | \"PUT\" | \"DELETE\" | \"PATCH\"",
           "optional": false,
           "description": "HTTP method",
-          "default": null
+          "default": "GET"
         },
         {
           "name": "headers",
@@ -12214,7 +12232,7 @@
           "type": "\"python\" | \"typescript\" | \"bash\" | \"shell\"",
           "optional": false,
           "description": "Programming language",
-          "default": null
+          "default": "python"
         },
         {
           "name": "filePath",
@@ -12347,14 +12365,14 @@
           "type": "\"fixed_prompt\" | \"file\" | \"code\" | \"api_tool\"",
           "optional": false,
           "description": "Database operation type",
-          "default": null
+          "default": "fixed_prompt"
         },
         {
           "name": "operation",
           "type": "\"prompt\" | \"read\" | \"write\" | \"append\" | \"update\"",
           "optional": false,
           "description": "Operation configuration",
-          "default": null
+          "default": ""
         },
         {
           "name": "query",
@@ -12501,7 +12519,7 @@
           "type": "boolean",
           "optional": true,
           "description": "Save results to file",
-          "default": null
+          "default": false
         },
         {
           "name": "file_name",
@@ -12564,14 +12582,14 @@
           "type": "string",
           "optional": false,
           "description": "API provider to connect to",
-          "default": null
+          "default": "NOTION"
         },
         {
           "name": "operation",
           "type": "string",
           "optional": false,
           "description": "Operation to perform (provider-specific)",
-          "default": null
+          "default": ""
         },
         {
           "name": "resource_id",
@@ -12585,21 +12603,21 @@
           "type": "Record<string, any>",
           "optional": true,
           "description": "Provider-specific configuration",
-          "default": null
+          "default": {}
         },
         {
           "name": "timeout",
           "type": "number",
           "optional": true,
           "description": "Request timeout in seconds",
-          "default": null
+          "default": 30
         },
         {
           "name": "max_retries",
           "type": "number",
           "optional": true,
           "description": "Maximum retry attempts",
-          "default": null
+          "default": 3
         }
       ]
     },
@@ -12683,14 +12701,14 @@
           "type": "boolean",
           "optional": true,
           "description": "Strict Mode configuration",
-          "default": null
+          "default": false
         },
         {
           "name": "error_on_extra",
           "type": "boolean",
           "optional": true,
           "description": "Error On Extra configuration",
-          "default": null
+          "default": false
         }
       ]
     },
@@ -12711,7 +12729,7 @@
           "type": "string",
           "optional": true,
           "description": "Prompt used only on first execution",
-          "default": null
+          "default": ""
         },
         {
           "name": "first_prompt_file",
@@ -12844,14 +12862,14 @@
           "type": "any",
           "optional": true,
           "description": "Custom data to pass when manually triggered",
-          "default": null
+          "default": {}
         },
         {
           "name": "output_data_structure",
           "type": "Record<string, any>",
           "optional": true,
           "description": "Expected output data structure",
-          "default": null
+          "default": {}
         },
         {
           "name": "hook_event",
@@ -12949,14 +12967,14 @@
           "type": "string",
           "optional": true,
           "description": "Key in inputs containing the array of items for batch processing",
-          "default": null
+          "default": "items"
         },
         {
           "name": "batch_parallel",
           "type": "boolean",
           "optional": true,
           "description": "Execute batch items in parallel",
-          "default": false
+          "default": true
         }
       ]
     },
@@ -13093,14 +13111,14 @@
           "type": "string",
           "optional": false,
           "description": "Question to ask the user",
-          "default": null
+          "default": ""
         },
         {
           "name": "timeout",
           "type": "number",
           "optional": true,
           "description": "Response timeout in seconds",
-          "default": 300
+          "default": 60
         }
       ]
     }

@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for integrated_api.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-01T22:18:23.881249
+Generated at: 2025-10-01T22:51:40.515551
 """
 
 from typing import *
@@ -42,9 +42,9 @@ class IntegratedApiNode(BaseModel):
     
     config: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Provider-specific configuration")
     
-    timeout: Optional[int] = Field(default=None, description="Request timeout in seconds")
+    timeout: int = Field(default=30, description="Request timeout in seconds")
     
-    max_retries: Optional[float] = Field(default=None, description="Maximum retry attempts")
+    max_retries: float = Field(default=3, description="Maximum retry attempts")
 
     class Config:
         # Make the instance immutable after creation

@@ -1,4 +1,7 @@
 {
+  "env": {
+    "CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR": "true"
+  },
   "permissions": {
     "allow": [
       "Bash(python:*)",
@@ -16,13 +19,15 @@
       "Read(//home/sorryhyun/.claude/projects/**)",
       "Bash(for:*)",
       "Bash(head:*)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(pnpm list:*)",
+      "Bash(node:*)",
+      "Bash(xargs:*)"
     ],
     "deny": [],
     "ask": []
   },
-  "additionalDirectories": [".claude/commands"],
-  "env": {
-      "CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR": "true"
-  }
+  "additionalDirectories": [
+    ".claude/commands"
+  ]
 }

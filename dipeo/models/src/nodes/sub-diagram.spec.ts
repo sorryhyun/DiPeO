@@ -130,6 +130,7 @@ export const subDiagramSpec: NodeSpecification = {
       name: "batch_input_key",
       type: "string",
       required: false,
+      defaultValue: "items",
       description: "Key in inputs containing the array of items for batch processing",
       uiConfig: {
         inputType: "text",
@@ -140,7 +141,7 @@ export const subDiagramSpec: NodeSpecification = {
       name: "batch_parallel",
       type: "boolean",
       required: false,
-      defaultValue: false,
+      defaultValue: true,
       description: "Execute batch items in parallel",
       uiConfig: {
         inputType: "checkbox"

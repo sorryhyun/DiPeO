@@ -1,40 +1,16 @@
 # DiPeO Project Todos
 
+## 📋 Next Up
+
+**Recommended Starting Point**: Consider starting with Medium Priority tasks (Phase 3: Code Quality improvements)
+
+---
+
+## High Priority (Start Here)
+
+_(No high priority tasks currently pending)_
+
 ## Medium Priority
-
-### TypeScript Models - Phase 2: Runtime Safety (P1)
-
-- [ ] Generate Zod schemas from node specifications
-  - Location: New codegen step in code generation pipeline
-  - Goal: Auto-generate Zod schemas for runtime validation from TypeScript specs
-  - Estimated Effort: Large
-  - Benefits:
-    - Runtime validation of diagram data
-    - Better error messages for invalid diagrams
-    - Type safety at runtime, not just compile time
-  - Implementation Notes:
-    - Add new IR builder for Zod schemas
-    - Generate schemas alongside Python Pydantic models
-    - Consider ts-to-zod or similar tooling
-
-- [ ] Export generated Zod schemas from @dipeo/models package
-  - Location: `dipeo/models/src/index.ts`
-  - Goal: Make Zod schemas available for import and use
-  - Estimated Effort: Small
-  - Dependencies: Requires Zod schema generation task to be completed
-
-- [ ] Consolidate field defaults into node specs
-  - Location: Move from `dipeo/models/src/utilities/field-special-handling.ts` into individual node specs
-  - Current State: Defaults are defined separately in FIELD_SPECIAL_HANDLING
-  - Goal: Single source of truth for default values within node specs themselves
-  - Estimated Effort: Medium
-  - Implementation Notes:
-    - Update node spec interface to support default values
-    - Migrate existing defaults from FIELD_SPECIAL_HANDLING
-    - Update codegen to use spec-defined defaults
-    - Consider backward compatibility during migration
-
-## Low Priority / Future Enhancements
 
 ### TypeScript Models - Phase 3: Code Quality (P2)
 
@@ -71,6 +47,8 @@
     - Prevents accidentally mixing different ID types
     - Better developer ergonomics
 
+## Low Priority / Future Enhancements
+
 ### TypeScript Models - Phase 4: Polish (P3)
 
 - [ ] Refactor exports in index.ts for better tree-shaking
@@ -96,7 +74,38 @@
 
 ## In Progress
 
-## Completed (Recent)
+_(No tasks currently in progress)_
+
+---
+
+## Completed Archive
+
+<details>
+<summary>Click to view recently completed tasks (2025-10-01)</summary>
+
+- [x] Consolidate field defaults into node specs (2025-10-01)
+  - Phase 2: Runtime Safety - TypeScript Models
+  - Migrated all default values from FIELD_SPECIAL_HANDLING into individual node specs
+  - Each field with a default now has `defaultValue` property directly in its spec
+  - Fixed spec_parser.py bug: now correctly renames `defaultValue` to `default` for templates
+  - Regenerated all code successfully with `make codegen` and `make apply-test`
+  - Result: Single source of truth for defaults, cleaner separation of concerns
+
+- [x] Generate Zod schemas from node specifications (2025-10-01)
+  - Location: `projects/codegen/templates/frontend/zod_schemas_models.j2`
+  - Implementation: Created new Jinja2 template for Zod schema generation
+  - Output: Generates to `dipeo/models/src/__generated__/schemas.ts`
+  - Integration: Added to `generate_frontend_simplified.light.yaml` pipeline
+  - Features: Individual node schemas, type definitions, schema registry, validation helpers
+  - Successfully tested with `make codegen`
+  - Includes proper validation rules (min/max, regex patterns, etc.)
+
+- [x] Export generated Zod schemas from @dipeo/models package (2025-10-01)
+  - Location: `dipeo/models/src/index.ts`
+  - Implementation: Added export statement for generated schemas
+  - Result: Schemas now available via `import { ... } from '@dipeo/models'`
+  - Package builds successfully with `pnpm build`
+  - Enables runtime validation in consuming applications
 
 - [x] Fix NODE_TYPE_MAP synchronization - add missing IR_BUILDER and DIFF_PATCH entries (2025-10-01)
   - Fixed by refactoring to auto-generate from NodeType enum
@@ -107,6 +116,8 @@
   - Implemented using Object.values().reduce() for automatic generation
   - Eliminates manual maintenance and prevents future synchronization issues
   - TypeScript build passed successfully
+
+</details>
 
 ---
 

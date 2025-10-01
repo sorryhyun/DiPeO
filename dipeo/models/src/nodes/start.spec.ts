@@ -33,6 +33,7 @@ export const startSpec: NodeSpecification = {
       name: "custom_data",
       type: "any",
       required: false,
+      defaultValue: {},
       description: "Custom data to pass when manually triggered",
       conditional: {
         field: "trigger_mode",
@@ -46,6 +47,7 @@ export const startSpec: NodeSpecification = {
       name: "output_data_structure",
       type: "object",
       required: false,
+      defaultValue: {},
       description: "Expected output data structure",
       conditional: {
         field: "trigger_mode",

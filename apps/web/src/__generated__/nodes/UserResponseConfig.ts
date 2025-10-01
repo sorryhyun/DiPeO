@@ -18,6 +18,8 @@ export const userResponseConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
+    prompt: '',
+    timeout: 60,
   },
   customFields: userResponseFields,
   primaryDisplayField: 'prompt',

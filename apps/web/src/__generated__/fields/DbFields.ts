@@ -77,7 +77,6 @@ export const dbFields: UnifiedFieldDefinition[] = [
     type: 'checkbox',
     label: '"Serialize json"',
     required: false,
-    defaultValue: false,
     description: '"Serialize structured data to JSON string (for backward compatibility)"',
   },
   {
@@ -85,7 +84,6 @@ export const dbFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: '"Format"',
     required: false,
-    defaultValue: "json",
     description: '"Data format (json, yaml, csv, text, etc.)"',
     options: [
       { value: '"json"', label: '"JSON"' },

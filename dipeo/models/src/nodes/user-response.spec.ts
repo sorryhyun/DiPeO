@@ -15,6 +15,7 @@ export const userResponseSpec: NodeSpecification = {
       name: "prompt",
       type: "string",
       required: true,
+      defaultValue: "",
       description: "Question to ask the user",
       uiConfig: {
         inputType: "textarea",
@@ -25,7 +26,7 @@ export const userResponseSpec: NodeSpecification = {
       name: "timeout",
       type: "number",
       required: false,
-      defaultValue: 300,
+      defaultValue: 60,
       description: "Response timeout in seconds",
       uiConfig: {
         inputType: "number",

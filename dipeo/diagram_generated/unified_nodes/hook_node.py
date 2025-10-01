@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for hook.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-01T22:18:23.880576
+Generated at: 2025-10-01T22:51:40.514548
 """
 
 from typing import *
@@ -41,9 +41,9 @@ class HookNode(BaseModel):
     
     url: Optional[str] = Field(default=None, description="Webhook URL (for HTTP hooks)")
     
-    timeout: Optional[int] = Field(default=None, description="Execution timeout in seconds")
+    timeout: int = Field(default=60, description="Execution timeout in seconds")
     
-    retry_count: Optional[float] = Field(default=None, description="Number of retries on failure")
+    retry_count: float = Field(default=0, description="Number of retries on failure")
 
     class Config:
         # Make the instance immutable after creation

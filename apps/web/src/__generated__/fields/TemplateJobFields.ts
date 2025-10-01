@@ -40,7 +40,6 @@ export const templateJobFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: '"Engine"',
     required: false,
-    defaultValue: "jinja2",
     description: '"Template engine to use"',
     options: [
       { value: '"internal"', label: '"Internal"' },

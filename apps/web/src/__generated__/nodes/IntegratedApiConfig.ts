@@ -23,6 +23,11 @@ export const integratedApiConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
+    provider: 'NOTION',
+    operation: '',
+    config: {},
+    timeout: 30,
+    max_retries: 3,
   },
   customFields: fieldsWithOverrides,
   primaryDisplayField: 'provider',
