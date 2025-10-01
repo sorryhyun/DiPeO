@@ -28,11 +28,6 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
 
     def __init__(self):
         super().__init__()
-        self._current_method = None
-        self._current_headers = None
-        self._current_params = None
-        self._current_body = None
-        self._current_auth_config = None
 
     @property
     def node_class(self) -> type[ApiJobNode]:
@@ -79,11 +74,11 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
                 body={"error": parsed_data["error"], "type": "ValueError"}, produced_by=str(node.id)
             )
 
-        self._current_method = method
-        self._current_headers = parsed_data["headers"]
-        self._current_params = parsed_data["params"]
-        self._current_body = parsed_data["body"]
-        self._current_auth_config = parsed_data["auth_config"]
+        request.set_handler_state("method", method)
+        request.set_handler_state("headers", parsed_data["headers"])
+        request.set_handler_state("params", parsed_data["params"])
+        request.set_handler_state("body", parsed_data["body"])
+        request.set_handler_state("auth_config", parsed_data["auth_config"])
 
         return None
 
@@ -96,11 +91,11 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         envelope_inputs = self.get_effective_inputs(request, inputs)
 
         api_config = {
-            "method": self._current_method,
-            "headers": self._current_headers.copy(),
-            "params": self._current_params.copy(),
-            "body": self._current_body,
-            "auth_config": self._current_auth_config,
+            "method": request.get_handler_state("method"),
+            "headers": request.get_handler_state("headers", {}).copy(),
+            "params": request.get_handler_state("params", {}).copy(),
+            "body": request.get_handler_state("body"),
+            "auth_config": request.get_handler_state("auth_config", {}),
             "url": node.url,
             "timeout": node.timeout or 30,
             "auth_type": node.auth_type or "none",
@@ -177,10 +172,11 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         )
 
         if hasattr(api_service, "last_response"):
-            self._last_response = api_service.last_response
+            request.set_handler_state("last_response", api_service.last_response)
         else:
-            self._last_response = None
+            request.set_handler_state("last_response", None)
 
+        last_response = request.get_handler_state("last_response")
         response_dict = (
             response_data if isinstance(response_data, dict) else {"result": str(response_data)}
         )
@@ -189,8 +185,8 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
             "method": method_value,
             "status_code": 200,  # Default success code
             "request_headers": headers,
-            "response_headers": getattr(self._last_response, "headers", {})
-            if self._last_response
+            "response_headers": getattr(last_response, "headers", {})
+            if last_response
             else {},
         }
 
@@ -202,13 +198,14 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
 
         meta = result.pop("_api_meta", {}) if isinstance(result, dict) else {}
 
+        current_method = request.get_handler_state("method")
         http_meta = {
             "status": meta.get("status_code", 200),
             "url": meta.get("url", node.url),
             "method": meta.get(
                 "method",
-                str(self._current_method)
-                if hasattr(self, "_current_method")
+                str(current_method)
+                if current_method
                 else getattr(node, "method", None),
             ),
             "request_headers": meta.get("request_headers"),
@@ -310,8 +307,9 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         self, request: ExecutionRequest[ApiJobNode], error: Exception
     ) -> Envelope | None:
         url = request.node.url or "unknown"
+        current_method = request.get_handler_state("method")
         method = (
-            str(self._current_method) if self._current_method else request.node.method or "unknown"
+            str(current_method) if current_method else request.node.method or "unknown"
         )
 
         return EnvelopeFactory.create(

@@ -26,8 +26,6 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
 
     def __init__(self):
         super().__init__()
-        self._current_save_enabled = False
-        self._current_filename = None
 
     @property
     def node_class(self) -> type[EndpointNode]:
@@ -50,11 +48,7 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         services = request.services
 
         if node.save_to_file:
-            filesystem_adapter = getattr(self, "_filesystem_adapter", None)
-            if filesystem_adapter is None:
-                filesystem_adapter = request.get_optional_service(FILESYSTEM_ADAPTER)
-                if filesystem_adapter is not None:
-                    self._filesystem_adapter = filesystem_adapter
+            filesystem_adapter = request.get_optional_service(FILESYSTEM_ADAPTER)
 
             if not filesystem_adapter:
                 return EnvelopeFactory.create(
@@ -76,21 +70,18 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
             if not file_name:
                 file_name = f"output_{node.id}.json"
 
-            self._current_save_enabled = True
-            self._current_filename = file_name
+            request.set_handler_state("save_enabled", True)
+            request.set_handler_state("filename", file_name)
+            request.set_handler_state("filesystem_adapter", filesystem_adapter)
         else:
-            self._current_save_enabled = False
-            self._current_filename = None
+            request.set_handler_state("save_enabled", False)
+            request.set_handler_state("filename", None)
 
         return None
 
     def validate(self, request: ExecutionRequest[EndpointNode]) -> str | None:
         node = request.node
-        filesystem_adapter = getattr(self, "_filesystem_adapter", None)
-        if filesystem_adapter is None:
-            filesystem_adapter = request.get_optional_service(FILESYSTEM_ADAPTER)
-            if filesystem_adapter is not None:
-                self._filesystem_adapter = filesystem_adapter
+        filesystem_adapter = request.get_optional_service(FILESYSTEM_ADAPTER)
 
         if node.save_to_file and not filesystem_adapter:
             return "Filesystem adapter is required when save_to_file is enabled"
@@ -100,10 +91,9 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
     async def prepare_inputs(
         self, request: ExecutionRequest[EndpointNode], inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        context = request.context
-        token_inputs = context.consume_inbound(request.node.id)
-
-        envelope_inputs = token_inputs if token_inputs else inputs
+        """Prepare inputs with token consumption."""
+        # Use standard pattern for token inputs
+        envelope_inputs = self.get_effective_inputs(request, inputs)
 
         result_data = {}
         for key, envelope in envelope_inputs.items():
@@ -120,10 +110,12 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
     async def run(self, inputs: dict[str, Any], request: ExecutionRequest[EndpointNode]) -> Any:
         result_data = inputs.get("data", {})
 
-        if self._current_save_enabled:
-            file_name = self._current_filename
+        save_enabled = request.get_handler_state("save_enabled", False)
+        if save_enabled:
+            file_name = request.get_handler_state("filename")
+            filesystem_adapter = request.get_handler_state("filesystem_adapter")
 
-            if self._filesystem_adapter:
+            if filesystem_adapter:
                 try:
                     if isinstance(result_data, dict):
                         content = json.dumps(result_data, indent=2)
@@ -132,10 +124,10 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
 
                     file_path = Path(file_name)
                     parent_dir = file_path.parent
-                    if parent_dir != Path() and not self._filesystem_adapter.exists(parent_dir):
-                        self._filesystem_adapter.mkdir(parent_dir, parents=True)
+                    if parent_dir != Path() and not filesystem_adapter.exists(parent_dir):
+                        filesystem_adapter.mkdir(parent_dir, parents=True)
 
-                    with self._filesystem_adapter.open(file_path, "wb") as f:
+                    with filesystem_adapter.open(file_path, "wb") as f:
                         f.write(content.encode("utf-8"))
 
                     return {"data": result_data, "saved_to": file_name, "save_success": True}
@@ -163,4 +155,6 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         return output_envelope
 
     def post_execute(self, request: ExecutionRequest[EndpointNode], output: Envelope) -> Envelope:
+        """Post-execution hook to emit tokens."""
+        self.emit_token_outputs(request, output)
         return output

@@ -31,6 +31,8 @@ class ExecutionRequest[T: ExecutableNode]:
     parent_container: Optional["Container"] = None
     parent_registry: Optional["ServiceRegistry"] = None
 
+    _handler_state: dict[str, Any] = field(default_factory=dict)
+
     @property
     def node_id(self) -> str:
         return self.node.id
@@ -150,6 +152,31 @@ class ExecutionRequest[T: ExecutableNode]:
     def has_input(self, name: str) -> bool:
         return name in self.inputs
 
+    def set_handler_state(self, key: str, value: Any) -> None:
+        """Store handler-specific state for this request.
+
+        Args:
+            key: State key
+            value: State value
+        """
+        self._handler_state[key] = value
+
+    def get_handler_state(self, key: str, default: Any = None) -> Any:
+        """Retrieve handler-specific state for this request.
+
+        Args:
+            key: State key
+            default: Default value if key not found
+
+        Returns:
+            State value or default
+        """
+        return self._handler_state.get(key, default)
+
+    def clear_handler_state(self) -> None:
+        """Clear all handler-specific state."""
+        self._handler_state.clear()
+
     def create_sub_registry(self) -> Optional["ServiceRegistry"]:
         if self.parent_registry:
             return self.parent_registry.create_child()
@@ -166,6 +193,7 @@ class ExecutionRequest[T: ExecutableNode]:
             iteration=self.iteration,
             parent_container=self.parent_container,
             parent_registry=self.parent_registry,
+            _handler_state=self._handler_state.copy(),
         )
 
     def with_metadata(self, metadata: dict[str, Any]) -> "ExecutionRequest[T]":
@@ -179,6 +207,7 @@ class ExecutionRequest[T: ExecutableNode]:
             iteration=self.iteration,
             parent_container=self.parent_container,
             parent_registry=self.parent_registry,
+            _handler_state=self._handler_state.copy(),
         )
 
 

@@ -39,7 +39,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
 
     def __init__(self) -> None:
         super().__init__()
-        self._current_base_dir = None
 
     @property
     def node_class(self) -> type[DbNode]:
@@ -109,8 +108,8 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                 produced_by=str(node.id),
             )
 
-        # Store configuration in instance variables for execute_request
-        self._current_base_dir = str(BASE_DIR)
+        # Store configuration in request state
+        request.set_handler_state("base_dir", str(BASE_DIR))
 
         # No early return - proceed to execute_request
         return None
@@ -190,7 +189,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
         # Services are injected by decorator
         db_service = self._db_service
         template_processor = self._template_processor
-        base_dir = self._current_base_dir
+        base_dir = request.get_handler_state("base_dir")
 
         file_paths = node.file
 

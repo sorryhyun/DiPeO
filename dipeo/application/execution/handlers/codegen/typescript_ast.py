@@ -36,8 +36,6 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         during execution, following the DI pattern.
         """
         super().__init__()
-        # Instance variables for passing data between methods
-        self._current_debug = None
 
     @property
     def node_class(self) -> type[TypescriptAstNode]:
@@ -80,8 +78,8 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         from dipeo.config.base_logger import get_module_logger
         logger = get_module_logger(__name__)
 
-        # Set debug flag for later use
-        self._current_debug = False  # Will be set based on context if needed
+        # Set debug flag for later use via handler state
+        request.set_handler_state("debug", False)  # Will be set based on context if needed
 
         # Check parser service availability
         ast_parser = request.get_optional_service(AST_PARSER)

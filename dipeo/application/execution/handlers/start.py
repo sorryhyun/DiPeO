@@ -24,10 +24,6 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
 
     def __init__(self):
         super().__init__()
-        self._current_trigger_mode = None
-        self._current_hook_event = None
-        self._current_hook_filters = None
-        self._current_input_variables = None
 
     @property
     def node_class(self) -> type[StartNode]:
@@ -52,30 +48,26 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
     async def pre_execute(self, request: ExecutionRequest[StartNode]) -> Envelope | None:
         node = request.node
 
-        self._current_trigger_mode = node.trigger_mode or HookTriggerMode.NONE
-        self._current_hook_event = node.hook_event
-        self._current_hook_filters = node.hook_filters
+        request.set_handler_state("trigger_mode", node.trigger_mode or HookTriggerMode.NONE)
+        request.set_handler_state("hook_event", node.hook_event)
+        request.set_handler_state("hook_filters", node.hook_filters)
 
-        self._current_input_variables = {}
+        input_variables = {}
         execution_id = None
         if request.execution_id:
             execution_id = request.execution_id
         elif request.runtime and hasattr(request.runtime, "execution_id"):
             execution_id = request.runtime.execution_id
 
-        # Use injected state_store service when available. Service injection
-        # happens when ``run`` executes, so fall back to the request container
-        # during pre-execution to avoid AttributeError on the first invocation.
-        state_store = getattr(self, "_state_store", None)
-        if state_store is None:
-            state_store = request.get_optional_service(STATE_STORE)
-            if state_store is not None:
-                self._state_store = state_store
+        # Get state_store service from request (no caching)
+        state_store = request.get_optional_service(STATE_STORE)
 
         if execution_id and state_store:
             execution_state = await state_store.get_state(execution_id)
             if execution_state and execution_state.variables:
-                self._current_input_variables = execution_state.variables
+                input_variables = execution_state.variables
+
+        request.set_handler_state("input_variables", input_variables)
 
         return None
 
@@ -97,9 +89,13 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         node = request.node
         context = request.context
 
-        combined_data = {**self._current_input_variables, **inputs}
+        input_variables = request.get_handler_state("input_variables", {})
+        trigger_mode = request.get_handler_state("trigger_mode", HookTriggerMode.NONE)
+        hook_event = request.get_handler_state("hook_event")
 
-        if self._current_trigger_mode == HookTriggerMode.NONE:
+        combined_data = {**input_variables, **inputs}
+
+        if trigger_mode == HookTriggerMode.NONE:
             if combined_data and "default" in combined_data:
                 output_data = combined_data
                 message = "Simple start point"
@@ -107,18 +103,18 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
                 output_data = {"default": combined_data if combined_data else {}}
                 message = "Simple start point"
 
-        elif self._current_trigger_mode == HookTriggerMode.MANUAL:
+        elif trigger_mode == HookTriggerMode.MANUAL:
             output_data = {**combined_data, **(node.custom_data or {})}
             output_data = {"default": output_data}
             message = "Manual execution started"
 
-        elif self._current_trigger_mode == HookTriggerMode.HOOK:
+        elif trigger_mode == HookTriggerMode.HOOK:
             hook_data = await self._get_hook_event_data(node, context, request.services)
 
             if hook_data:
                 output_data = {**combined_data, **(node.custom_data or {}), **hook_data}
                 output_data = {"default": output_data}
-                message = f"Triggered by hook event: {self._current_hook_event}"
+                message = f"Triggered by hook event: {hook_event}"
             else:
                 output_data = {**combined_data, **(node.custom_data or {})}
                 output_data = {"default": output_data}
@@ -136,13 +132,14 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         output_data = result.get("data", {})
         message = result.get("message", "Simple start point")
 
+        trigger_mode = request.get_handler_state("trigger_mode")
         output_envelope = EnvelopeFactory.create(
             body=output_data,  # Natural dict output - let factory auto-detect
             produced_by=node.id,
             trace_id=trace_id,
             meta={
-                "trigger_mode": str(self._current_trigger_mode)
-                if self._current_trigger_mode
+                "trigger_mode": str(trigger_mode)
+                if trigger_mode
                 else "none",
                 "message": message,
             },
@@ -156,8 +153,6 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         return None
 
     def post_execute(self, request: ExecutionRequest[StartNode], output: Envelope) -> Envelope:
-        context = request.context
-        outputs = {"default": output}
-        context.emit_outputs_as_tokens(request.node.id, outputs)
-
+        """Post-execution hook to emit tokens."""
+        self.emit_token_outputs(request, output)
         return output

@@ -25,9 +25,6 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
 
     def __init__(self):
         super().__init__()
-        self._current_api_key = None
-        self._current_provider = None
-        self._current_operation = None
 
     @property
     def node_class(self) -> type[IntegratedApiNode]:
@@ -108,9 +105,9 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
                 produced_by=str(node.id),
             )
 
-        self._current_api_key = api_key
-        self._current_provider = provider
-        self._current_operation = operation
+        request.set_handler_state("api_key", api_key)
+        request.set_handler_state("provider", provider)
+        request.set_handler_state("operation", operation)
 
         return None
 
@@ -138,9 +135,9 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
         trace_id = request.execution_id or ""
 
         integrated_api_service = self._integrated_api_service
-        api_key = self._current_api_key
-        provider = self._current_provider
-        operation = self._current_operation
+        api_key = request.get_handler_state("api_key")
+        provider = request.get_handler_state("provider")
+        operation = request.get_handler_state("operation")
 
         config = node.config or {}
 
@@ -174,44 +171,23 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
             "max_retries": max_retries,
         }
 
-        try:
-            result = await integrated_api_service.execute_operation(
-                provider=provider,
-                operation=operation,
-                config=config,
-                resource_id=resource_id,
-                api_key=api_key,
-                timeout=timeout,
-                max_retries=max_retries,
-            )
+        result = await integrated_api_service.execute_operation(
+            provider=provider,
+            operation=operation,
+            config=config,
+            resource_id=resource_id,
+            api_key=api_key,
+            timeout=timeout,
+            max_retries=max_retries,
+        )
 
-            output_envelope = EnvelopeFactory.create(
-                body=result if isinstance(result, dict) else {"default": result},
-                produced_by=node.id,
-                trace_id=trace_id,
-            ).with_meta(provider=provider, operation=operation)
+        output_envelope = EnvelopeFactory.create(
+            body=result if isinstance(result, dict) else {"default": result},
+            produced_by=node.id,
+            trace_id=trace_id,
+        ).with_meta(provider=provider, operation=operation)
 
-            return output_envelope
-
-        except ValueError as e:
-            error_envelope = EnvelopeFactory.create(
-                body=str(e), produced_by=node.id, trace_id=trace_id
-            ).with_meta(error_type="ValidationError", provider=provider, operation=operation)
-            return EnvelopeFactory.create(
-                body={"error": str(e), "type": "ValidationError"},
-                produced_by=str(node.id),
-                trace_id=trace_id,
-            )
-
-        except Exception as e:
-            error_envelope = EnvelopeFactory.create(
-                body=str(e), produced_by=node.id, trace_id=trace_id
-            ).with_meta(error_type=type(e).__name__, provider=provider, operation=operation)
-            return EnvelopeFactory.create(
-                body={"error": str(e), "type": e.__class__.__name__},
-                produced_by=str(node.id),
-                trace_id=trace_id,
-            )
+        return output_envelope
 
     async def prepare_inputs(
         self, request: ExecutionRequest[IntegratedApiNode], inputs: dict[str, Envelope]

@@ -51,13 +51,6 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             "shell": BashExecutor(),
         }
 
-        # Instance vars for current execution (pre_execute -> execute_with_envelopes)
-        self._current_language = None
-        self._current_timeout = None
-        self._current_function_name = None
-        self._current_executor = None
-        self._current_file_path = None
-
     @property
     def node_class(self) -> type[CodeJobNode]:
         return CodeJobNode
@@ -119,12 +112,12 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                     error="ValueError",
                 )
 
-        # 4. Store all validated data in instance variables for execute_request
-        self._current_language = language
-        self._current_timeout = timeout
-        self._current_function_name = function_name
-        self._current_executor = executor
-        self._current_file_path = file_path
+        # 4. Store all validated data in request state
+        request.set_handler_state("language", language)
+        request.set_handler_state("timeout", timeout)
+        request.set_handler_state("function_name", function_name)
+        request.set_handler_state("executor", executor)
+        request.set_handler_state("file_path", file_path)
 
         return None  # Proceed to execute_request
 
@@ -192,10 +185,10 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         # Ensure exec_context is always a dictionary
         exec_context = inputs if isinstance(inputs, dict) else {}
 
-        # Use pre-validated data from instance variables (set in pre_execute)
-        timeout = self._current_timeout
-        function_name = self._current_function_name
-        executor = self._current_executor
+        # Use pre-validated data from request state (set in pre_execute)
+        timeout = request.get_handler_state("timeout")
+        function_name = request.get_handler_state("function_name")
+        executor = request.get_handler_state("executor")
 
         # Track execution time
         start_time = time.time()
@@ -204,19 +197,21 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             request.add_metadata("inline_code", True)
             result = await executor.execute_inline(node.code, exec_context, timeout, function_name)
         else:
-            # Use pre-resolved file path from instance variable
-            file_path = self._current_file_path
+            # Use pre-resolved file path from request state
+            file_path = request.get_handler_state("file_path")
             request.add_metadata("filePath", str(file_path))
             result = await executor.execute_file(file_path, exec_context, timeout, function_name)
 
-        # Store execution metadata for building representations
-        self._execution_time = time.time() - start_time
-        self._execution_meta = {
-            "execution_time": self._execution_time,
+        # Store execution metadata in request state for building representations
+        execution_time = time.time() - start_time
+        execution_meta = {
+            "execution_time": execution_time,
             "exit_code": 0 if result is not None else 1,
             "stdout": getattr(executor, "last_stdout", ""),
             "stderr": getattr(executor, "last_stderr", ""),
         }
+        request.set_handler_state("execution_time", execution_time)
+        request.set_handler_state("execution_meta", execution_meta)
 
         return result
 
@@ -225,7 +220,12 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     ) -> dict[str, Any]:
         """Build multi-representation output for code execution."""
         node = request.node
-        execution_meta = getattr(self, "_execution_meta", {})
+        execution_meta = request.get_handler_state("execution_meta", {})
+        language = request.get_handler_state("language")
+        function_name = request.get_handler_state("function_name")
+        timeout = request.get_handler_state("timeout")
+        file_path = request.get_handler_state("file_path")
+        execution_time = request.get_handler_state("execution_time", 0)
 
         # Build representations
         representations = {
@@ -235,11 +235,11 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             "stderr": execution_meta.get("stderr", ""),
             "return_value": result,
             "execution_info": {
-                "language": self._current_language,
+                "language": language,
                 "execution_time": execution_meta.get("execution_time", 0),
                 "exit_code": execution_meta.get("exit_code", 0),
-                "function_name": self._current_function_name,
-                "timeout": self._current_timeout,
+                "function_name": function_name,
+                "timeout": timeout,
             },
         }
 
@@ -253,8 +253,8 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         else:
             representations["code_info"] = {
                 "type": "file",
-                "file_path": str(self._current_file_path),
-                "file_hash": hash(str(self._current_file_path)),
+                "file_path": str(file_path),
+                "file_hash": hash(str(file_path)),
             }
 
         # Determine primary body for backward compatibility
@@ -269,9 +269,9 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             "primary": primary,
             "representations": representations,
             "meta": {
-                "execution_time": self._execution_time if hasattr(self, "_execution_time") else 0,
-                "code_hash": hash(node.code) if node.code else hash(str(self._current_file_path)),
-                "language": self._current_language,
+                "execution_time": execution_time,
+                "code_hash": hash(node.code) if node.code else hash(str(file_path)),
+                "language": language,
                 "result_type": type(result).__name__,
             },
         }
@@ -303,9 +303,9 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
 
         Phase 5: Now emits output as tokens to trigger downstream nodes.
         """
-        # Use instance variable for language
+        # Use request state for language
         if request.metadata and request.metadata.get("debug"):
-            language = self._current_language
+            language = request.get_handler_state("language")
             # Check if output is an error by checking has_error method
             is_error = hasattr(output, "has_error") and output.has_error()
             print(f"[CodeJobNode] Executed {language} code - Success: {not is_error}")
