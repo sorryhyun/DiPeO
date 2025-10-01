@@ -267,7 +267,7 @@ class ServerManager:
 
             if response.status_code == 200:
                 result = response.json()
-                if "data" in result and result["data"]["register_cli_session"]["success"]:
+                if "data" in result and result["data"]["registerCliSession"]["success"]:
                     print("📡 CLI session registered for monitoring")
                     return True
         except Exception as e:

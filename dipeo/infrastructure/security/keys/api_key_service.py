@@ -1,9 +1,6 @@
 """API Key service infrastructure implementation."""
 
 import json
-import logging
-
-from dipeo.config.base_logger import get_module_logger
 import uuid
 from pathlib import Path
 
@@ -22,12 +19,11 @@ class APIKeyService(LoggingMixin, InitializationMixin, ValidationMixin, APIKeyPo
         self.file_path = Path(file_path)
         self.file_path.parent.mkdir(parents=True, exist_ok=True)
         self._store: dict[str, dict] = {}
-        self._logger = get_module_logger(__name__)
-        self._logger.debug(f"APIKeyService.__init__ called with file_path: {self.file_path}")
+        self.logger.debug(f"APIKeyService.__init__ called with file_path: {self.file_path}")
 
     async def initialize(self) -> None:
         self._store = await self._load_all()
-        self._logger.debug(f"APIKeyService.initialize() - Loaded keys: {list(self._store.keys())}")
+        self.logger.debug(f"APIKeyService.initialize() - Loaded keys: {list(self._store.keys())}")
 
     async def _load_all(self) -> dict[str, dict]:
         if not self.file_path.exists():
@@ -37,7 +33,7 @@ class APIKeyService(LoggingMixin, InitializationMixin, ValidationMixin, APIKeyPo
             with open(self.file_path) as f:
                 return json.load(f)
         except (OSError, json.JSONDecodeError) as e:
-            self._logger.error(f"Failed to load API keys from {self.file_path}: {e}")
+            self.logger.error(f"Failed to load API keys from {self.file_path}: {e}")
             return {}
 
     async def _save_store(self) -> None:
@@ -45,17 +41,12 @@ class APIKeyService(LoggingMixin, InitializationMixin, ValidationMixin, APIKeyPo
             with open(self.file_path, "w") as f:
                 json.dump(self._store, f, indent=2)
         except OSError as e:
-            self._logger.error(f"Failed to save API keys to {self.file_path}: {e}")
+            self.logger.error(f"Failed to save API keys to {self.file_path}: {e}")
             raise
 
     def get_api_key(self, key_id: str) -> dict:
         if key_id not in self._store:
-            import logging
-
-from dipeo.config.base_logger import get_module_logger
-
-            logger = get_module_logger(__name__)
-            logger.error(
+            self.logger.error(
                 f"API key '{key_id}' not found. Available keys: {list(self._store.keys())}"
             )
             raise APIKeyError(f"API key '{key_id}' not found")

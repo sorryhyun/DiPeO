@@ -3,10 +3,10 @@
 import hashlib
 import hmac
 import json
-import logging
 import time
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from fastapi import APIRouter, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 
@@ -21,7 +21,7 @@ from dipeo.infrastructure.integrations.drivers.integrated_api.registry import (
     ProviderRegistry,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_module_logger(__name__)
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 

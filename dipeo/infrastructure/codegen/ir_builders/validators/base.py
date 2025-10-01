@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import logging
-
-from dipeo.config.base_logger import get_module_logger
 from abc import ABC, abstractmethod
 from typing import Any
+
+from dipeo.config.base_logger import get_module_logger
 
 logger = get_module_logger(__name__)
 
@@ -103,7 +102,8 @@ class BaseValidator(ABC):
             name: Validator name for logging
         """
         self.name = name or self.__class__.__name__
-        self.logger = logging.getLogger(f"{__name__}.{self.name}")
+        # Use module logger with class name for context
+        self.logger = get_module_logger(f"{__name__}.{self.name}")
 
     @abstractmethod
     def validate(self, data: dict[str, Any]) -> ValidationResult:

@@ -12,6 +12,10 @@ from dipeo.domain.codegen.ir_builder_port import IRData, IRMetadata
 from dipeo.infrastructure.codegen.ir_builders.core.base import BaseIRBuilder
 from dipeo.infrastructure.codegen.ir_builders.core.context import BuildContext
 from dipeo.infrastructure.codegen.ir_builders.core.steps import BuildStep, StepResult, StepType
+from dipeo.infrastructure.codegen.ir_builders.core.base_steps import (
+    BaseTransformStep,
+    BaseAssemblerStep,
+)
 from dipeo.infrastructure.codegen.ir_builders.modules.domain_models import (
     ExtractDomainModelsStep,
     ExtractEnumsStep,
@@ -110,16 +114,21 @@ class ExtractGraphQLTypesStep(BuildStep):
             StepResult with GraphQL types
         """
         try:
-            from dipeo.infrastructure.codegen.ir_builders.utils import (
-                extract_branded_scalars_from_ast,
-                extract_graphql_input_types_from_ast,
-                extract_interfaces_from_ast,
+            from dipeo.infrastructure.codegen.ir_builders.ast import (
+                BrandedScalarExtractor,
+                GraphQLInputTypeExtractor,
+                InterfaceExtractor,
             )
 
-            # extract_interfaces_from_ast takes optional suffix string, not TypeConverter
-            interfaces = extract_interfaces_from_ast(data)  # No suffix filter needed here
-            input_types = extract_graphql_input_types_from_ast(data)
-            branded_scalars = extract_branded_scalars_from_ast(data)
+            # Use new extractor classes from ast module
+            interface_extractor = InterfaceExtractor()
+            interfaces = interface_extractor.extract(data)
+
+            input_type_extractor = GraphQLInputTypeExtractor()
+            input_types = input_type_extractor.extract(data)
+
+            branded_scalar_extractor = BrandedScalarExtractor()
+            branded_scalars = branded_scalar_extractor.extract(data)
 
             return StepResult(
                 success=True,
@@ -138,91 +147,144 @@ class ExtractGraphQLTypesStep(BuildStep):
                 metadata={"message": f"GraphQL type extraction failed: {e}"},
             )
 
-class TransformStrawberryTypesStep(BuildStep):
-    """Transform types for Strawberry GraphQL."""
+class TransformStrawberryTypesStep(BaseTransformStep):
+    """Transform types for Strawberry GraphQL.
+
+    Migrated to use BaseTransformStep template method pattern for reduced code duplication.
+    """
 
     def __init__(self):
-        super().__init__(
-            name="transform_strawberry_types",
-            step_type=StepType.TRANSFORM,
-        )
-        self._dependencies = [
+        """Initialize Strawberry type transformation step."""
+        super().__init__(name="transform_strawberry_types", required=True)
+
+    def get_dependency_names(self) -> list[str]:
+        """Get required dependencies.
+
+        Returns:
+            List of dependency step names
+        """
+        return [
             "extract_graphql_types",
             "extract_enums",
             "load_strawberry_config",
             "extract_graphql_operations",
         ]
 
-    def execute(self, context: BuildContext, data: Any) -> StepResult:
-        """Transform types for Strawberry.
+    def extract_input_from_dependencies(
+        self, input_data: Any, context: BuildContext
+    ) -> dict[str, Any]:
+        """Extract all required data from dependencies.
 
         Args:
+            input_data: Input data from pipeline
             context: Build context
-            data: Input data (unused, uses context)
 
         Returns:
-            StepResult with transformed types
+            Dictionary with all dependency data
         """
-        try:
-            from dipeo.infrastructure.codegen.ir_builders.strawberry_transformers import (
-                transform_domain_types,
-                transform_input_types,
-                transform_result_types,
-            )
+        graphql_types = context.get_step_data("extract_graphql_types")
+        return {
+            "graphql_types": graphql_types,
+            "enums": context.get_step_data("extract_enums"),
+            "config_data": context.get_step_data("load_strawberry_config"),
+            "operations": context.get_step_data("extract_graphql_operations") or [],
+            # Pass the extracted input types from AST
+            "extracted_input_types": graphql_types.get("input_types", []) if graphql_types else [],
+        }
 
-            # Get data from previous steps
-            graphql_types = context.get_step_data("extract_graphql_types")
-            enums = context.get_step_data("extract_enums")
-            config_data = context.get_step_data("load_strawberry_config")
+    def validate_input(self, input_data: Any) -> Optional[str]:
+        """Validate that required dependency data is present.
 
-            if not graphql_types:
-                return StepResult(
-                    success=False,
-                    error="Missing GraphQL types from previous step",
-                )
+        Args:
+            input_data: Input data to validate
 
-            # Get domain fields config - transform_domain_types expects config as 2nd param
-            domain_fields = config_data.get("domain_fields", {}) if config_data else {}
+        Returns:
+            Error message if validation fails, None if valid
+        """
+        if not isinstance(input_data, dict):
+            return "Input data must be a dictionary"
 
-            # Get operations for transform functions
-            operations = context.get_step_data("extract_graphql_operations") or []
+        if not input_data.get("graphql_types"):
+            return "Missing GraphQL types from previous step"
 
-            # Transform types (note: transform_domain_types takes interfaces and config)
-            domain_types = transform_domain_types(
-                graphql_types.get("interfaces", []),
-                domain_fields,  # This is the config, not enums
-                context.type_converter,
-            )
-            # transform_input_types and transform_result_types take operations, not other data
-            input_types = transform_input_types(operations, context.type_converter)
-            result_types = transform_result_types(operations, context.type_converter)
+        return None
 
-            return StepResult(
-                success=True,
-                data={
-                    "domain_types": domain_types,
-                    "input_types": input_types,
-                    "result_types": result_types,
-                },
-                metadata={"message": "Successfully transformed types for Strawberry"},
-            )
-        except Exception as e:
-            logger.error(f"Failed to transform Strawberry types: {e}")
-            return StepResult(
-                success=False,
-                error=str(e),
-                metadata={"message": f"Type transformation failed: {e}"},
-            )
+    def transform_data(self, input_data: dict[str, Any], context: BuildContext) -> dict[str, Any]:
+        """Transform types for Strawberry GraphQL schema.
 
-class StrawberryAssemblerStep(BuildStep):
-    """Assemble final Strawberry IR data from pipeline results."""
+        Args:
+            input_data: Dictionary with graphql_types, enums, config_data, operations, extracted_input_types
+            context: Build context
+
+        Returns:
+            Dictionary with domain_types, input_types, result_types
+        """
+        from dipeo.infrastructure.codegen.ir_builders.strawberry_transformers import (
+            transform_domain_types,
+            transform_input_types,
+            transform_result_types,
+        )
+
+        graphql_types = input_data["graphql_types"]
+        config_data = input_data["config_data"]
+        operations = input_data["operations"]
+        extracted_input_types = input_data.get("extracted_input_types", [])
+
+        # Get domain fields config
+        domain_fields = config_data.get("domain_fields", {}) if config_data else {}
+
+        # Transform types
+        domain_types = transform_domain_types(
+            graphql_types.get("interfaces", []),
+            domain_fields,
+            context.type_converter,
+        )
+        # Use extracted input types from AST instead of creating from operations
+        input_types = transform_input_types(extracted_input_types, context.type_converter)
+        result_types = transform_result_types(operations, context.type_converter)
+
+        return {
+            "domain_types": domain_types,
+            "input_types": input_types,
+            "result_types": result_types,
+        }
+
+    def get_transform_metadata(
+        self, input_data: Any, transformed_data: Any
+    ) -> dict[str, Any]:
+        """Generate metadata for transformation result.
+
+        Args:
+            input_data: Input data
+            transformed_data: Transformed types
+
+        Returns:
+            Metadata dictionary
+        """
+        return {
+            "message": "Successfully transformed types for Strawberry",
+            "domain_type_count": len(transformed_data.get("domain_types", [])),
+            "input_type_count": len(transformed_data.get("input_types", [])),
+            "result_type_count": len(transformed_data.get("result_types", [])),
+        }
+
+class StrawberryAssemblerStep(BaseAssemblerStep):
+    """Assemble final Strawberry IR data from pipeline results.
+
+    Migrated to use BaseAssemblerStep template method pattern for reduced code duplication.
+    """
 
     def __init__(self):
-        super().__init__(
-            name="strawberry_assembler",
-            step_type=StepType.ASSEMBLE,
-        )
-        self._dependencies = [
+        """Initialize Strawberry assembler step."""
+        super().__init__(name="strawberry_assembler", required=True)
+
+    def get_dependency_names(self) -> list[str]:
+        """Get required dependency step names.
+
+        Returns:
+            List of dependency names
+        """
+        return [
             "load_strawberry_config",
             "extract_graphql_operations",
             "extract_graphql_types",
@@ -232,115 +294,111 @@ class StrawberryAssemblerStep(BuildStep):
             "build_operation_strings",
         ]
 
-    def execute(self, context: BuildContext, data: Any) -> StepResult:
-        """Assemble Strawberry IR from previous step results.
+    def handle_missing_dependency(self, dep_name: str) -> Any:
+        """Handle missing dependency data with appropriate defaults.
 
         Args:
-            context: Build context
-            data: Results from previous steps
+            dep_name: Name of missing dependency
 
         Returns:
-            StepResult with assembled Strawberry IR
+            Default value for the dependency
         """
-        try:
+        # Some dependencies can be None (optional)
+        if dep_name in ["extract_node_specs", "build_operation_strings"]:
+            logger.warning(f"Optional dependency '{dep_name}' missing, using empty default")
+            return [] if dep_name == "extract_node_specs" else {}
 
-            # Get results from previous steps
-            config_data = context.get_step_data("load_strawberry_config")
-            operations = context.get_step_data("extract_graphql_operations")
-            graphql_types = context.get_step_data("extract_graphql_types")
-            transformed_types = context.get_step_data("transform_strawberry_types")
-            node_specs = context.get_step_data("extract_node_specs")
-            enums = context.get_step_data("extract_enums")
-            operation_strings = context.get_step_data("build_operation_strings")
+        # Other dependencies should be present
+        logger.warning(f"Required dependency '{dep_name}' missing in {self.name}, using None")
+        return None
 
-            # Extract config
-            config = config_data.get("config", {}) if config_data else {}
-            domain_fields = config_data.get("domain_fields", {}) if config_data else {}
+    def assemble_ir(
+        self, dependency_data: dict[str, Any], context: BuildContext
+    ) -> dict[str, Any]:
+        """Assemble Strawberry IR from dependency data.
 
-            # Build IR components
-            # Note: build_operations_ir expects (operations, input_types, result_types)
-            # We need to get the transformed types
-            input_types_list = transformed_types.get("input_types", []) if transformed_types else []
-            result_types_list = (
-                transformed_types.get("result_types", []) if transformed_types else []
-            )
+        Args:
+            dependency_data: Dictionary with all dependency data
+            context: Build context
 
-            # Merge operation strings into operations before building IR
-            enriched_operations = self._merge_operation_strings(
-                operations or [], operation_strings or {}
-            )
+        Returns:
+            Assembled Strawberry IR dictionary
+        """
+        # Extract dependency data
+        config_data = dependency_data.get("load_strawberry_config")
+        operations = dependency_data.get("extract_graphql_operations")
+        graphql_types = dependency_data.get("extract_graphql_types")
+        transformed_types = dependency_data.get("transform_strawberry_types")
+        node_specs = dependency_data.get("extract_node_specs")
+        enums = dependency_data.get("extract_enums")
+        operation_strings = dependency_data.get("build_operation_strings")
 
-            # Use new step class for operations IR
-            operations_step = BuildOperationsIRStep()
-            operations_input = {
-                "extract_graphql_operations": {
-                    "operations": enriched_operations,
-                    "input_types": input_types_list,
-                    "result_types": result_types_list,
-                }
+        # Extract config
+        config = config_data.get("config", {}) if config_data else {}
+        domain_fields = config_data.get("domain_fields", {}) if config_data else {}
+
+        # Get transformed types
+        input_types_list = transformed_types.get("input_types", []) if transformed_types else []
+        result_types_list = (
+            transformed_types.get("result_types", []) if transformed_types else []
+        )
+
+        # Merge operation strings into operations
+        enriched_operations = self._merge_operation_strings(
+            operations or [], operation_strings or {}
+        )
+
+        # Build operations IR
+        operations_step = BuildOperationsIRStep()
+        operations_input = {
+            "extract_graphql_operations": {
+                "operations": enriched_operations,
+                "input_types": input_types_list,
+                "result_types": result_types_list,
             }
-            operations_result = operations_step.execute(context, operations_input)
-            if not operations_result.success:
-                return StepResult(
-                    success=False,
-                    error=f"Failed to build operations IR: {operations_result.error}",
-                )
-            operations_ir = operations_result.data
+        }
+        operations_result = operations_step.execute(context, operations_input)
+        if not operations_result.success:
+            raise RuntimeError(f"Failed to build operations IR: {operations_result.error}")
+        operations_ir = operations_result.data
 
-            # Use new step class for domain IR
-            domain_step = BuildDomainIRStep()
-            domain_input = {
-                "extract_domain_models": {
-                    "models": transformed_types.get("domain_types", []) if transformed_types else [],
-                    "interfaces": graphql_types.get("interfaces", []) if graphql_types else [],
-                    "enums": enums or [],
-                    "scalars": graphql_types.get("branded_scalars", []) if graphql_types else [],
-                    "inputs": graphql_types.get("input_types", []) if graphql_types else [],
-                }
+        # Build domain IR
+        domain_step = BuildDomainIRStep()
+        domain_input = {
+            "extract_domain_models": {
+                "models": transformed_types.get("domain_types", []) if transformed_types else [],
+                "interfaces": graphql_types.get("interfaces", []) if graphql_types else [],
+                "enums": enums or [],
+                "scalars": graphql_types.get("branded_scalars", []) if graphql_types else [],
+                "inputs": input_types_list,  # Use input_types from transformed_types
             }
-            domain_result = domain_step.execute(context, domain_input)
-            if not domain_result.success:
-                return StepResult(
-                    success=False,
-                    error=f"Failed to build domain IR: {domain_result.error}",
-                )
-            domain_ir = domain_result.data
+        }
+        domain_result = domain_step.execute(context, domain_input)
+        if not domain_result.success:
+            raise RuntimeError(f"Failed to build domain IR: {domain_result.error}")
+        domain_ir = domain_result.data
 
-            # Use new step class for complete IR
-            complete_step = BuildCompleteIRStep()
-            complete_input = {
-                "build_operations_ir": operations_ir,
-                "build_domain_ir": domain_ir,
-            }
-            # Set optional data in context
-            context.set_step_data("extract_node_specs", node_specs or [])
+        # Build complete IR
+        complete_step = BuildCompleteIRStep()
+        complete_input = {
+            "build_operations_ir": operations_ir,
+            "build_domain_ir": domain_ir,
+        }
+        # Set optional data in context
+        context.set_step_data("extract_node_specs", node_specs or [])
 
-            complete_result = complete_step.execute(context, complete_input)
-            if not complete_result.success:
-                return StepResult(
-                    success=False,
-                    error=f"Failed to build complete IR: {complete_result.error}",
-                )
-            complete_ir = complete_result.data
+        complete_result = complete_step.execute(context, complete_input)
+        if not complete_result.success:
+            raise RuntimeError(f"Failed to build complete IR: {complete_result.error}")
+        complete_ir = complete_result.data
 
-            # If build_complete_ir returns an IRData, extract the data
-            if isinstance(complete_ir, IRData):
-                ir_data_dict = complete_ir.data
-            else:
-                ir_data_dict = complete_ir
+        # Extract data from IRData if needed
+        if isinstance(complete_ir, IRData):
+            ir_data_dict = complete_ir.data
+        else:
+            ir_data_dict = complete_ir
 
-            return StepResult(
-                success=True,
-                data=ir_data_dict,
-                metadata={"message": "Successfully assembled Strawberry IR data"},
-            )
-        except Exception as e:
-            logger.error(f"Failed to assemble Strawberry IR: {e}")
-            return StepResult(
-                success=False,
-                error=str(e),
-                metadata={"message": f"Strawberry assembly failed: {e}"},
-            )
+        return ir_data_dict
 
     def _merge_operation_strings(
         self, operations: list[dict[str, Any]], operation_strings: dict[str, str]

@@ -12,7 +12,7 @@ from typing import Any, Optional
 
 import yaml
 
-from dipeo.infrastructure.codegen.ir_builders.utils import TypeConverter
+from dipeo.infrastructure.codegen.ir_builders.type_system_unified import UnifiedTypeConverter
 
 
 @dataclass
@@ -28,7 +28,7 @@ class BuildContext:
 
     config_path: Optional[Path] = None
     config: dict[str, Any] = field(default_factory=dict)
-    _type_converter: Optional[TypeConverter] = None
+    _type_converter: Optional[UnifiedTypeConverter] = None
     _base_dir: Optional[Path] = None
     _cache: dict[str, Any] = field(default_factory=dict)
     _step_results: dict[str, Any] = field(default_factory=dict)
@@ -89,15 +89,15 @@ class BuildContext:
                 return yaml.safe_load(f) or {}
 
     @property
-    def type_converter(self) -> TypeConverter:
+    def type_converter(self) -> UnifiedTypeConverter:
         """Get or create the type converter instance.
 
         Returns:
-            Shared TypeConverter instance
+            Shared UnifiedTypeConverter instance
         """
         if self._type_converter is None:
             custom_mappings = self.config.get("type_mappings")
-            self._type_converter = TypeConverter(custom_mappings)
+            self._type_converter = UnifiedTypeConverter(custom_mappings=custom_mappings) if custom_mappings else UnifiedTypeConverter()
         return self._type_converter
 
     @property

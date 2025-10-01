@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces using simplified type resolver.
 
-Generated at: 2025-09-30T03:05:08.564618
+Generated at: 2025-09-30T22:22:01.495348
 """
 
 import strawberry
@@ -866,8 +866,8 @@ class ExecutionStateType:
             llm_usage=LLMUsageType.from_pydantic(obj.llm_usage) if obj.llm_usage else None,
             is_active=obj.is_active,
             executed_nodes=obj.executed_nodes,
-            node_states=obj.node_states,
-            node_outputs=obj.node_outputs,
+            node_states={k: v.model_dump() for k, v in obj.node_states.items()},
+            node_outputs={k: v.model_dump() for k, v in obj.node_outputs.items()},
             variables=obj.variables,
             exec_counts=obj.exec_counts,
             metrics=obj.metrics,

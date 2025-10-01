@@ -136,8 +136,6 @@ class ExecuteDiagramUseCase(LoggingMixin, InitializationMixin):
                 # Engine handles completion events internally
 
             except Exception as e:
-                from dipeo.config.base_logger import get_module_logger
-                logger = get_module_logger(__name__)
                 logger.error(f"Engine execution failed: {e}", exc_info=True)
                 # Error event will be emitted by the engine
                 raise

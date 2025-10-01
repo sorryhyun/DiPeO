@@ -70,7 +70,7 @@ def _import_modules(paths: list[str]):
     """Import resolver modules, ignoring import errors."""
     import logging
 
-from dipeo.config.base_logger import get_module_logger
+    from dipeo.config.base_logger import get_module_logger
 
     logger = get_module_logger(__name__)
     out = []

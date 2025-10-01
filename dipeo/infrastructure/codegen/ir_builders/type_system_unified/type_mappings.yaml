@@ -1,0 +1,228 @@
+# Type Mappings Configuration
+# Consolidates type conversion logic from TypeConverter and TypeConversionFilters
+
+# Base type mappings between different type systems
+base_types:
+  # TypeScript → Python mappings
+  typescript_to_python:
+    string: str
+    number: float
+    boolean: bool
+    any: Any
+    unknown: Any
+    "null": "None"
+    undefined: "None"
+    void: "None"
+    Date: datetime
+    Object: "Dict[str, Any]"
+    object: "Dict[str, Any]"
+    "Record<string, any>": "Dict[str, Any]"
+    "Record<string, string>": "Dict[str, str]"
+    bigint: int
+    symbol: str
+    never: Any
+
+  # TypeScript → GraphQL mappings
+  typescript_to_graphql:
+    string: String
+    number: Float
+    boolean: Boolean
+    any: JSONScalar
+    unknown: JSONScalar
+    Date: DateTime
+    "Record<string, any>": JSONScalar
+    "Record<string, string>": JSONScalar
+    object: JSONScalar
+    Object: JSONScalar
+
+  # GraphQL → TypeScript mappings
+  graphql_to_typescript:
+    String: string
+    Int: number
+    Float: number
+    Boolean: boolean
+    ID: string
+    DateTime: string
+    JSON: any
+    JSONScalar: any
+    Upload: Upload
+
+# Historical type aliases (backward compatibility)
+type_aliases:
+  SerializedNodeOutput: SerializedEnvelope
+  PersonMemoryMessage: Message
+  ExecutionStatus: Status
+  NodeExecutionStatus: Status
+
+# Branded ID types that map to string but have special meaning
+branded_types:
+  # Core entity IDs
+  - NodeID
+  - ArrowID
+  - HandleID
+  - PersonID
+  - ApiKeyID
+  - DiagramID
+  - ExecutionID
+  - HookID
+  - TaskID
+  - FileID
+
+  # Additional IDs from TypeConversionFilters
+  - MessageID
+  - ConversationID
+  - AgentID
+  - ToolID
+  - CliSessionID
+
+# Field name patterns that should use integer instead of float
+field_overrides:
+  # Fields that should be int even though TypeScript uses number
+  integer_fields:
+    # Iteration and sequence
+    - maxIteration
+    - max_iteration
+    - sequence
+    - iteration
+
+    # Counts and indexes
+    - messageCount
+    - count
+    - index
+    - size
+    - length
+    - limit
+    - offset
+    - page
+    - pageSize
+
+    # Time and duration
+    - timeout
+    - timeoutSeconds
+    - durationSeconds
+
+    # Tokens
+    - maxTokens
+    - totalTokens
+    - promptTokens
+    - completionTokens
+    - input
+    - output
+    - cached
+    - total
+
+    # Network and retries
+    - statusCode
+    - retries
+    - maxRetries
+    - port
+
+    # Coordinates and dimensions
+    - x
+    - y
+    - width
+    - height
+
+    # Versioning
+    - version
+
+  # Context-aware field mappings (field name → Python type)
+  context_aware_fields:
+    method: HttpMethod
+    sub_type: DBBlockSubType
+    language: SupportedLanguage
+    code_type: SupportedLanguage
+    hook_type: HookType
+    trigger_mode: HookTriggerMode
+    service: LLMService
+    diagram_format: DiagramFormat
+
+# Special patterns for type inference
+patterns:
+  # Patterns for optional types
+  optional_patterns:
+    - " | undefined"
+    - " | null"
+
+  # Array patterns
+  array_patterns:
+    - "\\[\\]$"  # T[]
+    - "^Array<(.+)>$"  # Array<T>
+    - "^ReadonlyArray<(.+)>$"  # ReadonlyArray<T>
+
+  # Generic patterns
+  generic_patterns:
+    - "^Promise<(.+)>$"  # Promise<T> → Awaitable[T]
+    - "^Partial<(.+)>$"  # Partial<T>
+    - "^Required<(.+)>$"  # Required<T>
+
+  # Record/Map patterns
+  dict_patterns:
+    - "^Record<(.+)>$"  # Record<K, V>
+    - "^Map<(.+)>$"  # Map<K, V>
+
+  # Literal patterns
+  literal_patterns:
+    - "^['\"`].*['\"`]$"  # String literals
+    - "^true$"  # Boolean true
+    - "^false$"  # Boolean false
+
+  # Branded scalar pattern
+  branded_pattern: "&.*__brand.*'([^']+)'"
+
+# Type conversion rules for complex patterns
+conversion_rules:
+  # How to handle different generic types
+  generics:
+    Array: "List[{inner}]"
+    ReadonlyArray: "Sequence[{inner}]"
+    Promise: "Awaitable[{inner}]"
+    Partial: "Partial[{inner}]"
+    Required: "Required[{inner}]"
+    Record: "Dict[{key}, {value}]"
+    Map: "Dict[{key}, {value}]"
+
+  # How to handle literals
+  literals:
+    string_literal: "Literal[{value}]"
+    boolean_true: "Literal[True]"
+    boolean_false: "Literal[False]"
+    numeric_literal: "Literal[{value}]"
+
+  # How to handle unions
+  unions:
+    # If union contains null/undefined and one other type, make it Optional
+    optional_union_threshold: 2
+    # All literal values → Literal[a, b, c]
+    all_literals_to_literal: true
+    # Otherwise → Union[A, B, C]
+    default: "Union[{types}]"
+
+# Default values for different Python types
+default_values:
+  str: '""'
+  int: "0"
+  float: "0.0"
+  bool: "False"
+  None: "None"
+  "List[*]": "[]"
+  "Dict[*]": "{}"
+  "Set[*]": "set()"
+  "Tuple[*]": "()"
+  "Optional[*]": "None"
+
+# Required Python imports for different type patterns
+python_imports:
+  "List[": "from typing import List"
+  "Dict[": "from typing import Dict"
+  "Optional[": "from typing import Optional"
+  "Union[": "from typing import Union"
+  "Literal[": "from typing import Literal"
+  "Any": "from typing import Any"
+  "Tuple[": "from typing import Tuple"
+  "Set[": "from typing import Set"
+  "Sequence[": "from typing import Sequence"
+  "Awaitable[": "from typing import Awaitable"
+  "Partial[": "from typing import Partial"
+  "Required[": "from typing import Required"
+  "datetime": "from datetime import datetime"

@@ -10,82 +10,89 @@ from dipeo.infrastructure.codegen.ir_builders.core import (
     StepResult,
     StepType,
 )
-from dipeo.infrastructure.codegen.ir_builders.utils import TypeConverter
+from dipeo.infrastructure.codegen.ir_builders.core.base_steps import (
+    BaseExtractionStep,
+    BaseTransformStep,
+)
+from dipeo.infrastructure.codegen.ir_builders.type_system_unified import UnifiedTypeConverter
 
 
-class ExtractGraphQLOperationsStep(BuildStep):
-    """Step to extract GraphQL operations from TypeScript AST."""
+class ExtractGraphQLOperationsStep(BaseExtractionStep):
+    """Step to extract GraphQL operations from TypeScript AST.
+
+    Migrated to use BaseExtractionStep template method pattern for reduced code duplication.
+    """
 
     def __init__(self):
         """Initialize GraphQL operations extraction step."""
-        super().__init__(
-            name="extract_graphql_operations", step_type=StepType.EXTRACT, required=True
-        )
+        super().__init__(name="extract_graphql_operations", required=True)
 
-    def execute(self, context: BuildContext, input_data: Any) -> StepResult:
-        """Extract GraphQL operations from AST data.
+    def should_process_file(self, file_path: str, file_data: dict[str, Any]) -> bool:
+        """Filter to only process query definition files.
 
         Args:
-            context: Build context with utilities
-            input_data: TypeScript AST data
+            file_path: Path to the AST file
+            file_data: AST data for the file
 
         Returns:
-            StepResult with extracted operations
+            True if file contains query definitions
         """
-        if not isinstance(input_data, dict):
-            return StepResult(success=False, error="Input data must be a dictionary of AST files")
+        return "query-definitions" in file_path or "queryDefinitions" in file_path
 
-        type_converter = context.type_converter
-        operations = self._extract_operations(input_data, type_converter)
-
-        # Group operations by type for metadata
-        operation_types = {}
-        for op in operations:
-            op_type = op.get("type", "query")
-            operation_types[op_type] = operation_types.get(op_type, 0) + 1
-
-        return StepResult(
-            success=True,
-            data=operations,
-            metadata={
-                "total_operations": len(operations),
-                "operation_types": operation_types,
-            },
-        )
-
-    def _extract_operations(
-        self, ast_data: dict[str, Any], type_converter: TypeConverter
+    def extract_from_file(
+        self,
+        file_path: str,
+        file_data: dict[str, Any],
+        type_converter: UnifiedTypeConverter,
+        context: BuildContext,
     ) -> list[dict[str, Any]]:
-        """Extract all GraphQL operations from AST.
+        """Extract GraphQL operations from a single AST file.
 
         Args:
-            ast_data: TypeScript AST data
+            file_path: Path to the AST file
+            file_data: AST data for the file
             type_converter: Type converter instance
+            context: Build context
 
         Returns:
-            List of operation definitions
+            List of extracted operation definitions
         """
         operations = []
 
-        for file_path, file_data in ast_data.items():
-            # Focus on query definition files
-            if "query-definitions" not in file_path and "queryDefinitions" not in file_path:
-                continue
-
-            # Extract from constants
-            constants = file_data.get("constants", [])
-            for const in constants:
-                const_name = const.get("name", "")
-                if const_name.endswith("Queries") or const_name.endswith("Operations"):
-                    self._process_query_constant(const, operations, type_converter)
+        # Extract from constants
+        constants = file_data.get("constants", [])
+        for const in constants:
+            const_name = const.get("name", "")
+            if const_name.endswith("Queries") or const_name.endswith("Operations"):
+                self._process_query_constant(const, operations, type_converter)
 
         return operations
+
+    def get_metadata(self, extracted_data: list[Any]) -> dict[str, Any]:
+        """Generate metadata for extraction result.
+
+        Args:
+            extracted_data: Extracted operations
+
+        Returns:
+            Metadata with operation counts by type
+        """
+        # Group operations by type for metadata
+        operation_types = {}
+        for op in extracted_data:
+            op_type = op.get("type", "query")
+            operation_types[op_type] = operation_types.get(op_type, 0) + 1
+
+        return {
+            "total_operations": len(extracted_data),
+            "operation_types": operation_types,
+        }
 
     def _process_query_constant(
         self,
         const: dict[str, Any],
         operations: list[dict[str, Any]],
-        type_converter: TypeConverter,
+        type_converter: UnifiedTypeConverter,
     ) -> None:
         """Process a query constant and extract operations.
 
@@ -109,7 +116,7 @@ class ExtractGraphQLOperationsStep(BuildStep):
             operations.append(operation)
 
     def _build_operation(
-        self, query: dict[str, Any], entity_name: str, type_converter: TypeConverter
+        self, query: dict[str, Any], entity_name: str, type_converter: UnifiedTypeConverter
     ) -> dict[str, Any]:
         """Build an operation definition from query data.
 
@@ -160,7 +167,7 @@ class ExtractGraphQLOperationsStep(BuildStep):
         return "query"
 
     def _transform_variables(
-        self, variables: list[dict[str, Any]], type_converter: TypeConverter
+        self, variables: list[dict[str, Any]], type_converter: UnifiedTypeConverter
     ) -> list[dict[str, Any]]:
         """Transform GraphQL variables.
 
@@ -226,43 +233,72 @@ class ExtractGraphQLOperationsStep(BuildStep):
         return []
 
 
-class BuildOperationStringsStep(BuildStep):
-    """Step to build GraphQL operation strings from definitions."""
+class BuildOperationStringsStep(BaseTransformStep):
+    """Step to build GraphQL operation strings from definitions.
+
+    Migrated to use BaseTransformStep template method pattern for reduced code duplication.
+    """
 
     def __init__(self):
         """Initialize operation string builder step."""
-        super().__init__(
-            name="build_operation_strings", step_type=StepType.TRANSFORM, required=False
-        )
-        self.add_dependency("extract_graphql_operations")
+        super().__init__(name="build_operation_strings", required=False)
 
-    def execute(self, context: BuildContext, input_data: Any) -> StepResult:
-        """Build GraphQL operation strings.
-
-        Args:
-            context: Build context
-            input_data: Dictionary with operations from extraction step
+    def get_dependency_names(self) -> list[str]:
+        """Get required dependencies.
 
         Returns:
-            StepResult with operation strings
+            List with extract_graphql_operations dependency
+        """
+        return ["extract_graphql_operations"]
+
+    def extract_input_from_dependencies(
+        self, input_data: Any, context: BuildContext
+    ) -> list[dict[str, Any]]:
+        """Extract operations list from dependency data.
+
+        Args:
+            input_data: Input data from pipeline
+            context: Build context
+
+        Returns:
+            List of operations
         """
         # Handle input from dependencies
         if isinstance(input_data, dict) and "extract_graphql_operations" in input_data:
-            operations = input_data["extract_graphql_operations"]
+            return input_data["extract_graphql_operations"]
         elif isinstance(input_data, list):
-            operations = input_data
+            return input_data
         else:
-            return StepResult(success=False, error="Expected operations as input")
+            return []
 
-        operation_strings = self._build_operation_strings(operations)
+    def transform_data(self, input_data: Any, context: BuildContext) -> dict[str, str]:
+        """Transform operations into GraphQL operation strings.
 
-        return StepResult(
-            success=True,
-            data=operation_strings,
-            metadata={
-                "operation_count": len(operation_strings),
-            },
-        )
+        Args:
+            input_data: List of operations
+            context: Build context
+
+        Returns:
+            Dictionary mapping operation names to GraphQL strings
+        """
+        return self._build_operation_strings(input_data)
+
+    def get_transform_metadata(
+        self, input_data: Any, transformed_data: Any
+    ) -> dict[str, Any]:
+        """Generate metadata for transformation result.
+
+        Args:
+            input_data: Input operations
+            transformed_data: Generated operation strings
+
+        Returns:
+            Metadata with operation count
+        """
+        return {
+            "operation_count": len(transformed_data),
+            "transform": self.name,
+        }
 
     def _build_operation_strings(self, operations: list[dict[str, Any]]) -> dict[str, str]:
         """Build GraphQL operation strings.
@@ -413,44 +449,75 @@ class BuildOperationStringsStep(BuildStep):
         return name[0].lower() + name[1:]
 
 
-class GroupOperationsByEntityStep(BuildStep):
-    """Step to group operations by entity for organization."""
+class GroupOperationsByEntityStep(BaseTransformStep):
+    """Step to group operations by entity for organization.
+
+    Migrated to use BaseTransformStep template method pattern for reduced code duplication.
+    """
 
     def __init__(self):
         """Initialize operation grouping step."""
-        super().__init__(
-            name="group_operations_by_entity", step_type=StepType.TRANSFORM, required=False
-        )
-        self.add_dependency("extract_graphql_operations")
+        super().__init__(name="group_operations_by_entity", required=False)
 
-    def execute(self, context: BuildContext, input_data: Any) -> StepResult:
-        """Group operations by entity.
-
-        Args:
-            context: Build context
-            input_data: Dictionary with operations from extraction step
+    def get_dependency_names(self) -> list[str]:
+        """Get required dependencies.
 
         Returns:
-            StepResult with grouped operations
+            List with extract_graphql_operations dependency
+        """
+        return ["extract_graphql_operations"]
+
+    def extract_input_from_dependencies(
+        self, input_data: Any, context: BuildContext
+    ) -> list[dict[str, Any]]:
+        """Extract operations list from dependency data.
+
+        Args:
+            input_data: Input data from pipeline
+            context: Build context
+
+        Returns:
+            List of operations
         """
         # Handle input from dependencies
         if isinstance(input_data, dict) and "extract_graphql_operations" in input_data:
-            operations = input_data["extract_graphql_operations"]
+            return input_data["extract_graphql_operations"]
         elif isinstance(input_data, list):
-            operations = input_data
+            return input_data
         else:
-            return StepResult(success=False, error="Expected operations as input")
+            return []
 
-        grouped = self._group_by_entity(operations)
+    def transform_data(
+        self, input_data: Any, context: BuildContext
+    ) -> dict[str, list[dict[str, Any]]]:
+        """Transform operations into entity-grouped structure.
 
-        return StepResult(
-            success=True,
-            data=grouped,
-            metadata={
-                "entity_count": len(grouped),
-                "total_operations": sum(len(ops) for ops in grouped.values()),
-            },
-        )
+        Args:
+            input_data: List of operations
+            context: Build context
+
+        Returns:
+            Dictionary mapping entity names to operations
+        """
+        return self._group_by_entity(input_data)
+
+    def get_transform_metadata(
+        self, input_data: Any, transformed_data: Any
+    ) -> dict[str, Any]:
+        """Generate metadata for transformation result.
+
+        Args:
+            input_data: Input operations
+            transformed_data: Grouped operations
+
+        Returns:
+            Metadata with entity and operation counts
+        """
+        return {
+            "entity_count": len(transformed_data),
+            "total_operations": sum(len(ops) for ops in transformed_data.values()),
+            "transform": self.name,
+        }
 
     def _group_by_entity(self, operations: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
         """Group operations by entity.

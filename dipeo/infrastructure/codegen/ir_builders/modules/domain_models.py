@@ -5,101 +5,113 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from dipeo.infrastructure.codegen.ir_builders.core import (
+    BaseExtractionStep,
     BuildContext,
     BuildStep,
     StepResult,
     StepType,
 )
-from dipeo.infrastructure.codegen.ir_builders.utils import TypeConverter
+from dipeo.infrastructure.codegen.ir_builders.type_system_unified import UnifiedTypeConverter
 
 
-class ExtractDomainModelsStep(BuildStep):
+class ExtractDomainModelsStep(BaseExtractionStep):
     """Step to extract domain models from TypeScript AST."""
+
+    # Define domain files to process
+    DOMAIN_FILES = [
+        "core/diagram.ts",
+        "core/execution.ts",
+        "core/conversation.ts",
+        "core/cli-session.ts",
+        "core/file.ts",
+        "core/subscription-types.ts",
+        "core/integration.ts",
+        "claude-code/session-types.ts",
+        "codegen/ast-types.ts",
+        "frontend/query-specifications.ts",
+        "frontend/relationship-queries.ts",
+    ]
 
     def __init__(self):
         """Initialize domain models extraction step."""
-        super().__init__(name="extract_domain_models", step_type=StepType.EXTRACT, required=True)
+        super().__init__(name="extract_domain_models", required=True)
+        self._processed_newtypes: set[str] = set()
+        self._processed_models: set[str] = set()
+        self._all_newtypes: list[dict[str, Any]] = []
+        self._all_models: list[dict[str, Any]] = []
 
-    def execute(self, context: BuildContext, input_data: Any) -> StepResult:
-        """Extract domain models from AST data.
+    def pre_extraction_hook(self, context: BuildContext, input_data: dict[str, Any]) -> None:
+        """Reset processing state before extraction."""
+        self._processed_newtypes = set()
+        self._processed_models = set()
+        self._all_newtypes = []
+        self._all_models = []
+
+    def should_process_file(self, file_path: str, file_data: dict[str, Any]) -> bool:
+        """Filter to only process domain model files."""
+        return any(file_path.endswith(f"{df}.json") for df in self.DOMAIN_FILES)
+
+    def extract_from_file(
+        self,
+        file_path: str,
+        file_data: dict[str, Any],
+        type_converter: UnifiedTypeConverter,
+        context: BuildContext,
+    ) -> None:
+        """Extract domain models from a single AST file.
 
         Args:
-            context: Build context with utilities
-            input_data: TypeScript AST data
+            file_path: Path to the AST file
+            file_data: AST data for the file
+            type_converter: Type converter instance
+            context: Build context
 
         Returns:
-            StepResult with extracted domain models
+            None (accumulates data in instance variables)
         """
-        if not isinstance(input_data, dict):
-            return StepResult(success=False, error="Input data must be a dictionary of AST files")
+        # Extract newtypes (branded types)
+        newtypes = self._extract_newtypes(file_data, type_converter, self._processed_newtypes)
+        self._all_newtypes.extend(newtypes)
 
-        type_converter = context.type_converter
-        domain_models = self._extract_domain_models(input_data, type_converter)
+        # Extract models (interfaces)
+        models = self._extract_models(file_data, type_converter, self._processed_models)
+        self._all_models.extend(models)
 
-        return StepResult(
-            success=True,
-            data=domain_models,
-            metadata={
-                "newtype_count": len(domain_models.get("newtypes", [])),
-                "model_count": len(domain_models.get("models", [])),
-                "alias_count": len(domain_models.get("aliases", [])),
-            },
-        )
-
-    def _extract_domain_models(
-        self, ast_data: dict[str, Any], type_converter: TypeConverter
-    ) -> dict[str, Any]:
-        """Extract domain model data from AST.
+    def post_extraction_hook(self, extracted_data: list[Any], context: BuildContext) -> dict[str, Any]:
+        """Assemble domain models data after extraction.
 
         Args:
-            ast_data: TypeScript AST data
-            type_converter: Type converter instance
+            extracted_data: Unused (data accumulated in instance variables)
+            context: Build context
 
         Returns:
             Dictionary with newtypes, models, and aliases
         """
-        domain_models: dict[str, list[Any]] = {
-            "newtypes": [],
-            "models": [],
-            "aliases": [],
+        return {
+            "newtypes": self._all_newtypes,
+            "models": self._all_models,
+            "aliases": [],  # Kept for compatibility
         }
 
-        processed_newtypes: set[str] = set()
-        processed_models: set[str] = set()
+    def get_metadata(self, extracted_data: Any) -> dict[str, Any]:
+        """Generate metadata for extraction result.
 
-        # Define domain files to process
-        domain_files = [
-            "core/diagram.ts",
-            "core/execution.ts",
-            "core/conversation.ts",
-            "core/cli-session.ts",
-            "core/file.ts",
-            "core/subscription-types.ts",
-            "core/integration.ts",
-            "claude-code/session-types.ts",
-            "codegen/ast-types.ts",
-            "frontend/query-specifications.ts",
-            "frontend/relationship-queries.ts",
-        ]
+        Args:
+            extracted_data: Dictionary with extracted domain models
 
-        for file_path, file_data in ast_data.items():
-            # Check if this is a domain file
-            is_domain_file = any(file_path.endswith(f"{df}.json") for df in domain_files)
-            if not is_domain_file:
-                continue
-
-            # Extract newtypes (branded types)
-            newtypes = self._extract_newtypes(file_data, type_converter, processed_newtypes)
-            domain_models["newtypes"].extend(newtypes)
-
-            # Extract models (interfaces)
-            models = self._extract_models(file_data, type_converter, processed_models)
-            domain_models["models"].extend(models)
-
-        return domain_models
+        Returns:
+            Metadata dictionary
+        """
+        if isinstance(extracted_data, dict):
+            return {
+                "newtype_count": len(extracted_data.get("newtypes", [])),
+                "model_count": len(extracted_data.get("models", [])),
+                "alias_count": len(extracted_data.get("aliases", [])),
+            }
+        return {"newtype_count": 0, "model_count": 0, "alias_count": 0}
 
     def _extract_newtypes(
-        self, file_data: dict[str, Any], type_converter: TypeConverter, processed: set[str]
+        self, file_data: dict[str, Any], type_converter: UnifiedTypeConverter, processed: set[str]
     ) -> list[dict[str, Any]]:
         """Extract branded NewType declarations.
 
@@ -131,7 +143,7 @@ class ExtractDomainModelsStep(BuildStep):
         return newtypes
 
     def _extract_models(
-        self, file_data: dict[str, Any], type_converter: TypeConverter, processed: set[str]
+        self, file_data: dict[str, Any], type_converter: UnifiedTypeConverter, processed: set[str]
     ) -> list[dict[str, Any]]:
         """Extract model interfaces.
 
@@ -176,7 +188,7 @@ class ExtractDomainModelsStep(BuildStep):
         return models
 
     def _convert_property_to_field(
-        self, prop: dict[str, Any], type_converter: TypeConverter
+        self, prop: dict[str, Any], type_converter: UnifiedTypeConverter
     ) -> Optional[dict[str, Any]]:
         """Convert interface property to field definition.
 
@@ -206,63 +218,68 @@ class ExtractDomainModelsStep(BuildStep):
         }
 
 
-class ExtractEnumsStep(BuildStep):
+class ExtractEnumsStep(BaseExtractionStep):
     """Step to extract enum definitions from TypeScript AST."""
 
     def __init__(self):
         """Initialize enum extraction step."""
-        super().__init__(name="extract_enums", step_type=StepType.EXTRACT, required=True)
+        super().__init__(name="extract_enums", required=True)
+        self._processed_enums: set[str] = set()
 
-    def execute(self, context: BuildContext, input_data: Any) -> StepResult:
-        """Extract enum definitions from AST data.
+    def pre_extraction_hook(self, context: BuildContext, input_data: dict[str, Any]) -> None:
+        """Reset processing state before extraction."""
+        self._processed_enums = set()
+
+    def extract_from_file(
+        self,
+        file_path: str,
+        file_data: dict[str, Any],
+        type_converter: UnifiedTypeConverter,
+        context: BuildContext,
+    ) -> list[dict[str, Any]]:
+        """Extract enum definitions from a single AST file.
 
         Args:
+            file_path: Path to the AST file
+            file_data: AST data for the file
+            type_converter: Type converter instance
             context: Build context
-            input_data: TypeScript AST data
 
         Returns:
-            StepResult with extracted enums
-        """
-        if not isinstance(input_data, dict):
-            return StepResult(success=False, error="Input data must be a dictionary of AST files")
-
-        enums = self._extract_enums(input_data)
-
-        return StepResult(success=True, data=enums, metadata={"enum_count": len(enums)})
-
-    def _extract_enums(self, ast_data: dict[str, Any]) -> list[dict[str, Any]]:
-        """Extract all enum definitions from TypeScript AST.
-
-        Args:
-            ast_data: Dictionary of AST files
-
-        Returns:
-            List of enum definitions
+            List of enum definitions from this file
         """
         enums = []
-        processed_enums = set()
+        for enum in file_data.get("enums", []):
+            enum_name = enum.get("name", "")
 
-        for _file_path, file_data in ast_data.items():
-            for enum in file_data.get("enums", []):
-                enum_name = enum.get("name", "")
+            # Skip if already processed
+            if enum_name in self._processed_enums:
+                continue
 
-                # Skip if already processed
-                if enum_name in processed_enums:
-                    continue
+            self._processed_enums.add(enum_name)
 
-                processed_enums.add(enum_name)
+            # Extract enum values
+            values = self._extract_enum_values(enum)
 
-                # Extract enum values
-                values = self._extract_enum_values(enum)
-
-                enum_def = {
-                    "name": enum_name,
-                    "values": values,
-                    "description": enum.get("description", ""),
-                }
-                enums.append(enum_def)
+            enum_def = {
+                "name": enum_name,
+                "values": values,
+                "description": enum.get("description", ""),
+            }
+            enums.append(enum_def)
 
         return enums
+
+    def get_metadata(self, extracted_data: list[Any]) -> dict[str, Any]:
+        """Generate metadata for extraction result.
+
+        Args:
+            extracted_data: Extracted enums
+
+        Returns:
+            Metadata dictionary
+        """
+        return {"enum_count": len(extracted_data)}
 
     def _extract_enum_values(self, enum: dict[str, Any]) -> list[dict[str, Any]]:
         """Extract values from enum definition.
@@ -293,129 +310,152 @@ class ExtractEnumsStep(BuildStep):
         return values
 
 
-class ExtractIntegrationsStep(BuildStep):
+class ExtractIntegrationsStep(BaseExtractionStep):
     """Step to extract integration definitions from TypeScript AST."""
 
     def __init__(self):
         """Initialize integrations extraction step."""
-        super().__init__(name="extract_integrations", step_type=StepType.EXTRACT, required=False)
+        super().__init__(name="extract_integrations", required=False)
+        self._processed: set[str] = set()
 
-    def execute(self, context: BuildContext, input_data: Any) -> StepResult:
-        """Extract integration definitions from AST data.
+    def pre_extraction_hook(self, context: BuildContext, input_data: dict[str, Any]) -> None:
+        """Reset processing state before extraction."""
+        self._processed = set()
+
+    def should_process_file(self, file_path: str, file_data: dict[str, Any]) -> bool:
+        """Filter to only process integration-related files."""
+        return "integration" in file_path.lower()
+
+    def extract_from_file(
+        self,
+        file_path: str,
+        file_data: dict[str, Any],
+        type_converter: UnifiedTypeConverter,
+        context: BuildContext,
+    ) -> list[dict[str, Any]]:
+        """Extract integration definitions from a single AST file.
 
         Args:
+            file_path: Path to the AST file
+            file_data: AST data for the file
+            type_converter: Type converter instance
             context: Build context
-            input_data: TypeScript AST data
 
         Returns:
-            StepResult with extracted integrations
-        """
-        if not isinstance(input_data, dict):
-            return StepResult(success=False, error="Input data must be a dictionary of AST files")
-
-        integrations = self._extract_integrations(input_data)
-
-        return StepResult(
-            success=True, data=integrations, metadata={"integration_count": len(integrations)}
-        )
-
-    def _extract_integrations(self, ast_data: dict[str, Any]) -> list[dict[str, Any]]:
-        """Extract integration definitions from TypeScript AST.
-
-        Args:
-            ast_data: Dictionary of AST files
-
-        Returns:
-            List of integration definitions
+            List of integration definitions from this file
         """
         integrations = []
-        processed = set()
 
-        for file_path, file_data in ast_data.items():
-            # Look for integration-related files
-            if "integration" not in file_path.lower():
-                continue
+        # Extract from constants
+        for const in file_data.get("constants", []):
+            const_name = const.get("name", "")
+            if "Integration" in const_name and const_name not in self._processed:
+                integration = {
+                    "name": const_name,
+                    "value": const.get("value", {}),
+                    "type": const.get("type", ""),
+                }
+                integrations.append(integration)
+                self._processed.add(const_name)
 
-            # Extract from constants
-            for const in file_data.get("constants", []):
-                const_name = const.get("name", "")
-                if "Integration" in const_name and const_name not in processed:
-                    integration = {
-                        "name": const_name,
-                        "value": const.get("value", {}),
-                        "type": const.get("type", ""),
-                    }
-                    integrations.append(integration)
-                    processed.add(const_name)
-
-            # Extract from types
-            for type_def in file_data.get("types", []):
-                type_name = type_def.get("name", "")
-                if "Integration" in type_name and type_name not in processed:
-                    integration = {
-                        "name": type_name,
-                        "definition": type_def,
-                    }
-                    integrations.append(integration)
-                    processed.add(type_name)
+        # Extract from types
+        for type_def in file_data.get("types", []):
+            type_name = type_def.get("name", "")
+            if "Integration" in type_name and type_name not in self._processed:
+                integration = {
+                    "name": type_name,
+                    "definition": type_def,
+                }
+                integrations.append(integration)
+                self._processed.add(type_name)
 
         return integrations
 
+    def get_metadata(self, extracted_data: list[Any]) -> dict[str, Any]:
+        """Generate metadata for extraction result.
 
-class ExtractConversionsStep(BuildStep):
+        Args:
+            extracted_data: Extracted integrations
+
+        Returns:
+            Metadata dictionary
+        """
+        return {"integration_count": len(extracted_data)}
+
+
+class ExtractConversionsStep(BaseExtractionStep):
     """Step to extract type conversion data from TypeScript AST."""
 
     def __init__(self):
         """Initialize conversions extraction step."""
-        super().__init__(name="extract_conversions", step_type=StepType.EXTRACT, required=False)
+        super().__init__(name="extract_conversions", required=False)
+        self._type_mappings: list[dict[str, Any]] = []
+        self._enum_mappings: list[dict[str, Any]] = []
 
-    def execute(self, context: BuildContext, input_data: Any) -> StepResult:
-        """Extract conversion data from AST data.
+    def pre_extraction_hook(self, context: BuildContext, input_data: dict[str, Any]) -> None:
+        """Reset processing state before extraction."""
+        self._type_mappings = []
+        self._enum_mappings = []
+
+    def should_process_file(self, file_path: str, file_data: dict[str, Any]) -> bool:
+        """Filter to only process conversion-related files."""
+        return "conversion" in file_path.lower() or "mapping" in file_path.lower()
+
+    def extract_from_file(
+        self,
+        file_path: str,
+        file_data: dict[str, Any],
+        type_converter: UnifiedTypeConverter,
+        context: BuildContext,
+    ) -> None:
+        """Extract conversion data from a single AST file.
 
         Args:
+            file_path: Path to the AST file
+            file_data: AST data for the file
+            type_converter: Type converter instance
             context: Build context
-            input_data: TypeScript AST data
 
         Returns:
-            StepResult with extracted conversions
+            None (accumulates data in instance variables)
         """
-        if not isinstance(input_data, dict):
-            return StepResult(success=False, error="Input data must be a dictionary of AST files")
+        # Extract type mappings from constants
+        for const in file_data.get("constants", []):
+            const_name = const.get("name", "")
+            if "Mapping" in const_name or "Conversion" in const_name:
+                self._type_mappings.append(
+                    {
+                        "name": const_name,
+                        "value": const.get("value", {}),
+                    }
+                )
 
-        conversions = self._extract_conversions(input_data)
-
-        return StepResult(
-            success=True, data=conversions, metadata={"conversion_count": len(conversions)}
-        )
-
-    def _extract_conversions(self, ast_data: dict[str, Any]) -> dict[str, Any]:
-        """Extract conversion data from TypeScript AST.
+    def post_extraction_hook(self, extracted_data: list[Any], context: BuildContext) -> dict[str, Any]:
+        """Assemble conversions data after extraction.
 
         Args:
-            ast_data: Dictionary of AST files
+            extracted_data: Unused (data accumulated in instance variables)
+            context: Build context
 
         Returns:
-            Dictionary with conversion data
+            Dictionary with type_mappings and enum_mappings
         """
-        conversions = {
-            "type_mappings": [],
-            "enum_mappings": [],
+        return {
+            "type_mappings": self._type_mappings,
+            "enum_mappings": self._enum_mappings,
         }
 
-        for file_path, file_data in ast_data.items():
-            # Look for conversion-related files
-            if "conversion" not in file_path.lower() and "mapping" not in file_path.lower():
-                continue
+    def get_metadata(self, extracted_data: Any) -> dict[str, Any]:
+        """Generate metadata for extraction result.
 
-            # Extract type mappings from constants
-            for const in file_data.get("constants", []):
-                const_name = const.get("name", "")
-                if "Mapping" in const_name or "Conversion" in const_name:
-                    conversions["type_mappings"].append(
-                        {
-                            "name": const_name,
-                            "value": const.get("value", {}),
-                        }
-                    )
+        Args:
+            extracted_data: Dictionary with extracted conversions
 
-        return conversions
+        Returns:
+            Metadata dictionary
+        """
+        if isinstance(extracted_data, dict):
+            return {
+                "conversion_count": len(extracted_data.get("type_mappings", [])) + len(extracted_data.get("enum_mappings", []))
+            }
+        return {"conversion_count": 0}

@@ -123,10 +123,10 @@ filesystem = request.services.get("filesystem_adapter")
   - Phase-aware execution
   - Batch processing support (provider-specific)
 
-### Messaging (v1.0 Unified)
+### Messaging
 - **MessageRouter**: Central event distribution
 - **Flow**: Engine → EventBus → MessageRouter → GraphQL/SSE
-- **Unified EventBus**: Single protocol replacing DomainEventBus, EventEmitter, EventConsumer, MessageBus
+- **Unified EventBus**: Single protocol for all event handling
 
 ### Code Generation
 - **parsers/**: TypeScript AST parsing

@@ -2,16 +2,24 @@
 
 This module provides filters for type system conversions between TypeScript,
 Python, and GraphQL during code generation.
+
+NOTE: This class now uses UnifiedTypeConverter internally. Consider migrating
+to use UnifiedTypeConverter directly for new code.
 """
 
 import re
+import warnings
 from typing import Any
 
-from dipeo.infrastructure.codegen.type_system import TypeConverter
+from dipeo.infrastructure.codegen.ir_builders.type_system_unified import UnifiedTypeConverter
 
 
 class TypeConversionFilters:
-    """Type system conversion filters."""
+    """Type system conversion filters.
+
+    DEPRECATED: This class now wraps UnifiedTypeConverter for backward compatibility.
+    New code should use UnifiedTypeConverter directly from type_system_unified.
+    """
 
     FALLBACK_TYPE_MAP = {
         "string": "str",
@@ -82,7 +90,7 @@ class TypeConversionFilters:
     }
 
     _type_cache: dict[str, str] = {}
-    _converter = TypeConverter()
+    _converter = UnifiedTypeConverter()
 
     @classmethod
     def ts_to_python(cls, ts_type: str, field_name: str = "") -> str:
