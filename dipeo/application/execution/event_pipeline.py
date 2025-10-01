@@ -220,15 +220,17 @@ class EventPipeline:
         output_summary = None
         token_usage = None
         person_id = None
+        model = None
         memory_selection = None
 
         if envelope:
             output = envelope.body
             output_summary = self._create_output_summary(output)
             token_usage = self._extract_token_usage(envelope)
-            # Extract person_id and memory_selection from envelope metadata
+            # Extract person_id, model, and memory_selection from envelope metadata
             if hasattr(envelope, "meta") and isinstance(envelope.meta, dict):
                 person_id = envelope.meta.get("person_id")
+                model = envelope.meta.get("model")
                 memory_selection = envelope.meta.get("memory_selection")
 
         event = node_completed(
@@ -240,6 +242,7 @@ class EventPipeline:
             output_summary=output_summary,
             token_usage=token_usage,
             person_id=person_id,
+            model=model,
             memory_selection=memory_selection,
             node_type=str(node.type) if node else None,
         )

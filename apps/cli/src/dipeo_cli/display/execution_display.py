@@ -192,9 +192,12 @@ class ExecutionDisplay:
 
             # Update LLM interactions panel if this was an LLM node
             if person_id or token_usage:
+                # Extract model if available
+                model = data.get("model")
                 self.layout.update_llm_interaction(
                     node_id=node_id,
                     person_id=person_id,
+                    model=model,
                     token_usage=token_usage,
                     memory_selection=memory_selection,
                     duration=duration,

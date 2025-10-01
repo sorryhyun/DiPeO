@@ -203,6 +203,8 @@ def node_completed(execution_id: str, node_id: str, state: NodeState, **kwargs) 
     meta = {}
     if "person_id" in kwargs:
         meta["person_id"] = kwargs.pop("person_id")
+    if "model" in kwargs:
+        meta["model"] = kwargs.pop("model")
     if "node_type" in kwargs:
         meta["node_type"] = kwargs.pop("node_type")
     if "memory_selection" in kwargs:

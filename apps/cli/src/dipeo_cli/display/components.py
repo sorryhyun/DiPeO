@@ -251,6 +251,7 @@ class LLMInteractionsDisplay:
         self,
         node_id: str,
         person_id: str | None = None,
+        model: str | None = None,
         token_usage: dict[str, Any] | None = None,
         memory_selection: dict[str, Any] | None = None,
         duration: float | None = None,
@@ -260,6 +261,7 @@ class LLMInteractionsDisplay:
         interaction = {
             "node_id": node_id,
             "person_id": person_id,
+            "model": model,
             "token_usage": token_usage,
             "memory_selection": memory_selection,
             "duration": duration,
@@ -279,10 +281,16 @@ class LLMInteractionsDisplay:
         for interaction in reversed(self.recent_interactions):  # Show most recent first
             node_id = interaction["node_id"]
             person_id = interaction.get("person_id", "unknown")
+            model = interaction.get("model")
 
             # Node and person info
             lines.append(Text(f"{ICONS['running']} {node_id}", style="info"))
-            if person_id:
+            # Show model prominently if available, otherwise show person_id
+            if model:
+                lines.append(Text(f"  Model: {model}", style="bright_cyan"))
+                if person_id:
+                    lines.append(Text(f"  Person: {person_id}", style="dim"))
+            elif person_id:
                 lines.append(Text(f"  Person: {person_id}", style="muted"))
 
             # Token usage
@@ -387,6 +395,7 @@ class ExecutionLayout:
         self,
         node_id: str,
         person_id: str | None = None,
+        model: str | None = None,
         token_usage: dict[str, Any] | None = None,
         memory_selection: dict[str, Any] | None = None,
         duration: float | None = None,
@@ -394,7 +403,7 @@ class ExecutionLayout:
     ):
         """Update LLM interactions display."""
         self.llm_interactions.add_interaction(
-            node_id, person_id, token_usage, memory_selection, duration, debug=debug
+            node_id, person_id, model, token_usage, memory_selection, duration, debug=debug
         )
 
     def render(self) -> RenderableType:
