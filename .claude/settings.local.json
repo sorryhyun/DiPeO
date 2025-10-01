@@ -21,5 +21,8 @@
     "deny": [],
     "ask": []
   },
-  "additionalDirectories": [".claude/commands"]
+  "additionalDirectories": [".claude/commands"],
+  "env": {
+      "CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR": "true"
+  }
 }

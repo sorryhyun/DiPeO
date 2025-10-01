@@ -1,34 +1,5 @@
 # DiPeO Project Todos
 
-## High Priority
-
-### TypeScript Models - Phase 1: Critical Fixes (P0)
-
-- [ ] Fix NODE_TYPE_MAP synchronization - add missing IR_BUILDER and DIFF_PATCH entries
-  - Location: `dipeo/models/src/utilities/conversions.ts`
-  - Issue: Map is manually maintained and missing entries for newer node types
-  - Impact: Causes runtime errors when these node types are used
-  - Estimated Effort: Small
-
-- [ ] Generate NODE_TYPE_MAP automatically from NodeType enum
-  - Location: `dipeo/models/src/utilities/conversions.ts`
-  - Current State: Manual mapping that can get out of sync with enum
-  - Goal: Auto-generate mapping from NodeType enum to eliminate manual maintenance
-  - Impact: Prevents future synchronization issues
-  - Estimated Effort: Medium
-  - Dependencies: Requires codegen pipeline update
-
-- [ ] Automate node registry with auto-discovery system
-  - Location: `dipeo/models/src/node-specs/node-registry.ts`
-  - Current State: Manual imports and exports for each node spec
-  - Goal: Replace with auto-discovery system that finds all node specs automatically
-  - Impact: Reduces maintenance burden for new node types
-  - Estimated Effort: Large
-  - Implementation Notes:
-    - Consider glob-based discovery of node spec files
-    - Maintain type safety while automating
-    - Update build process to support auto-discovery
-
 ## Medium Priority
 
 ### TypeScript Models - Phase 2: Runtime Safety (P1)
@@ -126,6 +97,16 @@
 ## In Progress
 
 ## Completed (Recent)
+
+- [x] Fix NODE_TYPE_MAP synchronization - add missing IR_BUILDER and DIFF_PATCH entries (2025-10-01)
+  - Fixed by refactoring to auto-generate from NodeType enum
+  - No manual entries were needed as types were already present
+
+- [x] Generate NODE_TYPE_MAP automatically from NodeType enum (2025-10-01)
+  - Location: `dipeo/models/src/utilities/conversions.ts`
+  - Implemented using Object.values().reduce() for automatic generation
+  - Eliminates manual maintenance and prevents future synchronization issues
+  - TypeScript build passed successfully
 
 ---
 

@@ -80,24 +80,29 @@ Maintain a consistent format in `TODO.md`:
 
 ## Scope Management & Communication
 
-**IMPORTANT**: Do NOT attempt to work through all tasks at once if there are many todos.
+**IMPORTANT**: Be ambitious and proactive in organizing and creating tasks.
 
 1. **Assess workload first**: When invoked, read `TODO.md` and assess the total number of tasks
-2. **Set realistic objectives**:
-   - For large todo lists (10+ items), propose a focused scope to the parent agent/user
-   - Example: "I see 15 pending tasks. I recommend focusing on the 3 high-priority items first."
+2. **Set ambitious objectives**:
+   - For todo lists, be comprehensive in your scope
+   - Example: "I see 15 pending tasks across 3 categories. I'll organize all of them and suggest a comprehensive execution plan."
 3. **Communicate scope back to caller**:
    - Report how many tasks exist and in what categories
    - Suggest which tasks to tackle in this session
-   - Ask for confirmation if the scope is unclear
-4. **Batch work appropriately**:
+   - Recommend creating additional tasks if areas are under-specified
+4. **Batch work ambitiously**:
    - Small cleanup (1-5 tasks): Proceed directly
-   - Medium workload (6-10 tasks): Propose scope, then proceed
-   - Large workload (10+ tasks): MUST propose objectives and get confirmation before proceeding
-5. **Status reporting**:
+   - Medium workload (6-15 tasks): Organize comprehensively and suggest full execution plan
+   - Large workload (15+ tasks): Organize into clear phases and propose multi-session strategy
+5. **Be proactive in task creation**:
+   - When reviewing code or features, suggest related tasks that could improve the system
+   - Break down large tasks into detailed subtasks rather than leaving them vague
+   - Identify technical debt and improvement opportunities
+   - Create follow-up tasks for completed work (documentation, testing, optimization)
+6. **Status reporting**:
    - At the end, summarize what was accomplished
    - Report remaining tasks and suggest next priorities
-   - Let the caller know if more sessions are needed
+   - Propose additional tasks if you identify gaps or opportunities
 
 ## Decision-Making Framework
 
