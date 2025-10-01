@@ -50,11 +50,11 @@ export function useDiagram(options: UseDiagramOptions = {}) {
         variables: { diagram_id: targetId }
       }).refetch();
 
-      if (!data?.diagram) {
+      if (!data?.getDiagram) {
         throw new Error('Diagram not found');
       }
 
-      const domainDiagram = DiagramConverter.toDomain(data.diagram) as DiagramResource;
+      const domainDiagram = DiagramConverter.toDomain(data.getDiagram) as DiagramResource;
 
       if (syncWithStore && domainDiagram) {
         const jsonString = JSON.stringify(domainDiagram);
@@ -73,11 +73,11 @@ export function useDiagram(options: UseDiagramOptions = {}) {
         }
       }).refetch();
 
-      if (!data?.diagrams) {
+      if (!data?.listDiagrams) {
         return [];
       }
 
-      return data.diagrams.map(d => ({ ...DiagramConverter.toDomain(d), id: d.metadata?.id || undefined } as DiagramResource));
+      return data.listDiagrams.map(d => ({ ...DiagramConverter.toDomain(d), id: d.metadata?.id || undefined } as DiagramResource));
     },
 
     create: async (data: Partial<DiagramResource>) => {
@@ -90,18 +90,18 @@ export function useDiagram(options: UseDiagramOptions = {}) {
         }
       });
 
-      if (!result?.create_diagram) {
+      if (!result?.createDiagram) {
         throw new Error('Failed to create diagram');
       }
 
-      const domainDiagram = DiagramConverter.toDomain(result.create_diagram?.diagram || {}) as DiagramResource;
+      const domainDiagram = DiagramConverter.toDomain(result.createDiagram?.diagram || {}) as DiagramResource;
 
       if (syncWithStore && domainDiagram) {
         const jsonString = JSON.stringify(domainDiagram);
         await store.importDiagram(jsonString);
       }
 
-      return { ...domainDiagram, id: result.create_diagram?.diagram?.metadata?.id || undefined };
+      return { ...domainDiagram, id: result.createDiagram?.diagram?.metadata?.id || undefined };
     },
 
     update: async (id: string, data: Partial<DiagramResource>) => {
@@ -134,11 +134,11 @@ export function useDiagram(options: UseDiagramOptions = {}) {
         variables: { diagram_id: id }
       });
 
-      if (data?.delete_diagram && syncWithStore) {
+      if (data?.deleteDiagram && syncWithStore) {
         store.clearDiagram();
       }
 
-      return data?.delete_diagram?.success || false;
+      return data?.deleteDiagram?.success || false;
     },
 
 

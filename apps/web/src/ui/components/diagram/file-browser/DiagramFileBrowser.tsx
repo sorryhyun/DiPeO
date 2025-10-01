@@ -33,17 +33,17 @@ export const DiagramFileBrowser: React.FC = () => {
           return;
         }
 
-        if (data?.diagram) {
+        if (data?.getDiagram) {
           // Load the diagram data directly without URL changes
           loadDiagramFromData({
-            nodes: data.diagram.nodes || [],
-            arrows: data.diagram.arrows || [],
-            handles: data.diagram.handles || [],
-            persons: data.diagram.persons || [],
+            nodes: data.getDiagram.nodes || [],
+            arrows: data.getDiagram.arrows || [],
+            handles: data.getDiagram.handles || [],
+            persons: data.getDiagram.persons || [],
             metadata: {
-              ...data.diagram.metadata,
-              name: data.diagram.metadata?.name || file.path, // Use file path as fallback
-              id: data.diagram.metadata?.id || file.path
+              ...data.getDiagram.metadata,
+              name: data.getDiagram.metadata?.name || file.path, // Use file path as fallback
+              id: data.getDiagram.metadata?.id || file.path
             }
           });
 

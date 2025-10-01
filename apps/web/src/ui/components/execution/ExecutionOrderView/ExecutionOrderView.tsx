@@ -56,16 +56,16 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
     skip: !currentExecutionId,
     pollInterval,
     onCompleted: (data: GetExecutionOrderQuery) => {
-      if (data?.execution_order) {
+      if (data?.getExecutionOrder) {
         // Debug: log raw data structure
-        console.log('Raw execution order data:', data.execution_order);
+        console.log('Raw execution order data:', data.getExecutionOrder);
 
         // Handle case where data might be a string (JSONScalar)
         let parsedData;
         try {
-          parsedData = typeof data.execution_order === 'string'
-            ? JSON.parse(data.execution_order)
-            : data.execution_order;
+          parsedData = typeof data.getExecutionOrder === 'string'
+            ? JSON.parse(data.getExecutionOrder)
+            : data.getExecutionOrder;
         } catch (error) {
           console.error('Failed to parse execution order data:', error);
           return;

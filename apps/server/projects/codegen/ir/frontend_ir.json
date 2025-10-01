@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2025-09-30T22:22:04.123549",
+  "generated_at": "2025-10-01T20:12:55.712784",
   "node_specs": [
     {
       "node_type": "api_job",
@@ -13125,7 +13125,7 @@
       ],
       "fields": [
         {
-          "name": "api_keys",
+          "name": "getApiKeys",
           "fields": [],
           "type": null,
           "description": "",
@@ -13160,7 +13160,7 @@
       ],
       "fields": [
         {
-          "name": "api_key",
+          "name": "getApiKey",
           "fields": [
             {
               "name": "id",
@@ -13224,7 +13224,7 @@
       ],
       "fields": [
         {
-          "name": "available_models",
+          "name": "getAvailableModels",
           "fields": [],
           "type": null,
           "description": "",
@@ -13264,7 +13264,7 @@
       ],
       "fields": [
         {
-          "name": "create_api_key",
+          "name": "createApiKey",
           "fields": [
             {
               "name": "success",
@@ -13343,7 +13343,7 @@
       ],
       "fields": [
         {
-          "name": "test_api_key",
+          "name": "testApiKey",
           "fields": [
             {
               "name": "success",
@@ -13397,7 +13397,7 @@
       ],
       "fields": [
         {
-          "name": "delete_api_key",
+          "name": "deleteApiKey",
           "fields": [
             {
               "name": "success",
@@ -13445,7 +13445,7 @@
       ],
       "fields": [
         {
-          "name": "register_cli_session",
+          "name": "registerCliSession",
           "fields": [
             {
               "name": "success",
@@ -13499,7 +13499,7 @@
       ],
       "fields": [
         {
-          "name": "unregister_cli_session",
+          "name": "unregisterCliSession",
           "fields": [
             {
               "name": "success",
@@ -13582,8 +13582,8 @@
         },
         {
           "name": "limit",
-          "type": "Int",
-          "graphql_type": "Int",
+          "type": "Float",
+          "graphql_type": "Float",
           "python_type": "float",
           "typescript_type": "number",
           "required": false,
@@ -13592,8 +13592,8 @@
         },
         {
           "name": "offset",
-          "type": "Int",
-          "graphql_type": "Int",
+          "type": "Float",
+          "graphql_type": "Float",
           "python_type": "float",
           "typescript_type": "number",
           "required": false,
@@ -13613,7 +13613,7 @@
       ],
       "fields": [
         {
-          "name": "conversations",
+          "name": "listConversations",
           "fields": [],
           "type": null,
           "description": "",
@@ -13678,7 +13678,7 @@
       ],
       "fields": [
         {
-          "name": "diagram",
+          "name": "getDiagram",
           "fields": [
             {
               "name": "nodes",
@@ -13954,8 +13954,8 @@
         },
         {
           "name": "limit",
-          "type": "Int",
-          "graphql_type": "Int",
+          "type": "Float",
+          "graphql_type": "Float",
           "python_type": "float",
           "typescript_type": "number",
           "required": false,
@@ -13964,8 +13964,8 @@
         },
         {
           "name": "offset",
-          "type": "Int",
-          "graphql_type": "Int",
+          "type": "Float",
+          "graphql_type": "Float",
           "python_type": "float",
           "typescript_type": "number",
           "required": false,
@@ -13975,7 +13975,7 @@
       ],
       "fields": [
         {
-          "name": "diagrams",
+          "name": "listDiagrams",
           "fields": [
             {
               "name": "metadata",
@@ -14070,7 +14070,7 @@
       ],
       "fields": [
         {
-          "name": "create_diagram",
+          "name": "createDiagram",
           "fields": [
             {
               "name": "success",
@@ -14150,7 +14150,7 @@
       ],
       "fields": [
         {
-          "name": "execute_diagram",
+          "name": "executeDiagram",
           "fields": [
             {
               "name": "success",
@@ -14217,7 +14217,7 @@
       ],
       "fields": [
         {
-          "name": "delete_diagram",
+          "name": "deleteDiagram",
           "fields": [
             {
               "name": "success",
@@ -14397,8 +14397,8 @@
         },
         {
           "name": "limit",
-          "type": "Int",
-          "graphql_type": "Int",
+          "type": "Float",
+          "graphql_type": "Float",
           "python_type": "float",
           "typescript_type": "number",
           "required": false,
@@ -14407,8 +14407,8 @@
         },
         {
           "name": "offset",
-          "type": "Int",
-          "graphql_type": "Int",
+          "type": "Float",
+          "graphql_type": "Float",
           "python_type": "float",
           "typescript_type": "number",
           "required": false,
@@ -14770,7 +14770,7 @@
       ],
       "fields": [
         {
-          "name": "upload_file",
+          "name": "uploadFile",
           "fields": [],
           "type": null,
           "description": "",
@@ -14820,7 +14820,7 @@
       ],
       "fields": [
         {
-          "name": "upload_diagram",
+          "name": "uploadDiagram",
           "fields": [],
           "type": null,
           "description": "",
@@ -14870,7 +14870,7 @@
       ],
       "fields": [
         {
-          "name": "validate_diagram",
+          "name": "validateDiagram",
           "fields": [],
           "type": null,
           "description": "",
@@ -14930,7 +14930,7 @@
       ],
       "fields": [
         {
-          "name": "convert_diagram_format",
+          "name": "convertDiagramFormat",
           "fields": [
             {
               "name": "success",
@@ -14995,7 +14995,7 @@
       "variables": [],
       "fields": [
         {
-          "name": "supported_formats",
+          "name": "getSupportedFormats",
           "fields": [],
           "type": null,
           "description": ""
@@ -15033,7 +15033,7 @@
       ],
       "fields": [
         {
-          "name": "create_node",
+          "name": "createNode",
           "fields": [
             {
               "name": "success",
@@ -15156,7 +15156,7 @@
       ],
       "fields": [
         {
-          "name": "update_node",
+          "name": "updateNode",
           "fields": [
             {
               "name": "success",
@@ -15230,7 +15230,7 @@
       ],
       "fields": [
         {
-          "name": "delete_node",
+          "name": "deleteNode",
           "fields": [
             {
               "name": "success",
@@ -15289,7 +15289,7 @@
       ],
       "fields": [
         {
-          "name": "person",
+          "name": "getPerson",
           "fields": [
             {
               "name": "id",
@@ -15363,8 +15363,8 @@
       "variables": [
         {
           "name": "limit",
-          "type": "Int",
-          "graphql_type": "Int",
+          "type": "Float",
+          "graphql_type": "Float",
           "python_type": "float",
           "typescript_type": "number",
           "required": false,
@@ -15374,7 +15374,7 @@
       ],
       "fields": [
         {
-          "name": "persons",
+          "name": "listPersons",
           "fields": [
             {
               "name": "id",
@@ -15453,7 +15453,7 @@
       ],
       "fields": [
         {
-          "name": "create_person",
+          "name": "createPerson",
           "fields": [
             {
               "name": "success",
@@ -15536,7 +15536,7 @@
       ],
       "fields": [
         {
-          "name": "update_person",
+          "name": "updatePerson",
           "fields": [
             {
               "name": "success",
@@ -15614,7 +15614,7 @@
       ],
       "fields": [
         {
-          "name": "delete_person",
+          "name": "deletePerson",
           "fields": [
             {
               "name": "success",
@@ -15657,7 +15657,7 @@
       "variables": [],
       "fields": [
         {
-          "name": "prompt_files",
+          "name": "listPromptFiles",
           "fields": [],
           "type": null,
           "description": ""
@@ -15685,7 +15685,7 @@
       ],
       "fields": [
         {
-          "name": "prompt_file",
+          "name": "getPromptFile",
           "fields": [],
           "type": null,
           "description": "",
@@ -15709,7 +15709,7 @@
       "variables": [],
       "fields": [
         {
-          "name": "providers",
+          "name": "getProviders",
           "fields": [],
           "type": null,
           "description": ""
@@ -15737,7 +15737,7 @@
       ],
       "fields": [
         {
-          "name": "provider_operations",
+          "name": "getProviderOperations",
           "fields": [],
           "type": null,
           "description": "",
@@ -15782,7 +15782,7 @@
       ],
       "fields": [
         {
-          "name": "operation_schema",
+          "name": "getOperationSchema",
           "fields": [],
           "type": null,
           "description": "",
@@ -15811,7 +15811,7 @@
       "variables": [],
       "fields": [
         {
-          "name": "system_info",
+          "name": "getSystemInfo",
           "fields": [],
           "type": null,
           "description": ""
@@ -15828,7 +15828,7 @@
       "variables": [],
       "fields": [
         {
-          "name": "execution_capabilities",
+          "name": "getExecutionCapabilities",
           "fields": [],
           "type": null,
           "description": ""
@@ -15845,7 +15845,7 @@
       "variables": [],
       "fields": [
         {
-          "name": "health_check",
+          "name": "healthCheck",
           "fields": [],
           "type": null,
           "description": ""
@@ -15873,7 +15873,7 @@
       ],
       "fields": [
         {
-          "name": "execution_order",
+          "name": "getExecutionOrder",
           "fields": [],
           "type": null,
           "description": "",
@@ -15908,7 +15908,7 @@
       ],
       "fields": [
         {
-          "name": "execution_metrics",
+          "name": "getExecutionMetrics",
           "fields": [],
           "type": null,
           "description": "",
@@ -15942,8 +15942,8 @@
         },
         {
           "name": "limit",
-          "type": "Int",
-          "graphql_type": "Int",
+          "type": "Float",
+          "graphql_type": "Float",
           "python_type": "float",
           "typescript_type": "number",
           "required": false,
@@ -15963,7 +15963,7 @@
       ],
       "fields": [
         {
-          "name": "execution_history",
+          "name": "getExecutionHistory",
           "fields": [],
           "type": null,
           "description": "",
@@ -15997,7 +15997,7 @@
       "variables": [],
       "fields": [
         {
-          "name": "active_cli_session",
+          "name": "getActiveCliSession",
           "fields": [],
           "type": null,
           "description": ""
@@ -16027,7 +16027,7 @@
       ],
       "fields": [
         {
-          "name": "api_keys",
+          "name": "getApiKeys",
           "fields": [],
           "type": null,
           "description": "",
@@ -16062,7 +16062,7 @@
       ],
       "fields": [
         {
-          "name": "api_key",
+          "name": "getApiKey",
           "fields": [
             {
               "name": "id",
@@ -16126,7 +16126,7 @@
       ],
       "fields": [
         {
-          "name": "available_models",
+          "name": "getAvailableModels",
           "fields": [],
           "type": null,
           "description": "",
@@ -16195,8 +16195,8 @@
         },
         {
           "name": "limit",
-          "type": "Int",
-          "graphql_type": "Int",
+          "type": "Float",
+          "graphql_type": "Float",
           "python_type": "float",
           "typescript_type": "number",
           "required": false,
@@ -16205,8 +16205,8 @@
         },
         {
           "name": "offset",
-          "type": "Int",
-          "graphql_type": "Int",
+          "type": "Float",
+          "graphql_type": "Float",
           "python_type": "float",
           "typescript_type": "number",
           "required": false,
@@ -16226,7 +16226,7 @@
       ],
       "fields": [
         {
-          "name": "conversations",
+          "name": "listConversations",
           "fields": [],
           "type": null,
           "description": "",
@@ -16291,7 +16291,7 @@
       ],
       "fields": [
         {
-          "name": "diagram",
+          "name": "getDiagram",
           "fields": [
             {
               "name": "nodes",
@@ -16567,8 +16567,8 @@
         },
         {
           "name": "limit",
-          "type": "Int",
-          "graphql_type": "Int",
+          "type": "Float",
+          "graphql_type": "Float",
           "python_type": "float",
           "typescript_type": "number",
           "required": false,
@@ -16577,8 +16577,8 @@
         },
         {
           "name": "offset",
-          "type": "Int",
-          "graphql_type": "Int",
+          "type": "Float",
+          "graphql_type": "Float",
           "python_type": "float",
           "typescript_type": "number",
           "required": false,
@@ -16588,7 +16588,7 @@
       ],
       "fields": [
         {
-          "name": "diagrams",
+          "name": "listDiagrams",
           "fields": [
             {
               "name": "metadata",
@@ -16809,8 +16809,8 @@
         },
         {
           "name": "limit",
-          "type": "Int",
-          "graphql_type": "Int",
+          "type": "Float",
+          "graphql_type": "Float",
           "python_type": "float",
           "typescript_type": "number",
           "required": false,
@@ -16819,8 +16819,8 @@
         },
         {
           "name": "offset",
-          "type": "Int",
-          "graphql_type": "Int",
+          "type": "Float",
+          "graphql_type": "Float",
           "python_type": "float",
           "typescript_type": "number",
           "required": false,
@@ -16901,7 +16901,7 @@
       "variables": [],
       "fields": [
         {
-          "name": "supported_formats",
+          "name": "getSupportedFormats",
           "fields": [],
           "type": null,
           "description": ""
@@ -16929,7 +16929,7 @@
       ],
       "fields": [
         {
-          "name": "person",
+          "name": "getPerson",
           "fields": [
             {
               "name": "id",
@@ -17003,8 +17003,8 @@
       "variables": [
         {
           "name": "limit",
-          "type": "Int",
-          "graphql_type": "Int",
+          "type": "Float",
+          "graphql_type": "Float",
           "python_type": "float",
           "typescript_type": "number",
           "required": false,
@@ -17014,7 +17014,7 @@
       ],
       "fields": [
         {
-          "name": "persons",
+          "name": "listPersons",
           "fields": [
             {
               "name": "id",
@@ -17082,7 +17082,7 @@
       "variables": [],
       "fields": [
         {
-          "name": "prompt_files",
+          "name": "listPromptFiles",
           "fields": [],
           "type": null,
           "description": ""
@@ -17110,7 +17110,7 @@
       ],
       "fields": [
         {
-          "name": "prompt_file",
+          "name": "getPromptFile",
           "fields": [],
           "type": null,
           "description": "",
@@ -17134,7 +17134,7 @@
       "variables": [],
       "fields": [
         {
-          "name": "providers",
+          "name": "getProviders",
           "fields": [],
           "type": null,
           "description": ""
@@ -17162,7 +17162,7 @@
       ],
       "fields": [
         {
-          "name": "provider_operations",
+          "name": "getProviderOperations",
           "fields": [],
           "type": null,
           "description": "",
@@ -17207,7 +17207,7 @@
       ],
       "fields": [
         {
-          "name": "operation_schema",
+          "name": "getOperationSchema",
           "fields": [],
           "type": null,
           "description": "",
@@ -17236,7 +17236,7 @@
       "variables": [],
       "fields": [
         {
-          "name": "system_info",
+          "name": "getSystemInfo",
           "fields": [],
           "type": null,
           "description": ""
@@ -17253,7 +17253,7 @@
       "variables": [],
       "fields": [
         {
-          "name": "execution_capabilities",
+          "name": "getExecutionCapabilities",
           "fields": [],
           "type": null,
           "description": ""
@@ -17270,7 +17270,7 @@
       "variables": [],
       "fields": [
         {
-          "name": "health_check",
+          "name": "healthCheck",
           "fields": [],
           "type": null,
           "description": ""
@@ -17298,7 +17298,7 @@
       ],
       "fields": [
         {
-          "name": "execution_order",
+          "name": "getExecutionOrder",
           "fields": [],
           "type": null,
           "description": "",
@@ -17333,7 +17333,7 @@
       ],
       "fields": [
         {
-          "name": "execution_metrics",
+          "name": "getExecutionMetrics",
           "fields": [],
           "type": null,
           "description": "",
@@ -17367,8 +17367,8 @@
         },
         {
           "name": "limit",
-          "type": "Int",
-          "graphql_type": "Int",
+          "type": "Float",
+          "graphql_type": "Float",
           "python_type": "float",
           "typescript_type": "number",
           "required": false,
@@ -17388,7 +17388,7 @@
       ],
       "fields": [
         {
-          "name": "execution_history",
+          "name": "getExecutionHistory",
           "fields": [],
           "type": null,
           "description": "",
@@ -17422,7 +17422,7 @@
       "variables": [],
       "fields": [
         {
-          "name": "active_cli_session",
+          "name": "getActiveCliSession",
           "fields": [],
           "type": null,
           "description": ""
@@ -17452,7 +17452,7 @@
       ],
       "fields": [
         {
-          "name": "create_api_key",
+          "name": "createApiKey",
           "fields": [
             {
               "name": "success",
@@ -17531,7 +17531,7 @@
       ],
       "fields": [
         {
-          "name": "test_api_key",
+          "name": "testApiKey",
           "fields": [
             {
               "name": "success",
@@ -17585,7 +17585,7 @@
       ],
       "fields": [
         {
-          "name": "delete_api_key",
+          "name": "deleteApiKey",
           "fields": [
             {
               "name": "success",
@@ -17633,7 +17633,7 @@
       ],
       "fields": [
         {
-          "name": "register_cli_session",
+          "name": "registerCliSession",
           "fields": [
             {
               "name": "success",
@@ -17687,7 +17687,7 @@
       ],
       "fields": [
         {
-          "name": "unregister_cli_session",
+          "name": "unregisterCliSession",
           "fields": [
             {
               "name": "success",
@@ -17741,7 +17741,7 @@
       ],
       "fields": [
         {
-          "name": "create_diagram",
+          "name": "createDiagram",
           "fields": [
             {
               "name": "success",
@@ -17821,7 +17821,7 @@
       ],
       "fields": [
         {
-          "name": "execute_diagram",
+          "name": "executeDiagram",
           "fields": [
             {
               "name": "success",
@@ -17888,7 +17888,7 @@
       ],
       "fields": [
         {
-          "name": "delete_diagram",
+          "name": "deleteDiagram",
           "fields": [
             {
               "name": "success",
@@ -18152,7 +18152,7 @@
       ],
       "fields": [
         {
-          "name": "upload_file",
+          "name": "uploadFile",
           "fields": [],
           "type": null,
           "description": "",
@@ -18202,7 +18202,7 @@
       ],
       "fields": [
         {
-          "name": "upload_diagram",
+          "name": "uploadDiagram",
           "fields": [],
           "type": null,
           "description": "",
@@ -18252,7 +18252,7 @@
       ],
       "fields": [
         {
-          "name": "validate_diagram",
+          "name": "validateDiagram",
           "fields": [],
           "type": null,
           "description": "",
@@ -18312,7 +18312,7 @@
       ],
       "fields": [
         {
-          "name": "convert_diagram_format",
+          "name": "convertDiagramFormat",
           "fields": [
             {
               "name": "success",
@@ -18398,7 +18398,7 @@
       ],
       "fields": [
         {
-          "name": "create_node",
+          "name": "createNode",
           "fields": [
             {
               "name": "success",
@@ -18521,7 +18521,7 @@
       ],
       "fields": [
         {
-          "name": "update_node",
+          "name": "updateNode",
           "fields": [
             {
               "name": "success",
@@ -18595,7 +18595,7 @@
       ],
       "fields": [
         {
-          "name": "delete_node",
+          "name": "deleteNode",
           "fields": [
             {
               "name": "success",
@@ -18654,7 +18654,7 @@
       ],
       "fields": [
         {
-          "name": "create_person",
+          "name": "createPerson",
           "fields": [
             {
               "name": "success",
@@ -18737,7 +18737,7 @@
       ],
       "fields": [
         {
-          "name": "update_person",
+          "name": "updatePerson",
           "fields": [
             {
               "name": "success",
@@ -18815,7 +18815,7 @@
       ],
       "fields": [
         {
-          "name": "delete_person",
+          "name": "deletePerson",
           "fields": [
             {
               "name": "success",
@@ -18934,7 +18934,7 @@
         ],
         "fields": [
           {
-            "name": "api_keys",
+            "name": "getApiKeys",
             "fields": [],
             "type": null,
             "description": "",
@@ -18969,7 +18969,7 @@
         ],
         "fields": [
           {
-            "name": "api_key",
+            "name": "getApiKey",
             "fields": [
               {
                 "name": "id",
@@ -19033,7 +19033,7 @@
         ],
         "fields": [
           {
-            "name": "available_models",
+            "name": "getAvailableModels",
             "fields": [],
             "type": null,
             "description": "",
@@ -19073,7 +19073,7 @@
         ],
         "fields": [
           {
-            "name": "create_api_key",
+            "name": "createApiKey",
             "fields": [
               {
                 "name": "success",
@@ -19152,7 +19152,7 @@
         ],
         "fields": [
           {
-            "name": "test_api_key",
+            "name": "testApiKey",
             "fields": [
               {
                 "name": "success",
@@ -19206,7 +19206,7 @@
         ],
         "fields": [
           {
-            "name": "delete_api_key",
+            "name": "deleteApiKey",
             "fields": [
               {
                 "name": "success",
@@ -19256,7 +19256,7 @@
         ],
         "fields": [
           {
-            "name": "register_cli_session",
+            "name": "registerCliSession",
             "fields": [
               {
                 "name": "success",
@@ -19310,7 +19310,7 @@
         ],
         "fields": [
           {
-            "name": "unregister_cli_session",
+            "name": "unregisterCliSession",
             "fields": [
               {
                 "name": "success",
@@ -19395,8 +19395,8 @@
           },
           {
             "name": "limit",
-            "type": "Int",
-            "graphql_type": "Int",
+            "type": "Float",
+            "graphql_type": "Float",
             "python_type": "float",
             "typescript_type": "number",
             "required": false,
@@ -19405,8 +19405,8 @@
           },
           {
             "name": "offset",
-            "type": "Int",
-            "graphql_type": "Int",
+            "type": "Float",
+            "graphql_type": "Float",
             "python_type": "float",
             "typescript_type": "number",
             "required": false,
@@ -19426,7 +19426,7 @@
         ],
         "fields": [
           {
-            "name": "conversations",
+            "name": "listConversations",
             "fields": [],
             "type": null,
             "description": "",
@@ -19493,7 +19493,7 @@
         ],
         "fields": [
           {
-            "name": "diagram",
+            "name": "getDiagram",
             "fields": [
               {
                 "name": "nodes",
@@ -19769,8 +19769,8 @@
           },
           {
             "name": "limit",
-            "type": "Int",
-            "graphql_type": "Int",
+            "type": "Float",
+            "graphql_type": "Float",
             "python_type": "float",
             "typescript_type": "number",
             "required": false,
@@ -19779,8 +19779,8 @@
           },
           {
             "name": "offset",
-            "type": "Int",
-            "graphql_type": "Int",
+            "type": "Float",
+            "graphql_type": "Float",
             "python_type": "float",
             "typescript_type": "number",
             "required": false,
@@ -19790,7 +19790,7 @@
         ],
         "fields": [
           {
-            "name": "diagrams",
+            "name": "listDiagrams",
             "fields": [
               {
                 "name": "metadata",
@@ -19885,7 +19885,7 @@
         ],
         "fields": [
           {
-            "name": "create_diagram",
+            "name": "createDiagram",
             "fields": [
               {
                 "name": "success",
@@ -19965,7 +19965,7 @@
         ],
         "fields": [
           {
-            "name": "execute_diagram",
+            "name": "executeDiagram",
             "fields": [
               {
                 "name": "success",
@@ -20032,7 +20032,7 @@
         ],
         "fields": [
           {
-            "name": "delete_diagram",
+            "name": "deleteDiagram",
             "fields": [
               {
                 "name": "success",
@@ -20214,8 +20214,8 @@
           },
           {
             "name": "limit",
-            "type": "Int",
-            "graphql_type": "Int",
+            "type": "Float",
+            "graphql_type": "Float",
             "python_type": "float",
             "typescript_type": "number",
             "required": false,
@@ -20224,8 +20224,8 @@
           },
           {
             "name": "offset",
-            "type": "Int",
-            "graphql_type": "Int",
+            "type": "Float",
+            "graphql_type": "Float",
             "python_type": "float",
             "typescript_type": "number",
             "required": false,
@@ -20589,7 +20589,7 @@
         ],
         "fields": [
           {
-            "name": "upload_file",
+            "name": "uploadFile",
             "fields": [],
             "type": null,
             "description": "",
@@ -20639,7 +20639,7 @@
         ],
         "fields": [
           {
-            "name": "upload_diagram",
+            "name": "uploadDiagram",
             "fields": [],
             "type": null,
             "description": "",
@@ -20689,7 +20689,7 @@
         ],
         "fields": [
           {
-            "name": "validate_diagram",
+            "name": "validateDiagram",
             "fields": [],
             "type": null,
             "description": "",
@@ -20749,7 +20749,7 @@
         ],
         "fields": [
           {
-            "name": "convert_diagram_format",
+            "name": "convertDiagramFormat",
             "fields": [
               {
                 "name": "success",
@@ -20816,7 +20816,7 @@
         "variables": [],
         "fields": [
           {
-            "name": "supported_formats",
+            "name": "getSupportedFormats",
             "fields": [],
             "type": null,
             "description": ""
@@ -20856,7 +20856,7 @@
         ],
         "fields": [
           {
-            "name": "create_node",
+            "name": "createNode",
             "fields": [
               {
                 "name": "success",
@@ -20979,7 +20979,7 @@
         ],
         "fields": [
           {
-            "name": "update_node",
+            "name": "updateNode",
             "fields": [
               {
                 "name": "success",
@@ -21053,7 +21053,7 @@
         ],
         "fields": [
           {
-            "name": "delete_node",
+            "name": "deleteNode",
             "fields": [
               {
                 "name": "success",
@@ -21114,7 +21114,7 @@
         ],
         "fields": [
           {
-            "name": "person",
+            "name": "getPerson",
             "fields": [
               {
                 "name": "id",
@@ -21188,8 +21188,8 @@
         "variables": [
           {
             "name": "limit",
-            "type": "Int",
-            "graphql_type": "Int",
+            "type": "Float",
+            "graphql_type": "Float",
             "python_type": "float",
             "typescript_type": "number",
             "required": false,
@@ -21199,7 +21199,7 @@
         ],
         "fields": [
           {
-            "name": "persons",
+            "name": "listPersons",
             "fields": [
               {
                 "name": "id",
@@ -21278,7 +21278,7 @@
         ],
         "fields": [
           {
-            "name": "create_person",
+            "name": "createPerson",
             "fields": [
               {
                 "name": "success",
@@ -21361,7 +21361,7 @@
         ],
         "fields": [
           {
-            "name": "update_person",
+            "name": "updatePerson",
             "fields": [
               {
                 "name": "success",
@@ -21439,7 +21439,7 @@
         ],
         "fields": [
           {
-            "name": "delete_person",
+            "name": "deletePerson",
             "fields": [
               {
                 "name": "success",
@@ -21484,7 +21484,7 @@
         "variables": [],
         "fields": [
           {
-            "name": "prompt_files",
+            "name": "listPromptFiles",
             "fields": [],
             "type": null,
             "description": ""
@@ -21512,7 +21512,7 @@
         ],
         "fields": [
           {
-            "name": "prompt_file",
+            "name": "getPromptFile",
             "fields": [],
             "type": null,
             "description": "",
@@ -21538,7 +21538,7 @@
         "variables": [],
         "fields": [
           {
-            "name": "providers",
+            "name": "getProviders",
             "fields": [],
             "type": null,
             "description": ""
@@ -21566,7 +21566,7 @@
         ],
         "fields": [
           {
-            "name": "provider_operations",
+            "name": "getProviderOperations",
             "fields": [],
             "type": null,
             "description": "",
@@ -21611,7 +21611,7 @@
         ],
         "fields": [
           {
-            "name": "operation_schema",
+            "name": "getOperationSchema",
             "fields": [],
             "type": null,
             "description": "",
@@ -21642,7 +21642,7 @@
         "variables": [],
         "fields": [
           {
-            "name": "system_info",
+            "name": "getSystemInfo",
             "fields": [],
             "type": null,
             "description": ""
@@ -21659,7 +21659,7 @@
         "variables": [],
         "fields": [
           {
-            "name": "execution_capabilities",
+            "name": "getExecutionCapabilities",
             "fields": [],
             "type": null,
             "description": ""
@@ -21676,7 +21676,7 @@
         "variables": [],
         "fields": [
           {
-            "name": "health_check",
+            "name": "healthCheck",
             "fields": [],
             "type": null,
             "description": ""
@@ -21704,7 +21704,7 @@
         ],
         "fields": [
           {
-            "name": "execution_order",
+            "name": "getExecutionOrder",
             "fields": [],
             "type": null,
             "description": "",
@@ -21739,7 +21739,7 @@
         ],
         "fields": [
           {
-            "name": "execution_metrics",
+            "name": "getExecutionMetrics",
             "fields": [],
             "type": null,
             "description": "",
@@ -21773,8 +21773,8 @@
           },
           {
             "name": "limit",
-            "type": "Int",
-            "graphql_type": "Int",
+            "type": "Float",
+            "graphql_type": "Float",
             "python_type": "float",
             "typescript_type": "number",
             "required": false,
@@ -21794,7 +21794,7 @@
         ],
         "fields": [
           {
-            "name": "execution_history",
+            "name": "getExecutionHistory",
             "fields": [],
             "type": null,
             "description": "",
@@ -21828,7 +21828,7 @@
         "variables": [],
         "fields": [
           {
-            "name": "active_cli_session",
+            "name": "getActiveCliSession",
             "fields": [],
             "type": null,
             "description": ""

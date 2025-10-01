@@ -55,7 +55,7 @@ input CreateDiagramInput {
   author: String = null
   description: String = null
   name: String!
-  tags: String = null
+  tags: [String!] = null
 }
 
 input CreateNodeInput {

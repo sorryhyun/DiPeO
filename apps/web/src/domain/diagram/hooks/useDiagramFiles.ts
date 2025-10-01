@@ -34,7 +34,7 @@ export function useDiagramFiles() {
   }, [error, stopPolling]);
 
   const fileTree = useMemo(() => {
-    if (!data?.diagrams) return [];
+    if (!data?.listDiagrams) return [];
 
     // Type for intermediate tree structure
     interface TreeNode extends Omit<FileNode, 'children'> {
@@ -107,7 +107,7 @@ export function useDiagramFiles() {
 
     const fileList: Array<{ path: string; node: FileNode }> = [];
 
-    data.diagrams.forEach(diagram => {
+    data.listDiagrams.forEach(diagram => {
       if (!diagram.metadata?.id) return;
 
       const fullPath = diagram.metadata.id;
