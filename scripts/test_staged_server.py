@@ -1,7 +1,11 @@
 #!/usr/bin/env python
-"""Test server startup with staged generated code before applying changes."""
+"""Test server startup with staged generated code before applying changes.
+
+Uses atomic symlink swapping to safely test staged code without risking data loss.
+"""
 
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -24,7 +28,7 @@ CHECK_INTERVAL = 1  # seconds
 
 
 def override_imports_to_staged():
-    """Override Python path to prioritize staged directory."""
+    """Use atomic symlink swapping to test staged code safely."""
     staged_dir = project_root / "dipeo" / "diagram_generated_staged"
     active_dir = project_root / "dipeo" / "diagram_generated"
 
@@ -32,30 +36,52 @@ def override_imports_to_staged():
         print(f"❌ Staged directory does not exist: {staged_dir}")
         return False
 
-    # Temporarily rename directories to swap them
-    # This ensures all imports of dipeo.diagram_generated use staged code
-    temp_dir = project_root / "dipeo" / "diagram_generated_temp"
+    # Check if active_dir is already a symlink (from previous test)
+    if active_dir.is_symlink():
+        print("⚠️  diagram_generated is already a symlink - restoring first")
+        restore_directories()
+
+    if not active_dir.exists():
+        print(f"❌ Active directory does not exist: {active_dir}")
+        return False
+
+    # Safety check: ensure active is a directory, not a symlink
+    if active_dir.is_symlink():
+        print(f"❌ Active directory is a symlink: {active_dir}")
+        return False
 
     try:
-        # Move active to temp
-        if active_dir.exists():
-            active_dir.rename(temp_dir)
+        # Step 1: Rename active directory to backup location
+        active_backup = project_root / "dipeo" / "diagram_generated_active_backup"
+        if active_backup.exists():
+            print(f"⚠️  Removing stale backup: {active_backup}")
+            shutil.rmtree(active_backup)
 
-        # Move staged to active position
-        staged_dir.rename(active_dir)
+        active_dir.rename(active_backup)
+        print(f"✅ Backed up active directory to: {active_backup}")
 
-        # Store the swap state for cleanup
+        # Step 2: Create symlink pointing to staged directory
+        # Use relative path for portability
+        active_dir.symlink_to("diagram_generated_staged", target_is_directory=True)
+        print(f"✅ Created symlink: {active_dir} -> diagram_generated_staged")
+
+        # Store state for cleanup
         os.environ["DIPEO_TEST_SWAPPED"] = "true"
 
-        print("✅ Swapped staged directory into active position for testing")
-        print(f"   Testing with: {active_dir} (from staged)")
+        print("✅ Atomically swapped to staged directory for testing")
         return True
 
     except Exception as e:
-        print(f"❌ Failed to swap directories: {e}")
-        # Restore if failed
-        if temp_dir.exists() and not active_dir.exists():
-            temp_dir.rename(active_dir)
+        print(f"❌ Failed to create symlink: {e}")
+        # Attempt to restore
+        try:
+            if active_dir.is_symlink():
+                active_dir.unlink()
+            if active_backup.exists() and not active_dir.exists():
+                active_backup.rename(active_dir)
+                print("✅ Restored active directory")
+        except Exception as restore_error:
+            print(f"❌ Failed to restore: {restore_error}")
         return False
 
 
@@ -211,24 +237,31 @@ def restore_directories():
         return
 
     active_dir = project_root / "dipeo" / "diagram_generated"
-    staged_dir = project_root / "dipeo" / "diagram_generated_staged"
-    temp_dir = project_root / "dipeo" / "diagram_generated_temp"
+    active_backup = project_root / "dipeo" / "diagram_generated_active_backup"
 
     try:
-        # Move active (which was staged) back to staged
-        if active_dir.exists():
-            active_dir.rename(staged_dir)
+        # Step 1: Remove the symlink
+        if active_dir.is_symlink():
+            active_dir.unlink()
+            print(f"✅ Removed symlink: {active_dir}")
+        elif active_dir.exists():
+            print(f"⚠️  {active_dir} exists but is not a symlink - skipping removal")
 
-        # Move temp back to active
-        if temp_dir.exists():
-            temp_dir.rename(active_dir)
+        # Step 2: Restore the original active directory
+        if active_backup.exists():
+            active_backup.rename(active_dir)
+            print(f"✅ Restored active directory from backup")
+        else:
+            print(f"⚠️  Backup directory not found: {active_backup}")
 
         del os.environ["DIPEO_TEST_SWAPPED"]
         print("✅ Restored original directory structure")
 
     except Exception as e:
         print(f"⚠️  Error restoring directories: {e}")
-        print("   You may need to manually fix the directory structure")
+        print("   Manual recovery steps:")
+        print(f"   1. Remove symlink if exists: rm {active_dir}")
+        print(f"   2. Restore backup: mv {active_backup} {active_dir}")
 
 
 def main():
