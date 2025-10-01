@@ -107,7 +107,6 @@ web/dist/
 web/src/generated/
 *.graphql.tsx.map
 
-.claude
 example.yaml
 docs/TODO.md
 CLAUDE.local.md
