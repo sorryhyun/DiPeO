@@ -67,7 +67,7 @@ export class ExecutionConverter {
       id: executionId(graphqlExecution.id),
       status: graphqlExecution.status as Status,
       diagram_id: graphqlExecution.diagram_id ? diagramId(graphqlExecution.diagram_id) : null,
-      started_at: graphqlExecution.started_at,
+      started_at: graphqlExecution.started_at || new Date().toISOString(),
       ended_at: graphqlExecution.ended_at,
       node_states: nodeStates,
       node_outputs: graphqlExecution.node_outputs || {},

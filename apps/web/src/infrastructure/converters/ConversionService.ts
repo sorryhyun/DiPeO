@@ -431,7 +431,7 @@ export class Converters {
       id: this.toExecutionId(execution.id),
       status: execution.status as Status,
       diagram_id: execution.diagram_id ? this.toDiagramId(execution.diagram_id) : null,
-      started_at: execution.started_at,
+      started_at: execution.started_at || new Date().toISOString(),
       ended_at: execution.ended_at || null,
       node_states: nodeStates,
       node_outputs: execution.node_outputs || {},
