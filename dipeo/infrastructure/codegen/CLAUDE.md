@@ -67,29 +67,7 @@ Case conversion utilities (type conversion moved to `ir_builders/type_system_uni
 
 ## Code Generation Workflow
 
-### 1. Parse TypeScript → AST
-```bash
-make parse-typescript
-```
-- Reads TypeScript specs from `/dipeo/models/src/`
-- Outputs AST JSON to `temp/**/*.ts.json`
-
-### 2. Build IR → Generate Code
-```bash
-make codegen
-```
-- Loads parsed AST
-- Runs IR builders (backend, frontend, strawberry)
-- Applies templates with IR data
-- Outputs to `dipeo/diagram_generated_staged/`
-
-### 3. Validate & Apply
-```bash
-make diff-staged       # Review changes
-make apply            # Apply with type checking
-make apply-test       # Apply with server test
-make graphql-schema   # Update GraphQL schema
-```
+See root [CLAUDE.md](../../../CLAUDE.md) § Code Generation for complete workflow and commands.
 
 ## New Pipeline System
 
@@ -183,17 +161,6 @@ class MyExtractionStep(BuildStep):
 
 ## Common Tasks
 
-### Update Node Specifications
-1. Edit TypeScript in `/dipeo/models/src/node-specs/`
-2. Run `cd dipeo/models && pnpm build`
-3. Run `make codegen`
-4. Review and apply changes
-
-### Add New GraphQL Operation
-1. Define in `/dipeo/models/src/frontend/query-definitions/`
-2. Build models and run codegen
-3. Update GraphQL schema: `make graphql-schema`
-
 ### Debug IR Generation
 1. Run test script: `python dipeo/infrastructure/codegen/ir_builders/test_new_builders.py`
 2. Check outputs in `projects/codegen/ir/test_outputs/`
@@ -207,6 +174,8 @@ validator = get_validator("backend")
 result = validator.validate(ir_data)
 print(result.get_summary())
 ```
+
+For general tasks (updating node specs, GraphQL operations), see root [CLAUDE.md](../../../CLAUDE.md).
 
 ## Unified Type System
 
@@ -341,11 +310,11 @@ python dipeo/infrastructure/codegen/ir_builders/type_system_unified/test_unified
 
 ## Best Practices
 
-1. **Always test changes**: Run `make codegen` and verify outputs
-2. **Review staged changes**: Use `make diff-staged` before applying
-3. **Validate before apply**: Use appropriate validation level (syntax/type/test)
-4. **Keep IR snapshots**: Save IR outputs for debugging template issues
-5. **Use pipeline for new features**: Extend via steps, not monolithic builders
+1. **Keep IR snapshots**: Save IR outputs for debugging template issues
+2. **Use pipeline for new features**: Extend via steps, not monolithic builders
+3. **Validate generated code**: Use validators before committing
+
+For general codegen best practices, see root [CLAUDE.md](../../../CLAUDE.md) § Code Generation.
 
 ## Troubleshooting
 

@@ -34,6 +34,8 @@ export const NODE_TYPE_MAP: Record<string, NodeType> = {
   'typescript_ast': NodeType.TYPESCRIPT_AST,
   'sub_diagram': NodeType.SUB_DIAGRAM,
   'integrated_api': NodeType.INTEGRATED_API,
+  'ir_builder': NodeType.IR_BUILDER,
+  'diff_patch': NodeType.DIFF_PATCH,
 } as const;
 
 export const NODE_TYPE_REVERSE_MAP: Record<NodeType, string> = Object.entries(NODE_TYPE_MAP)

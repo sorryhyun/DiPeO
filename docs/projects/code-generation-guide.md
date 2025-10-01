@@ -429,15 +429,15 @@ DiPeO uses Jinja2 templates with custom filters:
 
 ## Architecture Notes
 
-### v1.0 Refactoring Completed
+### Architecture Patterns
 
-The system has completed major architectural improvements:
-- **Mixin-based Services**: Optional composition instead of monolithic inheritance
-- **Unified EventBus**: Consolidated event protocols into single interface
-- **Direct Protocol Implementation**: Eliminated unnecessary adapter layers
-- **Enhanced Type Safety**: Improved Result types and JSON definitions
-- **Snake_case Naming**: Python follows conventions with Pydantic aliases for compatibility
-- **Generated Enums**: All enums now generated from TypeScript specifications
+The system uses modern architectural patterns:
+- **Mixin-based Services**: Optional composition for flexible service design
+- **Unified EventBus**: Single event interface for all messaging
+- **Direct Protocol Implementation**: Clean service boundaries without unnecessary adapters
+- **Enhanced Type Safety**: Strong typing with Result types and JSON definitions
+- **Snake_case Naming**: Python conventions with Pydantic aliases for GraphQL compatibility
+- **Generated Enums**: All enums generated from TypeScript specifications
 
 ### Why Make Commands Over Master Diagrams
 

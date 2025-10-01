@@ -310,11 +310,7 @@ User Configuration
 
 System messages are automatically preserved when using `at_most` limits - no configuration needed. This ensures critical system context is never lost.
 
----
-
-## Internal Implementation Details
-
-### Architecture Components
+## Architecture Components
 
 The memory system is implemented through the `MemorySelector` class:
 
@@ -333,7 +329,6 @@ filtered_messages = await selector.apply_memory_settings(
 )
 ```
 
-These are implementation details that enable the default behavior and provide the foundation for future enhancements.
 
 ### Selector Facet Details
 
@@ -353,13 +348,6 @@ The system maintains message IDs for selection:
 3. Maps IDs back to message objects
 4. Applies final filtering and limits
 
-## Future Enhancements
-
-1. **Time-Based Windows**: Keep messages from last N minutes
-2. **Priority Preservation**: Always keep critical messages
-3. **Caching**: Cache selections for repeated patterns
-4. **Hybrid Selection**: Combine multiple selection strategies
-5. **Context Injection**: Add external context to selection criteria
 
 ## Summary
 

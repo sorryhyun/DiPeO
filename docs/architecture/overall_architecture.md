@@ -1,8 +1,7 @@
 # DiPeO (Diagrammed People & Organizations) – Architecture & Flow
 
 
-DiPeO is an open-source platform that lets developers **design, run and monitor multi-agent AI workflows** as diagrams instead of raw code.
-The refactor branch reorganises the project into a single **monorepo** and introduces a simpler, container-based dependency-injection system, an end-to-end code-generation pipeline, and a richer memory model for agent conversations.
+DiPeO is an open-source platform that lets developers **design, run and monitor multi-agent AI workflows** as diagrams instead of raw code. The project is organized as a **monorepo** with container-based dependency injection, end-to-end code generation, and a sophisticated memory model for agent conversations.
 
 ---
 
@@ -264,11 +263,11 @@ This architecture enables:
 
 ## 11. GraphQL Layer Architecture
 
-### Implementation Status: COMPLETE
+### GraphQL Architecture
 
-The GraphQL refactoring is **substantially complete** with a solid, production-ready architecture:
+The GraphQL layer provides a production-ready architecture:
 
-- **45 complete operations** with full GraphQL query strings as constants (23 queries, 21 mutations, 1 subscription)
+- **45 operations** with full GraphQL query strings as constants (23 queries, 21 mutations, 1 subscription)
 - **Type-safe operation classes** with proper TypedDict for variables and automatic Strawberry input conversion
 - **Well-structured resolver implementations** following consistent patterns with ServiceRegistry dependency injection
 - **Clean 3-tier architecture** separating generated code, application logic, and execution layer
@@ -304,4 +303,4 @@ The GraphQL layer uses a clean 3-tier architecture:
 - **Service Registry**: Clean dependency injection throughout all GraphQL resolvers
 - **Type Safety**: Full TypeScript-to-Python type safety across the entire stack
 
-**Status**: No major refactoring needed - the architecture is solid, type-safe, and maintainable. For detailed documentation, see [GraphQL Layer Architecture](graphql-layer.md).
+For detailed documentation, see [GraphQL Layer Architecture](graphql-layer.md).

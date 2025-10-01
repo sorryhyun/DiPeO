@@ -94,105 +94,34 @@ dipeo integrations claude-code --sync-mode auto --watch-todos
 
 **⚠️ WARNING**: Code generation overwrites ALL generated code in `dipeo/diagram_generated/`!
 
-### Workflow & Staging
-1. **Modify TypeScript specs** in `/dipeo/models/src/`, then: `cd dipeo/models && pnpm build`
-2. **Generate**: `make codegen` (includes parse-typescript automatically)
-   - Outputs to `dipeo/diagram_generated_staged/` for review
-3. **Verify**: `make diff-staged` to review changes
-4. **Apply** staged → active (`dipeo/diagram_generated/`), choose validation level:
-   - `make apply-syntax-only` - Syntax validation only (fastest)
-   - `make apply` - Full type checking (recommended)
-   - `make apply-test` - Server startup test (safest, includes health checks)
-5. **Update GraphQL**: `make graphql-schema`
+### Workflow
+1. Modify TypeScript specs in `/dipeo/models/src/` → `cd dipeo/models && pnpm build`
+2. Generate: `make codegen` (outputs to `dipeo/diagram_generated_staged/`)
+3. Verify: `make diff-staged`
+4. Apply: `make apply-test` (recommended) or `make apply` or `make apply-syntax-only`
+5. Update GraphQL: `make graphql-schema`
 
-**Quick command**: `make codegen-auto` (runs all steps - USE WITH CAUTION)
+Quick command: `make codegen-auto` (USE WITH CAUTION)
 
-**Full docs**: [Code Generation Guide](docs/projects/code-generation-guide.md)
+**Full guide**: [Code Generation Guide](docs/projects/code-generation-guide.md)
 
 ## GraphQL Operations System
 
-### Architecture Overview (3-Tier System)
-1. **Generated Layer** (`/dipeo/diagram_generated/graphql/`)
-   - `operations.py` - All 45 operations with full support
-   - `inputs.py`, `results.py`, `domain_types.py`, `enums.py` - Generated types
+### 3-Tier Architecture
+1. **Generated Layer**: `/dipeo/diagram_generated/graphql/` (operations.py, inputs/results/types)
+2. **Application Layer**: `/dipeo/application/graphql/` (schema, resolvers, executor)
+3. **Execution Layer**: EnhancedServiceRegistry, EventBus, Envelope pattern
 
-2. **Application Layer** (`/dipeo/application/graphql/`)
-   - `schema/mutations/` - Organized by entity type
-   - `schema/query_resolvers.py` - Standalone query resolvers
-   - `operation_executor.py` - Central operation mapping
-
-3. **Execution Layer** (Infrastructure)
-   - EnhancedServiceRegistry for advanced dependency injection
-   - Event-driven state management
-   - Envelope system for type-safe data flow
+**45 operations** (23 queries, 21 mutations, 1 subscription) - Frontend hooks in `@/__generated__/graphql`, Python classes in `dipeo/diagram_generated/graphql/operations.py`
 
 ### Adding New GraphQL Operations
-1. **Add definition** to `/dipeo/models/src/frontend/query-definitions/[entity].ts`
-2. **Build models**: `cd dipeo/models && pnpm build`
-3. **Generate queries**: `make codegen`
-4. **Apply changes**: `make apply-test`
-5. **Update GraphQL schema**: `make graphql-schema`
+1. Add definition to `/dipeo/models/src/frontend/query-definitions/[entity].ts`
+2. Build models: `cd dipeo/models && pnpm build`
+3. Generate: `make codegen`
+4. Apply: `make apply-test`
+5. Update schema: `make graphql-schema`
 
-### Query Definition Structure
-```typescript
-// In /dipeo/models/src/frontend/query-definitions/[entity].ts
-export const entityQueries: EntityQueryDefinitions = {
-  entity: 'EntityName',
-  queries: [
-    {
-      name: 'GetEntity',
-      type: QueryOperationType.QUERY,
-      variables: [{ name: 'id', type: 'ID', required: true }],
-      fields: [/* GraphQL fields */]
-    }
-  ]
-}
-```
-
-### Generated Files & Operations
-- **Frontend Queries**: `/apps/web/src/__generated__/queries/all-queries.ts` - All GraphQL operations
-- **React Hooks**: `/apps/web/src/__generated__/graphql.tsx` - Type-safe hooks for each operation
-- **Python Operations**: `/dipeo/diagram_generated/graphql/operations.py` - Typed Python classes
-- **45 operations** currently defined (23 queries, 21 mutations, 1 subscription)
-
-### Usage in Frontend
-```typescript
-// Import generated hooks
-import { useGetExecutionQuery } from '@/__generated__/graphql';
-
-// Use in components
-const { data, loading } = useGetExecutionQuery({
-  variables: { id: executionId }
-});
-```
-
-### Usage in Python
-
-```python
-# Import generated operations
-from dipeo.diagram_generated.graphql_backups.operations import (
-    ExecuteDiagramOperation,
-    GetExecutionOperation,
-    EXECUTE_DIAGRAM_MUTATION
-)
-
-# Use query strings directly
-query = EXECUTE_DIAGRAM_MUTATION
-
-# Or use typed operation classes
-variables = ExecuteDiagramOperation.get_variables_dict(
-    input={"diagram_id": "example", "variables": {}}
-)
-```
-
-### Key Benefits of Current Implementation
-- **Type Safety**: Full type safety from TypeScript to Python
-- **Consistency**: All resolvers follow established patterns
-- **Maintainability**: Clean separation of concerns
-- **Performance**: Optimized with per-execution caching
-- **Developer Experience**: Auto-completion and inline documentation
-
-For detailed architecture documentation, see [GraphQL Layer Architecture](docs/architecture/graphql-layer.md)
+**Full docs**: [GraphQL Layer Architecture](docs/architecture/graphql-layer.md)
 
 ## Quality Commands
 ```bash
@@ -219,49 +148,11 @@ make graphql-schema     # Update GraphQL types
 - **[Diagram Execution](docs/architecture/diagram-execution.md)** - Execution flow details
 - **[GraphQL Layer](docs/architecture/graphql-layer.md)** - GraphQL implementation
 
-### Node Handlers - Path Reference
-**Base Directory**: `/dipeo/application/execution/handlers/`
+### Node Handlers & IR Builders
+- **Node Handlers**: `/dipeo/application/execution/handlers/` - api_job, db, diff_patch, endpoint, hook, integrated_api, person_job/, sub_diagram/, code_job/, condition/, codegen/
+- **IR Builders**: `/dipeo/infrastructure/codegen/ir_builders/` - backend_builders, frontend, strawberry_builders
 
-#### Individual Node Handlers (Direct Files)
-- `api_job.py` - API call handling
-- `db.py` - Database operations
-- `diff_patch.py` - Diff patch operations
-- `endpoint.py` - HTTP endpoint handling
-- `hook.py` - Hook/callback handling
-- `integrated_api.py` - Integrated API operations ([Integration Guide](docs/integrations/claude-code.md))
-- `start.py` - Start node handling
-- `user_response.py` - User response handling
-
-#### Codegen Handlers (`codegen/`)
-- `ir_builder.py` - IR (Intermediate Representation) building
-- `schema_validator.py` - JSON schema validation
-- `template.py` - Template processing
-- `typescript_ast.py` - TypeScript AST operations
-
-#### Complex Node Handlers (Subdirectories)
-- **person_job/** - LLM/AI agent handling
-  - `conversation_handler.py` - Conversation management
-  - `text_format_handler.py` - Text formatting
-  - Other executors for batch and prompt resolution
-- **sub_diagram/** - Sub-diagram execution
-  - `lightweight_executor.py` - Light diagram execution
-  - `single_executor.py` - Single sub-diagram execution
-  - `batch_executor.py` - Batch sub-diagram execution
-  - `parallel_executor.py` - Parallel execution
-  - `base_executor.py` - Base executor logic
-- **code_job/** - Code execution
-  - `executors/` - Various code executors
-- **condition/** - Conditional logic
-  - `evaluators/` - Condition evaluators
-
-### IR Builders - Path Reference
-**Base Directory**: `/dipeo/infrastructure/codegen/ir_builders/`
-
-- `backend_builders.py` - Backend IR builder (consolidates models/types)
-- `frontend.py` - Frontend IR builder (extracts components/schemas)
-- `strawberry_builders.py` - GraphQL operations & domain types
-- `base.py` - Base IR builder interface
-- `utils.py` - Shared utilities for IR building
+See [Overall Architecture](docs/architecture/overall_architecture.md) for details.
 
 ### Key Directories
 - `/apps/server/` - FastAPI backend
@@ -287,107 +178,34 @@ make graphql-schema     # Update GraphQL types
 
 ## Enhanced Service Registry
 
-### Overview
-DiPeO uses an **EnhancedServiceRegistry** for advanced dependency injection with production safety features and comprehensive service management. This replaces the basic ServiceRegistry with enhanced capabilities for enterprise-grade service orchestration.
+DiPeO uses **EnhancedServiceRegistry** for advanced dependency injection with production safety:
+- **Service Types**: CORE, APPLICATION, DOMAIN, ADAPTER, REPOSITORY
+- **Production Safety**: Registry freezing, final services (EVENT_BUS), immutable services (STATE_STORE)
+- **Audit Trail**: Registration history, dependency validation, usage metrics
 
-### Key Features
-
-#### Service Type Categorization
-All services are categorized by type for better organization and validation:
-- **CORE**: Essential system services (EVENT_BUS, STATE_STORE)
-- **APPLICATION**: Application-layer services (handlers, executors)
-- **DOMAIN**: Domain logic services (business rules, validators)
-- **ADAPTER**: External integrations (LLM clients, databases)
-- **REPOSITORY**: Data access services (persistence layers)
-
-#### Production Safety
-- **Registry Freezing**: Automatically freezes in production after bootstrap to prevent accidental modifications
-- **Final Services**: Critical services marked as final cannot be overridden (EVENT_BUS)
-- **Immutable Services**: Core services marked as immutable cannot be modified (STATE_STORE)
-- **Environment Detection**: Automatically detects production environment and applies safety constraints
-
-#### Audit Trail & Debugging
-- **Registration History**: Complete audit trail of all service registrations with timestamps
-- **Dependency Validation**: Validates service dependencies and detects circular references
-- **Usage Metrics**: Tracks service retrieval patterns for performance optimization
-- **Service Health**: Monitors service lifecycle and availability
-
-### Usage Examples
-
-#### Basic Service Registration
 ```python
 from dipeo.infrastructure.enhanced_service_registry import EnhancedServiceRegistry, ServiceType
 
-registry = EnhancedServiceRegistry()
-
-# Register with type categorization
-registry.register("my_service", my_service_instance, ServiceType.APPLICATION)
-
-# Register with special markers
-registry.register("critical_service", service, ServiceType.CORE, final=True)
-registry.register("config_service", config, ServiceType.DOMAIN, immutable=True)
-```
-
-#### Audit Trail Access
-```python
-# Get registration history for debugging
-history = registry.get_audit_trail()
-for entry in history:
-    print(f"{entry.timestamp}: {entry.action} - {entry.service_name} ({entry.service_type})")
-
-# Get service usage metrics
-metrics = registry.get_service_metrics("EVENT_BUS")
-print(f"Retrieved {metrics.retrieval_count} times")
-```
-
-#### Service Validation
-```python
-# Validate all dependencies before production deployment
-validation_result = registry.validate_dependencies()
-if not validation_result.is_valid:
-    for error in validation_result.errors:
-        print(f"Dependency error: {error}")
-
-# Check if registry is properly configured
-if registry.is_frozen:
-    print("Registry is production-ready and frozen")
-```
-
-#### Protected Services
-```python
-# Critical services are automatically protected
-registry.get("EVENT_BUS")    # Always available, final service
-registry.get("STATE_STORE")  # Always available, immutable service
-
-# These services cannot be modified in production:
-# - EVENT_BUS (final): Cannot be overridden
-# - STATE_STORE (immutable): Cannot be modified
-```
-
-### Integration with Existing Architecture
-- **Mixin Compatibility**: Works seamlessly with existing service mixins
-- **EventBus Integration**: EVENT_BUS service is automatically protected as final
-- **StateStore Protection**: STATE_STORE marked as immutable for data integrity
-- **GraphQL Layer**: Integrates with GraphQL resolvers for dependency injection
-
-### Best Practices
-1. **Use Type Categories**: Always specify ServiceType when registering services
-2. **Mark Critical Services**: Use `final=True` for services that should never be overridden
-3. **Protect Core State**: Use `immutable=True` for configuration and state services
-4. **Monitor in Development**: Use audit trail to debug service dependency issues
-5. **Validate Before Production**: Always run dependency validation before deployment
-
-### Migration from Basic ServiceRegistry
-The migration is automatic - existing code continues to work with enhanced features available:
-```python
-# Old code still works
-registry.register("service", instance)
-service = registry.get("service")
-
-# Enhanced features available
-registry.register("service", instance, ServiceType.APPLICATION, final=True)
+registry.register("my_service", instance, ServiceType.APPLICATION)
+registry.register("critical", service, ServiceType.CORE, final=True)
 history = registry.get_audit_trail()
 ```
+
+Protected services: EVENT_BUS (final), STATE_STORE (immutable). Integrates with service mixins and EventBus.
+
+## Claude Code Subagents
+
+DiPeO includes specialized subagents in `.claude/agents/` for complex tasks:
+
+- **dipeo-core-python**: Python business logic, handlers, infrastructure (`/dipeo/`)
+- **dipeo-frontend-dev**: React components, ReactFlow editor, GraphQL hooks (`/apps/web/`)
+- **typescript-model-designer**: TypeScript specs, node definitions (`/dipeo/models/src/`)
+- **dipeo-codegen-specialist**: Code generation pipeline, IR builders, staging validation
+- **dipeocc-converter**: Claude Code session conversion, DiPeOCC workflows
+- **docs-maintainer**: Documentation updates after features/refactors
+- **todo-manager**: Task planning, TODO.md management
+
+Use these agents for specialized work requiring deep domain expertise.
 
 ## Adding New Features
 

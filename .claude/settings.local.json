@@ -13,9 +13,13 @@
       "Bash(tree:*)",
       "Bash(PYTHONPATH=\"/home/sorryhyun/PycharmProjects/DiPeO:$PYTHONPATH\" DIPEO_BASE_DIR=\"/home/sorryhyun/PycharmProjects/DiPeO\" python projects/codegen/scripts/generate_backend.py)",
       "Bash(pnpm typecheck:*)",
-      "Read(//home/sorryhyun/.claude/projects/**)"
+      "Read(//home/sorryhyun/.claude/projects/**)",
+      "Bash(for:*)",
+      "Bash(head:*)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "additionalDirectories": [".claude/commands"]
 }

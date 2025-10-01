@@ -77,15 +77,6 @@ When a node has incoming edges from both START and loop-back edges (e.g., from a
 1. **First iteration**: Node can execute with just the START token
 2. **Subsequent iterations**: Node must receive tokens from the loop-back edge only
 
-**Known Issue**: Currently, there's a deadlock scenario when:
-- A node has edges from both START and a skippable condition
-- After START executes, the skippable condition becomes the only dependency
-- The condition hasn't executed yet, creating a circular dependency
-
-**Proposed Solution**: 
-- Track whether a node has already consumed tokens from START
-- Only ignore START edges after the target node has executed at least once
-- Make skippable conditions required when they become the sole dependency
 
 ## Loop Control
 
@@ -180,25 +171,6 @@ Epoch 0:
 9. Endpoint saves result -> execution complete
 ```
 
-### Problematic Scenario (Current Issue)
-When PersonJob has edges from both START and skippable condition:
-```
-start -> person_job <- condition (skippable, loop-back)
-             |
-             v
-         condition
-```
-
-**What happens**:
-1. START executes, publishes token to PersonJob
-2. PersonJob executes (consumes START token)
-3. PersonJob publishes token to Condition
-4. Condition evaluates false, should publish token back to PersonJob
-5. **DEADLOCK**: PersonJob now requires token from Condition (START is ignored after execution)
-   - But Condition edge was "skippable" initially
-   - System makes it required since it's the only edge left
-   - However, no token emission happens from Condition to PersonJob
-```
 
 ## Benefits of Token-Based Architecture
 
@@ -222,19 +194,13 @@ start -> person_job <- condition (skippable, loop-back)
 - Clear causality chain
 - Epoch tracking shows iteration history
 
-## Future Enhancements
+## Potential Extensions
 
-### Immediate Priority
-- **Fix START/skippable condition deadlock**: Resolve the issue where skippable conditions become required after START execution but don't emit tokens properly
-- **Condition token emission verification**: Ensure condition nodes properly emit tokens on their selected branches (condtrue/condfalse)
-
-### Planned
+The token-based architecture supports various extensions:
 - Token TTL for automatic cleanup
 - Token priorities for execution ordering
 - Stream processing with windowed tokens
 - Token transformers for edge-level processing
-
-### Under Consideration
 - Token replay for debugging
 - Token persistence for fault tolerance
 - Distributed token passing for scale-out

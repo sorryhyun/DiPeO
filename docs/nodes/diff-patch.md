@@ -192,15 +192,7 @@ The diff_patch node is designed to work seamlessly with the Claude Code translat
 ## Technical Implementation
 
 The handler uses:
-- Python's `difflib` for diff parsing (with plans for `patch` command integration)
+- Python's `difflib` for diff parsing
 - SHA256 for file verification
 - Atomic file operations with backup/restore
 - Comprehensive logging for debugging
-
-## Future Enhancements
-
-- Support for binary file patches
-- Three-way merge capabilities
-- Integration with version control systems
-- Batch patch application
-- Patch generation from file comparisons

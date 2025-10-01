@@ -335,21 +335,6 @@ If `format_yaml` fails:
 2. Verify Pydantic models match current DiPeO schema
 3. Update `process.py` for new node types
 
-## Future Enhancements
-
-### Planned Features
-
-1. **Diagram Optimization**: AI analyzes and optimizes existing diagrams
-2. **Error Recovery**: Automatic fix attempts for failed generations
-3. **Learning System**: Improves prompts based on successful patterns
-4. **Visual Preview**: Generate diagram previews before execution
-
-### Research Directions
-
-- Multi-agent collaboration for complex workflows
-- Fine-tuned models specifically for DiPeO generation
-- Automatic test case generation with property-based testing
-- Self-healing diagrams that adapt to failures
 
 ## Conclusion
 
