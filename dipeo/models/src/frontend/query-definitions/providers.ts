@@ -10,7 +10,7 @@ export const providerQueries: EntityQueryDefinitions = {
       variables: [],
       fields: [
         {
-          name: 'providers',
+          name: 'getProviders',
           // Returns JSONScalar with dynamic fields
           fields: []
         }
@@ -24,7 +24,7 @@ export const providerQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'provider_operations',
+          name: 'getProviderOperations',
           args: [
             { name: 'provider', value: 'provider', isVariable: true }
           ],
@@ -42,7 +42,7 @@ export const providerQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'operation_schema',
+          name: 'getOperationSchema',
           args: [
             { name: 'provider', value: 'provider', isVariable: true },
             { name: 'operation', value: 'operation', isVariable: true }

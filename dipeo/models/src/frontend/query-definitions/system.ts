@@ -9,7 +9,7 @@ export const systemQueries: EntityQueryDefinitions = {
       type: QueryOperationType.QUERY,
       fields: [
         {
-          name: 'system_info',
+          name: 'getSystemInfo',
           // Returns JSONScalar with dynamic fields
           fields: []
         }
@@ -20,7 +20,7 @@ export const systemQueries: EntityQueryDefinitions = {
       type: QueryOperationType.QUERY,
       fields: [
         {
-          name: 'execution_capabilities',
+          name: 'getExecutionCapabilities',
           // Returns JSONScalar with dynamic fields
           fields: []
         }
@@ -31,7 +31,7 @@ export const systemQueries: EntityQueryDefinitions = {
       type: QueryOperationType.QUERY,
       fields: [
         {
-          name: 'health_check',
+          name: 'healthCheck',
           // Returns JSONScalar with dynamic fields
           fields: []
         }
@@ -45,7 +45,7 @@ export const systemQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'execution_order',
+          name: 'getExecutionOrder',
           args: [
             { name: 'execution_id', value: 'execution_id', isVariable: true }
           ],
@@ -62,7 +62,7 @@ export const systemQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'execution_metrics',
+          name: 'getExecutionMetrics',
           args: [
             { name: 'execution_id', value: 'execution_id', isVariable: true }
           ],
@@ -76,12 +76,12 @@ export const systemQueries: EntityQueryDefinitions = {
       type: QueryOperationType.QUERY,
       variables: [
         { name: 'diagram_id', type: 'String' },
-        { name: 'limit', type: 'Int' },
+        { name: 'limit', type: 'Float' },
         { name: 'include_metrics', type: 'Boolean' }
       ],
       fields: [
         {
-          name: 'execution_history',
+          name: 'getExecutionHistory',
           args: [
             { name: 'diagram_id', value: 'diagram_id', isVariable: true },
             { name: 'limit', value: 'limit', isVariable: true },
@@ -97,7 +97,7 @@ export const systemQueries: EntityQueryDefinitions = {
       type: QueryOperationType.QUERY,
       fields: [
         {
-          name: 'active_cli_session',
+          name: 'getActiveCliSession',
           // Returns JSONScalar with dynamic fields
           fields: []
         }

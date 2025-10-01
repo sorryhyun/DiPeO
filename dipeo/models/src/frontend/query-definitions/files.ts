@@ -24,7 +24,7 @@ export const fileQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'upload_file',
+          name: 'uploadFile',
           args: [
             { name: 'file', value: 'file', isVariable: true },
             { name: 'path', value: 'path', isVariable: true }
@@ -42,7 +42,7 @@ export const fileQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'upload_diagram',
+          name: 'uploadDiagram',
           args: [
             { name: 'file', value: 'file', isVariable: true },
             { name: 'format', value: 'format', isVariable: true }
@@ -60,7 +60,7 @@ export const fileQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'validate_diagram',
+          name: 'validateDiagram',
           args: [
             { name: 'content', value: 'content', isVariable: true },
             { name: 'format', value: 'format', isVariable: true }
@@ -79,7 +79,7 @@ export const fileQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'convert_diagram_format',
+          name: 'convertDiagramFormat',
           args: [
             { name: 'content', value: 'content', isVariable: true },
             { name: 'from_format', value: 'from_format', isVariable: true },

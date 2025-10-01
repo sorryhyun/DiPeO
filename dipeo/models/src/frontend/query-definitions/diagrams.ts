@@ -52,7 +52,7 @@ export const diagramQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'diagram',
+          name: 'getDiagram',
           args: [
             { name: 'diagram_id', value: 'diagram_id', isVariable: true }
           ],
@@ -116,12 +116,12 @@ export const diagramQueries: EntityQueryDefinitions = {
       type: QueryOperationType.QUERY,
       variables: [
         { name: 'filter', type: 'DiagramFilterInput' },
-        { name: 'limit', type: 'Int' },
-        { name: 'offset', type: 'Int' }
+        { name: 'limit', type: 'Float' },
+        { name: 'offset', type: 'Float' }
       ],
       fields: [
         {
-          name: 'diagrams',
+          name: 'listDiagrams',
           args: [
             { name: 'filter', value: 'filter', isVariable: true },
             { name: 'limit', value: 'limit', isVariable: true },
@@ -144,7 +144,7 @@ export const diagramQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'create_diagram',
+          name: 'createDiagram',
           args: [
             { name: 'input', value: 'input', isVariable: true }
           ],
@@ -176,7 +176,7 @@ export const diagramQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'execute_diagram',
+          name: 'executeDiagram',
           args: [
             { name: 'input', value: 'input', isVariable: true }
           ],
@@ -202,7 +202,7 @@ export const diagramQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'delete_diagram',
+          name: 'deleteDiagram',
           args: [
             { name: 'diagram_id', value: 'diagram_id', isVariable: true }
           ],

@@ -9,7 +9,7 @@ export const formatQueries: EntityQueryDefinitions = {
       type: QueryOperationType.QUERY,
       fields: [
         {
-          name: 'supported_formats',
+          name: 'getSupportedFormats',
           // Returns JSONScalar with dynamic fields
           fields: []
         }

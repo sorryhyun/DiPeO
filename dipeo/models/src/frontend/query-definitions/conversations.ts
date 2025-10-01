@@ -12,13 +12,13 @@ export const conversationQueries: EntityQueryDefinitions = {
         { name: 'execution_id', type: 'String' },
         { name: 'search', type: 'String' },
         { name: 'show_forgotten', type: 'Boolean' },
-        { name: 'limit', type: 'Int' },
-        { name: 'offset', type: 'Int' },
+        { name: 'limit', type: 'Float' },
+        { name: 'offset', type: 'Float' },
         { name: 'since', type: 'String' }
       ],
       fields: [
         {
-          name: 'conversations',
+          name: 'listConversations',
           // Pass all variables as arguments to the field
           args: [
             { name: 'person_id', value: 'person_id', isVariable: true },
