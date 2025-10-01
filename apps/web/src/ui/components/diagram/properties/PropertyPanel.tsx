@@ -162,7 +162,7 @@ export const PropertyPanel: React.FC<PropertyPanelProps> = React.memo(({ entityI
             query: GetApiKeysDocument,
             fetchPolicy: 'network-only'  // Always fetch fresh data to avoid stale API keys
           });
-          const selectedKey = apiKeysData.api_keys.find((k: any) => k.id === value);
+          const selectedKey = apiKeysData.getApiKeys.find((k: any) => k.id === value);
           if (selectedKey) {
             updates['llm_config.service'] = selectedKey.service;
           }

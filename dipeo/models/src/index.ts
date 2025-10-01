@@ -30,3 +30,6 @@ export * from './frontend/index.js';
 
 // Claude Code
 export * from './claude-code/session-types.js';
+
+// Generated Zod schemas for runtime validation
+export * from './__generated__/schemas.js';

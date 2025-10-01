@@ -45,6 +45,7 @@ export const jsonSchemaValidatorSpec: NodeSpecification = {
       name: "strict_mode",
       type: "boolean",
       required: false,
+      defaultValue: false,
       description: "Strict Mode configuration",
       uiConfig: {
         inputType: "checkbox"
@@ -54,6 +55,7 @@ export const jsonSchemaValidatorSpec: NodeSpecification = {
       name: "error_on_extra",
       type: "boolean",
       required: false,
+      defaultValue: false,
       description: "Error On Extra configuration",
       uiConfig: {
         inputType: "checkbox"

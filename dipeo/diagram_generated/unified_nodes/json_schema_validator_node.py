@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for json_schema_validator.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-30T22:22:04.625209
+Generated at: 2025-10-01T22:51:40.545368
 """
 
 from typing import *
@@ -42,9 +42,9 @@ class JsonSchemaValidatorNode(BaseModel):
     
     data_path: Optional[str] = Field(default=None, description="Data Path configuration")
     
-    strict_mode: Optional[bool] = Field(default=None, description="Strict Mode configuration")
+    strict_mode: bool = Field(default=False, description="Strict Mode configuration")
     
-    error_on_extra: Optional[bool] = Field(default=None, description="Error On Extra configuration")
+    error_on_extra: bool = Field(default=False, description="Error On Extra configuration")
 
     class Config:
         # Make the instance immutable after creation

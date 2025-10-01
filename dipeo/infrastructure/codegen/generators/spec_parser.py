@@ -69,6 +69,10 @@ def normalize_fields(fields: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for field in fields:
         normalized_field = dict(field)
 
+        # Rename defaultValue to default for consistency with templates
+        if 'defaultValue' in normalized_field:
+            normalized_field['default'] = normalized_field.pop('defaultValue')
+
         # Handle nested fields recursively
         if 'nestedFields' in normalized_field and isinstance(normalized_field['nestedFields'], list):
             normalized_field['nestedFields'] = normalize_fields(normalized_field['nestedFields'])

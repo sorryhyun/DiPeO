@@ -1,0 +1,33 @@
+{
+  "env": {
+    "CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR": "true"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(make:*)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Bash(python3:*)",
+      "Bash(pnpm build:*)",
+      "Bash(grep:*)",
+      "Bash(dipeo run:*)",
+      "Bash(PYTHONPATH=\"/home/sorryhyun/PycharmProjects/DiPeO:$PYTHONPATH\" DIPEO_BASE_DIR=\"/home/sorryhyun/PycharmProjects/DiPeO\" python projects/codegen/scripts/generate_frontend.py)",
+      "Bash(tree:*)",
+      "Bash(PYTHONPATH=\"/home/sorryhyun/PycharmProjects/DiPeO:$PYTHONPATH\" DIPEO_BASE_DIR=\"/home/sorryhyun/PycharmProjects/DiPeO\" python projects/codegen/scripts/generate_backend.py)",
+      "Bash(pnpm typecheck:*)",
+      "Read(//home/sorryhyun/.claude/projects/**)",
+      "Bash(for:*)",
+      "Bash(head:*)",
+      "Bash(done)",
+      "Bash(pnpm list:*)",
+      "Bash(node:*)",
+      "Bash(xargs:*)"
+    ],
+    "deny": [],
+    "ask": []
+  },
+  "additionalDirectories": [
+    ".claude/commands"
+  ]
+}

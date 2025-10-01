@@ -60,14 +60,14 @@ export const FileOperations: React.FC = () => {
         return;
       }
 
-      if (data?.diagram) {
+      if (data?.getDiagram) {
         // Load the diagram data directly without URL changes
         loadDiagramFromData({
-          nodes: data.diagram.nodes || [],
-          arrows: data.diagram.arrows || [],
-          handles: data.diagram.handles || [],
-          persons: data.diagram.persons || [],
-          metadata: data.diagram.metadata
+          nodes: data.getDiagram.nodes || [],
+          arrows: data.getDiagram.arrows || [],
+          handles: data.getDiagram.handles || [],
+          persons: data.getDiagram.persons || [],
+          metadata: data.getDiagram.metadata
         });
 
         toast.success(`Loaded ${finalName}`);
@@ -114,12 +114,12 @@ export const FileOperations: React.FC = () => {
         }
       });
 
-      if (!convertResult.data?.convert_diagram_format?.success) {
-        throw new Error(convertResult.data?.convert_diagram_format?.error || 'Conversion failed');
+      if (!convertResult.data?.convertDiagramFormat?.success) {
+        throw new Error(convertResult.data?.convertDiagramFormat?.error || 'Conversion failed');
       }
 
       // Get the converted content
-      const convertedContent = convertResult.data.convert_diagram_format.data;
+      const convertedContent = convertResult.data.convertDiagramFormat.data;
       if (!convertedContent) {
         throw new Error('No content returned from conversion');
       }
@@ -142,8 +142,8 @@ export const FileOperations: React.FC = () => {
         }
       });
 
-      if (!uploadResult.data?.upload_file?.success) {
-        throw new Error(uploadResult.data?.upload_file?.error || 'Upload failed');
+      if (!uploadResult.data?.uploadFile?.success) {
+        throw new Error(uploadResult.data?.uploadFile?.error || 'Upload failed');
       }
 
       toast.success(`Saved as ${filename}`);

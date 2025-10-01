@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for person_job.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-30T22:22:04.983211
+Generated at: 2025-10-01T22:51:41.108669
 """
 
 from typing import *
@@ -41,7 +41,7 @@ class PersonJobNode(BaseModel):
     
     person: Optional[str] = Field(default=None, description="AI person to use")
     
-    first_only_prompt: Optional[str] = Field(default=None, description="Prompt used only on first execution")
+    first_only_prompt: str = Field(default="", description="Prompt used only on first execution")
     
     first_prompt_file: Optional[str] = Field(default=None, description="External prompt file for first iteration only")
     
@@ -65,13 +65,13 @@ class PersonJobNode(BaseModel):
     
     resolved_first_prompt: Optional[str] = Field(default=None, description="Pre-resolved first prompt content from compile-time")
     
-    batch: Optional[bool] = Field(default=None, description="Enable batch mode for processing multiple items")
+    batch: bool = Field(default=False, description="Enable batch mode for processing multiple items")
     
-    batch_input_key: Optional[str] = Field(default=None, description="Key containing the array to iterate over in batch mode")
+    batch_input_key: str = Field(default="items", description="Key containing the array to iterate over in batch mode")
     
-    batch_parallel: Optional[bool] = Field(default=None, description="Execute batch items in parallel")
+    batch_parallel: bool = Field(default=True, description="Execute batch items in parallel")
     
-    max_concurrent: Optional[float] = Field(default=None, description="Maximum concurrent executions in batch mode")
+    max_concurrent: float = Field(default=10, description="Maximum concurrent executions in batch mode")
 
     class Config:
         # Make the instance immutable after creation

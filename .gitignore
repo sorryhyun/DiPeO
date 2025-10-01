@@ -35,6 +35,7 @@ original_session.jsonl
 session.jsonl
 # Staging directories
 dipeo/diagram_generated_staged/
+dipeo/diagram_generated_active_backup/
 .backups/
 **/.ruff_cache/
 .logs
@@ -107,7 +108,6 @@ web/dist/
 web/src/generated/
 *.graphql.tsx.map
 
-.claude
 example.yaml
 docs/TODO.md
 CLAUDE.local.md

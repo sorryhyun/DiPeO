@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for diff_patch.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-30T22:22:04.608622
+Generated at: 2025-10-01T22:51:40.512734
 """
 
 from typing import *
@@ -38,25 +38,25 @@ class DiffPatchNode(BaseModel):
 
     # Optional node-specific fields
     
-    format: Optional[Literal["unified", "git", "context", "ed", "normal"]] = Field(default=None, description="Diff format type")
+    format: Literal["unified", "git", "context", "ed", "normal"] = Field(default="unified", description="Diff format type")
     
-    apply_mode: Optional[Literal["normal", "force", "dry_run", "reverse"]] = Field(default=None, description="How to apply the patch")
+    apply_mode: Literal["normal", "force", "dry_run", "reverse"] = Field(default="normal", description="How to apply the patch")
     
-    backup: Optional[bool] = Field(default=None, description="Create backup before patching")
+    backup: bool = Field(default=True, description="Create backup before patching")
     
-    validate_patch: Optional[bool] = Field(default=None, description="Validate patch before applying")
+    validate_patch: bool = Field(default=True, description="Validate patch before applying")
     
     backup_dir: Optional[str] = Field(default=None, description="Directory for backup files")
     
-    strip_level: Optional[float] = Field(default=None, description="Strip N leading path components (like patch -pN)")
+    strip_level: float = Field(default=1, description="Strip N leading path components (like patch -pN)")
     
-    fuzz_factor: Optional[float] = Field(default=None, description="Number of lines that can be ignored when matching context")
+    fuzz_factor: float = Field(default=2, description="Number of lines that can be ignored when matching context")
     
     reject_file: Optional[str] = Field(default=None, description="Path to save rejected hunks")
     
-    ignore_whitespace: Optional[bool] = Field(default=None, description="Ignore whitespace changes when matching")
+    ignore_whitespace: bool = Field(default=False, description="Ignore whitespace changes when matching")
     
-    create_missing: Optional[bool] = Field(default=None, description="Create target file if it doesn't exist")
+    create_missing: bool = Field(default=False, description="Create target file if it doesn't exist")
 
     class Config:
         # Make the instance immutable after creation

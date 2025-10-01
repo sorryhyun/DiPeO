@@ -19,6 +19,12 @@ export const personJobConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
+    first_only_prompt: '',
+    max_iteration: 100,
+    batch: false,
+    batch_input_key: 'items',
+    batch_parallel: true,
+    max_concurrent: 10,
   },
   customFields: personJobFields,
   primaryDisplayField: 'person',

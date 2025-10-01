@@ -44,7 +44,7 @@ src/
 ## Code Generation Pipeline
 
 1. **Parse**: TypeScript AST extraction
-2. **Cache**: Results to `.temp/ast_cache/`
+2. **Cache**: Results to `temp/`
 3. **Generate** (parallel):
    - Python models → `dipeo/diagram_generated/domain_models.py`
    - GraphQL schema → `dipeo/diagram_generated/domain-schema.graphql`

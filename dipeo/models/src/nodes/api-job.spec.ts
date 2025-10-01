@@ -15,6 +15,7 @@ export const apiJobSpec: NodeSpecification = {
       name: "url",
       type: "string",
       required: true,
+      defaultValue: "",
       description: "API endpoint URL",
       uiConfig: {
         inputType: "text",
@@ -25,6 +26,7 @@ export const apiJobSpec: NodeSpecification = {
       name: "method",
       type: "enum",
       required: true,
+      defaultValue: "GET",
       description: "HTTP method",
       validation: {
         allowedValues: ["GET", "POST", "PUT", "DELETE", "PATCH"]

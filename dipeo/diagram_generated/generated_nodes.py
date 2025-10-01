@@ -1,7 +1,7 @@
 """
 Compatibility shim for generated_nodes.py
 Re-exports from individual files for backward compatibility.
-Generated at: 2025-09-30T22:22:04.065670
+Generated at: 2025-10-01T22:51:39.914896
 """
 
 # Re-export all node classes from individual files
@@ -75,9 +75,9 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             
-            url=data.get('url'),
+            url=data.get('url', ''),
             
-            method=data.get('method'),
+            method=data.get('method', 'GET'),
             
             headers=data.get('headers'),
             
@@ -101,7 +101,7 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             
-            language=data.get('language'),
+            language=data.get('language', 'python'),
             
             filePath=data.get('filePath'),
             
@@ -155,9 +155,9 @@ def create_executable_node(
             
             collection=data.get('collection'),
             
-            sub_type=data.get('sub_type'),
+            sub_type=data.get('sub_type', 'fixed_prompt'),
             
-            operation=data.get('operation'),
+            operation=data.get('operation', ''),
             
             query=data.get('query'),
             
@@ -215,7 +215,7 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             
-            save_to_file=data.get('save_to_file'),
+            save_to_file=data.get('save_to_file', False),
             
             file_name=data.get('file_name'),
             
@@ -249,17 +249,17 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             
-            provider=data.get('provider'),
+            provider=data.get('provider', 'NOTION'),
             
-            operation=data.get('operation'),
+            operation=data.get('operation', ''),
             
             resource_id=data.get('resource_id'),
             
-            config=data.get('config'),
+            config=data.get('config', {}),
             
-            timeout=data.get('timeout'),
+            timeout=data.get('timeout', 30),
             
-            max_retries=data.get('max_retries'),
+            max_retries=data.get('max_retries', 3),
             
         )
     
@@ -299,9 +299,9 @@ def create_executable_node(
             
             data_path=data.get('data_path'),
             
-            strict_mode=data.get('strict_mode'),
+            strict_mode=data.get('strict_mode', False),
             
-            error_on_extra=data.get('error_on_extra'),
+            error_on_extra=data.get('error_on_extra', False),
             
         )
     
@@ -315,7 +315,7 @@ def create_executable_node(
             
             person=data.get('person'),
             
-            first_only_prompt=data.get('first_only_prompt'),
+            first_only_prompt=data.get('first_only_prompt', ''),
             
             first_prompt_file=data.get('first_prompt_file'),
             
@@ -361,9 +361,9 @@ def create_executable_node(
             
             trigger_mode=data.get('trigger_mode', 'none'),
             
-            custom_data=data.get('custom_data'),
+            custom_data=data.get('custom_data', {}),
             
-            output_data_structure=data.get('output_data_structure'),
+            output_data_structure=data.get('output_data_structure', {}),
             
             hook_event=data.get('hook_event'),
             
@@ -399,9 +399,9 @@ def create_executable_node(
             
             batch=data.get('batch', False),
             
-            batch_input_key=data.get('batch_input_key'),
+            batch_input_key=data.get('batch_input_key', 'items'),
             
-            batch_parallel=data.get('batch_parallel', False),
+            batch_parallel=data.get('batch_parallel', True),
             
         )
     
@@ -463,9 +463,9 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             
-            prompt=data.get('prompt'),
+            prompt=data.get('prompt', ''),
             
-            timeout=data.get('timeout', 300),
+            timeout=data.get('timeout', 60),
             
         )
     

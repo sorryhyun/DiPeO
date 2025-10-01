@@ -27,7 +27,7 @@ class ClaudeCodeCommand:
     def __init__(self, server_manager=None):
         """Initialize the command."""
         self.server_manager = server_manager
-        self.base_dir = Path.home() / ".claude" / "projects" / "-home-soryhyun-DiPeO"
+        self.base_dir = Path.home() / ".claude" / "projects" / "-home-sorryhyun-PycharmProjects-DiPeO"
         self.output_base = Path("projects/claude_code")
         self.coordinator = PhaseCoordinator()
         self.session_serializer = SessionSerializer()

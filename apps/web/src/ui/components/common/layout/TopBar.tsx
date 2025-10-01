@@ -259,17 +259,17 @@ const TopBar = () => {
                     return;
                   }
 
-                  if (data?.diagram) {
+                  if (data?.getDiagram) {
                     // Load the diagram data directly without URL changes
                     loadDiagramFromData({
-                      nodes: data.diagram.nodes || [],
-                      arrows: data.diagram.arrows || [],
-                      handles: data.diagram.handles || [],
-                      persons: data.diagram.persons || [],
+                      nodes: data.getDiagram.nodes || [],
+                      arrows: data.getDiagram.arrows || [],
+                      handles: data.getDiagram.handles || [],
+                      persons: data.getDiagram.persons || [],
                       metadata: {
-                        ...data.diagram.metadata,
-                        name: data.diagram.metadata?.name || fullPath,
-                        id: data.diagram.metadata?.id || fullPath
+                        ...data.getDiagram.metadata,
+                        name: data.getDiagram.metadata?.name || fullPath,
+                        id: data.getDiagram.metadata?.id || fullPath
                       }
                     });
 

@@ -7,7 +7,6 @@ export const hookFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: '"Hook type"',
     required: true,
-    defaultValue: "shell",
     description: '"Type of hook to execute"',
     options: [
       { value: '"shell"', label: '"Shell"' },
@@ -46,7 +45,6 @@ export const hookFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: '"Timeout"',
     required: false,
-    defaultValue: 60,
     description: '"Execution timeout in seconds"',
     min: 1,
     max: 300,
@@ -65,7 +63,6 @@ export const hookFields: UnifiedFieldDefinition[] = [
     type: 'number',
     label: '"Retry count"',
     required: false,
-    defaultValue: 0,
     description: '"Number of retries on failure"',
     min: 0,
     max: 5,

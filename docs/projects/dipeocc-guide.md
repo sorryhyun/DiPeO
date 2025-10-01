@@ -369,13 +369,6 @@ dipeo run projects/claude_code/latest.light.yaml --debug
 - **Location**: `apps/cli/src/dipeo_cli/commands/claude_code_command.py`
 - **Functionality**: Orchestrates conversion process and file management
 
-## Future Enhancements
-
-- **Diff Analysis**: Compare two sessions to identify changes
-- **Pattern Extraction**: Create reusable templates from common workflows
-- **Session Merging**: Combine multiple sessions into unified workflows
-- **Interactive Replay**: Step-through execution with breakpoints
-- **Performance Analytics**: Measure and optimize converted workflows
 
 ## Related Documentation
 

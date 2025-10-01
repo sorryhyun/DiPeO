@@ -52,17 +52,17 @@ export const useFileOperations = () => {
           throw new Error(`Failed to load diagram: ${error.message}`);
         }
 
-        if (data?.diagram) {
+        if (data?.getDiagram) {
           // Load the diagram data directly
           loadDiagramFromData({
-            nodes: data.diagram.nodes || [],
-            arrows: data.diagram.arrows || [],
-            handles: data.diagram.handles || [],
-            persons: data.diagram.persons || [],
+            nodes: data.getDiagram.nodes || [],
+            arrows: data.getDiagram.arrows || [],
+            handles: data.getDiagram.handles || [],
+            persons: data.getDiagram.persons || [],
             metadata: {
-              ...data.diagram.metadata,
-              name: data.diagram.metadata?.name || result.diagramId, // Use diagramId as fallback
-              id: data.diagram.metadata?.id || result.diagramId
+              ...data.getDiagram.metadata,
+              name: data.getDiagram.metadata?.name || result.diagramId, // Use diagramId as fallback
+              id: data.getDiagram.metadata?.id || result.diagramId
             }
           });
 
@@ -169,11 +169,11 @@ export const useFileOperations = () => {
         }
       });
 
-      if (!data?.convert_diagram_format.success) {
-        throw new Error(data?.convert_diagram_format.error || 'Failed to convert diagram');
+      if (!data?.convertDiagramFormat.success) {
+        throw new Error(data?.convertDiagramFormat.error || 'Failed to convert diagram');
       }
 
-      const exportResult = data.convert_diagram_format;
+      const exportResult = data.convertDiagramFormat;
 
       // Determine filename
       const actualFilename = filename || `diagram.${format === DiagramFormat.NATIVE ? 'json' : 'yaml'}`;
@@ -216,11 +216,11 @@ export const useFileOperations = () => {
         }
       });
 
-      if (!data?.convert_diagram_format.success) {
-        throw new Error(data?.convert_diagram_format.error || 'Failed to convert diagram');
+      if (!data?.convertDiagramFormat.success) {
+        throw new Error(data?.convertDiagramFormat.error || 'Failed to convert diagram');
       }
 
-      const result = data.convert_diagram_format;
+      const result = data.convertDiagramFormat;
 
       return {
         content: result.data || '',

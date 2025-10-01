@@ -24,7 +24,6 @@ export const diffPatchFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: '"Format"',
     required: false,
-    defaultValue: "unified",
     description: '"Diff format type"',
     options: [
       { value: '"unified"', label: '"Unified"' },
@@ -42,7 +41,6 @@ export const diffPatchFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: '"Apply mode"',
     required: false,
-    defaultValue: "normal",
     description: '"How to apply the patch"',
     options: [
       { value: '"normal"', label: '"Normal"' },
@@ -59,7 +57,6 @@ export const diffPatchFields: UnifiedFieldDefinition[] = [
     type: 'checkbox',
     label: '"Backup"',
     required: false,
-    defaultValue: true,
     description: '"Create backup before patching"',
   },
   {
@@ -67,7 +64,6 @@ export const diffPatchFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: '"Validate patch"',
     required: false,
-    defaultValue: true,
     description: '"Validate patch before applying"',
   },
   {
@@ -83,7 +79,6 @@ export const diffPatchFields: UnifiedFieldDefinition[] = [
     type: 'number',
     label: '"Strip level"',
     required: false,
-    defaultValue: 1,
     description: '"Strip N leading path components (like patch -pN)"',
     min: 0,
     max: 10,
@@ -102,7 +97,6 @@ export const diffPatchFields: UnifiedFieldDefinition[] = [
     type: 'number',
     label: '"Fuzz factor"',
     required: false,
-    defaultValue: 2,
     description: '"Number of lines that can be ignored when matching context"',
     min: 0,
     max: 100,
@@ -129,7 +123,6 @@ export const diffPatchFields: UnifiedFieldDefinition[] = [
     type: 'checkbox',
     label: '"Ignore whitespace"',
     required: false,
-    defaultValue: false,
     description: '"Ignore whitespace changes when matching"',
   },
   {
@@ -137,7 +130,6 @@ export const diffPatchFields: UnifiedFieldDefinition[] = [
     type: 'checkbox',
     label: '"Create missing"',
     required: false,
-    defaultValue: false,
     description: '"Create target file if it doesn\'t exist"',
   },
 ];

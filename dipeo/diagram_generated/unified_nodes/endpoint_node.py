@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for endpoint.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-30T22:22:04.609316
+Generated at: 2025-10-01T22:51:40.513693
 """
 
 from typing import *
@@ -36,7 +36,7 @@ class EndpointNode(BaseModel):
 
     # Optional node-specific fields
     
-    save_to_file: Optional[bool] = Field(default=None, description="Save results to file")
+    save_to_file: bool = Field(default=False, description="Save results to file")
     
     file_name: Optional[str] = Field(default=None, description="Output filename")
 

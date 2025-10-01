@@ -15,7 +15,6 @@ export const userResponseFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: '"Timeout"',
     required: false,
-    defaultValue: 300,
     description: '"Response timeout in seconds"',
     min: 0,
     max: 3600,

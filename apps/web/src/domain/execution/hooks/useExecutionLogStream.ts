@@ -29,8 +29,8 @@ export function useExecutionLogStream(executionIdParam: ReturnType<typeof execut
 
   // Append new log entries as they arrive
   useEffect(() => {
-    if (data?.execution_updates) {
-      const update = data.execution_updates;
+    if (data?.executionUpdates) {
+      const update = data.executionUpdates;
 
       // Handle batch updates (BATCH_UPDATE is sent by backend but not in EventType enum)
       if ((update.type as string) === 'BATCH_UPDATE' && update.data) {

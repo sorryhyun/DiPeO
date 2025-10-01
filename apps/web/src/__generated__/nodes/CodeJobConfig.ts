@@ -18,6 +18,7 @@ export const codeJobConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
+    language: SupportedLanguage.PYTHON,
   },
   customFields: codeJobFields,
   primaryDisplayField: 'language',

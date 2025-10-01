@@ -33,7 +33,7 @@ export const personFields: TypedPanelFieldConfig<ExtendedPersonData>[] = [
           fetchPolicy: 'network-only'
         });
         // Filter to only show LLM service API keys
-        return data.api_keys
+        return data.getApiKeys
           .filter((key: any) => {
             // Convert uppercase enum name to lowercase for comparison
             const serviceLowercase = key.service.toLowerCase();
@@ -70,7 +70,7 @@ export const personFields: TypedPanelFieldConfig<ExtendedPersonData>[] = [
           query: GetApiKeysDocument,
           fetchPolicy: 'network-only'  // Always fetch fresh data to avoid stale API keys
         });
-        const selectedKey = apiKeysData.api_keys.find((k: any) => k.id === apiKeyId);
+        const selectedKey = apiKeysData.getApiKeys.find((k: any) => k.id === apiKeyId);
         if (!selectedKey) {
           return [];
         }
@@ -84,11 +84,11 @@ export const personFields: TypedPanelFieldConfig<ExtendedPersonData>[] = [
           fetchPolicy: 'network-only'
         });
 
-        if (!modelsData || !modelsData.available_models) {
+        if (!modelsData || !modelsData.getAvailableModels) {
           console.warn('No models data received from API');
           return [];
         }
-        return modelsData.available_models.map((model: string) => ({
+        return modelsData.getAvailableModels.map((model: string) => ({
           value: model,
           label: model
         }));

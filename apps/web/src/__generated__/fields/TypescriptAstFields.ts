@@ -15,7 +15,6 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
     type: 'textarea',
     label: '"Extractpatterns"',
     required: false,
-    defaultValue: ["interface", "type", "enum"],
     description: '"Patterns to extract from the AST"',
     validate: (value: unknown) => {
       return { isValid: true };
@@ -26,7 +25,6 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
     type: 'checkbox',
     label: '"Includejsdoc"',
     required: false,
-    defaultValue: false,
     description: '"Include JSDoc comments in the extracted data"',
   },
   {
@@ -34,7 +32,6 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: '"Parsemode"',
     required: false,
-    defaultValue: "module",
     description: '"TypeScript parsing mode"',
     options: [
       { value: '"module"', label: '"Module"' },
@@ -49,7 +46,6 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
     type: 'checkbox',
     label: '"Transformenums"',
     required: false,
-    defaultValue: false,
     description: '"Transform enum definitions to a simpler format"',
   },
   {
@@ -57,7 +53,6 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
     type: 'checkbox',
     label: '"Flattenoutput"',
     required: false,
-    defaultValue: false,
     description: '"Flatten the output structure for easier consumption"',
   },
   {
@@ -65,7 +60,6 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: '"Outputformat"',
     required: false,
-    defaultValue: "standard",
     description: '"Output format for the parsed data"',
     options: [
       { value: '"standard"', label: '"Standard"' },
@@ -81,7 +75,6 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
     type: 'checkbox',
     label: '"Batch"',
     required: false,
-    defaultValue: false,
     description: '"Enable batch processing mode"',
   },
   {
@@ -89,7 +82,6 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
     type: 'password',
     label: '"Batchinputkey"',
     required: false,
-    defaultValue: "sources",
     description: '"Key to extract batch items from input"',
   },
 ];

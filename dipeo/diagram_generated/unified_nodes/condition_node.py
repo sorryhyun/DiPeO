@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for condition.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-30T22:22:04.607169
+Generated at: 2025-10-01T22:51:40.510109
 """
 
 from typing import *
@@ -36,7 +36,7 @@ class ConditionNode(BaseModel):
 
     # Optional node-specific fields
     
-    condition_type: Optional[Literal["detect_max_iterations", "check_nodes_executed", "custom", "llm_decision"]] = Field(default=None, description="Type of condition to evaluate")
+    condition_type: Literal["detect_max_iterations", "check_nodes_executed", "custom", "llm_decision"] = Field(default="custom", description="Type of condition to evaluate")
     
     expression: Optional[str] = Field(default=None, description="Boolean expression to evaluate")
     
@@ -48,13 +48,13 @@ class ConditionNode(BaseModel):
     
     judge_by_file: Optional[str] = Field(default=None, description="External prompt file path")
     
-    memorize_to: Optional[str] = Field(default=None, description="Memory control strategy (e.g., GOLDFISH for fresh evaluation)")
+    memorize_to: str = Field(default="GOLDFISH", description="Memory control strategy (e.g., GOLDFISH for fresh evaluation)")
     
     at_most: Optional[float] = Field(default=None, description="Maximum messages to keep in memory")
     
     expose_index_as: Optional[str] = Field(default=None, description="Variable name to expose the condition node's execution count (0-based index) to downstream nodes")
     
-    skippable: Optional[bool] = Field(default=None, description="When true, downstream nodes can execute even if this condition hasn't been evaluated yet")
+    skippable: bool = Field(default=False, description="When true, downstream nodes can execute even if this condition hasn't been evaluated yet")
 
     class Config:
         # Make the instance immutable after creation

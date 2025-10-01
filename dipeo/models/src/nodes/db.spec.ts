@@ -33,6 +33,7 @@ export const dbSpec: NodeSpecification = {
       name: "sub_type",
       type: "enum",
       required: true,
+      defaultValue: "fixed_prompt",
       description: "Database operation type",
       validation: {
         allowedValues: ["fixed_prompt", "file", "code", "api_tool"]
@@ -51,6 +52,7 @@ export const dbSpec: NodeSpecification = {
       name: "operation",
       type: "string",
       required: true,
+      defaultValue: "",
       description: "Operation configuration",
       validation: {
         allowedValues: ["prompt", "read", "write", "append", "update"]

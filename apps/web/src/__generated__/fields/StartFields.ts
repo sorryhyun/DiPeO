@@ -7,7 +7,6 @@ export const startFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: '"Trigger mode"',
     required: false,
-    defaultValue: "none",
     description: '"How this start node is triggered"',
     options: [
       { value: '"none"', label: '"None - Simple start point"' },

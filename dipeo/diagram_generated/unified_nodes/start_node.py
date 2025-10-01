@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for start.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-30T22:22:04.984015
+Generated at: 2025-10-01T22:51:41.109758
 """
 
 from typing import *
@@ -36,9 +36,9 @@ class StartNode(BaseModel):
 
     # Optional node-specific fields
     
-    trigger_mode: Optional[HookTriggerMode] = Field(default=None, description="How this start node is triggered")
+    trigger_mode: HookTriggerMode = Field(default="none", description="How this start node is triggered")
     
-    custom_data: Optional[Any] = Field(default=None, description="Custom data to pass when manually triggered")
+    custom_data: Any = Field(default={}, description="Custom data to pass when manually triggered")
     
     output_data_structure: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Expected output data structure")
     

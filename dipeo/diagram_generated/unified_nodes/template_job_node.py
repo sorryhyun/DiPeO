@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for template_job.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-09-30T22:22:04.985504
+Generated at: 2025-10-01T22:51:41.113567
 """
 
 from typing import *
@@ -44,7 +44,7 @@ class TemplateJobNode(BaseModel):
     
     variables: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Variables configuration")
     
-    engine: Optional[Literal["internal", "jinja2"]] = Field(default=None, description="Template engine to use")
+    engine: Literal["internal", "jinja2"] = Field(default="jinja2", description="Template engine to use")
     
     preprocessor: Optional[str] = Field(default=None, description="Preprocessor function to apply before templating")
 
