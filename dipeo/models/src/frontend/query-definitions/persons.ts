@@ -57,7 +57,7 @@ export const personQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'person',
+          name: 'getPerson',
           args: [
             { name: 'person_id', value: 'person_id', isVariable: true }
           ],
@@ -69,11 +69,11 @@ export const personQueries: EntityQueryDefinitions = {
       name: 'ListPersons',
       type: QueryOperationType.QUERY,
       variables: [
-        { name: 'limit', type: 'Int' }
+        { name: 'limit', type: 'Float' }
       ],
       fields: [
         {
-          name: 'persons',
+          name: 'listPersons',
           args: [
             { name: 'limit', value: 'limit', isVariable: true }
           ],
@@ -89,7 +89,7 @@ export const personQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'create_person',
+          name: 'createPerson',
           args: [
             { name: 'input', value: 'input', isVariable: true }
           ],
@@ -114,7 +114,7 @@ export const personQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'update_person',
+          name: 'updatePerson',
           args: [
             { name: 'person_id', value: 'person_id', isVariable: true },
             { name: 'input', value: 'input', isVariable: true }
@@ -139,7 +139,7 @@ export const personQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'delete_person',
+          name: 'deletePerson',
           args: [
             { name: 'person_id', value: 'person_id', isVariable: true }
           ],

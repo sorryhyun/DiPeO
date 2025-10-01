@@ -19,7 +19,7 @@ export const cliSessionQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'register_cli_session',
+          name: 'registerCliSession',
           args: [
             { name: 'input', value: 'input', isVariable: true }
           ],
@@ -35,7 +35,7 @@ export const cliSessionQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'unregister_cli_session',
+          name: 'unregisterCliSession',
           args: [
             { name: 'input', value: 'input', isVariable: true }
           ],

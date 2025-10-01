@@ -35,7 +35,7 @@ export const nodeQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'create_node',
+          name: 'createNode',
           args: [
             { name: 'diagram_id', value: 'diagram_id', isVariable: true },
             { name: 'input', value: 'input', isVariable: true }
@@ -62,7 +62,7 @@ export const nodeQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'update_node',
+          name: 'updateNode',
           args: [
             { name: 'diagram_id', value: 'diagram_id', isVariable: true },
             { name: 'node_id', value: 'node_id', isVariable: true },
@@ -81,7 +81,7 @@ export const nodeQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'delete_node',
+          name: 'deleteNode',
           args: [
             { name: 'diagram_id', value: 'diagram_id', isVariable: true },
             { name: 'node_id', value: 'node_id', isVariable: true }

@@ -75,8 +75,8 @@ export const executionQueries: EntityQueryDefinitions = {
       type: QueryOperationType.QUERY,
       variables: [
         { name: 'filter', type: 'ExecutionFilterInput' },
-        { name: 'limit', type: 'Int' },
-        { name: 'offset', type: 'Int' }
+        { name: 'limit', type: 'Float' },
+        { name: 'offset', type: 'Float' }
       ],
       fields: [
         {

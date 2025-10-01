@@ -337,8 +337,8 @@ class BuildOperationStringsStep(BaseTransformStep):
                 args = field.get("args", [])
                 sub_fields = field.get("fields", [])
 
-                # Build the field call (convert to camelCase for GraphQL)
-                op_string += f"  {self._to_camel_case(field_name)}"
+                # Build the field call (keep original field name format)
+                op_string += f"  {field_name}"
 
                 # Add args if present
                 if args:

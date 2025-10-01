@@ -10,7 +10,7 @@ export const promptQueries: EntityQueryDefinitions = {
       variables: [],
       fields: [
         {
-          name: 'prompt_files',
+          name: 'listPromptFiles',
           // Returns List[JSONScalar] with dynamic fields
           fields: []
         }
@@ -24,7 +24,7 @@ export const promptQueries: EntityQueryDefinitions = {
       ],
       fields: [
         {
-          name: 'prompt_file',
+          name: 'getPromptFile',
           args: [
             { name: 'filename', value: 'filename', isVariable: true }
           ],
