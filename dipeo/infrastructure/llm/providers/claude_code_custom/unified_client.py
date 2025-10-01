@@ -2,17 +2,17 @@
 
 import asyncio
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import os
 import re
 from collections.abc import AsyncIterator
 from typing import Any
+from uuid import uuid4
 
-from claude_code_sdk import ClaudeAgentOptions
+from claude_code_sdk import ClaudeAgentOptions, ClaudeSDKClient
 from pydantic import BaseModel
 from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.config.llm import (
     CLAUDE_MAX_CONTEXT_LENGTH,
     CLAUDE_MAX_OUTPUT_TOKENS,
@@ -33,12 +33,14 @@ from ..claude_code.prompts import (
     LLM_DECISION_PROMPT,
     MEMORY_SELECTION_PROMPT,
 )
-from ..claude_code.transport.session_wrapper import SessionQueryWrapper
 
 logger = get_module_logger(__name__)
 
-# Session pooling configuration
-SESSION_POOL_ENABLED = os.getenv("DIPEO_SESSION_POOL_ENABLED", "false").lower() == "true"
+# Check if fork_session is supported
+FORK_SESSION_SUPPORTED = "fork_session" in getattr(ClaudeAgentOptions, "__dataclass_fields__", {})
+FORK_SESSION_ENABLED = FORK_SESSION_SUPPORTED and os.getenv("DIPEO_CLAUDE_FORK_SESSION", "true").lower() == "true"
+
+logger.info(f"[ClaudeCodeCustom] Fork session supported: {FORK_SESSION_SUPPORTED}, enabled: {FORK_SESSION_ENABLED}")
 
 class UnifiedClaudeCodeCustomClient:
     """Unified Claude Code Custom client with full system prompt override support.
@@ -61,9 +63,11 @@ class UnifiedClaudeCodeCustomClient:
         self.retry_delay = config.retry_delay or 1.0
         self.retry_backoff = config.retry_backoff or 2.0
 
-        logger.info(
-            f"[ClaudeCodeCustom] Initialized with SESSION_POOL_ENABLED={SESSION_POOL_ENABLED}"
-        )
+        # Template sessions for each execution phase (lazy-loaded)
+        self._templates: dict[str, ClaudeSDKClient] = {}
+        self._template_lock = asyncio.Lock()
+
+        logger.info("[ClaudeCodeCustom] Initialized with simplified template management")
 
     def _get_capabilities(self) -> ProviderCapabilities:
         """Get Claude Code provider capabilities."""
@@ -153,222 +157,14 @@ class UnifiedClaudeCodeCustomClient:
                 output_tokens=int(match.group(2)),
                 total_tokens=int(match.group(3)),
             )
-
         return None
 
-    def _extract_tool_result(self, response_text: str) -> dict | None:
-        """Extract tool result from Claude Code response."""
-        import json
+    def _setup_workspace(self, kwargs: dict) -> None:
+        """Set up workspace directory for claude-code if not already configured.
 
-        logger.debug(
-            f"[ClaudeCodeCustom] Attempting to extract tool result from response: "
-            f"{response_text[:500]}{'...' if len(response_text) > 500 else ''}"
-        )
-
-        # Try to parse the entire response as JSON first
-        try:
-            data = json.loads(response_text)
-            if isinstance(data, dict):
-                # Check for 'data' field from our tool responses
-                if "data" in data:
-                    logger.debug(
-                        f"[ClaudeCodeCustom] Found tool result in 'data' field: {data['data']}"
-                    )
-                    return data["data"]
-                # Check for direct structured output
-                if "message_ids" in data or "decision" in data:
-                    logger.debug(f"[ClaudeCodeCustom] Found direct structured output: {data}")
-                    return data
-        except (json.JSONDecodeError, ValueError) as e:
-            logger.debug(f"[ClaudeCodeCustom] Response is not valid JSON: {e}")
-
-        # Fallback: Look for JSON objects in the text
-        json_pattern = r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}"
-        matches = re.finditer(json_pattern, response_text)
-        for match in matches:
-            try:
-                data = json.loads(match.group(0))
-                if "message_ids" in data or "decision" in data:
-                    logger.debug(f"[ClaudeCodeCustom] Found tool result in embedded JSON: {data}")
-                    return data
-            except (json.JSONDecodeError, ValueError):
-                continue
-
-        logger.debug("[ClaudeCodeCustom] No tool result found in response")
-        return None
-
-    def _parse_response(
-        self, response: str, execution_phase: ExecutionPhase | None = None
-    ) -> LLMResponse:
-        """Parse Claude Code response to unified format."""
-        # Extract usage if present in response
-        usage = self._extract_usage_from_response(response)
-
-        # Clean response of any metadata patterns
-        clean_response = re.sub(
-            r"Tokens:\s*input=\d+,\s*output=\d+,\s*total=\d+", "", response
-        ).strip()
-
-        # Check if response contains tool usage
-        structured_output = None
-        tool_result = self._extract_tool_result(response)
-
-        if tool_result:
-            # Tool was used, create structured output from tool result
-            logger.debug(
-                f"[ClaudeCodeCustom] Tool result extracted successfully for {execution_phase}: "
-                f"{tool_result}"
-            )
-            if execution_phase == ExecutionPhase.MEMORY_SELECTION:
-                from dipeo.infrastructure.llm.drivers.types import MemorySelectionOutput
-
-                structured_output = MemorySelectionOutput(
-                    message_ids=tool_result.get("message_ids", [])
-                )
-                logger.debug(
-                    f"[ClaudeCodeCustom] Created MemorySelectionOutput from tool: "
-                    f"selected {len(tool_result.get('message_ids', []))} messages"
-                )
-            elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
-                from dipeo.infrastructure.llm.drivers.types import DecisionOutput
-
-                structured_output = DecisionOutput(decision=tool_result.get("decision", False))
-                logger.debug(
-                    f"[ClaudeCodeCustom] Created DecisionOutput from tool: "
-                    f"decision={tool_result.get('decision', False)}"
-                )
-        else:
-            # Simplified fallback parsing
-            logger.warning(
-                f"[ClaudeCodeCustom] No tool result found for {execution_phase}, "
-                f"falling back to text parsing. Response preview: {clean_response[:200]}..."
-            )
-            if execution_phase == ExecutionPhase.MEMORY_SELECTION:
-                structured_output = self._parse_memory_selection(clean_response)
-                logger.debug(
-                    f"[ClaudeCodeCustom] Text parsing result: "
-                    f"selected {len(structured_output.message_ids) if structured_output else 0} messages"
-                )
-            elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
-                structured_output = self._parse_decision(clean_response)
-                logger.debug(
-                    f"[ClaudeCodeCustom] Text parsing result: "
-                    f"decision={structured_output.decision if structured_output else None}"
-                )
-
-        return LLMResponse(
-            content=clean_response,
-            raw_response=response,
-            usage=usage,
-            model="claude-code-custom",
-            provider=self.provider_type,
-            structured_output=structured_output,
-        )
-
-    def _parse_memory_selection(self, response: str) -> Any:
-        """Parse memory selection from response text."""
-        import json
-
-        from dipeo.infrastructure.llm.drivers.types import MemorySelectionOutput
-
-        # Try to parse as JSON array directly
-        try:
-            data = json.loads(response)
-            if isinstance(data, list):
-                return MemorySelectionOutput(message_ids=data)
-        except (json.JSONDecodeError, ValueError):
-            pass
-
-        # Look for JSON array in text
-        match = re.search(r"\[.*?\]", response, re.DOTALL)
-        if match:
-            try:
-                message_ids = json.loads(match.group(0))
-                return MemorySelectionOutput(message_ids=message_ids)
-            except (json.JSONDecodeError, ValueError):
-                pass
-
-        # Default to empty selection
-        return MemorySelectionOutput(message_ids=[])
-
-    def _parse_decision(self, response: str) -> Any:
-        """Parse decision from response text."""
-        from dipeo.infrastructure.llm.drivers.types import DecisionOutput
-
-        response_upper = response.strip().upper()
-
-        # Check for YES/NO at the start
-        if response_upper.startswith("YES"):
-            return DecisionOutput(decision=True)
-        elif response_upper.startswith("NO"):
-            return DecisionOutput(decision=False)
-
-        # Check anywhere in response (more lenient)
-        if "YES" in response_upper and "NO" not in response_upper:
-            return DecisionOutput(decision=True)
-        elif "NO" in response_upper and "YES" not in response_upper:
-            return DecisionOutput(decision=False)
-
-        # Default to NO for safety
-        return DecisionOutput(decision=False)
-
-    async def async_chat(
-        self,
-        messages: list[Message],
-        model: str | None = None,
-        temperature: float | None = None,
-        max_tokens: int | None = None,
-        tools: list[ToolConfig] | None = None,
-        response_format: type[BaseModel] | dict[str, Any] | None = None,
-        execution_phase: ExecutionPhase | None = None,
-        **kwargs,
-    ) -> LLMResponse:
-        """Execute async chat completion with retry logic."""
-        # Prepare message
-        system_message, message_text = self._prepare_message(messages)
-
-        # Configure MCP server based on execution phase
-        mcp_server = None
-        use_tools = False
-
-        # Enable tools for structured output phases
-        if execution_phase in (ExecutionPhase.MEMORY_SELECTION, ExecutionPhase.DECISION_EVALUATION):
-            from ..claude_code.tools import create_dipeo_mcp_server
-
-            mcp_server = create_dipeo_mcp_server()
-            use_tools = True
-            logger.debug(
-                f"[ClaudeCodeCustom] MCP server configured for {execution_phase}: "
-                f"tools={'select_memory_messages, make_decision' if execution_phase == ExecutionPhase.MEMORY_SELECTION else 'make_decision'}"
-            )
-
-        # Get system prompt based on execution phase
-        # CUSTOM BEHAVIOR: Pass the system_message to allow complete override
-        person_name = kwargs.get("person_name")
-        if not person_name and system_message and "YOUR NAME:" in system_message:
-            # Extract person name from system message if not provided in kwargs
-            match = re.search(r"YOUR NAME:\s*([^\n]+)", system_message)
-            if match:
-                person_name = match.group(1).strip()
-                # Remove the YOUR NAME line from system message to avoid duplication
-                system_message = re.sub(r"YOUR NAME:\s*[^\n]+\n*", "", system_message)
-
-        # CUSTOM: Pass system_message to _get_system_prompt for override behavior
-        system_prompt = self._get_system_prompt(
-            execution_phase,
-            use_tools=use_tools,
-            person_name=person_name,
-            system_message=system_message,
-        )
-
-        # CUSTOM: If we already used the system_message, don't append it again
-        # The system_prompt is already the complete override
-        if not system_prompt:
-            system_prompt = system_message
-
-        # Set up workspace directory for claude-code
+        Modifies kwargs in-place to add 'cwd' if not present.
+        """
         if "cwd" not in kwargs:
-            import os
             from pathlib import Path
 
             trace_id = kwargs.pop("trace_id", "default")  # Remove trace_id from kwargs
@@ -380,27 +176,252 @@ class UnifiedClaudeCodeCustomClient:
             # Remove trace_id if present since we're not using it
             kwargs.pop("trace_id", None)
 
-        # Create Claude Code options with MCP server if configured
-        options_dict = {
-            "system_prompt": system_prompt,
+    def _create_tool_options(
+        self, execution_phase: ExecutionPhase | None = None, use_tools: bool = False
+    ) -> dict[str, Any]:
+        """Create MCP server configuration for tools based on execution phase."""
+        if not use_tools:
+            return {}
+
+        # Import the DiPeO MCP server module
+        from dipeo.infrastructure.mcp import dipeo_structured_output_server
+
+        tool_options = {
+            "mcp_servers": {
+                "dipeo_structured_output": {
+                    "module": dipeo_structured_output_server,
+                    "args": {"output_type": execution_phase.value if execution_phase else "default"},
+                }
+            },
+            "allowed_tools": ["mcp__dipeo_structured_output__*"],
         }
 
-        # Add MCP server and allowed tools if configured
-        if mcp_server:
-            options_dict["mcp_servers"] = {"dipeo_structured_output": mcp_server}
-            # Add allowed tools with proper MCP naming convention
-            options_dict["allowed_tools"] = [
-                "mcp__dipeo_structured_output__select_memory_messages",
-                "mcp__dipeo_structured_output__make_decision",
-            ]
-            logger.debug(f"[ClaudeCodeCustom] MCP tools enabled: {options_dict['allowed_tools']}")
+        logger.debug(
+            f"[ClaudeCodeCustom] Created MCP server configuration for phase {execution_phase}, "
+            f"allowed tools: {tool_options.get('allowed_tools', [])}"
+        )
+        return tool_options
 
-        # Add other kwargs (but remove text_format and person_name if present)
-        kwargs.pop("text_format", None)  # Remove text_format as we don't use it
-        kwargs.pop("person_name", None)  # Remove person_name as it's already used in system prompt
-        options_dict.update(kwargs)
+    def _build_claude_options(
+        self, system_prompt, tool_options, hooks_config, stream=False, **kwargs
+    ) -> dict[str, Any]:
+        """Build options dictionary for ClaudeAgentOptions."""
+        options_dict = {"system_prompt": system_prompt, **tool_options, "stream": stream}
+        # Add any additional kwargs passed from the configuration
+        if "cwd" in kwargs:
+            options_dict["cwd"] = kwargs["cwd"]
+        if hooks_config:
+            options_dict["hooks"] = hooks_config
+        return options_dict
 
-        # Create options
+    def _parse_response(
+        self, response: str, execution_phase: ExecutionPhase | None = None
+    ) -> LLMResponse:
+        """Parse response from Claude Code SDK."""
+        # Extract usage if present
+        usage = self._extract_usage_from_response(response)
+
+        # For MEMORY_SELECTION phase, parse the selected message IDs
+        if execution_phase == ExecutionPhase.MEMORY_SELECTION:
+            # Look for JSON array pattern [1, 2, 3] or numbered list
+            import json
+
+            # Try to parse as JSON array first
+            json_pattern = r"\[[\d,\s]+\]"
+            match = re.search(json_pattern, response)
+            if match:
+                try:
+                    selected_ids = json.loads(match.group())
+                    return LLMResponse(
+                        content=str(selected_ids), selected_ids=selected_ids, usage=usage
+                    )
+                except json.JSONDecodeError:
+                    pass
+
+            # Fall back to extracting numbers from the response
+            numbers = re.findall(r"\b\d+\b", response)
+            if numbers:
+                selected_ids = [int(n) for n in numbers]
+                return LLMResponse(content=response, selected_ids=selected_ids, usage=usage)
+
+        # For DECISION_EVALUATION phase, extract boolean decision
+        elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
+            # Look for YES/NO, true/false, or similar patterns
+            response_lower = response.lower()
+            if any(word in response_lower for word in ["yes", "true", "correct", "affirmative"]):
+                decision = True
+            elif any(word in response_lower for word in ["no", "false", "incorrect", "negative"]):
+                decision = False
+            else:
+                # Default to False if unclear
+                decision = False
+
+            return LLMResponse(content=response, decision=decision, usage=usage)
+
+        # Default response parsing
+        return LLMResponse(content=response, usage=usage)
+
+    def _parse_response_with_tool_data(
+        self, tool_data: dict, execution_phase: ExecutionPhase | None = None
+    ) -> LLMResponse:
+        """Parse response when MCP tool was invoked (structured output)."""
+        # When using MCP tools, the tool input IS the structured output
+        if execution_phase == ExecutionPhase.MEMORY_SELECTION:
+            # Tool data should contain message_ids
+            selected_ids = tool_data.get("message_ids", [])
+            return LLMResponse(content=str(selected_ids), selected_ids=selected_ids)
+        elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
+            # Tool data should contain decision
+            decision = tool_data.get("decision", False)
+            return LLMResponse(content=str(decision), decision=decision)
+
+        # Default: return tool data as is
+        return LLMResponse(content=str(tool_data))
+
+    async def _get_or_create_template(
+        self,
+        options: ClaudeAgentOptions,
+        execution_phase: str
+    ) -> ClaudeSDKClient:
+        """Get or create a template session for the given execution phase.
+
+        Templates are pre-created and reused for efficiency, with fork_session
+        ensuring clean state for each actual query.
+
+        Args:
+            options: Claude Code options with system prompt
+            execution_phase: Execution phase identifier
+
+        Returns:
+            Template ClaudeSDKClient ready for forking
+        """
+        async with self._template_lock:
+            # Check if template already exists and is connected
+            if execution_phase in self._templates:
+                template = self._templates[execution_phase]
+                # Return existing template
+                logger.debug(f"[ClaudeCodeCustom] Reusing template for phase '{execution_phase}'")
+                return template
+
+            # Create new template session
+            logger.info(f"[ClaudeCodeCustom] Creating template session for phase '{execution_phase}'")
+
+            # Enable fork_session if supported
+            if FORK_SESSION_ENABLED:
+                options.fork_session = True
+                logger.debug(f"[ClaudeCodeCustom] Enabled fork_session for phase '{execution_phase}'")
+
+            # Create and connect template
+            template = ClaudeSDKClient(options=options)
+            await template.connect(None)
+
+            # Store template for reuse
+            self._templates[execution_phase] = template
+
+            return template
+
+    async def _execute_query(
+        self,
+        template: ClaudeSDKClient,
+        query_input: str,
+        execution_phase: ExecutionPhase | None,
+        session_id: str
+    ) -> LLMResponse:
+        """Execute a query on a template session.
+
+        When fork_session is enabled, this creates a fresh forked session
+        automatically for clean state isolation.
+
+        Args:
+            template: Template client to query
+            query_input: The prompt to send
+            execution_phase: Execution phase for response parsing
+            session_id: Unique session ID for this query
+
+        Returns:
+            Parsed LLM response
+        """
+        # Send query with unique session ID (triggers fork if enabled)
+        await template.query(query_input, session_id=session_id)
+
+        # Collect response
+        result_text = ""
+        tool_invocation_data = None
+
+        async for message in template.receive_messages():
+            # Check for tool invocations
+            if hasattr(message, "content") and not hasattr(message, "result"):
+                for block in message.content:
+                    if hasattr(block, "name") and hasattr(block, "input"):
+                        if block.name.startswith("mcp__dipeo_structured_output__"):
+                            logger.debug(
+                                f"[ClaudeCodeCustom] Found MCP tool invocation: {block.name} "
+                                f"with input: {block.input}"
+                            )
+                            tool_invocation_data = block.input
+                            break
+
+            # Process ResultMessage
+            if hasattr(message, "result"):
+                result_text = str(message.result)
+                # Log if session was forked
+                if hasattr(message, "session_id") and message.session_id != session_id:
+                    logger.debug(
+                        f"[ClaudeCodeCustom] Session forked from {session_id} to {message.session_id}"
+                    )
+                break
+
+        # Parse response
+        if tool_invocation_data:
+            logger.debug(
+                f"[ClaudeCodeCustom] Using tool invocation data as response for {execution_phase}: "
+                f"{tool_invocation_data}"
+            )
+            parsed = self._parse_response_with_tool_data(tool_invocation_data, execution_phase)
+            parsed.provider = self.provider_type
+            parsed.raw_response = str(tool_invocation_data)
+            return parsed
+
+        parsed = self._parse_response(result_text, execution_phase)
+        parsed.provider = self.provider_type
+        parsed.raw_response = result_text
+        return parsed
+
+    async def async_chat(
+        self,
+        messages: list[Message],
+        model: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        tools: list[ToolConfig] | None = None,
+        response_format: type[BaseModel] | dict[str, Any] | None = None,
+        execution_phase: ExecutionPhase | None = None,
+        hooks_config: dict[str, list[dict]] | None = None,
+        **kwargs,
+    ) -> LLMResponse:
+        """Execute async chat completion with retry logic."""
+        # Prepare messages for Claude SDK
+        system_message, formatted_messages = self._prepare_message(messages)
+
+        # Configure MCP server based on execution phase
+        use_tools = execution_phase in (
+            ExecutionPhase.MEMORY_SELECTION,
+            ExecutionPhase.DECISION_EVALUATION,
+        )
+        tool_options = self._create_tool_options(execution_phase, use_tools)
+
+        # Get system prompt based on execution phase (with custom override support)
+        system_prompt = self._get_system_prompt(
+            execution_phase, use_tools, system_message=system_message
+        )
+
+        # Set up workspace directory for claude-code
+        self._setup_workspace(kwargs)
+
+        # Create Claude Code options
+        options_dict = self._build_claude_options(
+            system_prompt, tool_options, hooks_config, stream=False, **kwargs
+        )
         options = ClaudeAgentOptions(**options_dict)
 
         # Set up retry logic
@@ -415,22 +436,13 @@ class UnifiedClaudeCodeCustomClient:
         )
 
         async def _make_request():
-            # Use QueryClientWrapper with context manager
-            async with SessionQueryWrapper(
-                options=options,
-                execution_phase=str(execution_phase) if execution_phase else "default",
-            ) as wrapper:
-                # Collect only the final result from Claude Code SDK
-                # Claude Code sends multiple messages: SystemMessage, AssistantMessage, ResultMessage
-                # We only want the ResultMessage to avoid duplication
-                result_text = ""
-                async for message in wrapper.query(message_text):
-                    # Only process ResultMessage for the final response
-                    if hasattr(message, "result"):
-                        # This is the final, authoritative response
-                        result_text = str(message.result)
-                        break  # We have the result, no need to process further messages
-                return self._parse_response(result_text, execution_phase)
+            # Get or create template for this execution phase
+            phase_key = str(execution_phase) if execution_phase else "default"
+            template = await self._get_or_create_template(options, phase_key)
+
+            # Execute query with unique session ID (triggers fork if enabled)
+            session_id = f"{phase_key}_{uuid4()}"
+            return await self._execute_query(template, formatted_messages, execution_phase, session_id)
 
         async for attempt in retry:
             with attempt:
@@ -448,109 +460,56 @@ class UnifiedClaudeCodeCustomClient:
         tools: list[ToolConfig] | None = None,
         response_format: type[BaseModel] | dict[str, Any] | None = None,
         execution_phase: ExecutionPhase | None = None,
+        hooks_config: dict[str, list[dict]] | None = None,
         **kwargs,
     ) -> AsyncIterator[str]:
         """Stream chat completion response."""
-        # Prepare message
-        system_message, message_text = self._prepare_message(messages)
+        # Prepare messages for Claude SDK
+        system_message, formatted_messages = self._prepare_message(messages)
 
         # Configure MCP server based on execution phase
-        mcp_server = None
-        use_tools = False
+        use_tools = execution_phase in (
+            ExecutionPhase.MEMORY_SELECTION,
+            ExecutionPhase.DECISION_EVALUATION,
+        )
+        tool_options = self._create_tool_options(execution_phase, use_tools)
 
-        # Enable tools for structured output phases
-        if execution_phase in (ExecutionPhase.MEMORY_SELECTION, ExecutionPhase.DECISION_EVALUATION):
-            from ..claude_code.tools import create_dipeo_mcp_server
-
-            mcp_server = create_dipeo_mcp_server()
-            use_tools = True
-            logger.debug(
-                f"[ClaudeCodeCustom] MCP server configured for {execution_phase}: "
-                f"tools={'select_memory_messages, make_decision' if execution_phase == ExecutionPhase.MEMORY_SELECTION else 'make_decision'}"
-            )
-
-        # Get system prompt based on execution phase
-        # CUSTOM BEHAVIOR: Pass the system_message to allow complete override
-        person_name = kwargs.get("person_name")
-        if not person_name and system_message and "YOUR NAME:" in system_message:
-            # Extract person name from system message if not provided in kwargs
-            match = re.search(r"YOUR NAME:\s*([^\n]+)", system_message)
-            if match:
-                person_name = match.group(1).strip()
-                # Remove the YOUR NAME line from system message to avoid duplication
-                system_message = re.sub(r"YOUR NAME:\s*[^\n]+\n*", "", system_message)
-
-        # CUSTOM: Pass system_message to _get_system_prompt for override behavior
+        # Get system prompt based on execution phase (with custom override support)
         system_prompt = self._get_system_prompt(
-            execution_phase,
-            use_tools=use_tools,
-            person_name=person_name,
-            system_message=system_message,
+            execution_phase, use_tools, system_message=system_message
         )
 
-        # CUSTOM: If we already used the system_message, don't append it again
-        if not system_prompt:
-            system_prompt = system_message
-
         # Set up workspace directory for claude-code
-        if "cwd" not in kwargs:
-            import os
-            from pathlib import Path
+        self._setup_workspace(kwargs)
 
-            trace_id = kwargs.pop("trace_id", "default")  # Remove trace_id from kwargs
-            root = os.getenv("DIPEO_CLAUDE_WORKSPACES", str(BASE_DIR / ".dipeo" / "workspaces"))
-            workspace_dir = Path(root) / f"exec_{trace_id}"
-            workspace_dir.mkdir(parents=True, exist_ok=True)
-            kwargs["cwd"] = str(workspace_dir)
-        else:
-            # Remove trace_id if present since we're not using it
-            kwargs.pop("trace_id", None)
-
-        # Create Claude Code options with streaming enabled
-        options_dict = {
-            "system_prompt": system_prompt,
-            "stream": True,  # Enable streaming if supported
-        }
-
-        # Add MCP server and allowed tools if configured
-        if mcp_server:
-            options_dict["mcp_servers"] = {"dipeo_structured_output": mcp_server}
-            # Add allowed tools with proper MCP naming convention
-            options_dict["allowed_tools"] = [
-                "mcp__dipeo_structured_output__select_memory_messages",
-                "mcp__dipeo_structured_output__make_decision",
-            ]
-            logger.debug(f"[ClaudeCodeCustom] MCP tools enabled: {options_dict['allowed_tools']}")
-
-        # Add other kwargs (but remove text_format and person_name if present)
-        kwargs.pop("text_format", None)  # Remove text_format as we don't use it
-        kwargs.pop("person_name", None)  # Remove person_name as it's already used in system prompt
-        options_dict.update(kwargs)
-
-        # Create options
+        # Create Claude Code options with streaming
+        options_dict = self._build_claude_options(
+            system_prompt, tool_options, hooks_config, stream=True, **kwargs
+        )
         options = ClaudeAgentOptions(**options_dict)
 
-        # Use QueryClientWrapper with context manager
-        async with SessionQueryWrapper(
-            options=options, execution_phase=str(execution_phase) if execution_phase else "default"
-        ) as wrapper:
-            # Stream messages from Claude Code SDK
-            # For streaming, we need to handle both AssistantMessage (for real-time streaming)
-            # and ResultMessage (for final result)
-            has_yielded_content = False
-            async for message in wrapper.query(message_text):
-                if hasattr(message, "content") and not hasattr(message, "result"):
-                    # Stream content from AssistantMessage (real-time streaming)
-                    for block in message.content:
-                        if hasattr(block, "text") and block.text:
-                            has_yielded_content = True
-                            yield block.text
-                elif hasattr(message, "result"):
-                    # If we haven't yielded any content yet, yield the result
-                    # This handles non-streaming responses
-                    if not has_yielded_content:
-                        yield str(message.result)
-                    break  # ResultMessage is the final message
+        # Get or create template for this execution phase
+        phase_key = str(execution_phase) if execution_phase else "default"
+        template = await self._get_or_create_template(options, phase_key)
+
+        # Execute query with unique session ID (triggers fork if enabled)
+        session_id = f"{phase_key}_{uuid4()}"
+        await template.query(formatted_messages, session_id=session_id)
+
+        # Stream responses
+        has_yielded_content = False
+        async for message in template.receive_messages():
+            if hasattr(message, "content") and not hasattr(message, "result"):
+                # Stream content from AssistantMessage
+                for block in message.content:
+                    if hasattr(block, "text") and block.text:
+                        has_yielded_content = True
+                        yield block.text
+            elif hasattr(message, "result"):
+                # If we haven't yielded any content yet, yield the result
+                if not has_yielded_content:
+                    yield str(message.result)
+                break  # ResultMessage is the final message
 
     async def batch_chat(
         self,
@@ -580,3 +539,15 @@ class UnifiedClaudeCodeCustomClient:
         ]
 
         return await asyncio.gather(*tasks)
+
+    async def cleanup(self) -> None:
+        """Cleanup template sessions on shutdown."""
+        async with self._template_lock:
+            for phase, template in self._templates.items():
+                try:
+                    await template.disconnect()
+                    logger.debug(f"[ClaudeCodeCustom] Disconnected template for phase '{phase}'")
+                except Exception as e:
+                    logger.warning(f"[ClaudeCodeCustom] Error disconnecting template '{phase}': {e}")
+            self._templates.clear()
+        logger.info("[ClaudeCodeCustom] Cleanup complete")
