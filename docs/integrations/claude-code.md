@@ -36,13 +36,14 @@ persons:
 ### Session Management Environment Variables
 
 - `DIPEO_CLAUDE_FORK_SESSION` – Controls whether the Claude Code adapter uses
-  the SDK's **fork session** capability for clean state isolation.
-  - `true` *(default)* – Enable forking for fresh sessions (recommended).
-  - `false` – Disable forking, use direct session reuse.
+  the SDK's **fork session** capability for efficient session management.
+  - `true` *(default)* – Enable template-based forking (recommended).
+  - `false` – Create fresh sessions for each request.
 
-  When enabled, the adapter pre-creates template sessions for efficiency and
-  forks from them for each query, ensuring clean state without the overhead
-  of creating new connections.
+  When enabled, the adapter pre-creates template sessions for each execution
+  phase (memory selection and direct execution) and forks from them for
+  individual requests. This provides both efficiency (no cold start) and
+  isolation (each request gets its own forked session with clean state).
 
 ## Supported Models
 

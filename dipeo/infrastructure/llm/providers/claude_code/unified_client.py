@@ -39,11 +39,11 @@ FORK_SESSION_ENABLED = FORK_SESSION_SUPPORTED and os.getenv("DIPEO_CLAUDE_FORK_S
 logger.info(f"[ClaudeCode] Fork session supported: {FORK_SESSION_SUPPORTED}, enabled: {FORK_SESSION_ENABLED}")
 
 class UnifiedClaudeCodeClient:
-    """Unified Claude Code client with per-request session management.
+    """Unified Claude Code client with efficient template-based session management.
 
-    This client creates fresh sessions for each request to ensure proper
-    isolation and prevent cross-contamination between requests with different
-    configurations.
+    This client maintains pre-created template sessions for each execution phase
+    and forks them for individual requests. This provides both efficiency (no cold start)
+    and isolation (each request gets its own forked session).
     """
 
     def __init__(self, config: AdapterConfig):
@@ -67,11 +67,19 @@ class UnifiedClaudeCodeClient:
         self._parser = ClaudeCodeResponseParser()
         self._processor = ClaudeCodeMessageProcessor()
 
-        # Track active sessions for cleanup
+        # Template sessions for each phase (pre-created for efficiency)
+        self._template_sessions: dict[str, ClaudeSDKClient | None] = {
+            ExecutionPhase.MEMORY_SELECTION.value: None,
+            ExecutionPhase.DIRECT_EXECUTION.value: None,
+            "default": None,
+        }
+        self._template_lock = asyncio.Lock()
+
+        # Track active forked sessions for cleanup
         self._active_sessions: list[ClaudeSDKClient] = []
         self._session_lock = asyncio.Lock()
 
-        logger.info("[ClaudeCode] Initialized with per-request session management")
+        logger.info("[ClaudeCode] Initialized with template-based session management (fork enabled: %s)", FORK_SESSION_ENABLED)
 
     def _get_capabilities(self) -> ProviderCapabilities:
         """Get Claude Code provider capabilities."""
@@ -100,31 +108,92 @@ class UnifiedClaudeCodeClient:
             # Remove trace_id if present since we're not using it
             kwargs.pop("trace_id", None)
 
-    async def _create_session(
+    async def _get_or_create_template(
         self,
         options: ClaudeAgentOptions,
         execution_phase: str
     ) -> ClaudeSDKClient:
-        """Create a fresh session for the request.
+        """Get or create a template session for the given phase.
 
-        Creates a new session with the specific configuration for this request,
-        ensuring complete isolation from other requests.
+        Template sessions are created once and maintained for efficiency.
+        They serve as base sessions that can be forked for individual requests.
 
         Args:
             options: Claude Code options with system prompt
             execution_phase: Execution phase identifier
 
         Returns:
-            New ClaudeSDKClient session
+            Template session (not for direct use, should be forked)
         """
+        async with self._template_lock:
+            # Check if template already exists
+            if self._template_sessions.get(execution_phase):
+                return self._template_sessions[execution_phase]
+
+            logger.info(f"[ClaudeCode] Creating template session for phase '{execution_phase}'")
+
+            # Enable fork_session for the template if supported
+            if FORK_SESSION_ENABLED:
+                options.fork_session = True
+
+            # Create and connect template session
+            template_session = ClaudeSDKClient(options=options)
+            await template_session.connect(None)
+
+            # Store template
+            self._template_sessions[execution_phase] = template_session
+
+            return template_session
+
+    async def _create_forked_session(
+        self,
+        options: ClaudeAgentOptions,
+        execution_phase: str
+    ) -> ClaudeSDKClient:
+        """Create a session by forking from template or creating fresh.
+
+        This method attempts to fork from an existing template session for efficiency.
+        If forking is not supported or fails, it falls back to creating a fresh session.
+
+        Args:
+            options: Claude Code options with system prompt
+            execution_phase: Execution phase identifier
+
+        Returns:
+            New or forked ClaudeSDKClient session for this request
+        """
+        # Attempt to get/create template and fork from it if supported
+        if FORK_SESSION_ENABLED:
+            try:
+                # Get or create the template session for this phase
+                template = await self._get_or_create_template(options, execution_phase)
+
+                # Create a forked session from the template
+                # The fork will inherit the template's configuration but have its own state
+                logger.debug(f"[ClaudeCode] Forking session from template for phase '{execution_phase}'")
+
+                # Create new session with resume from template (this creates a fork)
+                fork_options = ClaudeAgentOptions(**{
+                    **options.__dict__,
+                    "resume": template.session_id if hasattr(template, "session_id") else None,
+                    "fork_session": True
+                })
+
+                forked_session = ClaudeSDKClient(options=fork_options)
+                await forked_session.connect(None)
+
+                # Track the forked session for cleanup
+                async with self._session_lock:
+                    self._active_sessions.append(forked_session)
+
+                return forked_session
+
+            except Exception as e:
+                logger.warning(f"[ClaudeCode] Failed to fork from template: {e}, creating fresh session")
+
+        # Fallback: Create a fresh session if forking is not available or failed
         logger.debug(f"[ClaudeCode] Creating fresh session for phase '{execution_phase}'")
 
-        # Enable fork_session if supported (for future fork capability)
-        if FORK_SESSION_ENABLED:
-            options.fork_session = True
-            logger.debug(f"[ClaudeCode] Enabled fork_session for phase '{execution_phase}'")
-
-        # Create and connect new session
         session = ClaudeSDKClient(options=options)
         await session.connect(None)
 
@@ -271,9 +340,9 @@ class UnifiedClaudeCodeClient:
         )
 
         async def _make_request():
-            # Create a fresh session for this request
+            # Fork from template or create fresh session for this request
             phase_key = execution_phase.value if execution_phase else "default"
-            session = await self._create_session(options, phase_key)
+            session = await self._create_forked_session(options, phase_key)
 
             # Prepare query input
             combined_content = []
@@ -360,9 +429,9 @@ class UnifiedClaudeCodeClient:
         )
         options = ClaudeAgentOptions(**options_dict)
 
-        # Create a fresh session for this request
+        # Fork from template or create fresh session for this request
         phase_key = execution_phase.value if execution_phase else "default"
-        session = await self._create_session(options, phase_key)
+        session = await self._create_forked_session(options, phase_key)
 
         try:
             # Create async generator for messages if multiple messages exist
@@ -428,13 +497,26 @@ class UnifiedClaudeCodeClient:
         return await asyncio.gather(*tasks)
 
     async def cleanup(self) -> None:
-        """Cleanup active sessions on shutdown."""
+        """Cleanup all sessions on shutdown."""
+        # Clean up active forked sessions
         async with self._session_lock:
             for session in self._active_sessions[:]:  # Copy list to avoid modification during iteration
                 try:
                     await session.disconnect()
-                    logger.debug("[ClaudeCode] Disconnected active session")
+                    logger.debug("[ClaudeCode] Disconnected active forked session")
                 except Exception as e:
-                    logger.warning(f"[ClaudeCode] Error disconnecting session: {e}")
+                    logger.warning(f"[ClaudeCode] Error disconnecting forked session: {e}")
             self._active_sessions.clear()
-        logger.info("[ClaudeCode] Cleanup complete")
+
+        # Clean up template sessions
+        async with self._template_lock:
+            for phase, template in self._template_sessions.items():
+                if template:
+                    try:
+                        await template.disconnect()
+                        logger.debug(f"[ClaudeCode] Disconnected template session for phase '{phase}'")
+                    except Exception as e:
+                        logger.warning(f"[ClaudeCode] Error disconnecting template for phase '{phase}': {e}")
+            self._template_sessions.clear()
+
+        logger.info("[ClaudeCode] Cleanup complete (templates and forked sessions)")
