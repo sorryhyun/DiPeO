@@ -1,0 +1,221 @@
+# Complete Workflow Design Example
+# This example shows how multiple subagents collaborate to design and optimize a workflow
+
+version: light
+description: Customer order processing workflow designed with subagents
+
+# Subagent contributions:
+# - diagram-architect: Overall workflow structure
+# - prompt-engineer: Optimized prompts for agents
+# - node-specialist: Node type selection and configuration
+
+persons:
+  # Prompt optimized by prompt-engineer subagent
+  Order Validator:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    system_prompt: |
+      You are an order validation specialist.
+
+      Validate customer orders against:
+      - Inventory availability
+      - Pricing accuracy
+      - Shipping restrictions
+      - Payment verification
+
+      Return validation result as:
+      {
+        "is_valid": boolean,
+        "errors": [],
+        "warnings": [],
+        "order_total": number
+      }
+
+  # Prompt optimized for decision making
+  Fraud Detector:
+    service: openai
+    model: gpt-5-mini-2025-08-07
+    system_prompt: |
+      You are a fraud detection analyst.
+
+      Evaluate orders for fraud indicators:
+      - Unusual purchase patterns
+      - Mismatched billing/shipping
+      - High-risk payment methods
+      - Velocity checks
+
+      Return risk assessment:
+      {
+        "risk_level": "LOW|MEDIUM|HIGH",
+        "confidence": 0.0-1.0,
+        "flags": ["list of concerns"],
+        "recommendation": "APPROVE|REVIEW|REJECT"
+      }
+
+config:
+  api_timeout: 30000
+  retry_attempts: 3
+  batch_size: 50
+
+nodes:
+  # Start node configured by node-specialist
+  - label: Receive Order
+    type: start
+    position: {x: 50, y: 200}
+    props:
+      trigger_mode: webhook
+      endpoint: /api/orders/new
+      authentication: bearer_token
+
+  # Validation node with optimized configuration
+  - label: Validate Order
+    type: person_job
+    position: {x: 200, y: 200}
+    props:
+      person: Order Validator
+      default_prompt: |
+        Validate this customer order:
+        {{order_data}}
+
+        Check against current inventory:
+        {{inventory_status}}
+      memory_profile: FOCUSED
+      max_iteration: 1
+
+  # Conditional routing recommended by diagram-architect
+  - label: Check Validation
+    type: condition
+    position: {x: 350, y: 200}
+    props:
+      condition_type: simple
+      expression: "output.is_valid == true"
+      true_edge_label: "Valid"
+      false_edge_label: "Invalid"
+
+  # Fraud detection on valid path
+  - label: Check Fraud Risk
+    type: person_job
+    position: {x: 500, y: 150}
+    props:
+      person: Fraud Detector
+      default_prompt: |
+        Analyze order for fraud risk:
+        {{validated_order}}
+
+        Customer history:
+        {{customer_profile}}
+      memory_profile: BALANCED
+      enable_dynamic_prompt: true
+
+  # API integration configured by node-specialist
+  - label: Process Payment
+    type: api_job
+    position: {x: 650, y: 150}
+    props:
+      url: "{{config.payment_gateway}}/charge"
+      method: POST
+      headers:
+        Authorization: "Bearer {{payment_token}}"
+        Content-Type: "application/json"
+      body: |
+        {
+          "amount": "{{order_total}}",
+          "currency": "USD",
+          "customer_id": "{{customer_id}}"
+        }
+      retry_count: 3
+      retry_delay: 2000
+
+  # Error handling path
+  - label: Handle Invalid Order
+    type: code_job
+    position: {x: 500, y: 250}
+    props:
+      language: javascript
+      code: |
+        const errors = input.errors || [];
+        const warnings = input.warnings || [];
+
+        // Format error response
+        return {
+          status: 'rejected',
+          reason: 'validation_failed',
+          errors: errors,
+          warnings: warnings,
+          timestamp: new Date().toISOString()
+        };
+
+  # Parallel processing for fulfillment (diagram-architect pattern)
+  - label: Fulfillment Tasks
+    type: sub_diagram
+    position: {x: 800, y: 150}
+    props:
+      diagram_id: order-fulfillment
+      execution_mode: parallel
+      max_parallel: 3
+      pass_through_data: true
+
+  # User notification
+  - label: Notify Customer
+    type: integrated_api
+    position: {x: 950, y: 200}
+    props:
+      service: sendgrid
+      operation: send_email
+      parameters:
+        to: "{{customer_email}}"
+        template_id: "order_confirmation"
+        dynamic_data:
+          order_id: "{{order_id}}"
+          total: "{{order_total}}"
+
+edges:
+  # Optimized flow by diagram-architect
+  - source: Receive Order
+    target: Validate Order
+
+  - source: Validate Order
+    target: Check Validation
+
+  - source: Check Validation
+    target: Check Fraud Risk
+    condition: true
+
+  - source: Check Validation
+    target: Handle Invalid Order
+    condition: false
+
+  - source: Check Fraud Risk
+    target: Process Payment
+    data_transform: |
+      {
+        ...input,
+        fraud_check_passed: output.recommendation !== 'REJECT'
+      }
+
+  - source: Process Payment
+    target: Fulfillment Tasks
+
+  - source: Fulfillment Tasks
+    target: Notify Customer
+
+  - source: Handle Invalid Order
+    target: Notify Customer
+    data_transform: |
+      {
+        ...input,
+        notification_type: 'order_rejected'
+      }
+
+# Metadata showing subagent contributions
+metadata:
+  designed_by:
+    - diagram-architect  # Overall structure and flow
+    - prompt-engineer    # Person prompts optimization
+    - node-specialist    # Node selection and configuration
+  optimization_notes:
+    - "Parallel fulfillment processing for efficiency"
+    - "Focused memory profile for validation (single-task)"
+    - "Balanced memory for fraud detection (needs context)"
+    - "Retry strategy for payment processing"
+    - "Early validation to fail fast"

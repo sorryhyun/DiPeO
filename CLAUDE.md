@@ -39,6 +39,7 @@ DiPeO is a monorepo for building and executing AI-powered agent workflows throug
 
 ### Integrations
 - **[Claude Code Integration](docs/integrations/claude-code.md)** - Claude Code SDK integration
+- **[Subagent System](projects/subagents/README.md)** - Specialized AI subagents for workflow design ⭐
 - **[Webhook Integration](docs/features/webhook-integration.md)** - Webhook support
 
 ### Node Types

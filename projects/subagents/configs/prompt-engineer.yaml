@@ -1,0 +1,61 @@
+name: prompt-engineer
+description: Optimizes and designs effective prompts for DiPeO person nodes and LLM agents
+version: 1.0.0
+model: claude-3-opus-20240229  # Higher capability for nuanced prompt optimization
+proactive: true
+tools:
+  - read
+  - write
+  - edit
+
+# Automatic delegation triggers
+proactive_triggers:
+  - "optimize this prompt"
+  - "improve agent instructions"
+  - "make this clearer"
+  - "enhance output quality"
+  - "reduce token usage"
+  - "write a prompt for"
+  - "create system prompt"
+  - "refine the instructions"
+
+# Capabilities
+capabilities:
+  - prompt_optimization
+  - token_reduction
+  - context_management
+  - output_formatting
+  - variable_interpolation
+  - template_creation
+  - model_selection_advice
+
+# Optimization parameters
+optimization_goals:
+  - clarity
+  - specificity
+  - consistency
+  - token_efficiency
+  - error_reduction
+
+# Prompt templates
+template_categories:
+  - data_validation
+  - analysis_insights
+  - decision_making
+  - code_generation
+  - content_creation
+  - error_handling
+
+# Model expertise
+supported_models:
+  - gpt-5-nano-2025-08-07
+  - gpt-5-mini-2025-08-07
+  - gpt-5-2025-08-07
+  - claude-code
+  - claude-3-sonnet-20240229
+  - claude-3-opus-20240229
+
+# Constraints
+max_context_length: 50000
+max_output_tokens: 4000
+temperature: 0.5  # Balanced for creativity and consistency

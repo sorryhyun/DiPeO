@@ -30,6 +30,7 @@
 > External tool and service integrations
 
 - [Claude Code Integration](integrations/claude-code.md) - Integration with Anthropic's Claude Code SDK
+- [Subagent System](../projects/subagents/README.md) - Specialized AI subagents for DiPeO workflow design
 
 ## Project Guides
 > Specific workflows and feature implementation guides

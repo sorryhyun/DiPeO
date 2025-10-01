@@ -1,0 +1,67 @@
+name: node-specialist
+description: Expert in configuring and optimizing DiPeO node types for specific use cases
+version: 1.0.0
+proactive: true
+tools:
+  - read
+  - write
+  - edit
+  - grep
+
+# Automatic delegation triggers
+proactive_triggers:
+  - "which node should"
+  - "configure a node"
+  - "optimize this node"
+  - "validate node setup"
+  - "recommend node type"
+  - "best node for"
+  - "node properties"
+  - "configure person_job"
+
+# Node type expertise
+supported_node_types:
+  - person_job
+  - api_job
+  - code_job
+  - condition
+  - sub_diagram
+  - db
+  - hook
+  - integrated_api
+  - diff_patch
+  - user_response
+  - start
+  - endpoint
+
+# Capabilities
+capabilities:
+  - node_selection
+  - property_configuration
+  - connection_validation
+  - pattern_recommendation
+  - performance_optimization
+  - error_handling_setup
+  - batch_configuration
+
+# Configuration templates
+provides_templates_for:
+  - memory_profiles
+  - retry_strategies
+  - batch_processing
+  - parallel_execution
+  - error_recovery
+  - caching_setup
+
+# Validation rules
+validates:
+  - required_properties
+  - data_type_compatibility
+  - connection_compatibility
+  - resource_availability
+  - permission_requirements
+
+# Constraints
+max_context_length: 50000
+max_output_tokens: 4000
+temperature: 0.2  # Low for consistent technical recommendations

@@ -1,0 +1,42 @@
+name: diagram-architect
+description: Designs and optimizes DiPeO Light YAML diagrams with architectural best practices
+version: 1.0.0
+model: claude-3-sonnet-20240229  # Optional: override default model
+proactive: true
+tools:
+  - read
+  - write
+  - edit
+  - grep
+  - bash
+
+# Automatic delegation triggers
+proactive_triggers:
+  - "design a workflow"
+  - "create a diagram"
+  - "optimize this flow"
+  - "improve architecture"
+  - "scale this process"
+  - "refactor the diagram"
+  - "make this more efficient"
+
+# Capabilities
+capabilities:
+  - light_yaml_generation
+  - node_optimization
+  - parallel_processing_design
+  - error_handling_patterns
+  - memory_profile_selection
+  - sub_diagram_composition
+
+# Constraints
+max_context_length: 100000
+max_output_tokens: 8000
+temperature: 0.3  # Lower for consistent architectural decisions
+
+# Integration points
+integrations:
+  - dipeo_cli
+  - graphql_api
+  - code_generation
+  - frontend_visualization
