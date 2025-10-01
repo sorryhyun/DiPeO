@@ -13,6 +13,7 @@
     "preview:web": "pnpm --filter web preview",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
+    "pretypecheck": "pnpm build:packages",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "clean": "pnpm -r clean",
