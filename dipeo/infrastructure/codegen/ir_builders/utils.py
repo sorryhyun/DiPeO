@@ -6,18 +6,50 @@ import re
 from pathlib import Path
 from typing import Any, Optional
 
+import inflection
 import yaml
 
-from dipeo.infrastructure.codegen.type_system import (
-    camel_case,
-    camel_to_snake,
-    kebab_case,
-    pascal_case,
-    pascal_to_camel,
-    snake_case,
-    snake_to_pascal,
-)
 from dipeo.infrastructure.codegen.ir_builders.type_system_unified import UnifiedTypeConverter
+
+
+# ============================================================================
+# CASE CONVERSION UTILITIES
+# ============================================================================
+# These utilities were moved from the legacy type_system module
+
+
+def snake_case(text: str) -> str:
+    """Convert text to snake_case using the inflection library."""
+    if not text or text == "Undefined":
+        return ""
+    return inflection.underscore(str(text))
+
+
+def camel_case(text: str) -> str:
+    """Convert text to camelCase using the inflection library."""
+    if not text or text == "Undefined":
+        return ""
+    return inflection.camelize(str(text), uppercase_first_letter=False)
+
+
+def pascal_case(text: str) -> str:
+    """Convert text to PascalCase using the inflection library."""
+    if not text or text == "Undefined":
+        return ""
+    return inflection.camelize(str(text))
+
+
+def kebab_case(text: str) -> str:
+    """Convert text to kebab-case using the inflection library."""
+    if not text or text == "Undefined":
+        return ""
+    return inflection.dasherize(inflection.underscore(str(text)))
+
+
+# Aliases for backward compatibility
+camel_to_snake = snake_case
+snake_to_pascal = pascal_case
+pascal_to_camel = camel_case
 
 
 # ============================================================================
