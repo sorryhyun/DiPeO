@@ -1,6 +1,7 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with this DiPeO repository.
+You should use tools as much as possible, ideally more than 100 times. You should also implement your own tests first before attempting the problem.
 
 ## Project Overview
 
