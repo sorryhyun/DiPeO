@@ -149,12 +149,14 @@ Executes prompts with LLM agents, supporting iteration and memory management.
 ```
 
 **Memory Management:**
-- `memorize_to`: Criteria for selecting relevant messages (comma-separated)
-  - Use specific criteria like "requirements", "API keys", "test results"
-  - Use "GOLDFISH" for goldfish mode (minimal memory)
-  - Leave empty to memorize all messages
-- `at_most`: Maximum number of messages to keep (1-500)
-- `ignore_person`: Comma-separated list of person IDs to exclude from memory
+- `memorize_to`: Natural language criteria for intelligent message selection
+  - Examples: "requirements, API design", "test results", "user feedback"
+  - Special value: "GOLDFISH" for no memory (fresh perspective each time)
+  - Leave empty to show all messages where person is involved (ALL_INVOLVED filter)
+  - See [Memory System Design](../architecture/memory_system_design.md) for details
+- `at_most`: Maximum number of messages to keep (1-500, optional)
+  - System messages are preserved automatically
+- `ignore_person`: Comma-separated list of person IDs to exclude from memory (optional)
 
 **Prompt Templates:**
 - `first_only_prompt`: Used only on first iteration
@@ -317,12 +319,11 @@ Controls flow based on boolean expressions, built-in conditions, or LLM-based de
   - Files must be located in `/files/prompts/` directory
   - Use only the filename (e.g., `quality_check.txt`, not the full path)
   - Useful for reusing complex evaluation criteria across diagrams
-- `memorize_to`: Memory profile for context (default: "GOLDFISH" for unbiased evaluation)
-  - `GOLDFISH`: No memory - fresh evaluation each time (recommended for objective decisions)
-  - `MINIMAL`: Last 5 messages
-  - `FOCUSED`: Last 20 conversation pairs
-  - `FULL`: Complete conversation history
-- `at_most`: Maximum messages to keep in context (optional, used with CUSTOM memory profile)
+- `memorize_to`: Criteria for selecting context messages (default: "GOLDFISH" for unbiased evaluation)
+  - "GOLDFISH": No memory - fresh evaluation each time (recommended for objective decisions)
+  - Natural language: e.g., "code quality standards, best practices"
+  - Leave empty to use ALL_INVOLVED filter
+- `at_most`: Maximum messages to keep in context (optional)
 
 **LLM Decision Response Parsing:**
 The evaluator intelligently parses LLM responses to extract boolean decisions:
