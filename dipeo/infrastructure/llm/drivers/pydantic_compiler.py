@@ -27,7 +27,7 @@ def compile_pydantic_model(code_str: str) -> type[BaseModel] | None:
             auto_imports = """from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any, Union
 from enum import Enum
-from dipeo.domain.type_defs import JsonValue, JsonDict, JsonList, SimpleJsonValue
+from dipeo.domain.type_defs import JsonValue, JsonDict, JsonList, JsonPrimitive
 
 """
             code_str = auto_imports + code_str
@@ -54,9 +54,9 @@ from dipeo.domain.type_defs import JsonValue, JsonDict, JsonList, SimpleJsonValu
             "JsonValue": __import__("dipeo.domain.type_defs", fromlist=["JsonValue"]).JsonValue,
             "JsonDict": __import__("dipeo.domain.type_defs", fromlist=["JsonDict"]).JsonDict,
             "JsonList": __import__("dipeo.domain.type_defs", fromlist=["JsonList"]).JsonList,
-            "SimpleJsonValue": __import__(
-                "dipeo.domain.type_defs", fromlist=["SimpleJsonValue"]
-            ).SimpleJsonValue,
+            "JsonPrimitive": __import__(
+                "dipeo.domain.type_defs", fromlist=["JsonPrimitive"]
+            ).JsonPrimitive,
         }
 
         # Parse the code to find class definitions

@@ -94,36 +94,24 @@ class Error:
 
 
 # JSON type definitions - using limited depth to avoid Pydantic recursion issues
-# NOTE: Pydantic doesn't handle recursive types well, so we use a practical approach
+# NOTE: Pydantic v2 has better support for recursive types than v1
 
 # JSON primitive types
 JsonPrimitive = str | int | float | bool | None
-SimpleJsonValue = JsonPrimitive  # Alias for compatibility
 
 # For complex nested structures, we use Any to avoid recursion issues
-# This is a pragmatic solution until Pydantic better supports recursive types
+# This is a pragmatic solution for deeply nested JSON structures
 JsonDict = dict[str, Any]  # Allows any nested structure
 JsonList = list[Any]  # Allows any nested list
 
 # Main JSON value type - covers most practical cases
 JsonValue = JsonPrimitive | JsonDict | JsonList
 
-# Type aliases for clarity
-JsonObject = JsonDict  # Alias for JSON objects
-JsonArray = JsonList  # Alias for JSON arrays
-
-# For backward compatibility
-JsonAny = Any  # Will gradually migrate to more specific types
-
 __all__ = [
     "Error",
-    "JsonAny",
-    "JsonArray",
     "JsonDict",
     "JsonList",
-    "JsonObject",
     "JsonPrimitive",
     "JsonValue",
     "Result",
-    "SimpleJsonValue",
 ]
