@@ -7,12 +7,14 @@ including listing, converting, watching, and analyzing sessions.
 import asyncio
 import json
 import logging
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 from dipeo.domain.cc_translate import PhaseCoordinator
+from dipeo.domain.diagram.strategies.light_strategy import LightYamlStrategy
 from dipeo.infrastructure.cc_translate.adapters import SessionAdapter
 from dipeo.infrastructure.cc_translate.session_parser import (
     ClaudeCodeSession,
@@ -54,6 +56,7 @@ class ClaudeCodeManager:
         self.session_dir = session_dir or self._discover_session_dir()
         self.coordinator = PhaseCoordinator()
         self.serializer = SessionSerializer()
+        self.light_strategy = LightYamlStrategy()
 
     def _discover_session_dir(self) -> Path:
         """Discover the Claude Code session directory.
@@ -72,12 +75,32 @@ class ClaudeCodeManager:
                 # Look for project-specific subdirectories
                 project_dirs = [d for d in location.iterdir() if d.is_dir()]
                 if project_dirs:
-                    # Return the first project directory found
+                    # Return most recently modified project directory
+                    project_dirs.sort(key=lambda p: p.stat().st_mtime, reverse=True)
                     return project_dirs[0]
                 return location
 
         # Default to standard location even if it doesn't exist
         return Path.home() / ".claude" / "projects"
+
+    def _is_valid_session_id(self, session_id: str) -> bool:
+        """Validate session ID to prevent path traversal attacks.
+
+        Args:
+            session_id: The session ID to validate
+
+        Returns:
+            True if the session ID is safe to use in file paths
+        """
+        # Check for path traversal sequences
+        if ".." in session_id or "/" in session_id or "\\" in session_id:
+            return False
+
+        # Check for valid characters (alphanumeric, dash, underscore)
+        if not re.match(r"^[a-zA-Z0-9_-]+$", session_id):
+            return False
+
+        return True
 
     def list_sessions(self, limit: int = 50) -> list[SessionInfo]:
         """List available Claude Code sessions.
@@ -94,6 +117,7 @@ class ClaudeCodeManager:
 
         session_files = find_session_files(self.session_dir, limit=limit)
         sessions = []
+        failed_count = 0
 
         for file_path in session_files:
             try:
@@ -118,12 +142,20 @@ class ClaudeCodeManager:
                     )
                 )
             except Exception as e:
+                failed_count += 1
                 logger.warning(f"Failed to parse session info from {file_path}: {e}")
                 continue
 
+        # Warn if all sessions failed to parse
+        if failed_count > 0 and len(sessions) == 0:
+            logger.error(
+                f"All {failed_count} session files failed to parse. "
+                f"Session directory may contain corrupted files: {self.session_dir}"
+            )
+
         return sessions
 
-    async def convert_session(
+    def convert_session(
         self,
         session_id: str,
         output_dir: Optional[str] = None,
@@ -140,6 +172,14 @@ class ClaudeCodeManager:
             True if conversion succeeded, False otherwise
         """
         try:
+            # Sanitize session_id to prevent path traversal
+            if not self._is_valid_session_id(session_id):
+                logger.error(
+                    f"Invalid session_id: {session_id}. "
+                    "Session IDs must not contain path separators or '..' sequences."
+                )
+                return False
+
             # Find session file
             session_file = self.session_dir / f"{session_id}.jsonl"
             if not session_file.exists():
@@ -184,7 +224,12 @@ class ClaudeCodeManager:
             output_file = output_base / "diagram.light.yaml"
             logger.info(f"Saving diagram to: {output_file}")
 
-            self.serializer.save_light_diagram(diagram, output_file)
+            # Convert diagram dict to DomainDiagram, then serialize to light YAML
+            from dipeo.diagram_generated import DomainDiagram
+
+            domain_diagram = DomainDiagram.model_validate(diagram)
+            yaml_content = self.light_strategy.serialize_from_domain(domain_diagram)
+            output_file.write_text(yaml_content, encoding="utf-8")
 
             # Save metadata
             metadata_file = output_base / "conversion_metadata.json"
@@ -245,7 +290,7 @@ class ClaudeCodeManager:
                 for session in sessions:
                     if session.id not in seen_sessions:
                         logger.info(f"New session detected: {session.id}")
-                        await self.convert_session(session.id, output_dir, format_type)
+                        self.convert_session(session.id, output_dir, format_type)
                         seen_sessions.add(session.id)
 
                 await asyncio.sleep(interval)
@@ -267,6 +312,13 @@ class ClaudeCodeManager:
             Dictionary containing session statistics
         """
         try:
+            # Sanitize session_id to prevent path traversal
+            if not self._is_valid_session_id(session_id):
+                return {
+                    "error": f"Invalid session_id: {session_id}. "
+                    "Session IDs must not contain path separators or '..' sequences."
+                }
+
             # Find session file
             session_file = self.session_dir / f"{session_id}.jsonl"
             if not session_file.exists():
