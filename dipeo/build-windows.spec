@@ -142,10 +142,9 @@ cli_hiddenimports = [
     'rich.table',
     'rich.syntax',
     'prompt_toolkit',
-    'dipeo_cli',
-    'dipeo_cli.__main__',
-    'dipeo_cli.commands',
-    'dipeo_cli.server_manager',
+    'dipeo_server.cli',
+    'dipeo_server.cli.cli_runner',
+    'dipeo_server.cli.entry_point',
 ]
 
 # Determine which hidden imports to use
@@ -154,7 +153,7 @@ if IS_SERVER_BUILD:
     entry_script = str(ROOT_DIR / 'apps' / 'server' / 'main.py')
 elif IS_CLI_BUILD:
     hiddenimports = base_hiddenimports + cli_hiddenimports
-    entry_script = str(ROOT_DIR / 'apps' / 'cli' / 'src' / 'dipeo_cli' / '__main__.py')
+    entry_script = str(ROOT_DIR / 'apps' / 'server' / 'src' / 'dipeo_server' / 'cli' / 'entry_point.py')
 else:
     # Default to server if not specified
     hiddenimports = base_hiddenimports + server_hiddenimports

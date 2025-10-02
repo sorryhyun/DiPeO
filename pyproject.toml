@@ -333,7 +333,7 @@ extend-exclude = '''
 [tool.isort]
 profile = "black"
 skip_glob = ["*/__generated__/*", "*/generated/*", "*/diagram_generated/*", "*/diagram_generated_staged/*"]
-known_first_party = ["dipeo", "dipeo_server", "dipeo_cli"]
+known_first_party = ["dipeo", "dipeo_server"]
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 multi_line_output = 3
 include_trailing_comma = true
@@ -342,7 +342,7 @@ use_parentheses = true
 line_length = 88
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "apps/server/tests", "apps/cli/tests"]
+testpaths = ["tests", "apps/server/tests"]
 python_files = ["test_*.py", "*_test.py"]
 addopts = "-v"
 asyncio_mode = "auto"

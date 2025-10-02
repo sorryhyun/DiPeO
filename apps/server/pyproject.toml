@@ -11,6 +11,8 @@ dependencies = []  # Dependencies managed by root pyproject.toml
 
 [project.scripts]
 dipeo-server = "dipeo_server.__main__:main"
+dipeo = "dipeo_server.cli.entry_point:main"
+dipeocc = "dipeo_server.cli.entry_point:dipeocc_main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/dipeo_server"]
