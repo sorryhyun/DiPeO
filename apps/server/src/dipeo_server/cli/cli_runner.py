@@ -442,18 +442,18 @@ class CLIRunner:
 
             console = Console()
 
-            if result.success:
+            if result and result.status == Status.COMPLETED:
                 console.print(Panel.fit("✅ Execution Successful", style="green bold"))
             else:
                 console.print(Panel.fit("❌ Execution Failed", style="red bold"))
 
             # Display outputs
-            if result.outputs:
+            if hasattr(result, 'node_outputs') and result.node_outputs:
                 table = Table(title="Outputs")
                 table.add_column("Node", style="cyan")
                 table.add_column("Output", style="white")
 
-                for node_id, output in result.outputs.items():
+                for node_id, output in result.node_outputs.items():
                     table.add_row(node_id, str(output)[:100])
 
                 console.print(table)
@@ -464,14 +464,14 @@ class CLIRunner:
 
     async def _display_simple_results(self, result: Any) -> None:
         """Display results using simple text formatting."""
-        if result.success:
+        if result and result.status == Status.COMPLETED:
             print("✅ Execution Successful")
         else:
             print("❌ Execution Failed")
 
-        if result.outputs:
+        if hasattr(result, 'node_outputs') and result.node_outputs:
             print("\nOutputs:")
-            for node_id, output in result.outputs.items():
+            for node_id, output in result.node_outputs.items():
                 print(f"  {node_id}: {str(output)[:100]}")
 
     async def _display_metrics(
