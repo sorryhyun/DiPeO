@@ -2,12 +2,9 @@
 // These types ensure compatibility with OpenAI's structured output requirements
 
 export type JsonPrimitive = string | number | boolean | null;
-export type JsonObject = { [key: string]: JsonValue };
-export type JsonArray = JsonValue[];
-export type JsonValue = JsonPrimitive | JsonObject | JsonArray;
 
-// For backwards compatibility during migration
-export type JsonAny = JsonValue;
+// JsonValue must be defined before JsonDict due to recursive reference
+export type JsonValue = JsonPrimitive | { [key: string]: JsonValue } | JsonValue[];
 
-// Utility type for strict JSON dictionaries
-export type JsonDict = Record<string, JsonValue>;
+// Utility type alias for strict JSON dictionaries
+export type JsonDict = { [key: string]: JsonValue };
