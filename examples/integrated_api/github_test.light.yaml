@@ -34,7 +34,7 @@ nodes:
 
         Return as JSON with keys: title, body
       max_iteration: 1
-      memory_profile: GOLDFISH
+      memorize_to: "GOLDFISH"  # Minimal memory for simple issue generation
 
   - label: Parse Issue Data
     type: code_job
@@ -190,7 +190,7 @@ nodes:
 
         Return just the comment text.
       max_iteration: 1
-      memory_profile: GOLDFISH
+      memorize_to: "GOLDFISH"  # Minimal memory for simple comment generation
 
   - label: Add Comment to Issue
     type: integrated_api

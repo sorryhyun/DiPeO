@@ -93,7 +93,7 @@ nodes:
         
         Provide insights on bottlenecks and optimization recommendations.
       max_iteration: 1
-      memory_profile: FOCUSED
+      memorize_to: ""  # Memorize all messages
 
   - label: Load Metrics
     type: db
@@ -129,9 +129,9 @@ connections:
 3. **Multi-Turn Support**: Built-in conversation management with configurable max turns
 4. **Different API Pattern**: Uses `ClaudeSDKClient` instead of traditional API clients
 
-## Memory Profiles for Claude Code
+## Memory Management for Claude Code
 
-Claude Code agents support the same memory management strategies as other LLM providers:
+Claude Code agents support advanced memory management through the `memorize_to`, `at_most`, and `ignore_person` fields:
 
 ```yaml
 persons:
@@ -146,41 +146,38 @@ nodes:
     type: person_job
     props:
       person: Code Assistant
-      memory_profile: FULL      # Keep complete conversation history
+      memorize_to: ""           # Empty string = memorize all messages
       max_iteration: 5
-      
+
   - label: Quick Review
     type: person_job
     props:
-      person: Code Assistant  
-      memory_profile: FOCUSED   # Last 20 conversation pairs (default)
+      person: Code Assistant
+      memorize_to: ""           # Memorize all messages
+      at_most: 40               # But keep at most 40 messages (20 conversation pairs)
       max_iteration: 3
-      
+
   - label: Fresh Evaluation
     type: person_job
     props:
       person: Code Assistant
-      memory_profile: GOLDFISH  # No memory - unbiased evaluation
+      memorize_to: "GOLDFISH"   # Special mode: minimal memory for unbiased evaluation
       max_iteration: 1
-      
-  - label: Custom Memory
+
+  - label: Selective Memory
     type: person_job
     props:
       person: Code Assistant
-      memory_profile: CUSTOM
-      memory_settings:
-        view: conversation_pairs
-        max_messages: 10
-        preserve_system: true
+      memorize_to: "requirements, API design"  # Only memorize messages about these topics
+      at_most: 10               # Keep at most 10 relevant messages
+      ignore_person: "assistant" # Exclude assistant messages from memory
       max_iteration: 2
 ```
 
-**Memory Profile Options:**
-- `FULL`: Complete conversation history
-- `FOCUSED`: Recent 20 conversation pairs (recommended for analysis tasks)
-- `MINIMAL`: System + recent 5 messages  
-- `GOLDFISH`: Only last 2 messages, no system preservation (good for objective evaluations)
-- `CUSTOM`: User-defined settings via `memory_settings`
+**Memory Management Options:**
+- `memorize_to`: Criteria for selecting messages (empty = all, "GOLDFISH" = minimal, or comma-separated keywords)
+- `at_most`: Maximum number of messages to retain (system messages may be preserved additionally)
+- `ignore_person`: Comma-separated list of person IDs to exclude from memory selection
 
 ## Limitations
 
@@ -256,7 +253,7 @@ nodes:
         3. Error handling
         4. Documentation and readability
       max_iteration: 1
-      memory_profile: FOCUSED
+      memorize_to: ""  # Memorize all messages
 
   - label: Security Review
     type: person_job
@@ -280,7 +277,7 @@ nodes:
         4. Input validation problems
         5. Data exposure risks
       max_iteration: 1
-      memory_profile: GOLDFISH
+      memorize_to: "GOLDFISH"  # Minimal memory for unbiased evaluation
 
   - label: Quality Gate
     type: condition
@@ -367,7 +364,7 @@ Choose memory profiles based on your use case:
   type: person_job
   props:
     person: Code Assistant
-    memory_profile: FOCUSED  # Maintains context across iterations
+    memorize_to: ""  # Maintains complete context across iterations
     max_iteration: 5
 
 # For objective code evaluation
@@ -527,7 +524,7 @@ nodes:
     props:
       person: Claude Code Agent
       default_prompt: "{{request}}"
-      memory_profile: FOCUSED
+      memorize_to: ""  # Memorize all messages
 
   - label: Read Source File
     type: db

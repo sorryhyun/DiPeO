@@ -85,7 +85,8 @@ nodes:
 
         Format your response as JSON.
       max_iteration: 1
-      memory_profile: MINIMAL
+      memorize_to: ""  # Keep all context
+      at_most: 10  # But limit to 10 messages
 
   # Create output directory if needed
   - label: Ensure Output Directory

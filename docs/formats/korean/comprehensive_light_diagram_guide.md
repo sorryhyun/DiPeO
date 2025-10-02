@@ -4,10 +4,10 @@
 > **최근 변경 사항**:
 >
 > - 누락된 노드 타입 추가: `HOOK`, `INTEGRATED_API`, `JSON_SCHEMA_VALIDATOR`, `TYPESCRIPT_AST`, `PERSON_BATCH_JOB`
-> - `person_job` 노드의 `CUSTOM` 메모리 프로파일 문서화
+> - `person_job` 노드의 새로운 메모리 관리 필드 문서화
 > - 하위 호환 필드 매핑 명확화 (`source_details` ⟷ `file`, `language` ⟷ `code_type`)
 > - 기본 모델 참조를 `gpt-5-nano-2025-08-07`로 업데이트
-> - `memory_settings` 뷰 옵션 문서 추가
+> - 메모리 관리: `memorize_to`, `at_most`, `ignore_person` 필드 문서화
 
 ## 목차
 
@@ -74,7 +74,7 @@ DiPeO는 자동 필드 매핑을 통해 하위 호환을 보장합니다:
 | ------------ | ------------------------------------------------------------ | ------------------------------ |
 | `code_job`   | `language` ⟷ `code_type`                                     | 상호 호환                          |
 | `db`         | `file` ⟷ `source_details`                                    | 파일 경로 지정 시 둘 다 사용 가능           |
-| `person_job` | 메모리 프로파일: `FULL`, `FOCUSED`, `MINIMAL`, `GOLDFISH`, `CUSTOM` | `CUSTOM`은 `memory_settings` 필요 |
+| `person_job` | 레거시: `memory_profile` → 새로운: `memorize_to`, `at_most`    | 자동 변환 지원                       |
 
 이 매핑은 기존 다이어그램이 계속 동작하도록 하면서 최신 필드명을 지원합니다.
 
@@ -154,24 +154,22 @@ LLM 에이전트로 프롬프트를 실행하며, 반복(iteration)과 메모리
     first_only_prompt: 'Start analysis of {{data}}'  # 최초 반복에서만 사용
     prompt_file: code-review.txt    # /files/prompts/에서 로드(선택)
     max_iteration: 5
-    memory_profile: FOCUSED         # 메모리 관리 전략
+    memorize_to: ""                 # 메모리 선택 기준 (빈 문자열 = 모두 기억)
+    at_most: 40                     # 최대 메시지 수 (선택)
+    ignore_person: "assistant"      # 제외할 person ID들 (선택)
     tools:                          # 선택: LLM 도구
       - type: web_search_preview
         enabled: true
-    memory_settings:                # (CUSTOM 프로파일 시) 고급 메모리 제어
-      view: conversation_pairs       # 옵션: all_involved, sent_by_me, sent_to_me,
-                                     # system_and_me, conversation_pairs, all_messages
-      max_messages: 20
-      preserve_system: true
 ```
 
-**메모리 프로파일:**
+**메모리 관리 필드:**
 
-- `FULL`: 대화 전체 이력
-- `FOCUSED`: 최근 대화 쌍 20개(분석 기본값)
-- `MINIMAL`: 시스템 + 최근 5개 메시지
-- `GOLDFISH`: 마지막 2개 메시지만, 시스템 미보존
-- `CUSTOM`: `memory_settings`로 사용자 정의
+- `memorize_to`: 메시지 선택 기준
+  - `""` (빈 문자열): 모든 메시지 기억
+  - `"GOLDFISH"`: 최소 메모리 모드 (마지막 2개 메시지만)
+  - `"requirements, API design"`: 콤마로 구분된 키워드 - 해당 주제 메시지만 선택
+- `at_most`: 최대 유지할 메시지 수 (시스템 메시지는 추가로 보존될 수 있음)
+- `ignore_person`: 메모리 선택에서 제외할 person ID 목록 (콤마로 구분)
 
 **프롬프트 템플릿:**
 
@@ -752,7 +750,7 @@ nodes:
       first_only_prompt: 'Propose a solution for: {{problem}}'
       default_prompt: 'Refine your proposal based on criticism'
       max_iteration: 3
-      memory_profile: FOCUSED
+      memorize_to: ""  # 모든 메시지 기억
       
   - label: Critical Review
     type: person_job
@@ -764,7 +762,7 @@ nodes:
         
         Identify strengths and weaknesses.
       max_iteration: 3
-      memory_profile: GOLDFISH  # 매 반복 신선한 관점
+      memorize_to: "GOLDFISH"  # 매 반복 신선한 관점 (최소 메모리)
       
   - label: Synthesize
     type: person_job
@@ -777,7 +775,7 @@ nodes:
         
         Create a balanced synthesis.
       max_iteration: 1
-      memory_profile: FULL
+      memorize_to: ""  # 전체 대화 이력 유지
 ```
 
 ### 3. 에러 처리와 재시도 로직

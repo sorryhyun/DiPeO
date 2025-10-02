@@ -62,7 +62,8 @@ nodes:
         Title: {{navigation_result.title}}
         HTML Content: {{snapshot.html}}
       max_iteration: 1
-      memory_profile: MINIMAL
+      memorize_to: ""  # Keep all context
+      at_most: 10  # But limit to 10 messages
 
   # Save the analysis results
   - label: Save Analysis

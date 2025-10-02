@@ -142,11 +142,8 @@ nodes:
     props:
       person: "Data Analyst"
       max_iteration: 1
-      memorize_to: CONVERSATION_PAIRS
-      memory_settings:
-        view: conversation_pairs
-        max_messages: 20
-        preserve_system: true
+      memorize_to: ""  # Keep all messages for analysis
+      at_most: 40  # Keep last 40 messages (approximately 20 conversation pairs)
       default_prompt: |
         Analyze these patterns in the enriched data:
         {{enriched_result.patterns}}
@@ -173,10 +170,7 @@ nodes:
     props:
       person: "Report Writer"
       max_iteration: 1
-      memorize_to: ALL_MESSAGES
-      memory_settings:
-        view: all_involved
-        preserve_system: true
+      memorize_to: ""  # Keep all messages for comprehensive report
       default_prompt: |
         Create a comprehensive data processing report combining:
         - Processing summary: {{final_data.enriched_data}}

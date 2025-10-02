@@ -37,7 +37,7 @@ nodes:
 
         Return just the message text, no formatting.
       max_iteration: 1
-      memory_profile: GOLDFISH
+      memorize_to: "GOLDFISH"  # Minimal memory for simple message generation
 
   - label: Send Welcome Message
     type: integrated_api
@@ -89,7 +89,7 @@ nodes:
 
         Return just the thread name.
       max_iteration: 1
-      memory_profile: GOLDFISH
+      memorize_to: "GOLDFISH"  # Minimal memory for simple thread name generation
 
   - label: Create Thread
     type: integrated_api
