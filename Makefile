@@ -75,7 +75,7 @@ parse-typescript:
 	@if command -v dipeo >/dev/null 2>&1; then \
 		dipeo run projects/codegen/diagrams/parse_typescript_batch_direct --light --debug --simple --timeout=20; \
 	else \
-		uv run python -m dipeo_cli run projects/codegen/diagrams/parse_typescript_batch_direct --light --debug --timeout=20; \
+		uv run python -m dipeo_server.cli run projects/codegen/diagrams/parse_typescript_batch_direct --light --debug --timeout=20; \
 	fi
 	@echo "✓ TypeScript parsing complete"
 
@@ -86,7 +86,7 @@ codegen: parse-typescript
 	@if command -v dipeo >/dev/null 2>&1; then \
 		dipeo run projects/codegen/diagrams/generate_all --light --debug --simple --timeout=35; \
 	else \
-		uv run python -m dipeo_cli run projects/codegen/diagrams/generate_all --light --debug --timeout=35; \
+		uv run python -m dipeo_server.cli run projects/codegen/diagrams/generate_all --light --debug --timeout=35; \
 	fi
 	@echo "✓ Code generation complete. Next: make apply-test→ make graphql-schema"
 
@@ -97,7 +97,7 @@ codegen-auto: parse-typescript
 	@if command -v dipeo >/dev/null 2>&1; then \
 		dipeo run projects/codegen/diagrams/generate_all --light --simple --timeout=45; \
 	else \
-		uv run python -m dipeo_cli run projects/codegen/diagrams/generate_all --light --timeout=45; \
+		uv run python -m dipeo_server.cli run projects/codegen/diagrams/generate_all --light --timeout=45; \
 	fi
 	@sleep 1
 	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
