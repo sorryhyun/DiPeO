@@ -44,7 +44,7 @@ Pure business logic following DDD and hexagonal architecture.
 - **Resolution**: RuntimeInputResolver, TransformationEngine, NodeStrategies
 - **State Management**: StateTracker, ExecutionTracker
 - **Token Management**: TokenManager, TokenTypes
-- **Event Management**: EventManager for execution events
+- **Event Management**: EventManager (DEPRECATED - use EventPipeline from application layer)
 - **Rules**: ConnectionRules, TransformRules
 - **Context**: ExecutionContext management
 - **Envelope**: EnvelopeFactory for unified output pattern
@@ -171,7 +171,8 @@ from dipeo.domain.cc_translate.phase_coordinator import PhaseCoordinator  # Clau
 from dipeo.domain.cc_translate.convert.converter import Converter
 from dipeo.domain.execution.resolution import RuntimeInputResolver, TransformationEngine
 from dipeo.domain.execution.envelope import EnvelopeFactory  # Unified output pattern
-from dipeo.domain.execution.event_manager import EventManager
+from dipeo.application.execution.event_pipeline import EventPipeline  # RECOMMENDED: Use EventPipeline instead of EventManager
+from dipeo.domain.execution.event_manager import EventManager  # DEPRECATED: Use EventPipeline instead
 from dipeo.domain.execution.state_tracker import StateTracker
 from dipeo.domain.execution.token_manager import TokenManager
 from dipeo.domain.events import EventBus  # Unified event protocol

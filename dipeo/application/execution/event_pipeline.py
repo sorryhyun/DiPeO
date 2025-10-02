@@ -93,6 +93,74 @@ class EventPipeline:
         await handler(**kwargs)
         self._event_count += 1
 
+    # Public API methods for backward compatibility with EventManager
+    async def emit_execution_started(
+        self,
+        diagram_name: str | None = None,
+        variables: dict[str, Any] | None = None,
+        initiated_by: str | None = None,
+    ) -> None:
+        """Emit execution started event (public API)."""
+        await self._emit_execution_started(diagram_name, variables, initiated_by)
+
+    async def emit_execution_completed(
+        self,
+        status: Status = Status.COMPLETED,
+        total_steps: int = 0,
+        execution_path: list[str] | None = None,
+        total_duration_ms: int | None = None,
+        total_tokens_used: int | None = None,
+    ) -> None:
+        """Emit execution completed event (public API)."""
+        await self._emit_execution_completed(
+            status, total_steps, execution_path, total_duration_ms, total_tokens_used
+        )
+
+    async def emit_execution_error(self, exc: Exception) -> None:
+        """Emit execution error event (public API)."""
+        await self._emit_execution_error(exc)
+
+    async def emit_node_started(
+        self,
+        node: ExecutableNode,
+        inputs: dict[str, Any] | None = None,
+        iteration: int | None = None,
+    ) -> None:
+        """Emit node started event (public API)."""
+        await self._emit_node_started(node, inputs, iteration)
+
+    async def emit_node_completed(
+        self,
+        node: ExecutableNode,
+        envelope: Envelope | None,
+        exec_count: int,
+        duration_ms: float | None = None,
+    ) -> None:
+        """Emit node completed event (public API)."""
+        await self._emit_node_completed(node, envelope, exec_count, duration_ms)
+
+    async def emit_node_error(
+        self,
+        node: ExecutableNode,
+        exc: Exception,
+    ) -> None:
+        """Emit node error event (public API)."""
+        await self._emit_node_error(node, exc)
+
+    async def emit_event(self, event_type: EventType, data: dict[str, Any] | None = None) -> None:
+        """Generic event emission (backward compatibility with EventManager).
+
+        Args:
+            event_type: The type of event to emit
+            data: Optional event metadata
+        """
+        event = DomainEvent(
+            type=event_type,
+            scope=EventScope(execution_id=self.execution_id),
+            meta=data or {},
+        )
+        await self._publish(event)
+
     async def _publish(self, event: DomainEvent) -> None:
         """Publish event through the event bus with metadata and sequence number."""
         # Increment sequence counter for idempotency

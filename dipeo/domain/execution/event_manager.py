@@ -1,10 +1,15 @@
 """Event management for execution context.
 
+DEPRECATED: This module is deprecated. Use EventPipeline from
+dipeo.application.execution.event_pipeline instead, which provides
+the same interface with enhanced features (sequence tracking, metrics).
+
 This module provides focused event operations as a domain concern,
 managing the emission of execution and node lifecycle events.
 """
 
 import logging
+import warnings
 
 from dipeo.config.base_logger import get_module_logger
 from typing import TYPE_CHECKING, Any, Optional
@@ -33,6 +38,12 @@ logger = get_module_logger(__name__)
 class EventManager:
     """Manages event emission for execution context.
 
+    DEPRECATED: Use EventPipeline from dipeo.application.execution.event_pipeline
+    instead. EventPipeline provides the same interface with enhanced features:
+    - Sequence tracking for idempotency
+    - Event metrics and statistics
+    - Enhanced metadata management
+
     Responsibilities:
     - Execution lifecycle events
     - Node execution events
@@ -52,12 +63,20 @@ class EventManager:
     ):
         """Initialize the event manager.
 
+        DEPRECATED: Use EventPipeline instead.
+
         Args:
             execution_id: The execution identifier
             diagram_id: The diagram identifier
             event_bus: Optional event bus for publishing events
             state_tracker: Optional state tracker for accessing node states
         """
+        warnings.warn(
+            "EventManager is deprecated. Use EventPipeline from "
+            "dipeo.application.execution.event_pipeline instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.execution_id = execution_id
         self.diagram_id = diagram_id
         self.event_bus = event_bus

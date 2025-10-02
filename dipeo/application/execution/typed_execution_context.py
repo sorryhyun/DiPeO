@@ -12,7 +12,7 @@ from dipeo.diagram_generated import NodeID, NodeType, Status
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 from dipeo.domain.events.unified_ports import EventBus
 from dipeo.domain.execution.envelope import Envelope
-from dipeo.domain.execution.event_manager import EventManager
+from dipeo.application.execution.event_pipeline import EventPipeline
 from dipeo.domain.execution.execution_context import ExecutionContext as ExecutionContextProtocol
 from dipeo.domain.execution.state_tracker import StateTracker
 from dipeo.domain.execution.token_manager import TokenManager
@@ -34,7 +34,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
 
     _token_manager: TokenManager = field(init=False)
     _state_tracker: StateTracker = field(init=False)
-    _event_manager: EventManager = field(init=False)
+    _event_pipeline: EventPipeline = field(init=False)
     _variables: dict[str, Any] = field(default_factory=dict)
     _metadata: dict[str, Any] = field(default_factory=dict)
     _current_node_id: NodeID | None = None
@@ -49,7 +49,7 @@ class TypedExecutionContext(ExecutionContextProtocol):
     def __post_init__(self):
         self._state_tracker = StateTracker()
         self._token_manager = TokenManager(self.diagram, execution_tracker=self._state_tracker)
-        self._event_manager = EventManager(
+        self._event_pipeline = EventPipeline(
             execution_id=self.execution_id,
             diagram_id=self.diagram_id,
             event_bus=self.event_bus,
@@ -68,8 +68,8 @@ class TypedExecutionContext(ExecutionContextProtocol):
         return self._token_manager
 
     @property
-    def events(self) -> EventManager:
-        return self._event_manager
+    def events(self) -> EventPipeline:
+        return self._event_pipeline
 
     def current_epoch(self) -> int:
         return self._token_manager.current_epoch()
