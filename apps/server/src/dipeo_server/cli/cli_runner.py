@@ -350,7 +350,7 @@ class CLIRunner:
     async def manage_claude_code(self, action: str, **kwargs) -> bool:
         """Manage Claude Code session conversion."""
         try:
-            from projects.claude_code.claude_code import ClaudeCodeManager
+            from dipeo.infrastructure.cc_translate import ClaudeCodeManager
 
             manager = ClaudeCodeManager()
 

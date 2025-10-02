@@ -1,6 +1,7 @@
 """Infrastructure adapters for Claude Code translation."""
 
 from .adapters import SessionAdapter
+from .manager import ClaudeCodeManager, SessionInfo
 from .session_parser import (
     ClaudeCodeSession,
     ConversationTurn,
@@ -14,10 +15,12 @@ from .session_parser import (
 from .session_serializer import SessionSerializer
 
 __all__ = [
+    "ClaudeCodeManager",
     "ClaudeCodeSession",
     "ConversationTurn",
     "SessionAdapter",
     "SessionEvent",
+    "SessionInfo",
     "SessionMetadata",
     "SessionSerializer",
     "extract_session_timestamp",
