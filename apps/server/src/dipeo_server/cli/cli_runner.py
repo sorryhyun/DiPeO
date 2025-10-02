@@ -14,7 +14,7 @@ from dipeo.config import BASE_DIR
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.graphql.inputs import ExecuteDiagramInput
 from dipeo.diagram_generated.domain_models import ExecutionID
-from dipeo.diagram_generated.enums import DiagramFormat
+from dipeo.diagram_generated.enums import DiagramFormat, Status
 from dipeo.infrastructure.diagram.adapters import UnifiedSerializerAdapter
 
 logger = get_module_logger(__name__)
@@ -100,7 +100,7 @@ class CLIRunner:
 
                 # Get final result
                 result = await state_store.get_execution(str(execution_id))
-                success = result and result.status == "COMPLETED"
+                success = result and result.status == Status.COMPLETED
 
                 # Display results
                 if not simple:
@@ -213,28 +213,42 @@ class CLIRunner:
     ) -> bool:
         """Display execution metrics."""
         try:
-            # Get state store
+            from dipeo.application.execution.observers import MetricsObserver
+            from dipeo.application.registry.keys import ServiceKey
+
+            # Get metrics observer
+            metrics_observer_key = ServiceKey[MetricsObserver]("metrics_observer")
+            if not self.registry.has(metrics_observer_key):
+                print("❌ Metrics observer not available. Ensure server was started with metrics enabled.")
+                return False
+
+            metrics_observer = self.registry.resolve(metrics_observer_key)
             state_store = self.registry.resolve(STATE_STORE)
 
-            # Get metrics
+            # Determine which execution to get metrics for
+            target_execution_id = None
+
             if execution_id:
-                metrics = await state_store.get_execution_metrics(execution_id)
+                target_execution_id = execution_id
             elif diagram_id:
                 # Get latest execution for diagram
-                executions = await state_store.list_executions_for_diagram(diagram_id)
+                executions = await state_store.list_executions(diagram_id=diagram_id, limit=1)
                 if executions:
-                    metrics = await state_store.get_execution_metrics(executions[0].id)
+                    target_execution_id = executions[0].id
                 else:
                     print(f"No executions found for diagram: {diagram_id}")
                     return False
             else:
-                # Get latest execution
-                latest = await state_store.get_latest_execution()
-                if latest:
-                    metrics = await state_store.get_execution_metrics(latest.id)
+                # Get the most recent execution
+                executions = await state_store.list_executions(limit=1)
+                if executions:
+                    target_execution_id = executions[0].id
                 else:
                     print("No executions found")
                     return False
+
+            # Get metrics from the observer
+            metrics = metrics_observer.get_metrics_summary(str(target_execution_id))
 
             if not metrics:
                 print("No metrics available")
