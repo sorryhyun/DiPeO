@@ -90,10 +90,10 @@ nodes:
       default_prompt: |
         Analyze the performance data for {{system}}:
         {{metrics_data}}
-        
+
         Provide insights on bottlenecks and optimization recommendations.
       max_iteration: 1
-      memory_profile: FOCUSED
+      memorize_to: "performance data, system metrics"
 
   - label: Load Metrics
     type: db
@@ -129,9 +129,9 @@ connections:
 3. **Multi-Turn Support**: Built-in conversation management with configurable max turns
 4. **Different API Pattern**: Uses `ClaudeSDKClient` instead of traditional API clients
 
-## Memory Profiles for Claude Code
+## Memory Management for Claude Code
 
-Claude Code agents support the same memory management strategies as other LLM providers:
+Claude Code agents support DiPeO's intelligent memory management system. See the [Memory System Design](../architecture/memory_system_design.md) for complete details.
 
 ```yaml
 persons:
@@ -142,45 +142,47 @@ persons:
     system_prompt: "You are a helpful coding assistant"
 
 nodes:
-  - label: Detailed Analysis
+  - label: Code Analysis
     type: person_job
     props:
       person: Code Assistant
-      memory_profile: FULL      # Keep complete conversation history
+      memorize_to: "code structure, API design, performance considerations"
+      at_most: 30  # Keep at most 30 relevant messages
       max_iteration: 5
-      
+
   - label: Quick Review
     type: person_job
     props:
-      person: Code Assistant  
-      memory_profile: FOCUSED   # Last 20 conversation pairs (default)
+      person: Code Assistant
+      memorize_to: "review feedback, critical issues"
+      at_most: 15
       max_iteration: 3
-      
+
   - label: Fresh Evaluation
     type: person_job
     props:
       person: Code Assistant
-      memory_profile: GOLDFISH  # No memory - unbiased evaluation
+      memorize_to: "GOLDFISH"  # No memory - unbiased evaluation
       max_iteration: 1
-      
-  - label: Custom Memory
+
+  - label: Context-Aware Refactor
     type: person_job
     props:
       person: Code Assistant
-      memory_profile: CUSTOM
-      memory_settings:
-        view: conversation_pairs
-        max_messages: 10
-        preserve_system: true
+      # No memorize_to - uses ALL_INVOLVED (all messages where person is involved)
+      at_most: 50
       max_iteration: 2
 ```
 
-**Memory Profile Options:**
-- `FULL`: Complete conversation history
-- `FOCUSED`: Recent 20 conversation pairs (recommended for analysis tasks)
-- `MINIMAL`: System + recent 5 messages  
-- `GOLDFISH`: Only last 2 messages, no system preservation (good for objective evaluations)
-- `CUSTOM`: User-defined settings via `memory_settings`
+**Memory Configuration:**
+- `memorize_to`: Natural language criteria for selecting relevant messages
+  - Examples: "requirements, API design", "bug reports, test failures"
+  - Special: "GOLDFISH" for no memory (fresh perspective)
+  - Omit to use ALL_INVOLVED filter (all messages where person is involved)
+- `at_most`: Maximum messages to keep (optional, system messages preserved automatically)
+- `ignore_person`: Exclude specific persons from memory selection (optional)
+
+**Migration Note:** Old diagrams using `memory_profile` (FULL, FOCUSED, MINIMAL, GOLDFISH, CUSTOM) are automatically converted by the backend for backward compatibility.
 
 ## Limitations
 
@@ -256,7 +258,7 @@ nodes:
         3. Error handling
         4. Documentation and readability
       max_iteration: 1
-      memory_profile: FOCUSED
+      memorize_to: "code structure, best practices, error patterns"
 
   - label: Security Review
     type: person_job
@@ -265,14 +267,14 @@ nodes:
       person: Security Analyst
       default_prompt: |
         Perform a security review of these code files:
-        
+
         {{#each code_files}}
         ## {{@key}}
         ```python
         {{this}}
         ```
         {{/each}}
-        
+
         Look for:
         1. SQL injection vulnerabilities
         2. XSS prevention
@@ -280,7 +282,7 @@ nodes:
         4. Input validation problems
         5. Data exposure risks
       max_iteration: 1
-      memory_profile: GOLDFISH
+      memorize_to: "GOLDFISH"  # Fresh perspective for security review
 
   - label: Quality Gate
     type: condition
@@ -288,7 +290,7 @@ nodes:
     props:
       condition_type: llm_decision
       person: Code Reviewer
-      memorize_to: "MINIMAL"
+      memorize_to: "GOLDFISH"  # Unbiased decision
       judge_by: |
         Based on the code review and security analysis:
         
@@ -357,9 +359,9 @@ dipeo run examples/test_claude_code --light --debug
 
 ## Best Practices for Claude Code Integration
 
-### 1. Optimal Memory Profile Selection
+### 1. Optimal Memory Configuration
 
-Choose memory profiles based on your use case:
+Configure memory based on your use case:
 
 ```yaml
 # For code analysis requiring context
@@ -367,7 +369,8 @@ Choose memory profiles based on your use case:
   type: person_job
   props:
     person: Code Assistant
-    memory_profile: FOCUSED  # Maintains context across iterations
+    memorize_to: "code improvements, refactoring suggestions, test results"
+    at_most: 30  # Keep sufficient context
     max_iteration: 5
 
 # For objective code evaluation
@@ -527,7 +530,7 @@ nodes:
     props:
       person: Claude Code Agent
       default_prompt: "{{request}}"
-      memory_profile: FOCUSED
+      memorize_to: "code analysis, refactoring requirements"
 
   - label: Read Source File
     type: db
