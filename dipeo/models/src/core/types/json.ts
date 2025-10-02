@@ -3,7 +3,8 @@
 
 export type JsonPrimitive = string | number | boolean | null;
 
-// Utility type for strict JSON dictionaries
-export type JsonDict = { [key: string]: JsonValue };
+// JsonValue must be defined before JsonDict due to recursive reference
+export type JsonValue = JsonPrimitive | { [key: string]: JsonValue } | JsonValue[];
 
-export type JsonValue = JsonPrimitive | JsonDict | JsonValue[];
+// Utility type alias for strict JSON dictionaries
+export type JsonDict = { [key: string]: JsonValue };
