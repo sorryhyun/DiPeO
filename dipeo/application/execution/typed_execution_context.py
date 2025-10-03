@@ -1,18 +1,17 @@
 """Simplified execution context using focused components."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from collections import defaultdict
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from dipeo.application.execution.event_pipeline import EventPipeline
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import NodeID, NodeType, Status
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 from dipeo.domain.events.unified_ports import EventBus
 from dipeo.domain.execution.envelope import Envelope
-from dipeo.application.execution.event_pipeline import EventPipeline
 from dipeo.domain.execution.execution_context import ExecutionContext as ExecutionContextProtocol
 from dipeo.domain.execution.state_tracker import StateTracker
 from dipeo.domain.execution.token_manager import TokenManager
@@ -22,6 +21,7 @@ if TYPE_CHECKING:
     from dipeo.application.registry import ServiceRegistry
 
 logger = get_module_logger(__name__)
+
 
 @dataclass
 class TypedExecutionContext(ExecutionContextProtocol):
@@ -83,15 +83,28 @@ class TypedExecutionContext(ExecutionContextProtocol):
     def emit_outputs_as_tokens(
         self, node_id: NodeID, outputs: dict[str, Envelope], epoch: int | None = None
     ) -> None:
+        actual_epoch = epoch or self.current_epoch()
+        logger.debug(
+            f"📤 [EMIT] Node {node_id} emitting {len(outputs)} outputs at epoch {actual_epoch}"
+        )
+        logger.debug(f"📤 [EMIT] Output keys: {list(outputs.keys())}")
+
         self._token_manager.emit_outputs(node_id, outputs, epoch)
 
         if self.scheduler:
             if hasattr(self.scheduler, "on_token_published"):
                 edges = self._token_manager._out_edges.get(node_id, [])
+                logger.debug(f"📤 [EMIT] Node {node_id} has {len(edges)} outgoing edges")
                 for edge in edges:
-                    self.scheduler.on_token_published(edge, epoch or self.current_epoch())
+                    logger.debug(
+                        f"📤 [EMIT] Publishing token: {edge.source_node_id} -> {edge.target_node_id} "
+                        f"(source_output={edge.source_output}, target_input={edge.target_input})"
+                    )
+                    self.scheduler.on_token_published(edge, actual_epoch)
+            else:
+                logger.debug("[EMIT] Scheduler exists but has no on_token_published method")
         else:
-            logger.debug("[CONTEXT] No scheduler available")
+            logger.debug("[EMIT] No scheduler available")
 
     def has_new_inputs(self, node_id: NodeID, epoch: int | None = None) -> bool:
         join_policy = "all"
@@ -185,19 +198,32 @@ class TypedExecutionContext(ExecutionContextProtocol):
 
     def is_execution_complete(self) -> bool:
         endpoint_nodes = self.diagram.get_nodes_by_type(NodeType.ENDPOINT)
+        logger.debug(f"[COMPLETION] Checking completion: {len(endpoint_nodes)} endpoint nodes")
+
         if not endpoint_nodes:
             all_states = self._state_tracker.get_all_node_states()
             if not all_states:
+                logger.debug("[COMPLETION] No states tracked yet - not complete")
                 return False
 
-            for state in all_states.values():
+            pending_or_running = []
+            for node_id, state in all_states.items():
                 if state.status in (Status.PENDING, Status.RUNNING):
-                    return False
+                    pending_or_running.append((node_id, state.status))
+
+            if pending_or_running:
+                logger.debug(f"[COMPLETION] Still pending/running: {pending_or_running}")
+                return False
+
+            logger.debug("[COMPLETION] All nodes completed - execution complete")
             return True
 
         for endpoint in endpoint_nodes:
             state = self._state_tracker.get_node_state(endpoint.id)
             if not state or state.status not in (Status.COMPLETED, Status.FAILED):
+                logger.debug(
+                    f"[COMPLETION] Endpoint {endpoint.id} not complete: {state.status if state else 'no state'}"
+                )
                 return False
         return True
 

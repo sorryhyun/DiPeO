@@ -1,7 +1,8 @@
+You should use tools as much as possible, ideally more than 50 times. You should also implement your own tests first before attempting the problem.
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with this DiPeO repository.
-You should use tools as much as possible, ideally more than 100 times. You should also implement your own tests first before attempting the problem.
 
 ## Project Overview
 
@@ -249,5 +250,5 @@ Use these agents for specialized work requiring deep domain expertise.
 - **Debug diagrams**: `dipeo run [diagram] --debug`
 - **Monitor UI**: `http://localhost:3000/?monitor=true`
 - **GraphQL playground**: `http://localhost:8000/graphql`
-- **Logs**: Check `.logs/server.log` for detailed debugging
+- **Logs**: Check `.logs/cli.log` for detailed debugging
 - **Note**: Formal test suite is under development

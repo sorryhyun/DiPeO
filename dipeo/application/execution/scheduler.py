@@ -2,11 +2,10 @@
 
 import asyncio
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Optional
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import NodeID, NodeType, Status
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.domain.execution.token_types import ConcurrencyPolicy, EdgeRef, JoinPolicy
@@ -15,6 +14,7 @@ if TYPE_CHECKING:
     from dipeo.application.execution.typed_execution_context import TypedExecutionContext
 
 logger = get_module_logger(__name__)
+
 
 class NodeScheduler:
     """Manages node scheduling with indegree tracking and ready queue management."""
@@ -134,11 +134,29 @@ class NodeScheduler:
     async def get_ready_nodes(self, context: "TypedExecutionContext") -> list[ExecutableNode]:
         ready_nodes = []
         all_nodes = self.diagram.get_nodes_by_type(None) or self.diagram.nodes
+        epoch = context.current_epoch()
 
+        logger.debug(
+            f"🔍 [SCHEDULER] Checking readiness for {len(all_nodes)} nodes at epoch {epoch}"
+        )
         for node in all_nodes:
-            if self._is_node_ready(node, context):
+            is_ready = self._is_node_ready(node, context)
+            if is_ready:
                 ready_nodes.append(node)
+                logger.debug(f"✅ [SCHEDULER] Node {node.id} is READY")
+            else:
+                exec_count = context.state.get_node_execution_count(node.id)
+                has_tokens = context.has_new_inputs(node.id, epoch)
+                incoming_edges = self.diagram.get_incoming_edges(node.id)
+                logger.debug(
+                    f"❌ [SCHEDULER] Node {node.id} NOT ready - "
+                    f"exec_count={exec_count}, has_tokens={has_tokens}, "
+                    f"incoming_edges={len(incoming_edges)}"
+                )
 
+        logger.debug(
+            f"📊 [SCHEDULER] Found {len(ready_nodes)} ready nodes: {[n.id for n in ready_nodes]}"
+        )
         return self._prioritize_nodes(ready_nodes)
 
     def mark_node_completed(self, node_id: NodeID, context: "TypedExecutionContext") -> set[NodeID]:
@@ -158,14 +176,28 @@ class NodeScheduler:
 
     def on_token_published(self, edge: EdgeRef, epoch: int) -> None:
         if not self.context:
+            logger.debug(
+                f"[TOKEN] Token published but no context: {edge.source_node_id} -> {edge.target_node_id}"
+            )
             return
 
         target = edge.target_node_id
         has_inputs = self.context.has_new_inputs(target, epoch)
         can_arm = self._can_arm(target, epoch)
 
+        logger.debug(
+            f"🔔 [TOKEN] Published: {edge.source_node_id} -> {target} "
+            f"(epoch={epoch}, has_inputs={has_inputs}, can_arm={can_arm})"
+        )
+
         if has_inputs and can_arm:
+            logger.debug(f"⚡ [TOKEN] Arming node {target} for epoch {epoch}")
             self._arm_and_enqueue(target, epoch)
+        else:
+            if not has_inputs:
+                logger.debug(f"[TOKEN] Node {target} not armed: no inputs yet")
+            if not can_arm:
+                logger.debug(f"[TOKEN] Node {target} not armed: concurrency limit reached")
 
     def _can_arm(self, node_id: NodeID, epoch: int) -> bool:
         key = (node_id, epoch)
@@ -204,21 +236,36 @@ class NodeScheduler:
         context: "TypedExecutionContext",
     ) -> bool:
         if node.type == NodeType.START and not self.diagram.get_incoming_edges(node.id):
-            return context.state.get_node_execution_count(node.id) == 0
+            is_ready = context.state.get_node_execution_count(node.id) == 0
+            logger.debug(f"[READINESS] START node {node.id}: ready={is_ready}")
+            return is_ready
 
         if hasattr(context, "has_new_inputs") and hasattr(context, "current_epoch"):
             epoch = context.current_epoch()
             incoming_edges = self.diagram.get_incoming_edges(node.id)
 
             if not incoming_edges:
+                logger.debug(f"[READINESS] Node {node.id} has no incoming edges - ready=True")
                 return True
 
             has_tokens = context.has_new_inputs(node.id, epoch)
+            logger.debug(f"[READINESS] Node {node.id}: has_tokens={has_tokens}, epoch={epoch}")
+
             if has_tokens:
-                if not self._handle_loop_node(node, context):
+                loop_ok = self._handle_loop_node(node, context)
+                if not loop_ok:
+                    logger.debug(f"[READINESS] Node {node.id}: loop limit reached - ready=False")
                     return False
-                return not self._has_pending_higher_priority_siblings(node, context)
+
+                has_priority_pending = self._has_pending_higher_priority_siblings(node, context)
+                logger.debug(
+                    f"[READINESS] Node {node.id}: "
+                    f"loop_ok={loop_ok}, has_priority_pending={has_priority_pending}, "
+                    f"ready={not has_priority_pending}"
+                )
+                return not has_priority_pending
             else:
+                logger.debug(f"[READINESS] Node {node.id}: no tokens - ready=False")
                 return False
 
         logger.warning(

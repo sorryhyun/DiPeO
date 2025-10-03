@@ -22,7 +22,13 @@
       "Bash(done)",
       "Bash(pnpm list:*)",
       "Bash(node:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(DIPEO_LOG_LEVEL=DEBUG dipeo run projects/codegen/diagrams/parse_typescript_batch_direct --light --debug --timeout=20)",
+      "Bash(tee:*)",
+      "Bash(uv pip install:*)",
+      "Bash(dipeo:*)",
+      "Read(//tmp/**)",
+      "Bash(timeout 25 dipeo run:*)"
     ],
     "deny": [],
     "ask": []

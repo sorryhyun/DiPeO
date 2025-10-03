@@ -5,16 +5,16 @@ management from other execution concerns.
 """
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from collections import defaultdict
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import NodeID, NodeType
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 from dipeo.domain.execution.envelope import Envelope
 from dipeo.domain.execution.token_types import EdgeRef, Token
 
 logger = get_module_logger(__name__)
+
 
 class TokenManager:
     """Manages token flow through the execution graph.
@@ -127,14 +127,28 @@ class TokenManager:
             elif "condfalse" in outputs:
                 self._branch_decisions[node_id] = "condfalse"
 
-        for edge in self._out_edges.get(node_id, []):
+        out_edges = self._out_edges.get(node_id, [])
+        logger.debug(
+            f"[TOKEN_MGR] emit_outputs: node {node_id} has {len(out_edges)} outgoing edges"
+        )
+        logger.debug(f"[TOKEN_MGR] emit_outputs: output keys={list(outputs.keys())}")
+
+        for edge in out_edges:
             out_key = edge.source_output or "default"
 
             payload = outputs.get(out_key)
 
             if payload is None:
+                logger.debug(
+                    f"[TOKEN_MGR] Skipping edge {edge.source_node_id} -> {edge.target_node_id}: "
+                    f"no output for key '{out_key}'"
+                )
                 continue
 
+            logger.debug(
+                f"[TOKEN_MGR] Publishing token on edge {edge.source_node_id} -> {edge.target_node_id} "
+                f"(source_output={edge.source_output}, target_input={edge.target_input})"
+            )
             self.publish_token(edge, payload, epoch=epoch)
 
     def _extract_branch_decision(self, output: Envelope) -> str | None:
@@ -194,7 +208,12 @@ class TokenManager:
             epoch = self._epoch
 
         edges = self._in_edges.get(node_id, [])
+        logger.debug(
+            f"[TOKEN_MGR] has_new_inputs: checking node {node_id}, epoch={epoch}, join_policy={join_policy}"
+        )
+        logger.debug(f"[TOKEN_MGR] has_new_inputs: node has {len(edges)} incoming edges")
         if not edges:
+            logger.debug("[TOKEN_MGR] has_new_inputs: no edges, returning True")
             return True
 
         node_exec_count = 0
@@ -246,21 +265,41 @@ class TokenManager:
                     continue
             required_edges.append(edge)
 
+        logger.debug(
+            f"[TOKEN_MGR] has_new_inputs: required_edges={len(required_edges)}, active_edges={len(active_edges)}"
+        )
+
         if join_policy == "all":
             for edge in required_edges:
                 seq = self._edge_seq.get((edge, epoch), 0)
                 last_consumed = self._last_consumed.get((node_id, edge, epoch), 0)
+                logger.debug(
+                    f"[TOKEN_MGR] Edge {edge.source_node_id} -> {node_id}: "
+                    f"seq={seq}, last_consumed={last_consumed}"
+                )
                 if seq <= last_consumed:
+                    logger.debug(
+                        "[TOKEN_MGR] has_new_inputs: returning False (seq <= last_consumed)"
+                    )
                     return False
             result = len(required_edges) > 0
+            logger.debug(f"[TOKEN_MGR] has_new_inputs: join_policy=all, result={result}")
             return result
 
         elif join_policy == "any":
             for edge in required_edges:
                 seq = self._edge_seq.get((edge, epoch), 0)
                 last_consumed = self._last_consumed.get((node_id, edge, epoch), 0)
+                logger.debug(
+                    f"[TOKEN_MGR] Edge {edge.source_node_id} -> {node_id}: "
+                    f"seq={seq}, last_consumed={last_consumed}"
+                )
                 if seq > last_consumed:
+                    logger.debug("[TOKEN_MGR] has_new_inputs: join_policy=any, returning True")
                     return True
+            logger.debug(
+                "[TOKEN_MGR] has_new_inputs: join_policy=any, returning False (no new tokens)"
+            )
             return False
 
         result = (
@@ -272,6 +311,7 @@ class TokenManager:
             if required_edges
             else False
         )
+        logger.debug(f"[TOKEN_MGR] has_new_inputs: fallback result={result}")
         return result
 
     def get_branch_decision(self, node_id: NodeID) -> str | None:

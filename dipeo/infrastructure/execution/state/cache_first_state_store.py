@@ -3,14 +3,13 @@
 import asyncio
 import contextlib
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import os
 import time
 from datetime import datetime
 from typing import Any
 
 from dipeo.config import STATE_DB_PATH
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import (
     DiagramID,
     ExecutionID,
@@ -34,6 +33,7 @@ from .models import CacheEntry, PersistenceCheckpoint
 from .persistence_manager import PersistenceManager
 
 logger = get_module_logger(__name__)
+
 
 class CacheFirstStateStore(StateStorePort, ExecutionStateService, ExecutionCachePort):
     """Cache-first state store with Phase 4 optimizations.
@@ -150,10 +150,29 @@ class CacheFirstStateStore(StateStorePort, ExecutionStateService, ExecutionCache
         event_type = event.type
 
         # Filter out events from sub-diagrams or executions we're not tracking
-        # Only process events for executions that exist in our cache
+        # EXCEPT for EXECUTION_COMPLETED which should always be processed to finalize state
         if not await self._cache_manager.has_execution(execution_id):
-            # Skip events for unknown executions (likely sub-diagrams)
-            return
+            # Allow EXECUTION_COMPLETED through even if not in cache - it finalizes the execution
+            if event_type != EventType.EXECUTION_COMPLETED:
+                # Skip other events for unknown executions (likely sub-diagrams)
+                return
+
+            # For EXECUTION_COMPLETED on unknown execution, try to load from database
+            state = await self._persistence_manager.load_state(execution_id)
+            if state:
+                # Add to cache so completion can be processed
+                entry = CacheEntry(
+                    state=state,
+                    is_dirty=True,
+                    is_persisted=True,
+                )
+                await self._cache_manager.put_entry(execution_id, entry)
+            else:
+                # No state in DB either - skip this event
+                logger.warning(
+                    f"EXECUTION_COMPLETED event for unknown execution {execution_id} - no state in cache or DB"
+                )
+                return
 
         # Get sequence number from metadata if available (set by event_pipeline)
         seq = event.meta.get("seq") if event.meta else None

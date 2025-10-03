@@ -10,8 +10,9 @@ requires-python = ">=3.13"
 dependencies = []  # Dependencies managed by root pyproject.toml
 
 [project.scripts]
-dipeo = "dipeo_cli.__main__:main"
-dipeocc = "dipeo_cli.__main__:dipeocc_main"
+# CLI has been moved to dipeo_server.cli.entry_point
+# See apps/server/pyproject.toml for the actual entry points
+# This file kept for backward compatibility but scripts are defined in server package
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/dipeo_cli"]

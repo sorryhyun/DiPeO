@@ -5,17 +5,17 @@ UI visualization and reporting. Actual execution is driven by tokens.
 """
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import threading
 from collections import defaultdict
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import NodeID, NodeState, Status
 from dipeo.domain.execution.envelope import Envelope
 from dipeo.domain.execution.execution_tracker import CompletionStatus, ExecutionTracker
 
 logger = get_module_logger(__name__)
+
 
 class StateTracker:
     """Tracks node execution states and history.
@@ -124,7 +124,11 @@ class StateTracker:
         token_usage: dict[str, int] | None = None,
     ) -> None:
         with self._lock:
+            logger.debug(f"[STATE_TRACKER] Transitioning {node_id} to COMPLETED")
             self._node_states[node_id] = NodeState(status=Status.COMPLETED)
+            logger.debug(
+                f"[STATE_TRACKER] Node {node_id} state updated: {self._node_states[node_id].status}"
+            )
             self._tracker.complete_execution(
                 node_id, CompletionStatus.SUCCESS, output=output, token_usage=token_usage
             )

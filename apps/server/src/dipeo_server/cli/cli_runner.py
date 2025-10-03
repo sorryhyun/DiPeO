@@ -1,20 +1,21 @@
 """CLI runner that executes commands directly using services."""
 
 import asyncio
+import contextlib
 import json
 import sys
 import uuid
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from dipeo.application.bootstrap import Container
 from dipeo.application.execution import ExecuteDiagramUseCase
-from dipeo.application.registry.keys import STATE_STORE, MESSAGE_ROUTER, DIAGRAM_PORT
+from dipeo.application.registry.keys import DIAGRAM_PORT, MESSAGE_ROUTER, STATE_STORE
 from dipeo.config import BASE_DIR
 from dipeo.config.base_logger import get_module_logger
-from dipeo.diagram_generated.graphql.inputs import ExecuteDiagramInput
 from dipeo.diagram_generated.domain_models import ExecutionID
 from dipeo.diagram_generated.enums import DiagramFormat, Status
+from dipeo.diagram_generated.graphql.inputs import ExecuteDiagramInput
 from dipeo.infrastructure.diagram.adapters import UnifiedSerializerAdapter
 
 logger = get_module_logger(__name__)
@@ -34,7 +35,7 @@ class CLIRunner:
         debug: bool = False,
         timeout: int = 300,
         format_type: Optional[str] = None,
-        input_variables: Optional[Dict[str, Any]] = None,
+        input_variables: Optional[dict[str, Any]] = None,
         use_unified: bool = True,
         simple: bool = False,
     ) -> bool:
@@ -58,6 +59,7 @@ class CLIRunner:
             format_hint = format_type or "native"
             if format_hint in ["light", "readable"]:
                 import yaml
+
                 content = yaml.dump(diagram_data, default_flow_style=False, sort_keys=False)
                 domain_diagram = serializer.deserialize_from_storage(content, format_hint)
             else:
@@ -87,9 +89,10 @@ class CLIRunner:
 
             # Execute diagram
             success = False
+
             async def run_execution():
                 nonlocal success
-                async for update in use_case.execute_diagram(
+                async for _update in use_case.execute_diagram(
                     diagram=domain_diagram,
                     options=options,
                     execution_id=str(execution_id),
@@ -110,7 +113,38 @@ class CLIRunner:
 
             # Run execution
             task = asyncio.create_task(run_execution())
-            await asyncio.wait_for(task, timeout=timeout)
+            try:
+                await asyncio.wait_for(task, timeout=timeout)
+            except TimeoutError:
+                logger.error(f"Execution timed out after {timeout} seconds")
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
+
+                # Try to mark execution as failed in state store
+                try:
+                    from dipeo.domain.events import EventType, ExecutionEvent
+
+                    result = await state_store.get_execution(str(execution_id))
+                    if result and result.status == Status.RUNNING:
+                        logger.warning(
+                            f"Execution {execution_id} still RUNNING after timeout. "
+                            f"Executed nodes: {result.executed_nodes}"
+                        )
+                        # Emit EXECUTION_ERROR event to update state
+                        event = ExecutionEvent(
+                            event_type=EventType.EXECUTION_ERROR,
+                            execution_id=str(execution_id),
+                            timestamp=None,
+                            error=f"Execution timed out after {timeout} seconds",
+                        )
+                        await message_router.publish(event)
+                except Exception as update_err:
+                    logger.error(f"Failed to update execution state after timeout: {update_err}")
+
+                if not simple:
+                    print(f"\n❌ Execution timed out after {timeout} seconds")
+                return False
 
             return success
 
@@ -118,6 +152,7 @@ class CLIRunner:
             logger.error(f"Diagram execution failed: {e}")
             if debug:
                 import traceback
+
                 traceback.print_exc()
             return False
 
@@ -156,6 +191,7 @@ class CLIRunner:
             logger.error(f"Diagram generation failed: {e}")
             if debug:
                 import traceback
+
                 traceback.print_exc()
             return False
 
@@ -196,7 +232,7 @@ class CLIRunner:
                 print(f"✅ Converted {input_path} to {output_path}")
                 return True
             else:
-                print(f"❌ Conversion failed")
+                print("❌ Conversion failed")
                 return False
 
         except Exception as e:
@@ -219,7 +255,9 @@ class CLIRunner:
             # Get metrics observer
             metrics_observer_key = ServiceKey[MetricsObserver]("metrics_observer")
             if not self.registry.has(metrics_observer_key):
-                print("❌ Metrics observer not available. Ensure server was started with metrics enabled.")
+                print(
+                    "❌ Metrics observer not available. Ensure server was started with metrics enabled."
+                )
                 return False
 
             metrics_observer = self.registry.resolve(metrics_observer_key)
@@ -409,7 +447,7 @@ class CLIRunner:
             return False
 
     # Helper methods
-    async def _load_diagram(self, diagram: str, format_type: Optional[str]) -> Dict[str, Any]:
+    async def _load_diagram(self, diagram: str, format_type: Optional[str]) -> dict[str, Any]:
         """Load diagram from file."""
         from dipeo.application.diagrams.loaders import DiagramLoader
 
@@ -448,7 +486,7 @@ class CLIRunner:
                 console.print(Panel.fit("❌ Execution Failed", style="red bold"))
 
             # Display outputs
-            if hasattr(result, 'node_outputs') and result.node_outputs:
+            if hasattr(result, "node_outputs") and result.node_outputs:
                 table = Table(title="Outputs")
                 table.add_column("Node", style="cyan")
                 table.add_column("Output", style="white")
@@ -469,14 +507,14 @@ class CLIRunner:
         else:
             print("❌ Execution Failed")
 
-        if hasattr(result, 'node_outputs') and result.node_outputs:
+        if hasattr(result, "node_outputs") and result.node_outputs:
             print("\nOutputs:")
             for node_id, output in result.node_outputs.items():
                 print(f"  {node_id}: {str(output)[:100]}")
 
     async def _display_metrics(
         self,
-        metrics: Dict[str, Any],
+        metrics: dict[str, Any],
         bottlenecks_only: bool,
         optimizations_only: bool,
     ) -> None:

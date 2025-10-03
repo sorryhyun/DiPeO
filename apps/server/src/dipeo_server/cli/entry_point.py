@@ -6,12 +6,11 @@ import asyncio
 import json
 import os
 import sys
-from pathlib import Path
-from typing import Any, Dict, Optional
 
 # Fix encoding issues on Windows
 if sys.platform == "win32":
     import io
+
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
     os.environ["PYTHONIOENCODING"] = "utf-8"
@@ -20,9 +19,16 @@ if sys.platform == "win32":
 
 async def run_cli_command(args: argparse.Namespace) -> bool:
     """Run CLI command using direct service calls."""
+    from dipeo.application.bootstrap import init_resources, shutdown_resources
+    from dipeo.infrastructure.logging_config import setup_logging
     from dipeo_server.app_context import create_server_container
     from dipeo_server.cli import CLIRunner
-    from dipeo.application.bootstrap import init_resources, shutdown_resources
+
+    # Setup logging for CLI
+    log_level = (
+        "DEBUG" if getattr(args, "debug", False) else os.environ.get("DIPEO_LOG_LEVEL", "INFO")
+    )
+    setup_logging(component="cli", log_level=log_level, log_to_file=True, console_output=False)
 
     # Create container and initialize resources
     container = await create_server_container()
@@ -45,19 +51,19 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
         elif args.command == "run":
             # Determine format type
             format_type = None
-            if hasattr(args, 'light') and args.light:
+            if hasattr(args, "light") and args.light:
                 format_type = "light"
-            elif hasattr(args, 'native') and args.native:
+            elif hasattr(args, "native") and args.native:
                 format_type = "native"
-            elif hasattr(args, 'readable') and args.readable:
+            elif hasattr(args, "readable") and args.readable:
                 format_type = "readable"
 
             # Parse input data
             input_variables = None
-            if hasattr(args, 'inputs') and args.inputs:
+            if hasattr(args, "inputs") and args.inputs:
                 with open(args.inputs) as f:
                     input_variables = json.load(f)
-            elif hasattr(args, 'input_data') and args.input_data:
+            elif hasattr(args, "input_data") and args.input_data:
                 input_variables = json.loads(args.input_data)
 
             return await cli.run_diagram(
@@ -67,7 +73,7 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
                 format_type=format_type,
                 input_variables=input_variables,
                 use_unified=True,
-                simple=hasattr(args, 'simple') and args.simple,
+                simple=hasattr(args, "simple") and args.simple,
             )
 
         elif args.command == "convert":
@@ -84,7 +90,8 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
         elif args.command == "monitor":
             # Open browser monitor
             import webbrowser
-            url = f"http://localhost:3000/?monitor=true"
+
+            url = "http://localhost:3000/?monitor=true"
             if args.diagram:
                 url += f"&diagram={args.diagram}"
             webbrowser.open(url)
@@ -168,10 +175,14 @@ def create_parser() -> argparse.ArgumentParser:
     # Ask command
     ask_parser = subparsers.add_parser("ask", help="Generate diagram from natural language")
     ask_parser.add_argument("--to", type=str, required=True, help="Natural language description")
-    ask_parser.add_argument("--and-run", action="store_true", help="Automatically run the generated diagram")
+    ask_parser.add_argument(
+        "--and-run", action="store_true", help="Automatically run the generated diagram"
+    )
     ask_parser.add_argument("--debug", action="store_true", help="Enable debug output")
     ask_parser.add_argument("--timeout", type=int, default=90, help="Generation timeout in seconds")
-    ask_parser.add_argument("--run-timeout", type=int, default=300, help="Execution timeout in seconds")
+    ask_parser.add_argument(
+        "--run-timeout", type=int, default=300, help="Execution timeout in seconds"
+    )
 
     # Run command
     run_parser = subparsers.add_parser("run", help="Execute a diagram")
@@ -182,8 +193,12 @@ def create_parser() -> argparse.ArgumentParser:
 
     # Input data options
     input_group = run_parser.add_mutually_exclusive_group()
-    input_group.add_argument("--inputs", type=str, help="Path to JSON file containing input variables")
-    input_group.add_argument("--input-data", type=str, help='Inline JSON string with input variables')
+    input_group.add_argument(
+        "--inputs", type=str, help="Path to JSON file containing input variables"
+    )
+    input_group.add_argument(
+        "--input-data", type=str, help="Inline JSON string with input variables"
+    )
 
     # Format options
     format_group = run_parser.add_mutually_exclusive_group()
@@ -195,8 +210,12 @@ def create_parser() -> argparse.ArgumentParser:
     convert_parser = subparsers.add_parser("convert", help="Convert between formats")
     convert_parser.add_argument("input", help="Input file")
     convert_parser.add_argument("output", help="Output file")
-    convert_parser.add_argument("--from-format", choices=["native", "light", "readable"], help="Source format")
-    convert_parser.add_argument("--to-format", choices=["native", "light", "readable"], help="Target format")
+    convert_parser.add_argument(
+        "--from-format", choices=["native", "light", "readable"], help="Source format"
+    )
+    convert_parser.add_argument(
+        "--to-format", choices=["native", "light", "readable"], help="Target format"
+    )
 
     # Stats command
     stats_parser = subparsers.add_parser("stats", help="Show diagram statistics")
@@ -209,24 +228,38 @@ def create_parser() -> argparse.ArgumentParser:
     # Metrics command
     metrics_parser = subparsers.add_parser("metrics", help="Display execution metrics")
     metrics_parser.add_argument("execution_id", nargs="?", help="Execution ID to show metrics for")
-    metrics_parser.add_argument("--diagram", type=str, help="Show metrics history for specific diagram")
-    metrics_parser.add_argument("--bottlenecks", action="store_true", help="Show only bottleneck analysis")
-    metrics_parser.add_argument("--optimizations", action="store_true", help="Show optimization suggestions")
+    metrics_parser.add_argument(
+        "--diagram", type=str, help="Show metrics history for specific diagram"
+    )
+    metrics_parser.add_argument(
+        "--bottlenecks", action="store_true", help="Show only bottleneck analysis"
+    )
+    metrics_parser.add_argument(
+        "--optimizations", action="store_true", help="Show optimization suggestions"
+    )
     metrics_parser.add_argument("--json", action="store_true", help="Output as JSON")
 
     # Integrations command
     integrations_parser = subparsers.add_parser("integrations", help="Manage API integrations")
-    integrations_subparsers = integrations_parser.add_subparsers(dest="integrations_action", help="Integration commands")
+    integrations_subparsers = integrations_parser.add_subparsers(
+        dest="integrations_action", help="Integration commands"
+    )
 
     # Integrations subcommands
-    init_parser = integrations_subparsers.add_parser("init", help="Initialize integrations workspace")
+    init_parser = integrations_subparsers.add_parser(
+        "init", help="Initialize integrations workspace"
+    )
     init_parser.add_argument("--path", type=str, help="Path to initialize")
 
-    validate_parser = integrations_subparsers.add_parser("validate", help="Validate provider manifests")
+    validate_parser = integrations_subparsers.add_parser(
+        "validate", help="Validate provider manifests"
+    )
     validate_parser.add_argument("--path", type=str, help="Path to integrations directory")
     validate_parser.add_argument("--provider", type=str, help="Validate specific provider only")
 
-    openapi_parser = integrations_subparsers.add_parser("openapi-import", help="Import OpenAPI specification")
+    openapi_parser = integrations_subparsers.add_parser(
+        "openapi-import", help="Import OpenAPI specification"
+    )
     openapi_parser.add_argument("openapi_path", help="Path to OpenAPI spec file")
     openapi_parser.add_argument("--name", required=True, help="Provider name")
     openapi_parser.add_argument("--output", type=str, help="Output directory")
@@ -239,32 +272,63 @@ def create_parser() -> argparse.ArgumentParser:
     test_parser.add_argument("--record", action="store_true", help="Record test for replay")
     test_parser.add_argument("--replay", action="store_true", help="Replay recorded test")
 
-    claude_code_parser = integrations_subparsers.add_parser("claude-code", help="Manage Claude Code TODO synchronization")
-    claude_code_parser.add_argument("--watch-todos", action="store_true", help="Enable TODO monitoring")
-    claude_code_parser.add_argument("--sync-mode", type=str, default="off", choices=["off", "manual", "auto", "watch"])
+    claude_code_parser = integrations_subparsers.add_parser(
+        "claude-code", help="Manage Claude Code TODO synchronization"
+    )
+    claude_code_parser.add_argument(
+        "--watch-todos", action="store_true", help="Enable TODO monitoring"
+    )
+    claude_code_parser.add_argument(
+        "--sync-mode", type=str, default="off", choices=["off", "manual", "auto", "watch"]
+    )
     claude_code_parser.add_argument("--output-dir", type=str, help="Output directory for diagrams")
-    claude_code_parser.add_argument("--auto-execute", action="store_true", help="Automatically execute generated diagrams")
-    claude_code_parser.add_argument("--debounce", type=float, default=2.0, help="Debounce time in seconds")
+    claude_code_parser.add_argument(
+        "--auto-execute", action="store_true", help="Automatically execute generated diagrams"
+    )
+    claude_code_parser.add_argument(
+        "--debounce", type=float, default=2.0, help="Debounce time in seconds"
+    )
     claude_code_parser.add_argument("--timeout", type=int, help="Timeout in seconds for monitoring")
 
     # DiPeOCC command
-    dipeocc_parser = subparsers.add_parser("dipeocc", help="Convert Claude Code sessions to DiPeO diagrams")
-    dipeocc_subparsers = dipeocc_parser.add_subparsers(dest="dipeocc_action", help="DiPeOCC commands")
+    dipeocc_parser = subparsers.add_parser(
+        "dipeocc", help="Convert Claude Code sessions to DiPeO diagrams"
+    )
+    dipeocc_subparsers = dipeocc_parser.add_subparsers(
+        dest="dipeocc_action", help="DiPeOCC commands"
+    )
 
     list_parser = dipeocc_subparsers.add_parser("list", help="List recent Claude Code sessions")
-    list_parser.add_argument("--limit", type=int, default=50, help="Maximum number of sessions to list")
+    list_parser.add_argument(
+        "--limit", type=int, default=50, help="Maximum number of sessions to list"
+    )
 
-    convert_parser = dipeocc_subparsers.add_parser("convert", help="Convert a session to DiPeO diagram")
+    convert_parser = dipeocc_subparsers.add_parser(
+        "convert", help="Convert a session to DiPeO diagram"
+    )
     convert_group = convert_parser.add_mutually_exclusive_group(required=True)
     convert_group.add_argument("session_id", nargs="?", help="Session ID to convert")
-    convert_group.add_argument("--latest", nargs="?", const=1, type=int, metavar="N", help="Convert the N most recent sessions")
+    convert_group.add_argument(
+        "--latest",
+        nargs="?",
+        const=1,
+        type=int,
+        metavar="N",
+        help="Convert the N most recent sessions",
+    )
     convert_parser.add_argument("--output-dir", type=str, help="Output directory")
-    convert_parser.add_argument("--format", type=str, choices=["light", "native", "readable"], default="light")
+    convert_parser.add_argument(
+        "--format", type=str, choices=["light", "native", "readable"], default="light"
+    )
 
-    watch_parser = dipeocc_subparsers.add_parser("watch", help="Watch for new sessions and convert automatically")
+    watch_parser = dipeocc_subparsers.add_parser(
+        "watch", help="Watch for new sessions and convert automatically"
+    )
     watch_parser.add_argument("--interval", type=int, default=30, help="Check interval in seconds")
 
-    stats_cc_parser = dipeocc_subparsers.add_parser("stats", help="Show detailed session statistics")
+    stats_cc_parser = dipeocc_subparsers.add_parser(
+        "stats", help="Show detailed session statistics"
+    )
     stats_cc_parser.add_argument("session_id", help="Session ID to analyze")
 
     return parser
@@ -273,8 +337,11 @@ def create_parser() -> argparse.ArgumentParser:
 def main():
     """Main entry point."""
     import warnings
+
     warnings.filterwarnings("ignore", message="Pydantic serializer warnings", category=UserWarning)
-    warnings.filterwarnings("ignore", message="Field name.*shadows an attribute", category=UserWarning)
+    warnings.filterwarnings(
+        "ignore", message="Field name.*shadows an attribute", category=UserWarning
+    )
 
     parser = create_parser()
     args = parser.parse_args()
@@ -283,6 +350,7 @@ def main():
     if not args.command or args.server:
         # Run as server
         import uvicorn
+
         from dipeo.infrastructure.logging_config import setup_logging
 
         # Setup logging
@@ -300,8 +368,8 @@ def main():
 
         uvicorn.run(
             app,
-            host=args.host if hasattr(args, 'host') else "0.0.0.0",
-            port=args.port if hasattr(args, 'port') else 8000,
+            host=args.host if hasattr(args, "host") else "0.0.0.0",
+            port=args.port if hasattr(args, "port") else 8000,
             log_level=log_level.lower(),
         )
     else:
@@ -315,6 +383,7 @@ def main():
         except Exception as e:
             print(f"Error: {e}")
             import traceback
+
             traceback.print_exc()
             sys.exit(1)
 
