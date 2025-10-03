@@ -152,6 +152,13 @@ class CLIRunner:
                 except Exception as update_err:
                     logger.error(f"Failed to update execution state after timeout: {update_err}")
 
+                # Cleanup container resources (especially Claude Code sessions)
+                try:
+                    await self.container.shutdown()
+                    logger.info("Container shutdown complete after timeout")
+                except Exception as cleanup_err:
+                    logger.error(f"Failed to cleanup container after timeout: {cleanup_err}")
+
                 if not simple:
                     print(f"\n❌ Execution timed out after {timeout} seconds")
                 return False

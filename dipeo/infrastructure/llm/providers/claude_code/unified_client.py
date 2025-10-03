@@ -34,9 +34,14 @@ logger = get_module_logger(__name__)
 
 # Check if fork_session is supported
 FORK_SESSION_SUPPORTED = "fork_session" in getattr(ClaudeAgentOptions, "__dataclass_fields__", {})
-FORK_SESSION_ENABLED = FORK_SESSION_SUPPORTED and os.getenv("DIPEO_CLAUDE_FORK_SESSION", "true").lower() == "true"
+FORK_SESSION_ENABLED = (
+    FORK_SESSION_SUPPORTED and os.getenv("DIPEO_CLAUDE_FORK_SESSION", "true").lower() == "true"
+)
 
-logger.info(f"[ClaudeCode] Fork session supported: {FORK_SESSION_SUPPORTED}, enabled: {FORK_SESSION_ENABLED}")
+logger.info(
+    f"[ClaudeCode] Fork session supported: {FORK_SESSION_SUPPORTED}, enabled: {FORK_SESSION_ENABLED}"
+)
+
 
 class UnifiedClaudeCodeClient:
     """Unified Claude Code client with efficient template-based session management.
@@ -79,7 +84,10 @@ class UnifiedClaudeCodeClient:
         self._active_sessions: list[ClaudeSDKClient] = []
         self._session_lock = asyncio.Lock()
 
-        logger.info("[ClaudeCode] Initialized with template-based session management (fork enabled: %s)", FORK_SESSION_ENABLED)
+        logger.info(
+            "[ClaudeCode] Initialized with template-based session management (fork enabled: %s)",
+            FORK_SESSION_ENABLED,
+        )
 
     def _get_capabilities(self) -> ProviderCapabilities:
         """Get Claude Code provider capabilities."""
@@ -109,9 +117,7 @@ class UnifiedClaudeCodeClient:
             kwargs.pop("trace_id", None)
 
     async def _get_or_create_template(
-        self,
-        options: ClaudeAgentOptions,
-        execution_phase: str
+        self, options: ClaudeAgentOptions, execution_phase: str
     ) -> ClaudeSDKClient:
         """Get or create a template session for the given phase.
 
@@ -146,9 +152,7 @@ class UnifiedClaudeCodeClient:
             return template_session
 
     async def _create_forked_session(
-        self,
-        options: ClaudeAgentOptions,
-        execution_phase: str
+        self, options: ClaudeAgentOptions, execution_phase: str
     ) -> ClaudeSDKClient:
         """Create a session by forking from template or creating fresh.
 
@@ -170,14 +174,18 @@ class UnifiedClaudeCodeClient:
 
                 # Create a forked session from the template
                 # The fork will inherit the template's configuration but have its own state
-                logger.debug(f"[ClaudeCode] Forking session from template for phase '{execution_phase}'")
+                logger.debug(
+                    f"[ClaudeCode] Forking session from template for phase '{execution_phase}'"
+                )
 
                 # Create new session with resume from template (this creates a fork)
-                fork_options = ClaudeAgentOptions(**{
-                    **options.__dict__,
-                    "resume": template.session_id if hasattr(template, "session_id") else None,
-                    "fork_session": True
-                })
+                fork_options = ClaudeAgentOptions(
+                    **{
+                        **options.__dict__,
+                        "resume": template.session_id if hasattr(template, "session_id") else None,
+                        "fork_session": True,
+                    }
+                )
 
                 forked_session = ClaudeSDKClient(options=fork_options)
                 await forked_session.connect(None)
@@ -189,7 +197,9 @@ class UnifiedClaudeCodeClient:
                 return forked_session
 
             except Exception as e:
-                logger.warning(f"[ClaudeCode] Failed to fork from template: {e}, creating fresh session")
+                logger.warning(
+                    f"[ClaudeCode] Failed to fork from template: {e}, creating fresh session"
+                )
 
         # Fallback: Create a fresh session if forking is not available or failed
         logger.debug(f"[ClaudeCode] Creating fresh session for phase '{execution_phase}'")
@@ -208,7 +218,7 @@ class UnifiedClaudeCodeClient:
         session: ClaudeSDKClient,
         query_input: str,
         execution_phase: ExecutionPhase | None,
-        session_id: str
+        session_id: str,
     ) -> LLMResponse:
         """Execute a query on a session.
 
@@ -374,9 +384,7 @@ class UnifiedClaudeCodeClient:
                 else:
                     combined_content.append(content_text)
 
-            query_input = (
-                "\n\n".join(combined_content) if combined_content else "Please respond"
-            )
+            query_input = "\n\n".join(combined_content) if combined_content else "Please respond"
 
             # Execute query with unique session ID
             session_id = f"{phase_key}_{uuid4()}"
@@ -500,7 +508,9 @@ class UnifiedClaudeCodeClient:
         """Cleanup all sessions on shutdown."""
         # Clean up active forked sessions
         async with self._session_lock:
-            for session in self._active_sessions[:]:  # Copy list to avoid modification during iteration
+            for session in self._active_sessions[
+                :
+            ]:  # Copy list to avoid modification during iteration
                 try:
                     await session.disconnect()
                     logger.debug("[ClaudeCode] Disconnected active forked session")
@@ -514,9 +524,16 @@ class UnifiedClaudeCodeClient:
                 if template:
                     try:
                         await template.disconnect()
-                        logger.debug(f"[ClaudeCode] Disconnected template session for phase '{phase}'")
+                        logger.debug(
+                            f"[ClaudeCode] Disconnected template session for phase '{phase}'"
+                        )
                     except Exception as e:
-                        logger.warning(f"[ClaudeCode] Error disconnecting template for phase '{phase}': {e}")
+                        logger.warning(
+                            f"[ClaudeCode] Error disconnecting template for phase '{phase}': {e}"
+                        )
             self._template_sessions.clear()
+
+        # Give subprocess time to terminate gracefully to avoid EPIPE errors
+        await asyncio.sleep(0.5)
 
         logger.info("[ClaudeCode] Cleanup complete (templates and forked sessions)")

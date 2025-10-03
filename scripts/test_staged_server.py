@@ -12,19 +12,12 @@ import sys
 import time
 from pathlib import Path
 
-import requests
-
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 # Configuration
-SERVER_HOST = "localhost"
-SERVER_PORT = 8000
-HEALTH_ENDPOINT = f"http://{SERVER_HOST}:{SERVER_PORT}/health"
-GRAPHQL_ENDPOINT = f"http://{SERVER_HOST}:{SERVER_PORT}/graphql"
 STARTUP_TIMEOUT = 30  # seconds
-CHECK_INTERVAL = 1  # seconds
 
 
 def override_imports_to_staged():
@@ -117,15 +110,14 @@ def test_imports():
         return False
 
 
-def start_server():
-    """Start the server with staged imports."""
-    # Command to run the DiPeO server
+def run_test_diagram():
+    """Run test diagram with staged imports."""
     cmd = "dipeo run examples/simple_diagrams/test_cc --light --debug --simple --timeout=25"
 
-    print("Starting server with staged code...")
+    print("Running test diagram with staged code...")
     print(f"Command: {cmd}")
 
-    # Start server as subprocess
+    # Run diagram as subprocess
     env = os.environ.copy()
     process = subprocess.Popen(
         cmd,
@@ -141,94 +133,33 @@ def start_server():
     return process
 
 
-def wait_for_server(process, timeout=STARTUP_TIMEOUT):
-    """Wait for server to be ready or fail."""
-    start_time = time.time()
-
-    while time.time() - start_time < timeout:
-        # Check if process has crashed
-        if process.poll() is not None:
-            stdout, stderr = process.communicate()
-            print("❌ Server crashed during startup")
-            print(f"STDOUT:\n{stdout}")
-            print(f"STDERR:\n{stderr}")
-            return False
-
-        # Try health check
-        try:
-            response = requests.get(HEALTH_ENDPOINT, timeout=1)
-            if response.status_code == 200:
-                print(f"✅ Server is healthy (took {time.time() - start_time:.1f}s)")
-                return True
-        except requests.exceptions.RequestException:
-            # Server not ready yet
-            pass
-
-        time.sleep(CHECK_INTERVAL)
-
-    print(f"❌ Server startup timeout after {timeout}s")
-    return False
-
-
-def test_graphql_endpoint(process):
-    """Test if GraphQL endpoint works with staged code."""
-    # Check if process is still running
-    if process.poll() is not None:
-        print("⚠️  Process already terminated before GraphQL test")
-        stdout, stderr = process.communicate()
-        print(f"STDOUT:\n{stdout}")
-        print(f"STDERR:\n{stderr}")
-        return False
-
-    # Give server a moment to fully initialize GraphQL
-    time.sleep(1)
-
+def wait_for_completion(process, timeout=STARTUP_TIMEOUT):
+    """Wait for diagram execution to complete."""
     try:
-        # Simple introspection query
-        query = {"query": "{ __schema { queryType { name } } }"}
+        stdout, stderr = process.communicate(timeout=timeout)
+        exit_code = process.returncode
 
-        response = requests.post(GRAPHQL_ENDPOINT, json=query, timeout=5)
-
-        if response.status_code == 200:
-            data = response.json()
-            if "data" in data:
-                print("✅ GraphQL endpoint working")
-                return True
-            else:
-                print(f"❌ GraphQL response missing data: {data}")
-                return False
+        # Check exit code
+        if exit_code == 0:
+            print("✅ Diagram execution completed successfully")
+            return True
         else:
-            print(f"❌ GraphQL returned status {response.status_code}")
-            return False
-
-    except Exception as e:
-        print(f"❌ GraphQL test failed: {e}")
-        # Check if process died during the test
-        if process.poll() is not None:
-            print("⚠️  Process terminated during GraphQL test")
-            stdout, stderr = process.communicate()
+            print(f"❌ Diagram execution failed with exit code {exit_code}")
             if stdout:
                 print(f"STDOUT:\n{stdout}")
             if stderr:
                 print(f"STDERR:\n{stderr}")
+            return False
+
+    except subprocess.TimeoutExpired:
+        print(f"❌ Diagram execution timeout after {timeout}s")
+        process.kill()
+        stdout, stderr = process.communicate()
+        if stdout:
+            print(f"STDOUT:\n{stdout}")
+        if stderr:
+            print(f"STDERR:\n{stderr}")
         return False
-
-
-def stop_server(process):
-    """Gracefully stop the server."""
-    if process and process.poll() is None:
-        print("Stopping server...")
-        process.terminate()
-
-        # Wait for graceful shutdown
-        try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            # Force kill if needed
-            process.kill()
-            process.wait()
-
-        print("Server stopped")
 
 
 def restore_directories():
@@ -250,7 +181,7 @@ def restore_directories():
         # Step 2: Restore the original active directory
         if active_backup.exists():
             active_backup.rename(active_dir)
-            print(f"✅ Restored active directory from backup")
+            print("✅ Restored active directory from backup")
         else:
             print(f"⚠️  Backup directory not found: {active_backup}")
 
@@ -280,41 +211,21 @@ def main():
             print("\n❌ FAILED: Staged code has import errors")
             return 1
 
-        # Step 3: Start server
-        process = start_server()
+        # Step 3: Run test diagram
+        process = run_test_diagram()
         if not process:
             return 1
 
-        try:
-            # Step 4: Wait for server to be ready
-            if not wait_for_server(process):
-                print("\n❌ FAILED: Server failed to start with staged code")
-                return 1
+        # Step 4: Wait for diagram execution to complete
+        if not wait_for_completion(process):
+            print("\n❌ FAILED: Diagram execution failed with staged code")
+            return 1
 
-            # Step 5: Server is healthy, now wait for diagram execution to complete
-            # (GraphQL introspection test skipped - diagram execution is the real validation)
-            print("\nWaiting for diagram execution to complete...")
-            exit_code = process.wait()  # Wait for process to terminate naturally
-
-            if exit_code == 0:
-                print("✅ Diagram execution completed successfully")
-            else:
-                stdout, stderr = process.communicate()
-                print(f"⚠️  Diagram execution ended with code {exit_code}")
-                if stdout:
-                    print(f"STDOUT:\n{stdout}")
-                if stderr:
-                    print(f"STDERR:\n{stderr}")
-
-            print("\n" + "=" * 60)
-            print("✅ SUCCESS: Server runs correctly with staged code!")
-            print("   Safe to apply staged changes to active directory")
-            print("=" * 60)
-            return 0
-
-        finally:
-            # Stop the server if it's still running (shouldn't be after wait())
-            stop_server(process)
+        print("\n" + "=" * 60)
+        print("✅ SUCCESS: Staged code validated successfully!")
+        print("   Safe to apply staged changes to active directory")
+        print("=" * 60)
+        return 0
 
     finally:
         # Always restore directories
