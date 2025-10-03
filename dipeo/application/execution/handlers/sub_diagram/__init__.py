@@ -61,13 +61,10 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     def __init__(self):
         """Initialize executors."""
         super().__init__()
-        # Initialize executors
+        # Initialize executors (stateless, safe to reuse)
         self.lightweight_executor = LightweightSubDiagramExecutor()
         self.single_executor = SingleSubDiagramExecutor()
         self.batch_executor = BatchSubDiagramExecutor()
-
-        # Services configured flag
-        self._services_configured = False
 
     @property
     def node_class(self) -> type[SubDiagramNode]:
@@ -109,36 +106,33 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
 
     async def pre_execute(self, request: ExecutionRequest[SubDiagramNode]) -> Envelope | None:
         """Pre-execution hook to configure services and validate execution context."""
-        # Configure services for executors on first execution
-        if not self._services_configured:
-            # Get services from request
-            state_store = request.get_optional_service(STATE_STORE)
-            message_router = request.get_optional_service(MESSAGE_ROUTER)
-            diagram_service = request.get_optional_service(DIAGRAM_PORT)
-            prepare_use_case = request.get_optional_service(PREPARE_DIAGRAM_USE_CASE)
+        # Configure services for executors (no caching via flag to avoid statefulness)
+        # Get services from request
+        state_store = request.get_optional_service(STATE_STORE)
+        message_router = request.get_optional_service(MESSAGE_ROUTER)
+        diagram_service = request.get_optional_service(DIAGRAM_PORT)
+        prepare_use_case = request.get_optional_service(PREPARE_DIAGRAM_USE_CASE)
 
-            # Set services on executors
-            self.single_executor.set_services(
-                state_store=state_store,
-                message_router=message_router,
-                diagram_service=diagram_service,
-                service_registry=request.services,
-            )
+        # Set services on executors
+        self.single_executor.set_services(
+            state_store=state_store,
+            message_router=message_router,
+            diagram_service=diagram_service,
+            service_registry=request.services,
+        )
 
-            self.batch_executor.set_services(
-                state_store=state_store,
-                message_router=message_router,
-                diagram_service=diagram_service,
-                service_registry=request.services,
-            )
+        self.batch_executor.set_services(
+            state_store=state_store,
+            message_router=message_router,
+            diagram_service=diagram_service,
+            service_registry=request.services,
+        )
 
-            self.lightweight_executor.set_services(
-                prepare_use_case=prepare_use_case,
-                diagram_service=diagram_service,
-                service_registry=request.services,
-            )
-
-            self._services_configured = True
+        self.lightweight_executor.set_services(
+            prepare_use_case=prepare_use_case,
+            diagram_service=diagram_service,
+            service_registry=request.services,
+        )
 
         # Return None to proceed with normal execution
         return None

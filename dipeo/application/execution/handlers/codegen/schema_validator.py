@@ -34,11 +34,6 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
     def __init__(self):
         super().__init__()
         self._validator = None
-        # Instance variables for passing data between methods
-        self._current_strict_mode = None
-        self._current_error_on_extra = None
-        self._current_schema_path = None
-        self._current_debug = None
 
     @property
     def node_class(self) -> type[JsonSchemaValidatorNode]:
@@ -71,11 +66,11 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         node = request.node
         services = request.services
 
-        # Extract configuration
-        self._current_strict_mode = node.strict_mode or False
-        self._current_error_on_extra = node.error_on_extra or False
-        self._current_schema_path = node.schema_path
-        self._current_debug = False  # Will be set based on context if needed
+        # Store configuration in handler state
+        request.set_handler_state("strict_mode", node.strict_mode or False)
+        request.set_handler_state("error_on_extra", node.error_on_extra or False)
+        request.set_handler_state("schema_path", node.schema_path)
+        request.set_handler_state("debug", False)  # Will be set based on context if needed
 
         # Check filesystem adapter availability
         filesystem_adapter = request.get_optional_service(FILESYSTEM_ADAPTER)
@@ -105,8 +100,8 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         # Get filesystem adapter from request for early checks
         filesystem_adapter = request.get_required_service(FILESYSTEM_ADAPTER)
 
-        # Store inputs as envelope dict for data extraction
-        self._envelope_inputs = envelope_inputs
+        # Store inputs as envelope dict for data extraction via handler state
+        request.set_handler_state("envelope_inputs", envelope_inputs)
 
         # Check if data_path is provided
         if node.data_path:
@@ -190,34 +185,38 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         validation_result = await self._validate_data(
             data_to_validate,
             schema,
-            strict_mode=self._current_strict_mode,
-            error_on_extra=self._current_error_on_extra,
+            strict_mode=request.get_handler_state("strict_mode"),
+            error_on_extra=request.get_handler_state("error_on_extra"),
         )
 
         if validation_result["valid"]:
             # Log success
-            if self._current_debug:
+            debug = request.get_handler_state("debug")
+            schema_path = request.get_handler_state("schema_path")
+            if debug:
                 print(f"[JsonSchemaValidatorNode] ✓ Validation successful for node {node.id}")
                 if node.data_path:
                     print(f"[JsonSchemaValidatorNode]   - Data file: {node.data_path}")
-                if self._current_schema_path:
-                    print(f"[JsonSchemaValidatorNode]   - Schema file: {self._current_schema_path}")
+                if schema_path:
+                    print(f"[JsonSchemaValidatorNode]   - Schema file: {schema_path}")
 
             # Return data with validation metadata
             return {
                 "data": data_to_validate,
                 "validation_result": validation_result,
-                "schema_path": self._current_schema_path,
+                "schema_path": request.get_handler_state("schema_path"),
                 "data_path": node.data_path,
             }
         else:
             # Log failure
-            if self._current_debug:
+            debug = request.get_handler_state("debug")
+            schema_path = request.get_handler_state("schema_path")
+            if debug:
                 print(f"[JsonSchemaValidatorNode] ✗ Validation FAILED for node {node.id}")
                 if node.data_path:
                     print(f"[JsonSchemaValidatorNode]   - Data file: {node.data_path}")
-                if self._current_schema_path:
-                    print(f"[JsonSchemaValidatorNode]   - Schema file: {self._current_schema_path}")
+                if schema_path:
+                    print(f"[JsonSchemaValidatorNode]   - Schema file: {schema_path}")
                 print(
                     f"[JsonSchemaValidatorNode]   - Errors found: {len(validation_result['errors'])}"
                 )
@@ -248,7 +247,7 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
             produced_by=node.id,
             trace_id=trace_id,
         ).with_meta(
-            strict_mode=self._current_strict_mode,
+            strict_mode=request.get_handler_state("strict_mode"),
             message="Validation successful",
             schema_path=result.get("schema_path"),
             data_path=result.get("data_path"),
@@ -324,10 +323,12 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         self.emit_token_outputs(request, output)
 
         # Debug logging without using request.metadata
-        if self._current_debug:
+        debug = request.get_handler_state("debug")
+        strict_mode = request.get_handler_state("strict_mode")
+        if debug:
             if not output.has_error():
                 print(
-                    f"[JsonSchemaValidatorNode] Validation complete - Valid: True, Strict: {self._current_strict_mode}"
+                    f"[JsonSchemaValidatorNode] Validation complete - Valid: True, Strict: {strict_mode}"
                 )
             else:
                 # Try to get errors from metadata

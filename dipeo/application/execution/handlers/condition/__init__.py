@@ -48,8 +48,6 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             "custom": CustomExpressionEvaluator(),
             "llm_decision": LLMDecisionEvaluator(),
         }
-        # Instance variables for passing data between methods
-        self._current_evaluator = None
 
     @property
     def node_class(self) -> type[ConditionNode]:
@@ -122,8 +120,8 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                 meta={"error_type": "ValueError", "is_error": True},
             )
 
-        # Store evaluator in instance variable for execute_request
-        self._current_evaluator = evaluator
+        # Store evaluator in request state
+        request.set_handler_state("evaluator", evaluator)
 
         # No early return - proceed to execute_request
         return None
@@ -165,8 +163,8 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         context = request.context
         legacy_inputs = inputs
 
-        # Use evaluator from instance variable (set in pre_execute)
-        evaluator = self._current_evaluator
+        # Use evaluator from request state (set in pre_execute)
+        evaluator = request.get_handler_state("evaluator")
 
         # For LLM decision evaluator, pass required services
         if node.condition_type == "llm_decision" and hasattr(evaluator, "set_services"):
@@ -193,8 +191,8 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         result = eval_result["result"]
         output_value = eval_result["output_data"] or {}
 
-        # Store evaluation metadata in instance variable for later use
-        self._current_evaluation_metadata = eval_result["metadata"]
+        # Get evaluation metadata
+        evaluation_metadata = eval_result["metadata"]
 
         # Return only the active branch data
         active_branch = "condtrue" if result else "condfalse"
@@ -206,7 +204,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             "active_branch": active_branch,
             "branch_data": output_value,  # Direct pass-through of active branch data
             "condition_type": node.condition_type,
-            "evaluation_metadata": self._current_evaluation_metadata,
+            "evaluation_metadata": evaluation_metadata,
             "timestamp": time.time(),
         }
 
@@ -230,8 +228,8 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             trace_id=request.execution_id or "",
         )
 
-        # Store the branch decision for post_execute to use
-        self._active_branch = active_branch
+        # Store the branch decision for post_execute to use via handler state
+        request.set_handler_state("active_branch", active_branch)
 
         return output
 
@@ -241,8 +239,8 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         Only emits token on the active branch port to avoid confusion in TokenManager.
         TokenManager will match these ports to edges with matching source_output.
         """
-        # Use the branch decision from serialize_output
-        active_branch = getattr(self, "_active_branch", "condfalse")
+        # Use the branch decision from handler state
+        active_branch = request.get_handler_state("active_branch", "condfalse")
 
         # Emit output ONLY on the active branch port
         # This ensures TokenManager correctly tracks which branch was taken

@@ -32,7 +32,6 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
 
     def __init__(self):
         super().__init__()
-        self._current_timeout = None
 
     @property
     def node_class(self) -> type[HookNode]:
@@ -91,11 +90,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                     },
                     produced_by=str(node.id),
                 )
-            filesystem_adapter = getattr(self, "_filesystem_adapter", None)
-            if filesystem_adapter is None:
-                filesystem_adapter = request.get_optional_service(FILESYSTEM_ADAPTER)
-                if filesystem_adapter is not None:
-                    self._filesystem_adapter = filesystem_adapter
+            filesystem_adapter = request.get_optional_service(FILESYSTEM_ADAPTER)
 
             if not filesystem_adapter:
                 return EnvelopeFactory.create(
@@ -105,8 +100,9 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                     },
                     produced_by=str(node.id),
                 )
+            request.set_handler_state("filesystem_adapter", filesystem_adapter)
 
-        self._current_timeout = node.timeout or 30
+        request.set_handler_state("timeout", node.timeout or 30)
 
         return None
 
@@ -130,7 +126,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         node = request.node
 
         try:
-            result = await self._execute_hook(node, inputs)
+            result = await self._execute_hook(node, inputs, request)
             return result
         finally:
             if hasattr(self, "_temp_filesystem_adapter"):
@@ -177,19 +173,19 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
 
         return output
 
-    async def _execute_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
+    async def _execute_hook(self, node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]) -> Any:
         if node.hook_type == HookType.SHELL:
-            return await self._execute_shell_hook(node, inputs)
+            return await self._execute_shell_hook(node, inputs, request)
         elif node.hook_type == HookType.WEBHOOK:
-            return await self._execute_webhook_hook(node, inputs)
+            return await self._execute_webhook_hook(node, inputs, request)
         elif node.hook_type == HookType.PYTHON:
-            return await self._execute_python_hook(node, inputs)
+            return await self._execute_python_hook(node, inputs, request)
         elif node.hook_type == HookType.FILE:
-            return await self._execute_file_hook(node, inputs)
+            return await self._execute_file_hook(node, inputs, request)
         else:
             raise InvalidDiagramError(f"Unknown hook type: {node.hook_type}")
 
-    async def _execute_shell_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
+    async def _execute_shell_hook(self, node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]) -> Any:
         config = node.config
         command = config.get("command")
 
@@ -208,7 +204,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                 *cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=config.get("cwd"), env=env
             )
 
-            timeout = self._current_timeout or 30
+            timeout = request.get_handler_state("timeout", 30)
             stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
 
             if process.returncode != 0:
@@ -225,7 +221,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         except TimeoutError:
             raise NodeExecutionError(f"Shell command timed out after {timeout} seconds") from None
 
-    async def _execute_webhook_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
+    async def _execute_webhook_hook(self, node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]) -> Any:
         """Execute webhook hook - send request or subscribe to events."""
         config = node.config
 
@@ -240,7 +236,8 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
 
         payload = {"inputs": inputs, "hook_type": "hook_node", "node_id": node.label}
 
-        timeout = aiohttp.ClientTimeout(total=self._current_timeout or 30)
+        timeout_value = request.get_handler_state("timeout", 30)
+        timeout = aiohttp.ClientTimeout(total=timeout_value)
 
         async with aiohttp.ClientSession(timeout=timeout) as session:
             try:
@@ -317,7 +314,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                 "message": f"Webhook subscription timed out after {timeout} seconds",
             }
 
-    async def _execute_python_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
+    async def _execute_python_hook(self, node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]) -> Any:
         config = node.config
         script = config.get("script")
 
@@ -339,7 +336,7 @@ print(json.dumps(result))
                 "python", "-c", code, stdout=subprocess.PIPE, stderr=subprocess.PIPE
             )
 
-            timeout = self._current_timeout or 30
+            timeout = request.get_handler_state("timeout", 30)
             stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
 
             if process.returncode != 0:
@@ -354,7 +351,7 @@ print(json.dumps(result))
         except json.JSONDecodeError as e:
             raise NodeExecutionError(f"Failed to parse Python script output: {e!s}") from e
 
-    async def _execute_file_hook(self, node: HookNode, inputs: dict[str, Any]) -> Any:
+    async def _execute_file_hook(self, node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]) -> Any:
         config = node.config
         file_path = config.get("file_path")
 
@@ -364,12 +361,13 @@ print(json.dumps(result))
 
         try:
             path = Path(file_path)
-            if not self._filesystem_adapter:
+            filesystem_adapter = request.get_handler_state("filesystem_adapter")
+            if not filesystem_adapter:
                 raise NodeExecutionError("Filesystem adapter not available")
 
             parent_dir = path.parent
-            if parent_dir != Path() and not self._filesystem_adapter.exists(parent_dir):
-                self._filesystem_adapter.mkdir(parent_dir, parents=True)
+            if parent_dir != Path() and not filesystem_adapter.exists(parent_dir):
+                filesystem_adapter.mkdir(parent_dir, parents=True)
 
             if format_type == "json":
                 content = json.dumps(data, indent=2)
@@ -380,7 +378,7 @@ print(json.dumps(result))
             else:  # text
                 content = str(data)
 
-            with self._filesystem_adapter.open(path, "wb") as f:
+            with filesystem_adapter.open(path, "wb") as f:
                 f.write(content.encode("utf-8"))
 
             return {"status": "success", "file": str(path)}

@@ -34,8 +34,6 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
     def __init__(self):
         """Initialize the IR builder node handler."""
         super().__init__()
-        self._current_builder = None
-        self._current_cache_key = None
 
     @property
     def node_class(self) -> type[IrBuilderNode]:
@@ -103,7 +101,8 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
                     trace_id=request.execution_id or "",
                 )
 
-            self._current_builder = ir_builder_registry.get_builder(node.builder_type)
+            current_builder = ir_builder_registry.get_builder(node.builder_type)
+            request.set_handler_state("current_builder", current_builder)
             # logger.info(f"Initialized {node.builder_type} IR builder")
         except Exception as e:
             logger.error(f"Failed to initialize IR builder: {e}")
@@ -156,13 +155,15 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
             Built IR data
         """
         node = request.node
+        current_builder = request.get_handler_state("current_builder")
 
         # Generate cache key
-        self._current_cache_key = self._current_builder.get_cache_key(inputs)
+        current_cache_key = current_builder.get_cache_key(inputs)
+        request.set_handler_state("current_cache_key", current_cache_key)
 
         # Check cache if enabled
         if node.cache_enabled:
-            cached = await self._ir_cache.get(self._current_cache_key)
+            cached = await self._ir_cache.get(current_cache_key)
             if cached:
                 # logger.info(f"Using cached IR for {node.builder_type}")
                 return cached
@@ -170,20 +171,20 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
         # Build IR
         # logger.info(f"Building {node.builder_type} IR from {len(inputs)} source files")
         try:
-            ir_data = await self._current_builder.build_ir(inputs)
+            ir_data = await current_builder.build_ir(inputs)
 
-            # Store the IR data for metadata access in serialize_output
-            self._current_ir_data = ir_data
+            # Store the IR data for metadata access in serialize_output via handler state
+            request.set_handler_state("current_ir_data", ir_data)
 
             # Validate if requested
             if node.validate_output:
-                if not self._current_builder.validate_ir(ir_data):
+                if not current_builder.validate_ir(ir_data):
                     raise ValueError(f"IR validation failed for {node.builder_type}")
                 # logger.info(f"IR validation passed for {node.builder_type}")
 
             # Cache result if enabled
             if node.cache_enabled:
-                await self._ir_cache.set(self._current_cache_key, ir_data)
+                await self._ir_cache.set(current_cache_key, ir_data)
                 # logger.info(f"Cached IR for {node.builder_type}")
 
             # Return based on output format
@@ -268,16 +269,19 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
         )
 
         # Build metadata - include IR metadata if it was part of the original IRData
+        current_cache_key = request.get_handler_state("current_cache_key")
+        current_ir_data = request.get_handler_state("current_ir_data")
+
         meta_dict = {
             "builder_type": node.builder_type,
-            "cache_key": self._current_cache_key,
+            "cache_key": current_cache_key,
             "cached": node.cache_enabled,
             "validated": node.validate_output,
         }
 
         # If we stored the original IRData, extract its metadata
-        if hasattr(self, "_current_ir_data") and hasattr(self._current_ir_data, "metadata"):
-            meta_dict["ir_metadata"] = self._current_ir_data.metadata.dict()
+        if current_ir_data and hasattr(current_ir_data, "metadata"):
+            meta_dict["ir_metadata"] = current_ir_data.metadata.dict()
 
         # Use ** to unpack the dictionary as keyword arguments
         envelope = envelope.with_meta(**meta_dict)
