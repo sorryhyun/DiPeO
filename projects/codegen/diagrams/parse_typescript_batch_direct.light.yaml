@@ -111,6 +111,17 @@ nodes:
                 # Skip dummy entry
                 if file_path == "_dummy":
                     continue
+
+                # Skip if parse_result is not a dict (error case)
+                if not isinstance(parse_result, dict):
+                    print(f"Warning: Skipping {file_path} - parse result is not a dict: {type(parse_result)}")
+                    continue
+
+                # Skip if there's an error in the result
+                if parse_result.get('error'):
+                    print(f"Warning: Skipping {file_path} - parse error: {parse_result.get('error')}")
+                    continue
+
                 # Get relative path from models_dir
                 if file_path.startswith(models_dir):
                     relative_path = os.path.relpath(file_path, models_dir)
@@ -129,7 +140,7 @@ nodes:
                 # Save the parsed result to cache
                 try:
                     with open(cache_path, 'w', encoding='utf-8') as f:
-                        json.dump(parse_result['ast'], f, indent=2)
+                        json.dump(parse_result.get('ast', {}), f, indent=2)
                     cached_count += 1
                 except Exception as e:
                     print(f"Warning: Failed to cache {file_path}: {e}")
