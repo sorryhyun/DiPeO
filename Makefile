@@ -95,9 +95,9 @@ codegen: parse-typescript
 codegen-auto: parse-typescript
 	@echo "⚠️  WARNING: Auto-applying all changes!"
 	@if command -v dipeo >/dev/null 2>&1; then \
-		dipeo run projects/codegen/diagrams/generate_all --light --simple --timeout=45; \
+		DIPEO_BASE_DIR=$(shell pwd) dipeo run projects/codegen/diagrams/generate_all --light --simple --timeout=45; \
 	else \
-		uv run python -m dipeo_server.cli run projects/codegen/diagrams/generate_all --light --timeout=45; \
+		DIPEO_BASE_DIR=$(shell pwd) uv run dipeo run projects/codegen/diagrams/generate_all --light --timeout=45; \
 	fi
 	@sleep 1
 	@if [ ! -d "dipeo/diagram_generated_staged" ]; then \
