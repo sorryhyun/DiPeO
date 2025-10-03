@@ -98,9 +98,8 @@ Command-line tool for running diagrams and managing DiPeO.
 
 ### Architecture
 ```
-apps/cli/
-├── src/dipeo_cli/
-│   ├── commands/           # CLI command implementations
+apps/server/src/dipeo_server/cli/
+├── commands/           # CLI command implementations
 │   │   ├── run_command.py      # Diagram execution
 │   │   ├── ask_command.py      # Natural language to diagram
 │   │   ├── claude_code_command.py  # Claude Code integration (dipeocc)

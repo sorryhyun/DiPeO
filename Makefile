@@ -45,7 +45,7 @@ install:
 	@echo "Installing dependencies..."
 	@command -v uv >/dev/null 2>&1 || (echo "Installing uv..." && curl -LsSf https://astral.sh/uv/install.sh | sh)
 	@export PATH="$$HOME/.local/bin:$$PATH" && uv sync
-	@export PATH="$$HOME/.local/bin:$$PATH" && uv pip install -e dipeo -e apps/server -e apps/cli
+	@export PATH="$$HOME/.local/bin:$$PATH" && uv pip install -e dipeo -e apps/server
 	pnpm install
 	@echo "All dependencies installed!"
 	@echo "Activate the virtual environment with: source .venv/bin/activate"
@@ -167,7 +167,7 @@ graphql-schema:
 	@echo "GraphQL TypeScript types generated!"
 
 # Python directories
-PY_DIRS := apps/server apps/cli dipeo
+PY_DIRS := apps/server dipeo
 
 # Linting
 lint-web:
@@ -186,7 +186,7 @@ lint-cli:
 	@for dir in $(PY_DIRS); do \
 		[ -d "$$dir/src" ] && (cd $$dir && ruff check --exclude="*/__generated__.py" src $$([ -d tests ] && echo tests)) || true; \
 	done
-	@cd apps/cli && mypy src || true
+	@cd apps/server && mypy src || true
 
 # Formatting
 format:

@@ -6,17 +6,17 @@ and phase-specific prompt construction for the Claude Code adapter.
 
 import json
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import re
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import Message
 from dipeo.diagram_generated.enums import ExecutionPhase
 
 from .prompts import DIRECT_EXECUTION_PROMPT, LLM_DECISION_PROMPT, MEMORY_SELECTION_PROMPT
 
 logger = get_module_logger(__name__)
+
 
 class ClaudeCodeMessageProcessor:
     """Processor for Claude Code messages and prompts."""
@@ -120,14 +120,14 @@ class ClaudeCodeMessageProcessor:
                 formatted_messages.append(
                     {
                         "type": "assistant",
-                        "message": ClaudeCodeMessageProcessor._stringify_payload(message_payload),
+                        "message": message_payload,
                     }
                 )
             else:
                 formatted_messages.append(
                     {
                         "type": "user",
-                        "message": ClaudeCodeMessageProcessor._stringify_payload(message_payload),
+                        "message": message_payload,
                     }
                 )
 
@@ -142,11 +142,277 @@ class ClaudeCodeMessageProcessor:
             formatted_messages.append(
                 {
                     "type": "user",
-                    "message": ClaudeCodeMessageProcessor._stringify_payload(fallback_payload),
+                    "message": fallback_payload,
                 }
             )
 
+        # Claude Code SDK doesn't support assistant messages in input,
+        # so we convert them to user messages with context prefix instead
+        formatted_messages = ClaudeCodeMessageProcessor._convert_assistant_to_user_context(
+            formatted_messages
+        )
+
+        # Combine consecutive user messages to avoid streaming issues
+        formatted_messages = ClaudeCodeMessageProcessor._combine_consecutive_user_messages(
+            formatted_messages
+        )
+
         return system_message, formatted_messages
+
+    @staticmethod
+    def _convert_assistant_to_user_context(
+        formatted_messages: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """Convert assistant messages to user context messages for Claude Code.
+
+        Claude Code SDK only accepts user messages as input. Assistant messages
+        (typically from memory) are converted to user messages with a context prefix.
+
+        Args:
+            formatted_messages: List of formatted message dictionaries
+
+        Returns:
+            Transformed message list with all assistant messages converted to user context
+        """
+        result = []
+        for msg in formatted_messages:
+            if msg.get("type") == "assistant":
+                # Extract content from assistant message
+                msg_data = msg["message"]
+                if isinstance(msg_data, str):
+                    msg_data = json.loads(msg_data)
+
+                content = msg_data.get("content", [])
+
+                # Convert to user message with context prefix
+                text_content = []
+                if isinstance(content, list):
+                    for block in content:
+                        if isinstance(block, dict) and block.get("type") == "text":
+                            text_content.append(block.get("text", ""))
+                        elif isinstance(block, str):
+                            text_content.append(block)
+                else:
+                    text_content.append(str(content))
+
+                if text_content:
+                    context_text = "[Previous response] " + " ".join(text_content)
+                    result.append(
+                        {
+                            "type": "user",
+                            "message": {
+                                "role": "user",
+                                "content": [{"type": "text", "text": context_text}],
+                            },
+                        }
+                    )
+            else:
+                result.append(msg)
+
+        return result
+
+    @staticmethod
+    def _combine_consecutive_user_messages(
+        formatted_messages: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """Combine consecutive user messages into a single message.
+
+        When multiple messages are retrieved by memory selectors, they should be
+        combined into a single message to ensure Claude responds to the whole
+        conversation context, not just the last message.
+
+        Args:
+            formatted_messages: List of formatted message dictionaries
+
+        Returns:
+            List with consecutive user messages combined
+        """
+        if not formatted_messages:
+            return formatted_messages
+
+        result = []
+        current_user_messages = []
+
+        for msg in formatted_messages:
+            if msg.get("type") == "user":
+                # Accumulate consecutive user messages
+                current_user_messages.append(msg)
+            else:
+                # Non-user message encountered, flush accumulated user messages
+                if current_user_messages:
+                    result.append(
+                        ClaudeCodeMessageProcessor._merge_user_messages(current_user_messages)
+                    )
+                    current_user_messages = []
+                result.append(msg)
+
+        # Flush any remaining user messages
+        if current_user_messages:
+            result.append(ClaudeCodeMessageProcessor._merge_user_messages(current_user_messages))
+
+        logger.debug(
+            f"[ClaudeCode] Combined {len(formatted_messages)} messages into {len(result)} messages"
+        )
+        return result
+
+    @staticmethod
+    def _merge_user_messages(user_messages: list[dict[str, Any]]) -> dict[str, Any]:
+        """Merge multiple user messages into a single message with combined content.
+
+        Args:
+            user_messages: List of user message dictionaries
+
+        Returns:
+            Single merged user message
+        """
+        if len(user_messages) == 1:
+            return user_messages[0]
+
+        # Combine all content blocks from all messages
+        combined_content = []
+        for msg in user_messages:
+            msg_data = msg["message"]
+            if isinstance(msg_data, str):
+                msg_data = json.loads(msg_data)
+
+            content = msg_data.get("content", [])
+            if isinstance(content, list):
+                combined_content.extend(content)
+            else:
+                # Convert non-list content to text block
+                combined_content.append({"type": "text", "text": str(content)})
+
+        return {"type": "user", "message": {"role": "user", "content": combined_content}}
+
+    @staticmethod
+    def _transform_assistant_memories_to_tool_result(
+        formatted_messages: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """Transform assistant-role memory messages to tool_result pattern.
+
+        Claude Code has limitations with assistant-role messages in conversation history.
+        This method converts consecutive assistant messages (typically selected memories)
+        into a tool_use + tool_result pattern, making them appear as retrieved context
+        rather than conversation history.
+
+        The transformation:
+        - Detects consecutive assistant messages (excluding the final one)
+        - Groups them as memories
+        - Creates assistant message with tool_use block (memory_tool)
+        - Creates user message with tool_result block containing memory content
+
+        Args:
+            formatted_messages: List of formatted message dictionaries
+
+        Returns:
+            Transformed message list with memories as tool_result
+        """
+        if len(formatted_messages) <= 1:
+            return formatted_messages
+
+        # Find assistant message indices (exclude the last message which is the actual prompt)
+        assistant_indices = []
+        for i in range(len(formatted_messages) - 1):  # Exclude last message
+            if formatted_messages[i].get("type") == "assistant":
+                assistant_indices.append(i)
+
+        # If no assistant messages found, return as-is
+        if not assistant_indices:
+            return formatted_messages
+
+        # Build result, transforming consecutive assistant blocks
+        result = []
+        i = 0
+        while i < len(formatted_messages):
+            # If not an assistant message or it's the last message, keep as-is
+            if i not in assistant_indices:
+                result.append(formatted_messages[i])
+                i += 1
+                continue
+
+            # Collect consecutive assistant messages
+            memory_messages = []
+            start_idx = i
+            while i < len(formatted_messages) - 1 and i in assistant_indices:
+                memory_messages.append(formatted_messages[i])
+                i += 1
+
+            # Transform collected memories to tool_use + tool_result
+            if memory_messages:
+                # Generate unique tool_use_id
+                tool_use_id = f"memory_{abs(hash(str(start_idx)))}"
+
+                # Create tool_use message (assistant)
+                tool_use_message = {
+                    "type": "assistant",
+                    "message": {
+                        "role": "assistant",
+                        "content": [
+                            {
+                                "type": "tool_use",
+                                "id": tool_use_id,
+                                "name": "memory_tool",
+                                "input": {},
+                            }
+                        ],
+                    },
+                }
+                result.append(tool_use_message)
+
+                # Extract and format memory content
+                memory_texts = []
+                for msg_dict in memory_messages:
+                    try:
+                        # Message is now a dict, not a JSON string
+                        msg_data = msg_dict["message"]
+                        if isinstance(msg_data, str):
+                            # Fallback: if it's still a JSON string, parse it
+                            msg_data = json.loads(msg_data)
+
+                        content = msg_data.get("content", "")
+
+                        # Handle content blocks
+                        if isinstance(content, list):
+                            text_parts = []
+                            for block in content:
+                                if isinstance(block, dict) and block.get("type") == "text":
+                                    text_parts.append(block.get("text", ""))
+                                elif isinstance(block, str):
+                                    text_parts.append(block)
+                            content = " ".join(text_parts) if text_parts else str(content)
+
+                        if content:
+                            memory_texts.append(str(content))
+                    except (json.JSONDecodeError, KeyError, TypeError) as e:
+                        # If parsing fails, skip this message
+                        logger.warning(f"Failed to parse memory message: {msg_dict}, error: {e}")
+                        continue
+
+                # Create tool_result message (user)
+                memory_content = (
+                    "\n\n---\n\n".join(memory_texts) if memory_texts else "No memory content"
+                )
+                tool_result_message = {
+                    "type": "user",
+                    "message": {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": tool_use_id,
+                                "content": memory_content,
+                            }
+                        ],
+                    },
+                }
+                result.append(tool_result_message)
+
+                logger.debug(
+                    f"[ClaudeCode] Transformed {len(memory_messages)} assistant messages "
+                    f"to tool_result with {len(memory_texts)} memory items"
+                )
+
+        return result
 
     @staticmethod
     def _build_sdk_content(raw_content: Any) -> list[dict[str, Any]]:
@@ -284,7 +550,7 @@ class ClaudeCodeMessageProcessor:
         if not hooks_config:
             return {}
 
-        from claude_code_sdk.types import HookMatcher
+        from claude_agent_sdk.types import HookMatcher
 
         hooks_dict = {}
         for event_type, matchers_list in hooks_config.items():

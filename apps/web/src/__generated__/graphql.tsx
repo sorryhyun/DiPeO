@@ -529,7 +529,7 @@ export type Query = {
   getApiKeys: Scalars['JSON']['output'];
   getAvailableModels: Scalars['JSON']['output'];
   getDiagram: DomainDiagramType;
-  getExecution: ExecutionStateType;
+  getExecution?: Maybe<ExecutionStateType>;
   getExecutionCapabilities: Scalars['JSON']['output'];
   getExecutionHistory: Scalars['JSON']['output'];
   getExecutionMetrics: Scalars['JSON']['output'];
@@ -751,7 +751,7 @@ export type GetExecutionQueryVariables = Exact<{
 }>;
 
 
-export type GetExecutionQuery = { __typename?: 'Query', getExecution: { __typename?: 'ExecutionStateType', id: string, status: Status, diagram_id?: string | null, started_at?: string | null, ended_at?: string | null, error?: string | null, node_states: any, node_outputs: any, variables?: any | null, metrics?: any | null, llm_usage?: { __typename?: 'LLMUsageType', input: number, output: number, cached?: number | null, total?: number | null } | null } };
+export type GetExecutionQuery = { __typename?: 'Query', getExecution?: { __typename?: 'ExecutionStateType', id: string, status: Status, diagram_id?: string | null, started_at?: string | null, ended_at?: string | null, error?: string | null, node_states: any, node_outputs: any, variables?: any | null, metrics?: any | null, llm_usage?: { __typename?: 'LLMUsageType', input: number, output: number, cached?: number | null, total?: number | null } | null } | null };
 
 export type ListExecutionsQueryVariables = Exact<{
   filter?: InputMaybe<ExecutionFilterInput>;

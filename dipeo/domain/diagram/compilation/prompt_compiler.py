@@ -7,16 +7,16 @@ during diagram compilation, eliminating runtime filesystem I/O.
 from __future__ import annotations
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import os
 from pathlib import Path
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.config.paths import BASE_DIR
 from dipeo.diagram_generated import DomainNode, NodeType
 
 logger = get_module_logger(__name__)
+
 
 class PromptFileCompiler:
     """Resolves prompt file references to actual content during compilation.
@@ -47,6 +47,8 @@ class PromptFileCompiler:
                 diagram_path = os.path.join(self._base_dir, diagram_path)
             if os.path.exists(diagram_path):
                 diagram_dir = Path(diagram_path).parent
+            else:
+                logger.warning(f"[PromptCompiler] diagram_path does not exist: {diagram_path}")
 
         for node in nodes:
             # Only process PersonJob nodes
@@ -111,9 +113,22 @@ class PromptFileCompiler:
                 return full_path
 
         if diagram_dir:
+            # Try direct path in diagram directory first
+            direct_path = diagram_dir / prompt_filename
+            if direct_path.exists():
+                return direct_path
+
+            # Try prompts subdirectory
             local_path = diagram_dir / "prompts" / prompt_filename
             if local_path.exists():
                 return local_path
+
+            # If filename includes "prompts/", also try without it in prompts subdirectory
+            if "prompts/" in prompt_filename:
+                stripped_name = prompt_filename.replace("prompts/", "")
+                stripped_path = diagram_dir / "prompts" / stripped_name
+                if stripped_path.exists():
+                    return stripped_path
 
         global_path = base_path / "files" / "prompts" / prompt_filename
         if global_path.exists():
@@ -123,6 +138,7 @@ class PromptFileCompiler:
         if abs_path.is_absolute() and abs_path.exists():
             return abs_path
 
+        logger.debug(f"[PromptCompiler] No valid path found for {prompt_filename}")
         return None
 
     def compile_domain_nodes(

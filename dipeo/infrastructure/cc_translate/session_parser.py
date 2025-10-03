@@ -1,5 +1,6 @@
 """Claude Code session parser for converting JSONL session files to structured data."""
 
+import contextlib
 import json
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -29,7 +30,11 @@ class SessionEvent:
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> "SessionEvent":
         """Create SessionEvent from JSON data."""
-        timestamp = datetime.fromisoformat(data["timestamp"].replace("Z", "+00:00"))
+        # Handle missing or invalid timestamp
+        timestamp = datetime.now()
+        if "timestamp" in data:
+            with contextlib.suppress(ValueError, AttributeError):
+                timestamp = datetime.fromisoformat(data["timestamp"].replace("Z", "+00:00"))
 
         # Extract tool usage from assistant messages
         tool_name = None

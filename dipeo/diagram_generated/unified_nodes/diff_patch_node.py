@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for diff_patch.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-01T22:51:40.512734
+Generated at: 2025-10-03T21:25:09.379125
 """
 
 from typing import *

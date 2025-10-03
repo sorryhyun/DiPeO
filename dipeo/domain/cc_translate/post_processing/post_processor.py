@@ -80,7 +80,7 @@ class PostProcessor(BasePostProcessor):
             grouper_config = self._grouper_config_base.copy()
             grouper_config["output_base_path"] = kwargs["output_base_path"]
             processors.append(To_Do_Subdiagram_Grouper(grouper_config))
-        print(processors)
+
         # Process through each processor
         processed_diagram = diagram
         for iteration in range(pipeline_config.max_iterations):

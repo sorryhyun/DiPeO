@@ -60,7 +60,6 @@ jobs:
         source .venv/bin/activate
         uv sync --all-extras
         uv pip install pytest-asyncio pytest-cov import-linter
-        uv pip install -e apps/cli
         uv pip install -e apps/server
         echo "$GITHUB_WORKSPACE/.venv/bin" >> $GITHUB_PATH
 

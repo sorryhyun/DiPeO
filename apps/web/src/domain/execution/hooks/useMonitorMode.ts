@@ -59,7 +59,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
     fetchPolicy: 'network-only',
   });
 
-  const activeSession = cliSessionData?.active_cli_session;
+  const activeSession = cliSessionData?.getActiveCliSession;
 
   // CLI session monitoring handles all execution now
   // No need for URL-based execution logic

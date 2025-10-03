@@ -64,16 +64,10 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     def __init__(self):
         super().__init__()
 
-        # Use cases and utility handlers
+        # Use cases and utility handlers (stateless, safe to reuse)
         self._text_format_handler = TextFormatHandler()
         self._conversation_handler = ConversationHandler()
         self._batch_executor = BatchExecutor(self._execute_single)
-
-        # Instance variable for debug flag
-        self._current_debug = False
-
-        # Will be initialized when filesystem_adapter is available
-        self._prompt_loading_use_case = None
 
     @property
     def node_class(self) -> type[PersonJobNode]:
@@ -117,7 +111,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         context = request.context
 
         # Set debug flag for later use
-        self._current_debug = False
+        request.set_handler_state("debug", False)
         return None
 
     async def prepare_inputs(
@@ -128,7 +122,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
 
         # Phase 5: Consume tokens from incoming edges
         envelope_inputs = self.get_effective_inputs(request, inputs)
-        self._envelope_inputs = envelope_inputs
         inputs = envelope_inputs
 
         # Extract prompt from envelope
@@ -191,9 +184,11 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         node = request.node
         request.inputs = inputs
 
-        # Initialize prompt loading use case if filesystem_adapter is available
-        if self._filesystem_adapter and not self._prompt_loading_use_case:
-            self._prompt_loading_use_case = PromptLoadingUseCase(self._filesystem_adapter)
+        # Create prompt loading use case fresh each time (no caching)
+        # This is stored in handler state for use in helper methods
+        if self._filesystem_adapter:
+            prompt_loading_use_case = PromptLoadingUseCase(self._filesystem_adapter)
+            request.set_handler_state("prompt_loading_use_case", prompt_loading_use_case)
 
         # Check if batch mode is enabled
         if getattr(node, "batch", False):
@@ -206,7 +201,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     # SINGLE EXECUTION LOGIC (merged from SinglePersonJobExecutor)
     # ==============================================================================
 
-    async def _execute_single(self, request: ExecutionRequest[PersonJobNode]) -> Envelope:
+    async def _execute_single(self, request: ExecutionRequest[PersonJobNode]) -> dict[str, Any]:
         """Execute the person job for a single person (merged from SinglePersonJobExecutor)."""
         node = request.node
         context = request.context
@@ -367,8 +362,8 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 response_msg, execution_id=trace_id, node_id=str(node.id)
             )
 
-        # Build and return output
-        return self._build_single_node_output(
+        # Build and return output dict
+        return self._build_single_node_output_dict(
             result=result,
             person=person,
             node=node,
@@ -378,7 +373,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             selected_messages=selected_messages,
         )
 
-    def _build_single_node_output(
+    def _build_single_node_output_dict(
         self,
         result: Any,
         person: Person,
@@ -387,8 +382,8 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         model: str,
         trace_id: str = "",
         selected_messages: list | None = None,
-    ) -> Envelope:
-        """Build node output with envelope support for single execution."""
+    ) -> dict[str, Any]:
+        """Build node output as dict for single execution."""
         # Extract LLM usage
         llm_usage = None
         if hasattr(result, "llm_usage") and result.llm_usage:
@@ -409,29 +404,56 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
                 person, selected_messages, model, result
             )
 
-        # Determine primary body
-        primary_envelope = self._determine_primary_envelope(
-            node,
-            diagram,
-            text_repr,
-            object_repr,
-            conversation_repr,
-            person_id,
-            conversation_id,
-            model,
-            llm_usage,
-            trace_id,
-            selected_messages,
-        )
+        # Determine primary body content
+        natural_body = text_repr  # Default to text
 
-        # Add all representations
+        # Check if conversation output is needed
+        if self._conversation_handler.needs_conversation_output(str(node.id), diagram):
+            natural_body = (
+                conversation_repr if conversation_repr else {"messages": [], "last_message": None}
+            )
+        # Check if structured data is available
+        elif object_repr is not None:
+            natural_body = object_repr
+
+        # Prepare memory selection info for metadata
+        memory_selection = None
+        if selected_messages is not None:
+            # Get all messages from conversation to determine the total count
+            all_messages = (
+                self._execution_orchestrator.get_conversation().messages
+                if hasattr(self._execution_orchestrator, "get_conversation")
+                else []
+            )
+            total_available = len(all_messages) if all_messages else 0
+            memory_selection = {
+                "selected_count": len(selected_messages),
+                "total_messages": total_available,
+                "criteria": getattr(node, "memorize_to", None),
+                "at_most": getattr(node, "at_most", None),
+            }
+
+        # Build all representations
         representations = {"text": text_repr}
         if object_repr is not None:
             representations["object"] = object_repr
         if conversation_repr is not None:
             representations["conversation"] = conversation_repr
 
-        return primary_envelope.with_meta(representations=representations)
+        # Return as dict with metadata
+        return {
+            "body": natural_body,
+            "metadata": {
+                "person_id": person_id,
+                "conversation_id": conversation_id,
+                "model": model,
+                "llm_usage": llm_usage.model_dump() if llm_usage else None,
+                "memory_selection": memory_selection,
+                "preview": text_repr[:200] if text_repr else None,
+                "is_structured": object_repr is not None,
+                "representations": representations,
+            },
+        }
 
     # ==============================================================================
     # HELPER METHODS (shared by both single and batch execution)
@@ -492,67 +514,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             for edge in edges
         )
 
-    def _determine_primary_envelope(
-        self,
-        node,
-        diagram,
-        text_repr,
-        object_repr,
-        conversation_repr,
-        person_id,
-        conversation_id,
-        model,
-        llm_usage,
-        trace_id,
-        selected_messages=None,
-    ):
-        """Create envelope using natural data output pattern."""
-        # Determine the natural body content
-        natural_body = text_repr  # Default to text
-
-        # Check if conversation output is needed
-        if self._conversation_handler.needs_conversation_output(str(node.id), diagram):
-            natural_body = (
-                conversation_repr if conversation_repr else {"messages": [], "last_message": None}
-            )
-        # Check if structured data is available
-        elif object_repr is not None:
-            natural_body = object_repr
-
-        # Prepare memory selection info for metadata
-        memory_selection = None
-        if selected_messages is not None:
-            # Get all messages from conversation to determine the total count
-            all_messages = (
-                self._execution_orchestrator.get_conversation().messages
-                if hasattr(self._execution_orchestrator, "get_conversation")
-                else []
-            )
-            total_available = len(all_messages) if all_messages else 0
-            memory_selection = {
-                "selected_count": len(selected_messages),
-                "total_messages": total_available,
-                "criteria": getattr(node, "memorize_to", None),
-                "at_most": getattr(node, "at_most", None),
-            }
-
-        # Use EnvelopeFactory.create() with auto-detection
-        envelope = EnvelopeFactory.create(
-            body=natural_body,
-            produced_by=str(node.id),
-            trace_id=trace_id,
-            meta={
-                "person_id": person_id,
-                "conversation_id": conversation_id,
-                "model": model,
-                "llm_usage": llm_usage.model_dump() if llm_usage else None,
-                "memory_selection": memory_selection,
-                "preview": text_repr[:200] if text_repr else None,
-                "is_structured": object_repr is not None,
-            },
-        )
-
-        return envelope
 
     def serialize_output(self, result: Any, request: ExecutionRequest[PersonJobNode]) -> Envelope:
         """Serialize person job result to envelope."""
@@ -561,24 +522,36 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
 
         # Check if batch mode
         if getattr(node, "batch", False):
-            # Batch result is already an Envelope from BatchExecutor
-            if isinstance(result, Envelope):
-                return result
+            # Batch result should be a dict
+            if isinstance(result, dict) and "value" in result:
+                output_envelope = EnvelopeFactory.create(
+                    body=result["value"], produced_by=node.id, trace_id=trace_id
+                ).with_meta(batch_mode=True, person_id=node.person)
+                return output_envelope
             else:
                 # Fallback for unexpected format
-                if hasattr(result, "value"):
-                    output_envelope = EnvelopeFactory.create(
-                        body=result.value, produced_by=node.id, trace_id=trace_id
-                    ).with_meta(batch_mode=True, person_id=node.person)
-                else:
-                    output_envelope = EnvelopeFactory.create(
-                        body=str(result), produced_by=node.id, trace_id=trace_id
-                    )
+                logger.warning(f"Unexpected batch result format: {type(result)}")
+                output_envelope = EnvelopeFactory.create(
+                    body=str(result), produced_by=node.id, trace_id=trace_id
+                )
                 return output_envelope
         else:
-            # Single execution already returns an Envelope from _execute_single
-            if isinstance(result, Envelope):
-                return result
+            # Single execution returns dict with body and metadata
+            if isinstance(result, dict) and "body" in result and "metadata" in result:
+                body = result["body"]
+                metadata = result["metadata"]
+                representations = metadata.pop("representations", {})
+
+                # Create envelope with metadata
+                output_envelope = EnvelopeFactory.create(
+                    body=body, produced_by=node.id, trace_id=trace_id, meta=metadata
+                )
+
+                # Add representations if available
+                if representations:
+                    output_envelope = output_envelope.with_meta(representations=representations)
+
+                return output_envelope
             else:
                 # Fallback for unexpected result format
                 logger.warning(f"Unexpected result type from _execute_single: {type(result)}")
@@ -614,7 +587,8 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
     def post_execute(self, request: ExecutionRequest[PersonJobNode], output: Envelope) -> Envelope:
         """Post-execution hook to log execution details and emit tokens."""
         # Log execution details if in debug mode
-        if self._current_debug:
+        debug = request.get_handler_state("debug", False)
+        if debug:
             is_batch = getattr(request.node, "batch", False)
             if is_batch:
                 batch_info = output.value if hasattr(output, "value") else {}

@@ -6,15 +6,15 @@ including tool result extraction, phase-specific parsing, and structured output 
 
 import json
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import re
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.enums import ExecutionPhase
 from dipeo.infrastructure.llm.drivers.types import LLMResponse, LLMUsage
 
 logger = get_module_logger(__name__)
+
 
 class ClaudeCodeResponseParser:
     """Parser for Claude Code responses with phase-specific handling."""
@@ -51,10 +51,6 @@ class ClaudeCodeResponseParser:
         Returns:
             Dictionary containing tool result data if found, None otherwise
         """
-        logger.debug(
-            f"[ClaudeCode] Attempting to extract tool result from response: "
-            f"{response_text[:500]}{'...' if len(response_text) > 500 else ''}"
-        )
 
         # Try to parse the entire response as JSON first
         try:
@@ -62,11 +58,9 @@ class ClaudeCodeResponseParser:
             if isinstance(data, dict):
                 # Check for 'data' field from our tool responses
                 if "data" in data:
-                    logger.debug(f"[ClaudeCode] Found tool result in 'data' field: {data['data']}")
                     return data["data"]
                 # Check for direct structured output
                 if "message_ids" in data or "decision" in data:
-                    logger.debug(f"[ClaudeCode] Found direct structured output: {data}")
                     return data
         except (json.JSONDecodeError, ValueError) as e:
             logger.debug(f"[ClaudeCode] Response is not valid JSON: {e}")
@@ -78,12 +72,10 @@ class ClaudeCodeResponseParser:
             try:
                 data = json.loads(match.group(0))
                 if "message_ids" in data or "decision" in data:
-                    logger.debug(f"[ClaudeCode] Found tool result in embedded JSON: {data}")
                     return data
             except (json.JSONDecodeError, ValueError):
                 continue
 
-        logger.debug("[ClaudeCode] No tool result found in response")
         return None
 
     @staticmethod

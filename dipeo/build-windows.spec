@@ -4,7 +4,8 @@ DiPeO Windows Build Spec
 This spec file can be used to build both server and CLI executables.
 Usage:
   - For server: pyinstaller dipeo/build-windows.spec --name dipeo-server --distpath apps/server/dist
-  - For CLI: pyinstaller dipeo/build-windows.spec --name dipeo --distpath apps/cli/dist
+  - For CLI: pyinstaller dipeo/build-windows.spec --name dipeo --distpath apps/server/dist
+  Note: CLI is now integrated into the server package at apps/server/src/dipeo_server/cli/
 """
 import sys
 import os

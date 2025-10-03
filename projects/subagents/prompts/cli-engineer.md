@@ -29,8 +29,8 @@ You are a specialized subagent for DiPeO's command-line interface. You handle th
 
 ## Key Knowledge Areas
 
-- **Main Module**: `/apps/cli/main.py`
-- **Commands Directory**: `/apps/cli/commands/`
+- **Main Module**: `/apps/server/src/dipeo_server/cli/entry_point.py`
+- **Commands Directory**: `/apps/server/src/dipeo_server/cli/commands/`
 - **Key Commands**:
   - `dipeo run` - Execute diagrams
   - `dipeo ask` - Natural language interface

@@ -108,11 +108,10 @@ dependencies = [
     "yarl==1.20.1",
     "datamodel-code-generator>=0.21.0",
     "ollama>=0.5.0",
-    "claude-code-sdk @ git+https://github.com/anthropics/claude-code-sdk-python.git",
+    "claude-agent-sdk @ git+https://github.com/anthropics/claude-agent-sdk-python.git",
     "rich>=13.0.0",
     "psutil==7.1.0",
     # Workspace packages (automatically installed as editable by uv)
-    "dipeo-cli",
     "dipeo-server",
 ]
 
@@ -155,12 +154,11 @@ dev-dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["dipeo", "apps/server", "apps/cli"]
+members = ["dipeo", "apps/server"]
 
 # UV workspace members are automatically installed as editable
 
 [tool.uv.sources]
-dipeo-cli = { workspace = true }
 dipeo-server = { workspace = true }
 
 # Tool configurations (inherited from existing configs)

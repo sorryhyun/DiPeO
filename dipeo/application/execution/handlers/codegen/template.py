@@ -40,10 +40,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
 
     def __init__(self):
         super().__init__()
-        # Instance variables for execution state
-        self._current_engine = None
-        self._current_output_path = None
-        self._template_vars = None
 
     @property
     def node_class(self) -> type[TemplateJobNode]:
@@ -82,7 +78,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 body={"error": f"Unsupported template engine: {engine}", "type": "ValueError"},
                 produced_by=str(node.id),
             )
-        self._current_engine = engine
+        request.set_handler_state("engine", engine)
 
         # No early return - proceed to execute_request
         return None
@@ -201,13 +197,13 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         # Use centralized context builder to include globals
         template_vars = request.context.build_template_context(inputs=inputs, globals_win=True)
 
-        # Store template variables for building representations
-        self._template_vars = template_vars.copy()
+        # Store template variables for building representations via handler state
+        request.set_handler_state("template_vars", template_vars.copy())
 
         # Services are now injected by the decorator
         filesystem_adapter = self._filesystem_adapter
         template_service = self._template_renderer
-        engine = self._current_engine
+        engine = request.get_handler_state("engine")
 
         # Apply preprocessor if configured
         preprocessor = getattr(node, "preprocessor", None)
@@ -288,7 +284,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
             if self._is_duplicate_write(str(output_path), rendered, str(node.id)):
                 # logger.info(f"[DEDUP] Skipping duplicate write to {output_path}")
                 # Store output path for metadata but don't write
-                self._current_output_path = output_path
+                request.set_handler_state("current_output_path", output_path)
                 return rendered  # Return content without writing
 
             # Create parent directories if needed
@@ -311,7 +307,9 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         """Serialize rendered template to envelope."""
         node = request.node
         trace_id = request.execution_id or ""
-        template_vars = getattr(self, "_template_vars", {})
+        template_vars = request.get_handler_state("template_vars", {})
+        engine = request.get_handler_state("engine")
+        current_output_path = request.get_handler_state("current_output_path")
 
         # Determine the body content
         if isinstance(result, dict) and "written" in result:
@@ -326,21 +324,21 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
 
         # Build metadata
         meta = {
-            "engine": self._current_engine,
+            "engine": engine,
             "template_path": node.template_path,
             "template_vars": template_vars,
         }
 
         # Add output path if available
-        if hasattr(self, "_current_output_path") and self._current_output_path:
-            meta["output_path"] = str(self._current_output_path)
+        if current_output_path:
+            meta["output_path"] = str(current_output_path)
 
         # Add file write info if available
         if isinstance(result, dict) and "written" in result:
             meta["files"] = result["written"]
             meta["file_count"] = result["count"]
-        elif hasattr(self, "_current_output_path") and self._current_output_path:
-            meta["files"] = [str(self._current_output_path)]
+        elif current_output_path:
+            meta["files"] = [str(current_output_path)]
             meta["file_count"] = 1
 
         # Add metadata to envelope

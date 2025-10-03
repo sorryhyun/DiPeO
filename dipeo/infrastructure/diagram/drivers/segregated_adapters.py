@@ -38,30 +38,44 @@ class FileAdapter(LoggingMixin, DiagramFilePort):
 
     async def load_from_file(self, file_path: str) -> DomainDiagram:
         path = Path(file_path)
+        self.log_debug(f"[FileAdapter] load_from_file called with: {file_path}")
 
         if self.filesystem.exists(path):
+            self.log_debug(f"[FileAdapter] Found file at exact path: {path}")
             with self.filesystem.open(path, "rb") as f:
                 content = f.read().decode("utf-8")
             format_enum = self.format_detector.detect_format_from_filename(str(path))
             format_str = format_enum.value if format_enum else None
+            self.log_debug(f"[FileAdapter] Calling deserialize with diagram_path: {path!s}")
             return self.format_port.deserialize(content, format_str, str(path))
 
         if not path.is_absolute():
             relative_path = self.base_path / path
+            self.log_debug(f"[FileAdapter] Checking relative path: {relative_path}")
             if self.filesystem.exists(relative_path):
+                self.log_debug(f"[FileAdapter] Found file at relative path: {relative_path}")
                 with self.filesystem.open(relative_path, "rb") as f:
                     content = f.read().decode("utf-8")
                 format_enum = self.format_detector.detect_format_from_filename(str(relative_path))
                 format_str = format_enum.value if format_enum else None
+                self.log_debug(
+                    f"[FileAdapter] Calling deserialize with diagram_path: {relative_path!s}"
+                )
                 return self.format_port.deserialize(content, format_str, str(relative_path))
 
+        self.log_debug(f"[FileAdapter] Trying search patterns for: {path.stem}")
         patterns = self.format_detector.construct_search_patterns(str(path.stem))
         for pattern in patterns:
             test_path = self.base_path / pattern
+            self.log_debug(f"[FileAdapter] Checking pattern: {test_path}")
             if self.filesystem.exists(test_path):
+                self.log_debug(f"[FileAdapter] Found file at pattern: {test_path}")
                 with self.filesystem.open(test_path, "rb") as f:
                     content = f.read().decode("utf-8")
                 format_str = self._detect_format_from_path(test_path)
+                self.log_debug(
+                    f"[FileAdapter] Calling deserialize with diagram_path: {test_path!s}"
+                )
                 return self.format_port.deserialize(content, format_str, str(test_path))
 
         raise StorageError(f"Diagram not found: {file_path}")
@@ -150,6 +164,7 @@ class FormatAdapter(LoggingMixin, DiagramFormatPort):
     def deserialize(
         self, content: str, format_type: str | None = None, diagram_path: str | None = None
     ) -> DomainDiagram:
+        self.log_debug(f"[FormatAdapter] deserialize called with diagram_path: {diagram_path}")
         return self.serializer.deserialize_from_storage(content, format_type, diagram_path)
 
     def convert_format(self, diagram: DomainDiagram, from_format: str, to_format: str) -> str:

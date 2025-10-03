@@ -83,6 +83,7 @@ def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdate | None
             "error": event_data.get("error"),
             "token_usage": event_data.get("token_usage"),  # From data payload
             "person_id": event_meta.get("person_id"),  # From metadata
+            "model": event_meta.get("model"),  # From metadata
         }
         # Remove None values
         data = {k: v for k, v in data.items() if v is not None}

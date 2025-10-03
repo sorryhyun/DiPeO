@@ -113,10 +113,10 @@ export function diagramArraysToMaps(diagram: Partial<{
   persons: Map<PersonID, DomainPerson>;
 } {
   return {
-    nodes: new Map(diagram.nodes?.map(n => [n.id, n]) ?? []),
-    arrows: new Map(diagram.arrows?.map(a => [a.id, a]) ?? []),
-    handles: new Map(diagram.handles?.map(h => [h.id, h]) ?? []),
-    persons: new Map(diagram.persons?.map(p => [p.id, p]) ?? []),
+    nodes: new Map(Array.isArray(diagram.nodes) ? diagram.nodes.map(n => [n.id, n]) : []),
+    arrows: new Map(Array.isArray(diagram.arrows) ? diagram.arrows.map(a => [a.id, a]) : []),
+    handles: new Map(Array.isArray(diagram.handles) ? diagram.handles.map(h => [h.id, h]) : []),
+    persons: new Map(Array.isArray(diagram.persons) ? diagram.persons.map(p => [p.id, p]) : []),
   };
 }
 

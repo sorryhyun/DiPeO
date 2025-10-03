@@ -80,11 +80,20 @@ class GraphQLFilters:
             "CliSession": "CliSessionType",
         }
 
+        # Queries that can return None (nullable)
+        NULLABLE_QUERIES = {
+            "GetExecution",  # Execution might not exist yet
+        }
+
         if operation_type == "query":
             # Extract entity from operation name for direct type returns
             if operation_name.startswith("Get"):
                 entity = operation_name[3:]  # GetExecution → Execution
-                return DIRECT_TYPE_MAP.get(entity, "JSON")
+                base_type = DIRECT_TYPE_MAP.get(entity, "JSON")
+                # Make nullable for queries that can return None
+                if operation_name in NULLABLE_QUERIES:
+                    return f"Optional[{base_type}]"
+                return base_type
             elif operation_name.startswith("List"):
                 # ListExecutions → list[ExecutionStateType]
                 entity_plural = operation_name[4:]  # ListExecutions → Executions

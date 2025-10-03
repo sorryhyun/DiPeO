@@ -75,7 +75,12 @@ class ClaudeCodeManager:
                 # Look for project-specific subdirectories
                 project_dirs = [d for d in location.iterdir() if d.is_dir()]
                 if project_dirs:
-                    # Return most recently modified project directory
+                    # Prefer DiPeO project if it exists
+                    dipeo_project = location / "-home-soryhyun-DiPeO"
+                    if dipeo_project.exists() and dipeo_project.is_dir():
+                        return dipeo_project
+
+                    # Otherwise return most recently modified project directory
                     project_dirs.sort(key=lambda p: p.stat().st_mtime, reverse=True)
                     return project_dirs[0]
                 return location
@@ -194,6 +199,9 @@ class ClaudeCodeManager:
             adapter = SessionAdapter(session)
             domain_session = adapter.to_domain_session()
 
+            # Get preprocessed session for saving
+            preprocessed_session = self.coordinator.preprocess_only(domain_session)
+
             # Run translation pipeline
             logger.info("Running translation pipeline...")
             diagram, metrics = self.coordinator.translate(
@@ -220,15 +228,34 @@ class ClaudeCodeManager:
 
             output_base.mkdir(parents=True, exist_ok=True)
 
+            # Copy original session JSONL
+            import shutil
+
+            original_session_copy = output_base / "session.jsonl"
+            shutil.copy2(session_file, original_session_copy)
+
+            # Save domain session as JSON
+            domain_session_file = output_base / "domain_session.json"
+            self.serializer.to_jsonl_file(domain_session, output_base / "domain_session.jsonl")
+
+            # Save preprocessed session data
+            preprocessed_file = output_base / "preprocessed.json"
+            preprocessed_dict = preprocessed_session.to_dict()
+            with open(preprocessed_file, "w", encoding="utf-8") as f:
+                json.dump(preprocessed_dict, f, indent=2, default=str)
+
+            # Save preprocessed session as JSONL
+            preprocessed_jsonl = output_base / "preprocessed.jsonl"
+            self.serializer.to_jsonl_file(preprocessed_session.session, preprocessed_jsonl)
+
             # Save diagram
             output_file = output_base / "diagram.light.yaml"
             logger.info(f"Saving diagram to: {output_file}")
 
-            # Convert diagram dict to DomainDiagram, then serialize to light YAML
-            from dipeo.diagram_generated import DomainDiagram
+            # Diagram is already in light format dict, just serialize to YAML
+            import yaml
 
-            domain_diagram = DomainDiagram.model_validate(diagram)
-            yaml_content = self.light_strategy.serialize_from_domain(domain_diagram)
+            yaml_content = yaml.dump(diagram, default_flow_style=False, sort_keys=False)
             output_file.write_text(yaml_content, encoding="utf-8")
 
             # Save metadata
@@ -254,7 +281,7 @@ class ClaudeCodeManager:
             with open(metadata_file, "w", encoding="utf-8") as f:
                 json.dump(metadata, f, indent=2, default=str)
 
-            logger.info(f"✅ Conversion completed successfully")
+            logger.info("✅ Conversion completed successfully")
             logger.info(f"   Duration: {metrics.total_duration_ms:.2f}ms")
             logger.info(f"   Nodes: {len(diagram.get('nodes', []))}")
             logger.info(f"   Output: {output_file}")
@@ -342,7 +369,9 @@ class ClaudeCodeManager:
                     "tool_usage": session.metadata.tool_usage_count,
                     "file_operations": session.metadata.file_operations,
                 },
-                "tool_usage": session.extract_tool_usage() if hasattr(session, "extract_tool_usage") else {},
+                "tool_usage": session.extract_tool_usage()
+                if hasattr(session, "extract_tool_usage")
+                else {},
                 "file_operations": (
                     session.extract_file_operations()
                     if hasattr(session, "extract_file_operations")

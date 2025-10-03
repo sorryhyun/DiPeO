@@ -151,40 +151,8 @@ nodes:
             ]
         }
 
-        print("\n✅ Simplified frontend code generation completed successfully!")
-        print("\nGenerated:")
-        for item in results["generated"]:
-            print(f"  • {item}")
-
-        print("\nNext steps:")
-        print("  1. Review generated code in apps/web/src/__generated__/")
-        print("  2. Review Zod schemas in dipeo/models/src/__generated__/")
-        print("  3. Run 'cd dipeo/models && pnpm build' to compile @dipeo/models")
-        print("  4. Run 'pnpm typecheck' to verify TypeScript")
-        print("  5. Run 'make graphql-schema' to update GraphQL types")
-
         return results
 
-  - label: End
-    type: code_job
-    position: {x: 1150, y: 400}
-    props:
-      language: python
-      code: |
-        print("\n✅ Simplified frontend code generation completed successfully!")
-        print("\nGenerated:")
-        print("  • Frontend components (batch)")
-        print("  • Field configurations")
-        print("  • Zod validation schemas (web app)")
-        print("  • Zod validation schemas (@dipeo/models)")
-        print("  • GraphQL queries")
-        print("  • Frontend registry")
-        print("\nNext steps:")
-        print("  1. Review generated code in apps/web/src/__generated__/")
-        print("  2. Review Zod schemas in dipeo/models/src/__generated__/")
-        print("  3. Run 'cd dipeo/models && pnpm build' to compile @dipeo/models")
-        print("  4. Run 'pnpm typecheck' to verify TypeScript")
-        print("  5. Run 'make graphql-schema' to update GraphQL types")
 
 connections:
   # Load AST and build IR
@@ -214,6 +182,3 @@ connections:
   - {from: Generate Models Zod Schemas, to: Summary}
   - {from: Generate GraphQL Queries, to: Summary}
   - {from: Generate Frontend Registry, to: Summary}
-
-  # Summary to End
-  - {from: Summary, to: End}

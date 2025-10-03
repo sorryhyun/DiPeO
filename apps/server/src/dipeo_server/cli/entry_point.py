@@ -22,12 +22,24 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
     from dipeo.application.bootstrap import init_resources, shutdown_resources
     from dipeo.infrastructure.logging_config import setup_logging
     from dipeo_server.app_context import create_server_container
-    from dipeo_server.cli import CLIRunner
+    from dipeo_server.cli import CLIRunner, ServerManager
 
     # Setup logging for CLI
     debug = getattr(args, "debug", False)
     log_level = "DEBUG" if debug else os.environ.get("DIPEO_LOG_LEVEL", "INFO")
     setup_logging(component="cli", log_level=log_level, log_to_file=True, console_output=debug)
+
+    # Start background server if in debug mode
+    server_manager = None
+    if debug and args.command == "run":
+        print("🚀 Starting background server for monitoring...")
+        server_manager = ServerManager()
+        server_started = await server_manager.start(timeout=10)
+        if server_started:
+            print("✅ Server ready - Monitor at http://localhost:3000/?monitor=true")
+        else:
+            print("⚠️  Failed to start background server for monitoring")
+            print("    Execution will continue, but monitoring won't be available")
 
     # Create container and initialize resources
     container = await create_server_container()
@@ -139,6 +151,9 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
             action = args.dipeocc_action
             kwargs = {}
 
+            # Add project parameter if specified
+            kwargs["project"] = getattr(args, "project", None)
+
             if action == "list":
                 kwargs["limit"] = getattr(args, "limit", 50)
             elif action == "convert":
@@ -160,6 +175,10 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
     finally:
         # Cleanup
         await shutdown_resources(container)
+
+        # Stop background server if it was started
+        if server_manager:
+            await server_manager.stop()
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -292,6 +311,11 @@ def create_parser() -> argparse.ArgumentParser:
     # DiPeOCC command
     dipeocc_parser = subparsers.add_parser(
         "dipeocc", help="Convert Claude Code sessions to DiPeO diagrams"
+    )
+    dipeocc_parser.add_argument(
+        "--project",
+        type=str,
+        help="Claude Code project directory name (e.g., -home-soryhyun-DiPeO)",
     )
     dipeocc_subparsers = dipeocc_parser.add_subparsers(
         dest="dipeocc_action", help="DiPeOCC commands"
