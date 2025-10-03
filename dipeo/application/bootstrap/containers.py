@@ -4,8 +4,6 @@
 """
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
 from dipeo.application.registry import ServiceKey
@@ -24,6 +22,8 @@ from dipeo.application.registry.keys import (
     TEMPLATE_PROCESSOR,
 )
 from dipeo.config import AppSettings, get_settings
+from dipeo.config.base_logger import get_module_logger
+
 
 class ApplicationContainer:
     """Application services and use cases.
@@ -104,6 +104,7 @@ class ApplicationContainer:
             ),
         )
 
+
 class InfrastructureContainer:
     """External integration adapters.
 
@@ -118,6 +119,7 @@ class InfrastructureContainer:
         self.registry = registry
         self.config = config
         # Services are set up by bootstrap_services() in wiring.py
+
 
 class Container:
     """Main container orchestrating the 2-container architecture."""
@@ -219,15 +221,19 @@ class Container:
 
         # Cleanup Claude Code templates if present
         try:
-            claude_client = registry.get("claude_code_client")
-            if claude_client and hasattr(claude_client, "cleanup"):
-                await claude_client.cleanup()
-                logger.info("Cleaned up Claude Code template sessions")
+            claude_client_key = ServiceKey[Any]("claude_code_client")
+            if self.registry.has(claude_client_key):
+                claude_client = self.registry.resolve(claude_client_key)
+                if hasattr(claude_client, "cleanup"):
+                    await claude_client.cleanup()
+                    logger.info("Cleaned up Claude Code template sessions")
         except Exception as e:
             logger.debug(f"No Claude Code cleanup needed: {e}")
 
+
 async def init_resources(container: Container):
     await container.initialize()
+
 
 async def shutdown_resources(container: Container):
     await container.shutdown()

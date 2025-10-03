@@ -133,6 +133,12 @@ def suppress_noisy_loggers(log_level: str = "INFO"):
             "dipeo.application.execution.states.node_readiness_checker",
             "dipeo.application.execution.handlers.person_job.single_executor",
             "dipeo.application.execution.handlers.condition.evaluators",
+            # Engine execution components (very verbose)
+            "dipeo.application.execution.scheduler",
+            "dipeo.domain.execution.token_manager",
+            "dipeo.application.execution.typed_execution_context",
+            "dipeo.domain.execution.state_tracker",
+            "dipeo.application.execution.typed_engine",
         ]
 
         for logger_name in verbose_loggers:

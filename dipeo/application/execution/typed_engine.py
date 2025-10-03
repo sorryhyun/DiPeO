@@ -115,28 +115,18 @@ class TypedExecutionEngine:
             )
 
             step_count = 0
-            logger.debug("[ENGINE] Starting execution loop")
             while not context.is_execution_complete():
-                is_complete = context.is_execution_complete()
-                logger.debug(f"[ENGINE] Loop iteration {step_count + 1}, is_complete={is_complete}")
-
                 ready_nodes = await self._scheduler.get_ready_nodes(context)
-                logger.debug(f"[ENGINE] get_ready_nodes returned {len(ready_nodes)} nodes")
 
                 if not ready_nodes:
                     poll_interval = getattr(
                         self._settings.execution, "node_ready_poll_interval", 0.01
                     )
-                    logger.debug(f"[ENGINE] No ready nodes, sleeping for {poll_interval}s")
                     await asyncio.sleep(poll_interval)
                     continue
 
                 step_count += 1
-                logger.debug(
-                    f"[ENGINE] Executing {len(ready_nodes)} nodes: {[n.id for n in ready_nodes]}"
-                )
                 results = await self._execute_nodes(ready_nodes, context, event_pipeline)
-                logger.debug(f"[ENGINE] Execution results: {list(results.keys())}")
 
                 for node_id in results:
                     self._scheduler.mark_node_completed(NodeID(node_id), context)
@@ -373,11 +363,8 @@ class TypedExecutionEngine:
             llm_usage = output.meta.get("llm_usage")
             if llm_usage:
                 if hasattr(llm_usage, "model_dump"):
-                    usage_dict = llm_usage.model_dump()
-                    logger.debug(f"[TypedEngine] Extracted LLM usage from envelope: {usage_dict}")
-                    return usage_dict
+                    return llm_usage.model_dump()
                 elif isinstance(llm_usage, dict):
-                    logger.debug(f"[TypedEngine] Extracted LLM usage from envelope: {llm_usage}")
                     return llm_usage
         return None
 

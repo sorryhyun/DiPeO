@@ -157,11 +157,12 @@ nodes:
 
   # End node
   - label: End
-    type: endpoint
+    type: code_job
     position: {x: 1000, y: 400}
     props:
-      custom_data:
-        message: Strawberry generation complete
+      language: python
+      code: |
+        print("\n✅ Strawberry GraphQL generation completed successfully!")
 
 connections:
   # Sequential flow: Load AST -> Build Unified IR

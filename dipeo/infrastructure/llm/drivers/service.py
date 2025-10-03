@@ -527,12 +527,6 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
 
                 self.log_debug(f"LLM response: {response_text}")
 
-                # Additional debug info for troubleshooting
-                if isinstance(response, LLMResponse):
-                    self.log_debug(
-                        f"Response type: LLMResponse, has content: {response.content is not None}, "
-                        f"has structured_output: {response.structured_output is not None}"
-                    )
             if isinstance(response, LLMResponse):
                 return self._convert_response_to_chat_result(response)
             elif isinstance(response, ChatResult):

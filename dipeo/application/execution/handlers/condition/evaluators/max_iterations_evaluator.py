@@ -1,16 +1,16 @@
 """Evaluator for max iterations condition."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.unified_nodes.condition_node import ConditionNode, NodeType
 from dipeo.domain.execution.execution_context import ExecutionContext
 
 from .base import BaseConditionEvaluator, EvaluationResult
 
 logger = get_module_logger(__name__)
+
 
 class MaxIterationsEvaluator(BaseConditionEvaluator):
     """Evaluates whether all person_job nodes have reached max iterations."""
@@ -34,6 +34,9 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
         for node in person_job_nodes:
             # Check if this node has been executed at least once
             exec_count = context.state.get_node_execution_count(node.id)
+            logger.debug(
+                f"MaxIterationsEvaluator: node {node.id} exec_count={exec_count}, max_iteration={node.max_iteration}"
+            )
             if exec_count > 0:
                 found_executed = True
 
@@ -43,8 +46,15 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
                 # Check if this node has reached its max iterations
                 # Use >= because if exec_count equals max_iteration, we've done all iterations
                 if exec_count < node.max_iteration:
+                    logger.debug(
+                        f"MaxIterationsEvaluator: node {node.id} NOT reached max: {exec_count} < {node.max_iteration}"
+                    )
                     all_reached_max = False
                     break
+                else:
+                    logger.debug(
+                        f"MaxIterationsEvaluator: node {node.id} REACHED max: {exec_count} >= {node.max_iteration}"
+                    )
 
         result = found_executed and all_reached_max
 

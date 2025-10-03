@@ -28,7 +28,7 @@
       "Bash(uv pip install:*)",
       "Bash(dipeo:*)",
       "Read(//tmp/**)",
-      "Bash(timeout 25 dipeo run:*)"
+      "Bash(sqlite3:*)"
     ],
     "deny": [],
     "ask": []

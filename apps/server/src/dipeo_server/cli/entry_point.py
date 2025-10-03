@@ -25,10 +25,9 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
     from dipeo_server.cli import CLIRunner
 
     # Setup logging for CLI
-    log_level = (
-        "DEBUG" if getattr(args, "debug", False) else os.environ.get("DIPEO_LOG_LEVEL", "INFO")
-    )
-    setup_logging(component="cli", log_level=log_level, log_to_file=True, console_output=False)
+    debug = getattr(args, "debug", False)
+    log_level = "DEBUG" if debug else os.environ.get("DIPEO_LOG_LEVEL", "INFO")
+    setup_logging(component="cli", log_level=log_level, log_to_file=True, console_output=debug)
 
     # Create container and initialize resources
     container = await create_server_container()

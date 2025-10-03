@@ -92,24 +92,36 @@ class CLIRunner:
 
             async def run_execution():
                 nonlocal success
-                async for _update in use_case.execute_diagram(
+                last_update = None
+                async for update in use_case.execute_diagram(
                     diagram=domain_diagram,
                     options=options,
                     execution_id=str(execution_id),
                 ):
+                    last_update = update
                     # Process updates
                     if not simple:
                         print(".", end="", flush=True)
 
-                # Get final result
+                # Check if execution completed naturally
+                if last_update and last_update.get("type") == "execution_complete":
+                    success = True
+                    # Give async event handlers time to persist state
+                    await asyncio.sleep(0.1)
+
+                # Get final result from state store
                 result = await state_store.get_execution(str(execution_id))
-                success = result and result.status == Status.COMPLETED
+
+                # Only check persisted status if execution didn't complete naturally
+                # This handles edge cases with nested sub-diagrams that have endpoint nodes
+                if not success and result:
+                    success = result.status == Status.COMPLETED
 
                 # Display results
                 if not simple:
-                    await self._display_rich_results(result)
+                    await self._display_rich_results(result, success)
                 else:
-                    await self._display_simple_results(result)
+                    await self._display_simple_results(result, success)
 
             # Run execution
             task = asyncio.create_task(run_execution())
@@ -123,7 +135,7 @@ class CLIRunner:
 
                 # Try to mark execution as failed in state store
                 try:
-                    from dipeo.domain.events import EventType, ExecutionEvent
+                    from dipeo.domain.events import execution_error
 
                     result = await state_store.get_execution(str(execution_id))
                     if result and result.status == Status.RUNNING:
@@ -132,11 +144,9 @@ class CLIRunner:
                             f"Executed nodes: {result.executed_nodes}"
                         )
                         # Emit EXECUTION_ERROR event to update state
-                        event = ExecutionEvent(
-                            event_type=EventType.EXECUTION_ERROR,
+                        event = execution_error(
                             execution_id=str(execution_id),
-                            timestamp=None,
-                            error=f"Execution timed out after {timeout} seconds",
+                            error_message=f"Execution timed out after {timeout} seconds",
                         )
                         await message_router.publish(event)
                 except Exception as update_err:
@@ -471,7 +481,7 @@ class CLIRunner:
         else:
             return "native"  # Default
 
-    async def _display_rich_results(self, result: Any) -> None:
+    async def _display_rich_results(self, result: Any, success: bool = False) -> None:
         """Display results using rich formatting."""
         try:
             from rich.console import Console
@@ -480,7 +490,7 @@ class CLIRunner:
 
             console = Console()
 
-            if result and result.status == Status.COMPLETED:
+            if success or (result and result.status == Status.COMPLETED):
                 console.print(Panel.fit("✅ Execution Successful", style="green bold"))
             else:
                 console.print(Panel.fit("❌ Execution Failed", style="red bold"))
@@ -500,9 +510,9 @@ class CLIRunner:
             # Fallback to simple display if rich is not available
             await self._display_simple_results(result)
 
-    async def _display_simple_results(self, result: Any) -> None:
+    async def _display_simple_results(self, result: Any, success: bool = False) -> None:
         """Display results using simple text formatting."""
-        if result and result.status == Status.COMPLETED:
+        if success or (result and result.status == Status.COMPLETED):
             print("✅ Execution Successful")
         else:
             print("❌ Execution Failed")

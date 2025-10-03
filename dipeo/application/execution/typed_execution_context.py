@@ -84,27 +84,14 @@ class TypedExecutionContext(ExecutionContextProtocol):
         self, node_id: NodeID, outputs: dict[str, Envelope], epoch: int | None = None
     ) -> None:
         actual_epoch = epoch or self.current_epoch()
-        logger.debug(
-            f"📤 [EMIT] Node {node_id} emitting {len(outputs)} outputs at epoch {actual_epoch}"
-        )
-        logger.debug(f"📤 [EMIT] Output keys: {list(outputs.keys())}")
 
         self._token_manager.emit_outputs(node_id, outputs, epoch)
 
         if self.scheduler:
             if hasattr(self.scheduler, "on_token_published"):
                 edges = self._token_manager._out_edges.get(node_id, [])
-                logger.debug(f"📤 [EMIT] Node {node_id} has {len(edges)} outgoing edges")
                 for edge in edges:
-                    logger.debug(
-                        f"📤 [EMIT] Publishing token: {edge.source_node_id} -> {edge.target_node_id} "
-                        f"(source_output={edge.source_output}, target_input={edge.target_input})"
-                    )
                     self.scheduler.on_token_published(edge, actual_epoch)
-            else:
-                logger.debug("[EMIT] Scheduler exists but has no on_token_published method")
-        else:
-            logger.debug("[EMIT] No scheduler available")
 
     def has_new_inputs(self, node_id: NodeID, epoch: int | None = None) -> bool:
         join_policy = "all"
@@ -198,32 +185,21 @@ class TypedExecutionContext(ExecutionContextProtocol):
 
     def is_execution_complete(self) -> bool:
         endpoint_nodes = self.diagram.get_nodes_by_type(NodeType.ENDPOINT)
-        logger.debug(f"[COMPLETION] Checking completion: {len(endpoint_nodes)} endpoint nodes")
 
         if not endpoint_nodes:
             all_states = self._state_tracker.get_all_node_states()
             if not all_states:
-                logger.debug("[COMPLETION] No states tracked yet - not complete")
                 return False
 
-            pending_or_running = []
-            for node_id, state in all_states.items():
+            for _node_id, state in all_states.items():
                 if state.status in (Status.PENDING, Status.RUNNING):
-                    pending_or_running.append((node_id, state.status))
+                    return False
 
-            if pending_or_running:
-                logger.debug(f"[COMPLETION] Still pending/running: {pending_or_running}")
-                return False
-
-            logger.debug("[COMPLETION] All nodes completed - execution complete")
             return True
 
         for endpoint in endpoint_nodes:
             state = self._state_tracker.get_node_state(endpoint.id)
             if not state or state.status not in (Status.COMPLETED, Status.FAILED):
-                logger.debug(
-                    f"[COMPLETION] Endpoint {endpoint.id} not complete: {state.status if state else 'no state'}"
-                )
                 return False
         return True
 

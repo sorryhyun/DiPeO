@@ -124,11 +124,7 @@ class StateTracker:
         token_usage: dict[str, int] | None = None,
     ) -> None:
         with self._lock:
-            logger.debug(f"[STATE_TRACKER] Transitioning {node_id} to COMPLETED")
             self._node_states[node_id] = NodeState(status=Status.COMPLETED)
-            logger.debug(
-                f"[STATE_TRACKER] Node {node_id} state updated: {self._node_states[node_id].status}"
-            )
             self._tracker.complete_execution(
                 node_id, CompletionStatus.SUCCESS, output=output, token_usage=token_usage
             )
