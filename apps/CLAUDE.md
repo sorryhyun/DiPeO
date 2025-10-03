@@ -35,7 +35,7 @@ React-based visual diagram editor - see [apps/web/CLAUDE.md](web/CLAUDE.md) for 
 
 ## CLI
 
-Command-line tool - see [apps/cli/README.md](cli/README.md) for complete documentation.
+Command-line tool integrated into the server package at `apps/server/src/dipeo_server/cli/`.
 
 ### Key Components
 - **Server Manager**: Automatic backend lifecycle management

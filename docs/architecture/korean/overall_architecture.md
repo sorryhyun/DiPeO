@@ -10,8 +10,7 @@ DiPeO는 개발자가 **멀티 에이전트 AI 워크플로**를 순수 코드 �
 | 경로                        | 설명                               | 특징                                                                                       |
 | ------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------- |
 | **`apps/web`**            | React 19 비주얼 에디터                 | Vite, TailwindCSS, @xyflow/react 캔버스, Apollo + GraphQL, TRPC, TanStack Query, Zustand 상태 |
-| **`apps/server`**         | FastAPI / Strawberry-GraphQL 백엔드 | Python 3.13, Hypercorn ASGI, 라이브 업데이트용 GraphQL 구독                                        |
-| **`apps/cli`**            | 헤드리스 CLI 러너                      | `dipeo run diagram.yml`, 코드 생성 헬퍼                                                        |
+| **`apps/server`**         | FastAPI / Strawberry-GraphQL 백엔드 + CLI | Python 3.13, Hypercorn ASGI, GraphQL 구독, CLI at `src/dipeo_server/cli/`                                        |
 | **`dipeo/`**              | 코어 도메인 + 애플리케이션 + 인프라 라이브러리      | 실행 엔진, DI 컨테이너, 어댑터, 코드 생성 출력                                                            |
 | **`diagram_generated*/`** | 자동 생성 코드                         | Pydantic 모델, 노드 핸들러, GraphQL 스키마, TS 훅                                                   |
 
@@ -22,9 +21,8 @@ DiPeO는 개발자가 **멀티 에이전트 AI 워크플로**를 순수 코드 �
 | 레이어                      | 목적                         | 핵심 기술                                                                                                                      |
 | ------------------------ | -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **프론트엔드**<br>`apps/web`  | 드래그앤드롭 다이어그램 에디터, 런 모니터    | *React 19*, Vite, @xyflow/react, Apollo Client + `graphql-ws`, TRPC, Zustand, TanStack Query, React-Hook-Form, TailwindCSS |
-| **백엔드**<br>`apps/server` | GraphQL API 노출, 실행 오케스트레이션 | *Python 3.13*, FastAPI, Strawberry GraphQL, GraphQL 구독, Hypercorn, Pydantic v2                                             |
+| **백엔드**<br>`apps/server` | GraphQL API 노출, 실행 오케스트레이션, CLI | *Python 3.13*, FastAPI, Strawberry GraphQL, GraphQL 구독, Hypercorn, Pydantic v2, CLI 도구                                             |
 | **코어 라이브러리**<br>`dipeo/` | 도메인 모델, 실행 엔진, 메모리         | 이벤트 주도 아키텍처, 비동기 런타임, Pydantic, DI 서비스 레지스트리                                                                               |
-| **CLI**<br>`apps/cli`    | 스크립트형 인터페이스, 코드 생성 드라이버    | `click` 스타일 UX, 순수 Python, `requests/pyyaml` 만 사용                                                                          |
 
 ---
 

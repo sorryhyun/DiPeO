@@ -366,7 +366,7 @@ dipeo run projects/claude_code/latest.light.yaml --debug
   - Better end-to-end diff application without manual fixes
 
 ### CLI Command
-- **Location**: `apps/cli/src/dipeo_cli/commands/claude_code_command.py`
+- **Location**: `apps/server/src/dipeo_server/cli/commands/claude_code_command.py`
 - **Functionality**: Orchestrates conversion process and file management
 
 
@@ -374,5 +374,4 @@ dipeo run projects/claude_code/latest.light.yaml --debug
 
 - [Claude Code Integration Guide](../integrations/claude-code.md) - Using Claude Code as an LLM provider
 - [Light Diagram Format](../formats/comprehensive_light_diagram_guide.md) - Understanding generated diagrams
-- [CLI Reference](../../apps/cli/README.md) - Complete CLI documentation
 - [DiPeO Architecture](../architecture/overall_architecture.md) - System overview

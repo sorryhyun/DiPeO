@@ -412,7 +412,7 @@ type Query {
   listConversations(person_id: String = null, execution_id: String = null, search: String = null, show_forgotten: Boolean = null, limit: Float = null, offset: Float = null, since: String = null): [JSON!]!
   getDiagram(diagram_id: String!): DomainDiagramType!
   listDiagrams(filter: DiagramFilterInput = null, limit: Float = null, offset: Float = null): [DomainDiagramType!]!
-  getExecution(execution_id: String!): ExecutionStateType!
+  getExecution(execution_id: String!): ExecutionStateType
   listExecutions(filter: ExecutionFilterInput = null, limit: Float = null, offset: Float = null): [ExecutionStateType!]!
   getSupportedFormats: JSON!
   getPerson(person_id: String!): DomainPersonType!

@@ -490,7 +490,7 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
             client_kwargs = {k: v for k, v in kwargs.items() if k not in claude_code_specific}
 
             # Add person_name back only for Claude Code
-            if service_name == "claude_code" and "person_name" in kwargs:
+            if service_name == "claude-code" and "person_name" in kwargs:
                 client_kwargs["person_name"] = kwargs["person_name"]
 
             if execution_phase:

@@ -56,7 +56,6 @@ dipeo/models/__generated__
 # Generated models now in dipeo/domain/models.py (tracked)
 packages/python/dipeo_application/src/dipeo_application/dto/__generated__.py
 # Generated conversions now in dipeo/domain/conversions.py (tracked)
-apps/cli/src/dipeo_cli/__generated__
 
 # Node.js
 node_modules/
@@ -180,3 +179,4 @@ yarn.lock
 /.playwright-mcp/*
 /projects/frontend_auto/base_configs/ui/
 /projects/codegen/ir/
+/projects/claude_code/sessions/

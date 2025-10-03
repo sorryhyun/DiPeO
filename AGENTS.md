@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 DiPeO is a monorepo for building and executing AI-powered agent workflows through visual programming:
 - **Frontend** (apps/web/): React-based visual diagram editor
 - **Backend** (apps/server/): FastAPI server with GraphQL API
-- **CLI** (apps/cli/): Command-line tool for running diagrams (`dipeo` command)
+- **CLI** (apps/server/src/dipeo_server/cli/): Command-line tool for running diagrams (`dipeo` command)
 
 ## 📚 Documentation Structure
 
@@ -15,7 +15,6 @@ DiPeO is a monorepo for building and executing AI-powered agent workflows throug
 - **[Documentation Index](docs/index.md)** - Complete documentation overview
 - **[User Guide](docs/README.md)** - Getting started with DiPeO
 - **[Motivations](docs/motivations.md)** - Project background and philosophy
-- **[CLI Reference](apps/cli/README.md)** - Complete CLI documentation
 
 ### Architecture & Design
 - **[Overall Architecture](docs/architecture/overall_architecture.md)** - System architecture and tech stack
@@ -264,9 +263,8 @@ make graphql-schema     # Update GraphQL types
 - `utils.py` - Shared utilities for IR building
 
 ### Key Directories
-- `/apps/server/` - FastAPI backend
+- `/apps/server/` - FastAPI backend (includes CLI at src/dipeo_server/cli/)
 - `/apps/web/` - React frontend ([Frontend README](apps/web/src/domain/README.md))
-- `/apps/cli/` - CLI tool ([CLI Documentation](apps/cli/README.md))
 - `/dipeo/` - Backend business logic (application/domain/infrastructure layers)
 - `/projects/codegen/` - Code generation system ([Codegen Guide](docs/projects/code-generation-guide.md))
 - `/projects/frontend_auto/` - AI frontend generation ([Frontend Auto](projects/frontend_auto/README.md))

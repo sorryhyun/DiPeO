@@ -32,7 +32,7 @@ tools:
 
 context_files:
   - /docs/projects/dipeocc-guide.md
-  - /apps/cli/commands/dipeocc.py
+  - /apps/server/src/dipeo_server/cli/commands/claude_code_command.py
   - /docs/formats/comprehensive_light_diagram_guide.md
 
 collaboration:

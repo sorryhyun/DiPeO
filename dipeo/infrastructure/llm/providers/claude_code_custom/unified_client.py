@@ -8,7 +8,7 @@ from collections.abc import AsyncIterator
 from typing import Any
 from uuid import uuid4
 
-from claude_code_sdk import ClaudeAgentOptions, ClaudeSDKClient
+from claude_agent_sdk import ClaudeAgentOptions, ClaudeSDKClient
 from pydantic import BaseModel
 from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_exponential
 
@@ -28,6 +28,7 @@ from dipeo.infrastructure.llm.drivers.types import (
     ProviderCapabilities,
 )
 
+from ..claude_code.message_processor import ClaudeCodeMessageProcessor
 from ..claude_code.prompts import (
     DIRECT_EXECUTION_PROMPT,
     LLM_DECISION_PROMPT,
@@ -38,9 +39,14 @@ logger = get_module_logger(__name__)
 
 # Check if fork_session is supported
 FORK_SESSION_SUPPORTED = "fork_session" in getattr(ClaudeAgentOptions, "__dataclass_fields__", {})
-FORK_SESSION_ENABLED = FORK_SESSION_SUPPORTED and os.getenv("DIPEO_CLAUDE_FORK_SESSION", "true").lower() == "true"
+FORK_SESSION_ENABLED = (
+    FORK_SESSION_SUPPORTED and os.getenv("DIPEO_CLAUDE_FORK_SESSION", "true").lower() == "true"
+)
 
-logger.info(f"[ClaudeCodeCustom] Fork session supported: {FORK_SESSION_SUPPORTED}, enabled: {FORK_SESSION_ENABLED}")
+logger.info(
+    f"[ClaudeCodeCustom] Fork session supported: {FORK_SESSION_SUPPORTED}, enabled: {FORK_SESSION_ENABLED}"
+)
+
 
 class UnifiedClaudeCodeCustomClient:
     """Unified Claude Code Custom client with full system prompt override support.
@@ -76,7 +82,10 @@ class UnifiedClaudeCodeCustomClient:
         self._active_sessions: list[ClaudeSDKClient] = []
         self._session_lock = asyncio.Lock()
 
-        logger.info("[ClaudeCodeCustom] Initialized with template-based session management (fork enabled: %s)", FORK_SESSION_ENABLED)
+        logger.info(
+            "[ClaudeCodeCustom] Initialized with template-based session management (fork enabled: %s)",
+            FORK_SESSION_ENABLED,
+        )
 
     def _get_capabilities(self) -> ProviderCapabilities:
         """Get Claude Code provider capabilities."""
@@ -129,29 +138,14 @@ class UnifiedClaudeCodeCustomClient:
         return None
 
     def _prepare_message(self, messages: list[Message]):
-        """Prepare messages for Claude Code SDK."""
-        # Claude Code SDK expects a single message string
-        # Combine all messages into a single prompt
-        formatted_messages = []
-        system_message = ""
+        """Prepare messages for Claude Code SDK.
 
-        for msg in messages:
-            # Handle both dict and Message object formats
-            if isinstance(msg, dict):
-                role = msg.get("role", "user")
-                content = msg.get("content", "")
-            else:
-                role = msg.role
-                content = {"role": msg.role, "content": [{"type": "text", "text": msg.content}]}
-
-            if role == "system":
-                system_message = content
-            elif role == "assistant":
-                formatted_messages.append({"type": "assistant", "message": content})
-            else:  # user role
-                formatted_messages.append({"type": "user", "message": content})
-
-        return system_message, str(formatted_messages)
+        Uses the shared ClaudeCodeMessageProcessor which includes:
+        - Memory transformation to tool_result pattern
+        - Proper message formatting
+        - Content block handling
+        """
+        return ClaudeCodeMessageProcessor.prepare_message(messages)
 
     def _extract_usage_from_response(self, response_text: str) -> LLMUsage | None:
         """Extract token usage from response if included."""
@@ -199,7 +193,9 @@ class UnifiedClaudeCodeCustomClient:
             "mcp_servers": {
                 "dipeo_structured_output": {
                     "module": dipeo_structured_output_server,
-                    "args": {"output_type": execution_phase.value if execution_phase else "default"},
+                    "args": {
+                        "output_type": execution_phase.value if execution_phase else "default"
+                    },
                 }
             },
             "allowed_tools": ["mcp__dipeo_structured_output__*"],
@@ -288,9 +284,7 @@ class UnifiedClaudeCodeCustomClient:
         return LLMResponse(content=str(tool_data))
 
     async def _get_or_create_template(
-        self,
-        options: ClaudeAgentOptions,
-        execution_phase: str
+        self, options: ClaudeAgentOptions, execution_phase: str
     ) -> ClaudeSDKClient:
         """Get or create a template session for the given phase.
 
@@ -309,7 +303,9 @@ class UnifiedClaudeCodeCustomClient:
             if self._template_sessions.get(execution_phase):
                 return self._template_sessions[execution_phase]
 
-            logger.info(f"[ClaudeCodeCustom] Creating template session for phase '{execution_phase}'")
+            logger.info(
+                f"[ClaudeCodeCustom] Creating template session for phase '{execution_phase}'"
+            )
 
             # Enable fork_session for the template if supported
             if FORK_SESSION_ENABLED:
@@ -325,9 +321,7 @@ class UnifiedClaudeCodeCustomClient:
             return template_session
 
     async def _create_forked_session(
-        self,
-        options: ClaudeAgentOptions,
-        execution_phase: str
+        self, options: ClaudeAgentOptions, execution_phase: str
     ) -> ClaudeSDKClient:
         """Create a session by forking from template or creating fresh.
 
@@ -349,14 +343,18 @@ class UnifiedClaudeCodeCustomClient:
 
                 # Create a forked session from the template
                 # The fork will inherit the template's configuration but have its own state
-                logger.debug(f"[ClaudeCodeCustom] Forking session from template for phase '{execution_phase}'")
+                logger.debug(
+                    f"[ClaudeCodeCustom] Forking session from template for phase '{execution_phase}'"
+                )
 
                 # Create new session with resume from template (this creates a fork)
-                fork_options = ClaudeAgentOptions(**{
-                    **options.__dict__,
-                    "resume": template.session_id if hasattr(template, "session_id") else None,
-                    "fork_session": True
-                })
+                fork_options = ClaudeAgentOptions(
+                    **{
+                        **options.__dict__,
+                        "resume": template.session_id if hasattr(template, "session_id") else None,
+                        "fork_session": True,
+                    }
+                )
 
                 forked_session = ClaudeSDKClient(options=fork_options)
                 await forked_session.connect(None)
@@ -368,7 +366,9 @@ class UnifiedClaudeCodeCustomClient:
                 return forked_session
 
             except Exception as e:
-                logger.warning(f"[ClaudeCodeCustom] Failed to fork from template: {e}, creating fresh session")
+                logger.warning(
+                    f"[ClaudeCodeCustom] Failed to fork from template: {e}, creating fresh session"
+                )
 
         # Fallback: Create a fresh session if forking is not available or failed
         logger.debug(f"[ClaudeCodeCustom] Creating fresh session for phase '{execution_phase}'")
@@ -387,7 +387,7 @@ class UnifiedClaudeCodeCustomClient:
         session: ClaudeSDKClient,
         query_input: str,
         execution_phase: ExecutionPhase | None,
-        session_id: str
+        session_id: str,
     ) -> LLMResponse:
         """Execute a query on a session.
 
@@ -408,7 +408,7 @@ class UnifiedClaudeCodeCustomClient:
             result_text = ""
             tool_invocation_data = None
 
-            async for message in session.receive_messages():
+            async for message in session.receive_response():
                 # Check for tool invocations
                 if hasattr(message, "content") and not hasattr(message, "result"):
                     for block in message.content:
@@ -421,7 +421,7 @@ class UnifiedClaudeCodeCustomClient:
                                 tool_invocation_data = block.input
                                 break
 
-                # Process ResultMessage
+                # Process ResultMessage (auto-terminates after this)
                 if hasattr(message, "result"):
                     result_text = str(message.result)
                     # Log if session was forked
@@ -429,7 +429,7 @@ class UnifiedClaudeCodeCustomClient:
                         logger.debug(
                             f"[ClaudeCodeCustom] Session forked from {session_id} to {message.session_id}"
                         )
-                    break
+                    # No need to break - receive_response() auto-terminates
 
             # Parse response
             if tool_invocation_data:
@@ -515,7 +515,9 @@ class UnifiedClaudeCodeCustomClient:
 
             # Execute query with unique session ID
             session_id = f"{phase_key}_{uuid4()}"
-            return await self._execute_query(session, formatted_messages, execution_phase, session_id)
+            return await self._execute_query(
+                session, formatted_messages, execution_phase, session_id
+            )
 
         async for attempt in retry:
             with attempt:
@@ -572,7 +574,7 @@ class UnifiedClaudeCodeCustomClient:
 
             # Stream responses
             has_yielded_content = False
-            async for message in session.receive_messages():
+            async for message in session.receive_response():
                 if hasattr(message, "content") and not hasattr(message, "result"):
                     # Stream content from AssistantMessage
                     for block in message.content:
@@ -583,7 +585,7 @@ class UnifiedClaudeCodeCustomClient:
                     # If we haven't yielded any content yet, yield the result
                     if not has_yielded_content:
                         yield str(message.result)
-                    break  # ResultMessage is the final message
+                    # No need to break - receive_response() auto-terminates after ResultMessage
         finally:
             # Clean up session after use
             await self._cleanup_session(session)
@@ -621,7 +623,9 @@ class UnifiedClaudeCodeCustomClient:
         """Cleanup all sessions on shutdown."""
         # Clean up active forked sessions
         async with self._session_lock:
-            for session in self._active_sessions[:]:  # Copy list to avoid modification during iteration
+            for session in self._active_sessions[
+                :
+            ]:  # Copy list to avoid modification during iteration
                 try:
                     await session.disconnect()
                     logger.debug("[ClaudeCodeCustom] Disconnected active forked session")
@@ -635,9 +639,13 @@ class UnifiedClaudeCodeCustomClient:
                 if template:
                     try:
                         await template.disconnect()
-                        logger.debug(f"[ClaudeCodeCustom] Disconnected template session for phase '{phase}'")
+                        logger.debug(
+                            f"[ClaudeCodeCustom] Disconnected template session for phase '{phase}'"
+                        )
                     except Exception as e:
-                        logger.warning(f"[ClaudeCodeCustom] Error disconnecting template for phase '{phase}': {e}")
+                        logger.warning(
+                            f"[ClaudeCodeCustom] Error disconnecting template for phase '{phase}': {e}"
+                        )
             self._template_sessions.clear()
 
         logger.info("[ClaudeCodeCustom] Cleanup complete (templates and forked sessions)")

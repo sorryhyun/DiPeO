@@ -1,13 +1,14 @@
 """Tool definitions for Claude Code structured output."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
-from claude_code_sdk import create_sdk_mcp_server, tool
+from claude_agent_sdk import create_sdk_mcp_server, tool
+
+from dipeo.config.base_logger import get_module_logger
 
 logger = get_module_logger(__name__)
+
 
 # Memory selection tool with proper type annotations
 @tool(
@@ -54,6 +55,7 @@ async def select_memory_messages(args: dict[str, Any]) -> dict[str, Any]:
     logger.debug(f"[MCP Tool] select_memory_messages returning: {result}")
     return result
 
+
 # Decision making tool with proper boolean type
 @tool(
     "make_decision",
@@ -97,6 +99,7 @@ async def make_decision(args: dict[str, Any]) -> dict[str, Any]:
 
     logger.debug(f"[MCP Tool] make_decision returning: {result}")
     return result
+
 
 def create_dipeo_mcp_server():
     """Create an MCP server with DiPeO structured output tools."""

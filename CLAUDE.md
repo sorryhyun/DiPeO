@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 DiPeO is a monorepo for building and executing AI-powered agent workflows through visual programming:
 - **Frontend** (apps/web/): React-based visual diagram editor
 - **Backend** (apps/server/): FastAPI server with GraphQL API
-- **CLI** (apps/cli/): Command-line tool for running diagrams (`dipeo` command)
+- **CLI** (apps/server/src/dipeo_server/cli/): Command-line tool for running diagrams (`dipeo` command)
 
 ## 📚 Documentation Structure
 
@@ -17,7 +17,6 @@ DiPeO is a monorepo for building and executing AI-powered agent workflows throug
 - **[Documentation Index](docs/index.md)** - Complete documentation overview
 - **[User Guide](docs/README.md)** - Getting started with DiPeO
 - **[Motivations](docs/motivations.md)** - Project background and philosophy
-- **[CLI Reference](apps/cli/README.md)** - Complete CLI documentation
 
 ### Architecture & Design
 - **[Overall Architecture](docs/architecture/overall_architecture.md)** - System architecture and tech stack
@@ -58,13 +57,16 @@ make dev-web          # Start frontend only
 
 ### Running Diagrams
 ```bash
+# Run with debug mode (auto-starts monitoring server)
 dipeo run examples/simple_diagrams/simple_iter --light --debug --timeout=30
+
+# Run with custom input data
 dipeo run [diagram] --input-data '{"key": "value"}' --light --debug
 ```
 - **Light diagrams**: Read [Light Diagram Guide](docs/formats/comprehensive_light_diagram_guide.md)
-- Add `--debug` for detailed logs
+- **Debug mode (`--debug`)**: Automatically starts background server for real-time monitoring
+- **Monitor executions**: Open `http://localhost:3000/?monitor=true` in browser when using `--debug`
 - Use `simple_iter_cc` diagram to test Claude Code adapter
-- Monitor at `http://localhost:3000/?monitor=true`
 
 ### Natural Language to Diagram
 ```bash
@@ -157,9 +159,8 @@ make graphql-schema     # Update GraphQL types
 See [Overall Architecture](docs/architecture/overall_architecture.md) for details.
 
 ### Key Directories
-- `/apps/server/` - FastAPI backend
+- `/apps/server/` - FastAPI backend (includes CLI at src/dipeo_server/cli/)
 - `/apps/web/` - React frontend ([Frontend README](apps/web/src/domain/README.md))
-- `/apps/cli/` - CLI tool ([CLI Documentation](apps/cli/README.md))
 - `/dipeo/` - Backend business logic (application/domain/infrastructure layers)
 - `/projects/codegen/` - Code generation system ([Codegen Guide](docs/projects/code-generation-guide.md))
 - `/projects/frontend_auto/` - AI frontend generation ([Frontend Auto](projects/frontend_auto/README.md))

@@ -70,7 +70,7 @@ persons:
 #    api_key_id: APIKEY_52609F
     service: claude-code
     model: claude-code
-    api_key_id: APIKEY_CLAUDE
+    api_key_id: APIKEY_MOCK
     system_prompt: |
       You are an expert React/TypeScript engineer. Your task is to generate production-ready code following the detailed instructions in the prompt file.
 

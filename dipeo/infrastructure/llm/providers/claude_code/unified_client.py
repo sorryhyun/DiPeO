@@ -2,13 +2,12 @@
 
 import asyncio
 import json
-import logging
 import os
 from collections.abc import AsyncIterator
 from typing import Any
 from uuid import uuid4
 
-from claude_code_sdk import ClaudeAgentOptions, ClaudeSDKClient
+from claude_agent_sdk import ClaudeAgentOptions, ClaudeSDKClient
 from pydantic import BaseModel
 from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_exponential
 
@@ -216,7 +215,7 @@ class UnifiedClaudeCodeClient:
     async def _execute_query(
         self,
         session: ClaudeSDKClient,
-        query_input: str,
+        query_input: str | AsyncIterator[dict[str, Any]],
         execution_phase: ExecutionPhase | None,
         session_id: str,
     ) -> LLMResponse:
@@ -224,7 +223,7 @@ class UnifiedClaudeCodeClient:
 
         Args:
             session: ClaudeSDKClient session to query
-            query_input: The prompt to send
+            query_input: Message dict or async iterable of message dicts to send
             execution_phase: Execution phase for response parsing
             session_id: Unique session ID for this query
 
@@ -239,7 +238,7 @@ class UnifiedClaudeCodeClient:
             result_text = ""
             tool_invocation_data = None
 
-            async for message in session.receive_messages():
+            async for message in session.receive_response():
                 # Check for tool invocations
                 if hasattr(message, "content") and not hasattr(message, "result"):
                     for block in message.content:
@@ -252,7 +251,7 @@ class UnifiedClaudeCodeClient:
                                 tool_invocation_data = block.input
                                 break
 
-                # Process ResultMessage
+                # Process ResultMessage (final message, iterator auto-terminates after this)
                 if hasattr(message, "result"):
                     result_text = str(message.result)
                     # Log if session was forked
@@ -260,7 +259,7 @@ class UnifiedClaudeCodeClient:
                         logger.debug(
                             f"[ClaudeCode] Session forked from {session_id} to {message.session_id}"
                         )
-                    break
+                    # No need to break - receive_response() auto-terminates
 
             # Parse response
             if tool_invocation_data:
@@ -354,37 +353,23 @@ class UnifiedClaudeCodeClient:
             phase_key = execution_phase.value if execution_phase else "default"
             session = await self._create_forked_session(options, phase_key)
 
-            # Prepare query input
-            combined_content = []
-            for msg in formatted_messages:
-                message_data = json.loads(msg["message"])
-                role = message_data.get("role", msg["type"])
+            # Create async generator for messages to yield them individually
+            async def message_generator():
+                for msg in formatted_messages:
+                    yield msg
 
-                # Extract content text
-                content_text = ""
-                if isinstance(message_data.get("content"), str):
-                    content_text = message_data["content"]
-                elif isinstance(message_data.get("content"), list):
-                    text_parts = []
-                    for block in message_data["content"]:
-                        if isinstance(block, dict) and block.get("type") == "text":
-                            text_parts.append(block.get("text", ""))
-                        elif isinstance(block, str):
-                            text_parts.append(block)
-                    content_text = " ".join(text_parts)
+            # Always use async generator for formatted messages
+            if formatted_messages:
+                query_input = message_generator()
+            else:
+                # Fallback: create a default message generator
+                async def default_generator():
+                    yield {
+                        "type": "user",
+                        "message": json.dumps({"role": "user", "content": "Please respond"}),
+                    }
 
-                # Format the message with role prefix for multi-message conversations
-                if len(formatted_messages) > 1:
-                    if role == "assistant":
-                        combined_content.append(f"Assistant: {content_text}")
-                    elif role == "user":
-                        combined_content.append(f"User: {content_text}")
-                    else:
-                        combined_content.append(content_text)
-                else:
-                    combined_content.append(content_text)
-
-            query_input = "\n\n".join(combined_content) if combined_content else "Please respond"
+                query_input = default_generator()
 
             # Execute query with unique session ID
             session_id = f"{phase_key}_{uuid4()}"
@@ -442,16 +427,23 @@ class UnifiedClaudeCodeClient:
         session = await self._create_forked_session(options, phase_key)
 
         try:
-            # Create async generator for messages if multiple messages exist
+            # Create async generator for messages to yield them individually
             async def message_generator():
                 for msg in formatted_messages:
-                    yield json.dumps(msg, ensure_ascii=False)
+                    yield msg
 
-            # Use async iterable if we have multiple messages, otherwise use JSON string
-            if len(formatted_messages) > 1:
+            # Always use async generator for formatted messages
+            if formatted_messages:
                 query_input = message_generator()
             else:
-                query_input = json.dumps(formatted_messages, ensure_ascii=False)
+                # Fallback: create a default message generator
+                async def default_generator():
+                    yield {
+                        "type": "user",
+                        "message": json.dumps({"role": "user", "content": "Please respond"}),
+                    }
+
+                query_input = default_generator()
 
             # Execute query with unique session ID
             session_id = f"{phase_key}_{uuid4()}"
@@ -459,7 +451,7 @@ class UnifiedClaudeCodeClient:
 
             # Stream responses
             has_yielded_content = False
-            async for message in session.receive_messages():
+            async for message in session.receive_response():
                 if hasattr(message, "content") and not hasattr(message, "result"):
                     # Stream content from AssistantMessage (real-time streaming)
                     for block in message.content:
@@ -470,7 +462,7 @@ class UnifiedClaudeCodeClient:
                     # If we haven't yielded any content yet, yield the result
                     if not has_yielded_content:
                         yield str(message.result)
-                    break  # ResultMessage is the final message
+                    # No need to break - receive_response() auto-terminates after ResultMessage
         finally:
             # Clean up session after use
             await self._cleanup_session(session)

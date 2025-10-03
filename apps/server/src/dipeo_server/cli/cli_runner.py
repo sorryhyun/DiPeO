@@ -50,7 +50,7 @@ class CLIRunner:
 
             # Load diagram
             domain_diagram = None
-            diagram_data = await self._load_diagram(diagram, format_type)
+            diagram_data, diagram_path = await self._load_diagram(diagram, format_type)
 
             # Convert to domain diagram
             serializer = UnifiedSerializerAdapter()
@@ -61,10 +61,14 @@ class CLIRunner:
                 import yaml
 
                 content = yaml.dump(diagram_data, default_flow_style=False, sort_keys=False)
-                domain_diagram = serializer.deserialize_from_storage(content, format_hint)
+                domain_diagram = serializer.deserialize_from_storage(
+                    content, format_hint, diagram_path
+                )
             else:
                 json_content = json.dumps(diagram_data)
-                domain_diagram = serializer.deserialize_from_storage(json_content, "native")
+                domain_diagram = serializer.deserialize_from_storage(
+                    json_content, "native", diagram_path
+                )
 
             if not domain_diagram:
                 raise ValueError("Failed to load diagram")
@@ -86,6 +90,25 @@ class CLIRunner:
             }
 
             execution_id = ExecutionID(f"exec_{uuid.uuid4().hex}")
+
+            # Convert domain_diagram to native format for frontend
+            native_data = None
+            if domain_diagram:
+                # Convert to native format (already in array form from domain_diagram)
+                native_data = {
+                    "nodes": [node.model_dump() for node in domain_diagram.nodes],
+                    "arrows": [arrow.model_dump() for arrow in domain_diagram.arrows],
+                    "handles": [handle.model_dump() for handle in domain_diagram.handles],
+                    "persons": [person.model_dump() for person in (domain_diagram.persons or [])],
+                }
+
+            # Register CLI session for monitor mode support
+            await self._register_cli_session(
+                execution_id=str(execution_id),
+                diagram_name=diagram,
+                diagram_format="native",  # Always send native format to frontend
+                diagram_data=native_data or diagram_data,
+            )
 
             # Execute diagram
             success = False
@@ -161,7 +184,14 @@ class CLIRunner:
 
                 if not simple:
                     print(f"\n❌ Execution timed out after {timeout} seconds")
+
+                # Unregister CLI session
+                await self._unregister_cli_session(str(execution_id))
+
                 return False
+            finally:
+                # Always unregister CLI session when execution completes
+                await self._unregister_cli_session(str(execution_id))
 
             return success
 
@@ -324,7 +354,7 @@ class CLIRunner:
     async def show_stats(self, diagram_path: str) -> bool:
         """Show diagram statistics."""
         try:
-            diagram_data = await self._load_diagram(diagram_path, None)
+            diagram_data, _ = await self._load_diagram(diagram_path, None)
 
             # Calculate stats
             node_count = len(diagram_data.get("nodes", []))
@@ -405,9 +435,19 @@ class CLIRunner:
     async def manage_claude_code(self, action: str, **kwargs) -> bool:
         """Manage Claude Code session conversion."""
         try:
+            from pathlib import Path
+
             from dipeo.infrastructure.cc_translate import ClaudeCodeManager
 
-            manager = ClaudeCodeManager()
+            # Resolve project directory if specified
+            session_dir = None
+            if project := kwargs.get("project"):
+                session_dir = Path.home() / ".claude" / "projects" / project
+                if not session_dir.exists():
+                    print(f"❌ Project directory not found: {session_dir}")
+                    return False
+
+            manager = ClaudeCodeManager(session_dir=session_dir)
 
             if action == "list":
                 sessions = manager.list_sessions(kwargs.get("limit", 50))
@@ -426,7 +466,7 @@ class CLIRunner:
                         return False
                     results = []
                     for session in sessions:
-                        result = await manager.convert_session(
+                        result = manager.convert_session(
                             session.id,
                             kwargs.get("output_dir"),
                             kwargs.get("format", "light"),
@@ -434,7 +474,7 @@ class CLIRunner:
                         results.append(result)
                     return all(results)
                 elif session_id:
-                    return await manager.convert_session(
+                    return manager.convert_session(
                         session_id,
                         kwargs.get("output_dir"),
                         kwargs.get("format", "light"),
@@ -464,13 +504,130 @@ class CLIRunner:
             return False
 
     # Helper methods
-    async def _load_diagram(self, diagram: str, format_type: Optional[str]) -> dict[str, Any]:
-        """Load diagram from file."""
+    async def _is_server_available(self) -> bool:
+        """Quick check if server is available."""
+        try:
+            import httpx
+
+            async with httpx.AsyncClient(timeout=0.5) as client:
+                await client.get("http://localhost:8000/health")
+                return True
+        except Exception:
+            return False
+
+    async def _register_cli_session(
+        self,
+        execution_id: str,
+        diagram_name: str,
+        diagram_format: str,
+        diagram_data: Optional[dict[str, Any]] = None,
+    ) -> None:
+        """Register a CLI session via GraphQL mutation to the running server."""
+        try:
+            import httpx
+
+            from dipeo.diagram_generated.graphql.inputs import RegisterCliSessionInput
+            from dipeo.diagram_generated.graphql.operations import RegisterCliSessionOperation
+
+            # Build input using generated types (use uppercase string for GraphQL enum)
+            input_data = RegisterCliSessionInput(
+                execution_id=execution_id,
+                diagram_name=diagram_name,
+                diagram_format=diagram_format.upper(),
+                diagram_data=diagram_data,
+            )
+
+            # Use generated operation to get query and variables
+            variables = RegisterCliSessionOperation.get_variables_dict(input=input_data)
+            query = RegisterCliSessionOperation.get_query()
+
+            # Retry logic for server availability (useful when server just started)
+            max_retries = 5
+            retry_delay = 0.5  # Start with 500ms
+
+            for attempt in range(max_retries):
+                try:
+                    async with httpx.AsyncClient(timeout=5.0) as client:
+                        response = await client.post(
+                            "http://localhost:8000/graphql",
+                            json={"query": query, "variables": variables},
+                        )
+                        result = response.json()
+
+                        if result.get("data", {}).get("registerCliSession", {}).get("success"):
+                            logger.info(f"Registered CLI session for execution {execution_id}")
+                            return
+                        else:
+                            error = (
+                                result.get("data", {}).get("registerCliSession", {}).get("error")
+                            )
+                            logger.warning(f"Failed to register CLI session: {error}")
+                            return
+
+                except (httpx.ConnectError, httpx.TimeoutException) as e:
+                    if attempt < max_retries - 1:
+                        logger.debug(
+                            f"Server not ready (attempt {attempt + 1}/{max_retries}), retrying..."
+                        )
+                        await asyncio.sleep(retry_delay)
+                        retry_delay = min(retry_delay * 1.5, 2.0)  # Exponential backoff up to 2s
+                    else:
+                        logger.debug(f"Could not connect to server after {max_retries} attempts")
+                        return
+
+        except Exception as e:
+            logger.debug(f"Could not register CLI session: {e}")
+
+    async def _unregister_cli_session(self, execution_id: str) -> None:
+        """Unregister a CLI session via GraphQL mutation to the running server."""
+        try:
+            # Quick check if server is available
+            if not await self._is_server_available():
+                return
+
+            import httpx
+
+            from dipeo.diagram_generated.graphql.inputs import UnregisterCliSessionInput
+            from dipeo.diagram_generated.graphql.operations import UnregisterCliSessionOperation
+
+            # Build input using generated types
+            input_data = UnregisterCliSessionInput(execution_id=execution_id)
+
+            # Use generated operation to get query and variables
+            variables = UnregisterCliSessionOperation.get_variables_dict(input=input_data)
+            query = UnregisterCliSessionOperation.get_query()
+
+            # Single attempt since we already checked server availability
+            async with httpx.AsyncClient(timeout=2.0) as client:
+                response = await client.post(
+                    "http://localhost:8000/graphql",
+                    json={"query": query, "variables": variables},
+                )
+                result = response.json()
+
+                if result.get("data", {}).get("unregisterCliSession", {}).get("success"):
+                    logger.debug(f"Unregistered CLI session for execution {execution_id}")
+                else:
+                    error = result.get("data", {}).get("unregisterCliSession", {}).get("error")
+                    logger.debug(f"Could not unregister CLI session: {error}")
+
+        except Exception as e:
+            logger.debug(f"Could not unregister CLI session: {e}")
+
+    async def _load_diagram(
+        self, diagram: str, format_type: Optional[str]
+    ) -> tuple[dict[str, Any], str]:
+        """Load diagram from file.
+
+        Returns:
+            Tuple of (diagram_data, diagram_path)
+        """
         from dipeo.application.diagrams.loaders import DiagramLoader
 
         loader = DiagramLoader()
         diagram_path = loader.resolve_diagram_path(diagram, format_type)
-        return loader.load_diagram(diagram_path)
+        diagram_data = loader.load_diagram(diagram_path)
+        return diagram_data, diagram_path
 
     def _detect_format(self, file_path: str) -> str:
         """Detect diagram format from file extension."""

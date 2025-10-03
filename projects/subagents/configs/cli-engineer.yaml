@@ -33,8 +33,7 @@ tools:
     - WebFetch
 
 context_files:
-  - /apps/cli/
-  - /apps/cli/README.md
+  - /apps/server/src/dipeo_server/cli/
   - /docs/projects/dipeodipeo-guide.md
 
 collaboration:

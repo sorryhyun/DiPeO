@@ -28,7 +28,10 @@
       "Bash(uv pip install:*)",
       "Bash(dipeo:*)",
       "Read(//tmp/**)",
-      "Bash(sqlite3:*)"
+      "Bash(sqlite3:*)",
+      "Bash(dipeocc convert:*)",
+      "WebSearch",
+      "Bash(uv sync:*)"
     ],
     "deny": [],
     "ask": []
