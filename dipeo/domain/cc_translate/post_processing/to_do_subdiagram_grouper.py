@@ -24,7 +24,7 @@ class To_Do_Subdiagram_Grouper(BaseDiagramProcessor):
     - query: UPDATE TO_DO LIST
     """
 
-    def __init__(self, config: Optional[dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """Initialize with configuration."""
         super().__init__(config)
         self.output_subdirectory = self.config.get("output_subdirectory", "grouped")

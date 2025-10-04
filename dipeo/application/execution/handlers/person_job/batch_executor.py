@@ -2,12 +2,11 @@
 
 import asyncio
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.config.base_logger import get_module_logger
 from dipeo.config.execution import BATCH_MAX_CONCURRENT, BATCH_SIZE
 from dipeo.diagram_generated.unified_nodes.person_job_node import PersonJobNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
@@ -16,6 +15,7 @@ if TYPE_CHECKING:
     pass
 
 logger = get_module_logger(__name__)
+
 
 class BatchExecutor:
     """Handles batch execution for PersonJob nodes.

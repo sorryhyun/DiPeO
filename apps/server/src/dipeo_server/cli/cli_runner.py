@@ -34,8 +34,8 @@ class CLIRunner:
         diagram: str,
         debug: bool = False,
         timeout: int = 300,
-        format_type: Optional[str] = None,
-        input_variables: Optional[dict[str, Any]] = None,
+        format_type: str | None = None,
+        input_variables: dict[str, Any] | None = None,
         use_unified: bool = True,
         simple: bool = False,
     ) -> bool:
@@ -246,8 +246,8 @@ class CLIRunner:
         self,
         input_path: str,
         output_path: str,
-        from_format: Optional[str] = None,
-        to_format: Optional[str] = None,
+        from_format: str | None = None,
+        to_format: str | None = None,
     ) -> bool:
         """Convert between diagram formats."""
         try:
@@ -288,8 +288,8 @@ class CLIRunner:
 
     async def show_metrics(
         self,
-        execution_id: Optional[str] = None,
-        diagram_id: Optional[str] = None,
+        execution_id: str | None = None,
+        diagram_id: str | None = None,
         bottlenecks_only: bool = False,
         optimizations_only: bool = False,
         output_json: bool = False,
@@ -520,7 +520,7 @@ class CLIRunner:
         execution_id: str,
         diagram_name: str,
         diagram_format: str,
-        diagram_data: Optional[dict[str, Any]] = None,
+        diagram_data: dict[str, Any] | None = None,
     ) -> None:
         """Register a CLI session via GraphQL mutation to the running server."""
         try:
@@ -615,7 +615,7 @@ class CLIRunner:
             logger.debug(f"Could not unregister CLI session: {e}")
 
     async def _load_diagram(
-        self, diagram: str, format_type: Optional[str]
+        self, diagram: str, format_type: str | None
     ) -> tuple[dict[str, Any], str]:
         """Load diagram from file.
 

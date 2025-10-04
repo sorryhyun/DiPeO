@@ -104,7 +104,7 @@ class DiagramService(LoggingMixin, InitializationMixin):
             await self.initialize()
         return await self.repository_port.create(name, diagram, format_type)
 
-    async def get_diagram(self, diagram_id: str) -> Optional[DomainDiagram]:
+    async def get_diagram(self, diagram_id: str) -> DomainDiagram | None:
         if not self._initialized:
             await self.initialize()
         return await self.repository_port.get(diagram_id)

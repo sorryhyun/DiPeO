@@ -25,7 +25,7 @@ class DiagramConverter:
         """Convert a diagram from one format to another."""
         try:
             # Load the input diagram
-            with open(input_path, "r", encoding="utf-8") as f:
+            with open(input_path, encoding="utf-8") as f:
                 if from_format == DiagramFormat.NATIVE:
                     data = json.load(f)
                 else:
@@ -49,7 +49,9 @@ class DiagramConverter:
             logger.error(f"Failed to convert diagram: {e}")
             return False
 
-    def _transform_format(self, data: dict, from_format: DiagramFormat, to_format: DiagramFormat) -> dict:
+    def _transform_format(
+        self, data: dict, from_format: DiagramFormat, to_format: DiagramFormat
+    ) -> dict:
         """Transform diagram data between formats."""
         # For now, formats are compatible - just pass through
         # In the future, this could handle structural transformations

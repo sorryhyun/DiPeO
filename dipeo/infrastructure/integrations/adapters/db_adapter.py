@@ -9,6 +9,7 @@ from dipeo.domain.base.storage_port import FileSystemPort
 from dipeo.domain.integrations.db_services import DBOperationsDomainService
 from dipeo.domain.integrations.validators import DataValidator
 
+
 class DBOperationsAdapter:
     """
     Infrastructure adapter that bridges domain service with file system operations.
@@ -36,9 +37,7 @@ class DBOperationsAdapter:
         self.validation_service.validate_operation(
             operation, self.domain_service.ALLOWED_OPERATIONS
         )
-        self.validation_service.validate_db_operation_input(
-            operation, value, keys, lines
-        )
+        self.validation_service.validate_db_operation_input(operation, value, keys, lines)
 
         if operation == "prompt":
             return self.domain_service.prepare_prompt_response(db_name)
@@ -82,9 +81,7 @@ class DBOperationsAdapter:
             exists = self.file_system.exists(file_path)
             if not exists:
                 logger.warning(f"File not found: {file_path}")
-                return self.domain_service.prepare_read_response(
-                    {}, str(file_path), 0, keys or []
-                )
+                return self.domain_service.prepare_read_response({}, str(file_path), 0, keys or [])
 
             with self.file_system.open(file_path, "rb") as f:
                 raw_content = f.read()
@@ -92,26 +89,20 @@ class DBOperationsAdapter:
             content = raw_content.decode("utf-8")
 
             normalized_ranges = (
-                self.domain_service.normalize_line_ranges(lines)
-                if lines is not None
-                else []
+                self.domain_service.normalize_line_ranges(lines) if lines is not None else []
             )
             line_metadata: list[dict[str, int | None]] | None = None
             total_lines: int | None = None
 
             if normalized_ranges:
                 sliced_content, metadata, total_lines = (
-                    self.domain_service.extract_lines_from_content(
-                        content, normalized_ranges
-                    )
+                    self.domain_service.extract_lines_from_content(content, normalized_ranges)
                 )
                 data = sliced_content
                 line_metadata = metadata if metadata is not None else []
             else:
                 try:
-                    data = self.domain_service.validate_json_data(
-                        content, str(file_path)
-                    )
+                    data = self.domain_service.validate_json_data(content, str(file_path))
                 except ValidationError:
                     data = content
 
@@ -176,9 +167,7 @@ class DBOperationsAdapter:
                 if self.file_system.exists(file_path):
                     existing_result = await self._read_db(file_path)
                     existing_data = existing_result["value"]
-                updated_data = self.domain_service.update_data_by_keys(
-                    existing_data, value, keys
-                )
+                updated_data = self.domain_service.update_data_by_keys(existing_data, value, keys)
                 json_data = self.domain_service.ensure_json_serializable(updated_data)
                 content = json.dumps(json_data, indent=2)
             elif is_code_file and isinstance(value, str):

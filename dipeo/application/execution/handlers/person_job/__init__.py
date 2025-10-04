@@ -5,8 +5,6 @@ reducing layers of abstraction from 8 to 4-5 as per the simplification plan.
 """
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
@@ -27,6 +25,7 @@ from dipeo.application.registry.keys import (
     LLM_SERVICE,
     PROMPT_BUILDER,
 )
+from dipeo.config.base_logger import get_module_logger
 from dipeo.config.llm import PERSON_JOB_MAX_TOKENS, PERSON_JOB_TEMPERATURE
 from dipeo.diagram_generated.domain_models import PersonID
 from dipeo.diagram_generated.enums import NodeType
@@ -42,6 +41,7 @@ if TYPE_CHECKING:
     pass
 
 logger = get_module_logger(__name__)
+
 
 @register_handler
 @requires_services(
@@ -513,7 +513,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
             hasattr(edge, "content_type") and edge.content_type == ContentType.CONVERSATION_STATE
             for edge in edges
         )
-
 
     def serialize_output(self, result: Any, request: ExecutionRequest[PersonJobNode]) -> Envelope:
         """Serialize person job result to envelope."""

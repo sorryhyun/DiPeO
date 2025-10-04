@@ -33,8 +33,8 @@ class PersonRegistry:
     def register_claude(
         self,
         person_id: str = "claude_code",
-        system_messages: Optional[list[str]] = None,
-        custom_config: Optional[dict[str, Any]] = None,
+        system_messages: list[str] | None = None,
+        custom_config: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Register Claude as a person in the diagram.
 
@@ -72,7 +72,7 @@ class PersonRegistry:
     def register_user(
         self,
         person_id: str = "user",
-        custom_config: Optional[dict[str, Any]] = None,
+        custom_config: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Register a human user as a person in the diagram.
 
@@ -100,7 +100,7 @@ class PersonRegistry:
         person_id: str,
         service: str,
         model: str,
-        api_key_id: Optional[str] = None,
+        api_key_id: str | None = None,
         system_prompt: str = "",
         **kwargs: Any,
     ) -> dict[str, Any]:
@@ -131,7 +131,7 @@ class PersonRegistry:
         self.persons[person_id] = person_config
         return person_config
 
-    def get_person(self, person_id: str) -> Optional[dict[str, Any]]:
+    def get_person(self, person_id: str) -> dict[str, Any] | None:
         """Get a registered person's configuration.
 
         Args:
@@ -161,7 +161,7 @@ class PersonRegistry:
         """
         return self.persons.copy()
 
-    def update_person(self, person_id: str, updates: dict[str, Any]) -> Optional[dict[str, Any]]:
+    def update_person(self, person_id: str, updates: dict[str, Any]) -> dict[str, Any] | None:
         """Update an existing person's configuration.
 
         Args:
@@ -177,7 +177,7 @@ class PersonRegistry:
         self.persons[person_id].update(updates)
         return self.persons[person_id]
 
-    def ensure_claude_registered(self, system_messages: Optional[list[str]] = None) -> str:
+    def ensure_claude_registered(self, system_messages: list[str] | None = None) -> str:
         """Ensure Claude is registered and return the person ID.
 
         Args:

@@ -7,14 +7,13 @@ without creating separate execution contexts or state persistence.
 import contextlib
 import copy
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import os
 import uuid
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import ExecutionID, ExecutionState, LLMUsage, NodeState, Status
 from dipeo.diagram_generated.unified_nodes.sub_diagram_node import SubDiagramNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
@@ -27,6 +26,7 @@ if TYPE_CHECKING:
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 
 logger = get_module_logger(__name__)
+
 
 class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
     """Executes sub-diagrams without state persistence, treating them as internal node operations."""

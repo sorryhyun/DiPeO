@@ -27,7 +27,7 @@ class IRBuilderPort(ABC):
 
     @abstractmethod
     async def build_ir(
-        self, source_data: dict[str, Any], config: Optional[dict[str, Any]] = None
+        self, source_data: dict[str, Any], config: dict[str, Any] | None = None
     ) -> IRData:
         """Build IR from source data.
 

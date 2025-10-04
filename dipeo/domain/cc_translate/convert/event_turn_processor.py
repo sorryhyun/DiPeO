@@ -118,7 +118,7 @@ class EventTurnProcessor:
 
         return node_labels
 
-    def _create_user_node(self, event: DomainEvent) -> Optional[str]:
+    def _create_user_node(self, event: DomainEvent) -> str | None:
         """Create a node for user input from domain event.
 
         Args:
@@ -139,9 +139,7 @@ class EventTurnProcessor:
             return node["label"]
         return None
 
-    def _create_assistant_node(
-        self, event: DomainEvent, system_messages: list[str]
-    ) -> Optional[str]:
+    def _create_assistant_node(self, event: DomainEvent, system_messages: list[str]) -> str | None:
         """Handle AI assistant response from domain event - typically returns None.
 
         Args:

@@ -34,7 +34,7 @@ class Converter(BaseConverter):
     def convert(
         self,
         preprocessed_data: PreprocessedData,
-        context: Optional[ConversionContext] = None,
+        context: ConversionContext | None = None,
     ) -> ConversionReport:
         """
         Convert preprocessed data into a diagram.
@@ -225,7 +225,7 @@ class Converter(BaseConverter):
         }
 
     def _create_report(
-        self, context: ConversionContext, diagram: Optional[dict[str, Any]]
+        self, context: ConversionContext, diagram: dict[str, Any] | None
     ) -> ConversionReport:
         """Create a conversion report."""
         return ConversionReport(

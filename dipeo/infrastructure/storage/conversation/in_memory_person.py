@@ -10,7 +10,7 @@ from dipeo.domain.conversation.ports import PersonRepository
 class InMemoryPersonRepository(PersonRepository):
     """In-memory PersonRepository that doesn't persist between executions."""
 
-    def __init__(self, llm_service: Optional[Any] = None):
+    def __init__(self, llm_service: Any | None = None):
         """Initialize repository with optional LLM service.
 
         Args:

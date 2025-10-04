@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import yaml
 
@@ -15,7 +15,7 @@ logger = get_module_logger(__name__)
 class DiagramLoader:
     """Loads diagrams from various formats and locations."""
 
-    def resolve_diagram_path(self, diagram: str, format_type: Optional[str] = None) -> str:
+    def resolve_diagram_path(self, diagram: str, format_type: str | None = None) -> str:
         """Resolve diagram path based on name and format."""
         diagram_path = Path(diagram)
 
@@ -69,7 +69,7 @@ class DiagramLoader:
         # Return original if nothing found
         return diagram
 
-    def load_diagram(self, file_path: str) -> Dict[str, Any]:
+    def load_diagram(self, file_path: str) -> dict[str, Any]:
         """Load a diagram from a file."""
         path = Path(file_path)
 
@@ -77,7 +77,7 @@ class DiagramLoader:
             raise FileNotFoundError(f"Diagram file not found: {file_path}")
 
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 if path.suffix == ".json":
                     return json.load(f)
                 elif path.suffix in [".yaml", ".yml"]:

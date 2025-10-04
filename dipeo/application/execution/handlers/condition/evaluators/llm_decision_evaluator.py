@@ -1,16 +1,16 @@
 """Evaluator for LLM-based decision conditions."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.unified_nodes.condition_node import ConditionNode
 from dipeo.domain.execution.execution_context import ExecutionContext
 
 from .base import BaseConditionEvaluator, EvaluationResult
 
 logger = get_module_logger(__name__)
+
 
 class LLMDecisionEvaluator(BaseConditionEvaluator):
     """Evaluator that uses LLM to make binary decisions."""

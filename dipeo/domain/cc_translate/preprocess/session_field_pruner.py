@@ -45,7 +45,7 @@ class SessionFieldPruner(BaseSessionProcessor):
         "model",  # Can be in metadata instead
     }
 
-    def __init__(self, config: Optional[SessionFieldPrunerConfig] = None):
+    def __init__(self, config: SessionFieldPrunerConfig | None = None):
         """Initialize the field pruner."""
         super().__init__(config)
 

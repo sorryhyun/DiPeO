@@ -1,10 +1,9 @@
 """Execution orchestrator that coordinates repositories during diagram execution."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from typing import TYPE_CHECKING, Any, Optional
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import ApiKeyID, Message, PersonID, PersonLLMConfig
 from dipeo.domain.conversation import Person
 from dipeo.domain.conversation.ports import ConversationRepository, PersonRepository
@@ -15,13 +14,14 @@ if TYPE_CHECKING:
 
 logger = get_module_logger(__name__)
 
+
 class ExecutionOrchestrator:
     """Orchestrates person and conversation management during execution."""
 
     def __init__(
         self,
         person_repository: PersonRepository,
-        conversation_repository: Optional[ConversationRepository] = None,
+        conversation_repository: ConversationRepository | None = None,
         prompt_loading_use_case: Optional["PromptLoadingUseCase"] = None,
         memory_selector: Any = None,  # No longer using domain adapters
         llm_service: Optional["LLMServicePort"] = None,

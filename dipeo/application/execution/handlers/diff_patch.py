@@ -3,8 +3,6 @@
 import difflib
 import hashlib
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import os
 import re
 import shutil
@@ -16,6 +14,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handlers.core.base import TypedNodeHandler
 from dipeo.application.execution.handlers.core.decorators import requires_services
 from dipeo.application.execution.handlers.core.factory import register_handler
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.enums import NodeType
 from dipeo.diagram_generated.unified_nodes import DiffPatchNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
@@ -24,6 +23,7 @@ if TYPE_CHECKING:
     pass
 
 logger = get_module_logger(__name__)
+
 
 @register_handler
 @requires_services()
@@ -44,7 +44,9 @@ class DiffPatchHandler(TypedNodeHandler[DiffPatchNode]):
     def description(self) -> str:
         return "Applies diff patches to files with validation and safety controls"
 
-    async def run(self, inputs: dict[str, Any], request: ExecutionRequest[DiffPatchNode]) -> dict[str, Any]:
+    async def run(
+        self, inputs: dict[str, Any], request: ExecutionRequest[DiffPatchNode]
+    ) -> dict[str, Any]:
         """Apply a diff patch to a file with validation and safety features."""
         node = request.node
         target_path = Path(node.target_path)
@@ -164,12 +166,12 @@ class DiffPatchHandler(TypedNodeHandler[DiffPatchNode]):
         """Prepare inputs from envelopes."""
         return self.get_effective_inputs(request, inputs)
 
-    def serialize_output(self, output: dict[str, Any], request: ExecutionRequest[DiffPatchNode]) -> Envelope:
+    def serialize_output(
+        self, output: dict[str, Any], request: ExecutionRequest[DiffPatchNode]
+    ) -> Envelope:
         """Serialize the output to an envelope."""
         return EnvelopeFactory.create(
-            body=output,
-            produced_by=str(request.node.id),
-            trace_id=request.execution_id
+            body=output, produced_by=str(request.node.id), trace_id=request.execution_id
         )
 
     async def pre_execute(self, request: ExecutionRequest[DiffPatchNode]) -> Envelope | None:
@@ -180,19 +182,19 @@ class DiffPatchHandler(TypedNodeHandler[DiffPatchNode]):
         if not node.target_path:
             return EnvelopeFactory.create(
                 body={"error": "No target path provided", "type": "ValueError"},
-                produced_by=str(node.id)
+                produced_by=str(node.id),
             )
 
         # Validate diff content
         if not node.diff:
             return EnvelopeFactory.create(
                 body={"error": "No diff content provided", "type": "ValueError"},
-                produced_by=str(node.id)
+                produced_by=str(node.id),
             )
 
         return None
 
-    def _create_backup(self, target_path: Path, backup_dir: Optional[Path]) -> Path:
+    def _create_backup(self, target_path: Path, backup_dir: Path | None) -> Path:
         """Create a backup of the target file."""
         if backup_dir:
             backup_dir.mkdir(parents=True, exist_ok=True)

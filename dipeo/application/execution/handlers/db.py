@@ -3,8 +3,6 @@ from __future__ import annotations
 import glob
 import json
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import os
 from typing import TYPE_CHECKING, Any
 
@@ -17,6 +15,7 @@ from dipeo.application.execution.handlers.core.decorators import Optional, requi
 from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.registry import DB_OPERATIONS_SERVICE
 from dipeo.application.registry.keys import TEMPLATE_PROCESSOR
+from dipeo.config.base_logger import get_module_logger
 from dipeo.config.paths import BASE_DIR
 from dipeo.diagram_generated.enums import NodeType
 from dipeo.diagram_generated.unified_nodes.db_node import DbNode
@@ -26,6 +25,7 @@ if TYPE_CHECKING:
     pass
 
 logger = get_module_logger(__name__)
+
 
 @register_handler
 @requires_services(
@@ -62,7 +62,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
             return EnvelopeFactory.create(
                 body={
                     "error": f"Invalid operation: {node.operation}. Valid operations: {', '.join(valid_operations)}",
-                    "type": "ValueError"
+                    "type": "ValueError",
                 },
                 produced_by=str(node.id),
             )
@@ -90,13 +90,19 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
 
         if lines_specified and node.operation != "read":
             return EnvelopeFactory.create(
-                body={"error": "The 'lines' option is only supported for read operations", "type": "ValueError"},
+                body={
+                    "error": "The 'lines' option is only supported for read operations",
+                    "type": "ValueError",
+                },
                 produced_by=str(node.id),
             )
 
         if lines_specified and getattr(node, "keys", None):
             return EnvelopeFactory.create(
-                body={"error": "Cannot combine 'lines' and 'keys' for database reads", "type": "ValueError"},
+                body={
+                    "error": "Cannot combine 'lines' and 'keys' for database reads",
+                    "type": "ValueError",
+                },
                 produced_by=str(node.id),
             )
 
@@ -104,7 +110,10 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
         file_paths = node.file
         if not file_paths:
             return EnvelopeFactory.create(
-                body={"error": "No file paths specified for database operation", "type": "ValueError"},
+                body={
+                    "error": "No file paths specified for database operation",
+                    "type": "ValueError",
+                },
                 produced_by=str(node.id),
             )
 

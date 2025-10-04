@@ -24,9 +24,9 @@ Example:
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from fnmatch import fnmatch
-from typing import Any, Callable, Optional
-
+from typing import Any, Optional
 
 # ============================================================================
 # FILE FILTERS
@@ -55,9 +55,9 @@ class FileFilter:
 
     def __init__(
         self,
-        patterns: Optional[list[str]] = None,
-        regex: Optional[str | re.Pattern] = None,
-        predicate: Optional[Callable[[str], bool]] = None,
+        patterns: list[str] | None = None,
+        regex: str | re.Pattern | None = None,
+        predicate: Callable[[str], bool] | None = None,
     ):
         """Initialize file filter.
 
@@ -141,11 +141,11 @@ class NodeFilter:
 
     def __init__(
         self,
-        prefix: Optional[str] = None,
-        suffix: Optional[str] = None,
-        contains: Optional[str] = None,
-        regex: Optional[str | re.Pattern] = None,
-        predicate: Optional[Callable[[dict[str, Any]], bool]] = None,
+        prefix: str | None = None,
+        suffix: str | None = None,
+        contains: str | None = None,
+        regex: str | re.Pattern | None = None,
+        predicate: Callable[[dict[str, Any]], bool] | None = None,
     ):
         """Initialize node filter.
 
@@ -364,9 +364,7 @@ def not_filter(filter: NodeFilter) -> NotNodeFilter:
 # Common file patterns
 NODE_SPECS_FILES = FileFilter(patterns=["**/node-specs/**/*.ts"])
 DOMAIN_MODEL_FILES = FileFilter(patterns=["**/domain-models/**/*.ts"])
-GRAPHQL_FILES = FileFilter(
-    patterns=["**/graphql-inputs.ts", "**/query-definitions/**/*.ts"]
-)
+GRAPHQL_FILES = FileFilter(patterns=["**/graphql-inputs.ts", "**/query-definitions/**/*.ts"])
 
 # Common node patterns
 CONFIG_INTERFACES = suffix_filter("Config")

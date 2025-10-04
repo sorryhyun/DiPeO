@@ -65,7 +65,7 @@ class DiffGenerator:
 
     @staticmethod
     def generate_multiedit_diff(
-        file_path: str, edits: list[dict[str, Any]], original_content: Optional[str] = None
+        file_path: str, edits: list[dict[str, Any]], original_content: str | None = None
     ) -> str:
         """Generate a unified diff from multiple edit operations."""
         if not edits:
@@ -98,9 +98,7 @@ class DiffGenerator:
         return "\n".join(diff_sections)
 
     @staticmethod
-    def generate_diff_from_tool_result(
-        file_path: str, tool_result: dict[str, Any]
-    ) -> Optional[str]:
+    def generate_diff_from_tool_result(file_path: str, tool_result: dict[str, Any]) -> str | None:
         """Generate a diff using the rich tool result payload."""
         # Direct diff strings from providers take priority when present
         structured_patch = (
@@ -130,7 +128,7 @@ class DiffGenerator:
         return None
 
     @staticmethod
-    def parse_structured_patch_string(patch_str: str) -> Optional[list[dict[str, Any]]]:
+    def parse_structured_patch_string(patch_str: str) -> list[dict[str, Any]] | None:
         """Parse a string representation of a structured patch.
 
         Handles cases where structured patch is stored as a string

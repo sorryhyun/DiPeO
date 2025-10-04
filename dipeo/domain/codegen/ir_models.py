@@ -11,7 +11,7 @@ class NodeSpecIR(BaseModel):
     node_type: str
     class_name: str
     fields: list[dict[str, Any]]
-    validation: Optional[dict[str, Any]] = None
+    validation: dict[str, Any] | None = None
 
 
 class InterfaceIR(BaseModel):
@@ -19,7 +19,7 @@ class InterfaceIR(BaseModel):
 
     name: str
     fields: list[dict[str, Any]]
-    extends: Optional[list[str]] = None
+    extends: list[str] | None = None
 
 
 class OperationIR(BaseModel):

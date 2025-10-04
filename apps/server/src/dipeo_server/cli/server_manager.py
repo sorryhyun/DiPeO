@@ -22,7 +22,7 @@ class ServerManager:
     def __init__(self, host: str = "0.0.0.0", port: int = 8000):
         self.host = host
         self.port = port
-        self.process: Optional[subprocess.Popen] = None
+        self.process: subprocess.Popen | None = None
         self._health_url = f"http://localhost:{port}/health"
 
     async def start(self, timeout: int = 10) -> bool:

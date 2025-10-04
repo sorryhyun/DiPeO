@@ -10,10 +10,9 @@ managing the emission of execution and node lifecycle events.
 
 import logging
 import warnings
-
-from dipeo.config.base_logger import get_module_logger
 from typing import TYPE_CHECKING, Any, Optional
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import NodeID, NodeState, Status
 from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
 from dipeo.domain.events import (
@@ -34,6 +33,7 @@ if TYPE_CHECKING:
     from dipeo.domain.execution.state_tracker import StateTracker
 
 logger = get_module_logger(__name__)
+
 
 class EventManager:
     """Manages event emission for execution context.
@@ -207,6 +207,7 @@ class EventManager:
                         import logging
 
                         from dipeo.config.base_logger import get_module_logger
+
                         logger = get_module_logger(__name__)
                         logger.debug(
                             f"[EventManager] Emitting NODE_COMPLETED with token_usage: {token_usage}"

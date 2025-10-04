@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from datetime import datetime
 from typing import Any, Optional
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.codegen.ir_builder_port import IRData, IRMetadata
 from dipeo.infrastructure.codegen.ir_builders.core import (
     BuildContext,
@@ -18,16 +17,13 @@ from dipeo.infrastructure.codegen.ir_builders.core import (
 
 logger = get_module_logger(__name__)
 
+
 class BuildDomainIRStep(BuildStep):
     """Step to build domain IR data structure."""
 
     def __init__(self):
         """Initialize domain IR builder step."""
-        super().__init__(
-            name="build_domain_ir",
-            step_type=StepType.TRANSFORM,
-            required=True
-        )
+        super().__init__(name="build_domain_ir", step_type=StepType.TRANSFORM, required=True)
         self.add_dependency("extract_domain_models")
 
     def execute(self, context: BuildContext, input_data: Any) -> StepResult:
@@ -53,9 +49,7 @@ class BuildDomainIRStep(BuildStep):
         scalars = domain_data.get("scalars", [])
         graphql_inputs = domain_data.get("inputs", [])
 
-        domain_ir = self._build_domain_ir(
-            domain_types, interfaces, enums, scalars, graphql_inputs
-        )
+        domain_ir = self._build_domain_ir(domain_types, interfaces, enums, scalars, graphql_inputs)
 
         return StepResult(
             success=True,
@@ -64,7 +58,7 @@ class BuildDomainIRStep(BuildStep):
                 "type_count": len(domain_ir["types"]),
                 "interface_count": len(domain_ir["interfaces"]),
                 "enum_count": len(domain_ir["enums"]),
-            }
+            },
         )
 
     def _build_domain_ir(
@@ -161,16 +155,13 @@ class BuildDomainIRStep(BuildStep):
 
         return organized
 
+
 class BuildOperationsIRStep(BuildStep):
     """Step to build operations IR data structure."""
 
     def __init__(self):
         """Initialize operations IR builder step."""
-        super().__init__(
-            name="build_operations_ir",
-            step_type=StepType.TRANSFORM,
-            required=True
-        )
+        super().__init__(name="build_operations_ir", step_type=StepType.TRANSFORM, required=True)
         self.add_dependency("extract_graphql_operations")
 
     def execute(self, context: BuildContext, input_data: Any) -> StepResult:
@@ -204,7 +195,7 @@ class BuildOperationsIRStep(BuildStep):
                 "query_count": operations_ir["metadata"]["query_count"],
                 "mutation_count": operations_ir["metadata"]["mutation_count"],
                 "subscription_count": operations_ir["metadata"]["subscription_count"],
-            }
+            },
         )
 
     def _build_operations_ir(
@@ -259,16 +250,13 @@ class BuildOperationsIRStep(BuildStep):
 
         return operations_data
 
+
 class BuildCompleteIRStep(BuildStep):
     """Step to build complete IR data structure."""
 
     def __init__(self):
         """Initialize complete IR builder step."""
-        super().__init__(
-            name="build_complete_ir",
-            step_type=StepType.ASSEMBLE,
-            required=True
-        )
+        super().__init__(name="build_complete_ir", step_type=StepType.ASSEMBLE, required=True)
         self.add_dependency("build_operations_ir")
         self.add_dependency("build_domain_ir")
 
@@ -310,7 +298,7 @@ class BuildCompleteIRStep(BuildStep):
                 "total_operations": complete_ir.data["metadata"]["total_operations"],
                 "interface_count": complete_ir.data["metadata"]["interface_count"],
                 "enum_count": complete_ir.data["metadata"]["enum_count"],
-            }
+            },
         )
 
     def _build_complete_ir(
@@ -318,8 +306,8 @@ class BuildCompleteIRStep(BuildStep):
         operations_data: dict[str, Any],
         domain_data: dict[str, Any],
         config: dict[str, Any],
-        source_files: Optional[list[str]] = None,
-        node_specs: Optional[list[dict[str, Any]]] = None,
+        source_files: list[str] | None = None,
+        node_specs: list[dict[str, Any]] | None = None,
     ) -> IRData:
         """Build complete IR data structure.
 
@@ -388,7 +376,9 @@ class BuildCompleteIRStep(BuildStep):
         ir_data = IRData(metadata=metadata, data=strawberry_data)
         return ir_data
 
-    def _extract_imports_from_operations(self, operations_data: dict[str, Any]) -> dict[str, list[str]]:
+    def _extract_imports_from_operations(
+        self, operations_data: dict[str, Any]
+    ) -> dict[str, list[str]]:
         """Extract import types from operations data.
 
         Args:
@@ -422,4 +412,7 @@ class BuildCompleteIRStep(BuildStep):
                 elif clean_type.endswith("Input") or clean_type in ["DiagramFormatGraphQL"]:
                     domain_imports.add(clean_type)
 
-        return {"strawberry": sorted(list(strawberry_imports)), "domain": sorted(list(domain_imports))}
+        return {
+            "strawberry": sorted(list(strawberry_imports)),
+            "domain": sorted(list(domain_imports)),
+        }

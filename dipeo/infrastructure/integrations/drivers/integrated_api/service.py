@@ -1,10 +1,9 @@
 """Integrated API service implementation."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.base import ServiceError
 from dipeo.domain.base.mixins import ConfigurationMixin, InitializationMixin, LoggingMixin
 from dipeo.domain.integrations.ports import ApiInvoker as IntegratedApiServicePort
@@ -15,6 +14,7 @@ from .generic_provider import GenericHTTPProvider
 from .registry import ProviderRegistry
 
 logger = get_module_logger(__name__)
+
 
 class IntegratedApiService(
     LoggingMixin, InitializationMixin, ConfigurationMixin, IntegratedApiServicePort

@@ -63,8 +63,8 @@ class BaseNodeBuilder(ABC):
         node_type: NodeType,
         label: str,
         props: dict[str, Any],
-        metadata: Optional[dict[str, Any]] = None,
-    ) -> Optional[dict[str, Any]]:
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """
         Create a node of the specified type.
 
@@ -100,12 +100,12 @@ class EventNodeBuilder(Protocol):
         """Create the start node for the diagram."""
         ...
 
-    def create_user_node(self, content: str) -> Optional[dict[str, Any]]:
+    def create_user_node(self, content: str) -> dict[str, Any] | None:
         """Create a node for user input."""
         ...
 
     def create_assistant_node(
-        self, content: str, system_messages: Optional[list[str]] = None
+        self, content: str, system_messages: list[str] | None = None
     ) -> dict[str, Any]:
         """Create a node for AI assistant response."""
         ...
@@ -114,8 +114,8 @@ class EventNodeBuilder(Protocol):
         self,
         tool_name: str,
         tool_input: dict[str, Any],
-        tool_use_result: Optional[dict[str, Any]] = None,
-    ) -> Optional[dict[str, Any]]:
+        tool_use_result: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """Create appropriate node based on tool name."""
         ...
 
@@ -138,7 +138,7 @@ class BaseConnectionBuilder(ABC):
 
     @abstractmethod
     def create_connection(
-        self, source_id: str, target_id: str, props: Optional[dict[str, Any]] = None
+        self, source_id: str, target_id: str, props: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """
         Create a connection between two nodes.
@@ -345,7 +345,7 @@ class NodeFactory:
         self.builder = builder
         self.validator = NodeBuilderValidator()
 
-    def create_node_from_event(self, event: DomainEvent) -> Optional[dict[str, Any]]:
+    def create_node_from_event(self, event: DomainEvent) -> dict[str, Any] | None:
         """
         Create a node from a domain event.
 
@@ -378,7 +378,7 @@ class NodeFactory:
         node_type: NodeType,
         label: str,
         props: dict[str, Any],
-        position: Optional[dict[str, int]] = None,
+        position: dict[str, int] | None = None,
     ) -> NodeCreationContext:
         """
         Validate and create a node with full context.

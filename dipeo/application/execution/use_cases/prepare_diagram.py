@@ -1,11 +1,10 @@
 """Service for preparing diagrams for execution."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Optional
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
 from dipeo.domain.base.mixins import InitializationMixin, LoggingMixin
 from dipeo.domain.diagram.models import ExecutableDiagram
@@ -21,6 +20,7 @@ if TYPE_CHECKING:
     from dipeo.application.todo_sync import TodoSyncService
 
 logger = get_module_logger(__name__)
+
 
 class PrepareDiagramForExecutionUseCase(LoggingMixin, InitializationMixin):
     """Prepares diagrams for execution by the engine."""

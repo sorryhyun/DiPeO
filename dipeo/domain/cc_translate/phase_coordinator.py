@@ -33,8 +33,8 @@ class PhaseResult:
     success: bool
     start_time: datetime
     end_time: datetime
-    error: Optional[str] = None
-    report: Optional[Any] = None
+    error: str | None = None
+    report: Any | None = None
 
     @property
     def duration_ms(self) -> float:
@@ -74,7 +74,7 @@ class PhaseCoordinator:
         self.converter = Converter()
 
     def translate(
-        self, session: Any, skip_phases: Optional[list[PipelinePhase]] = None, **kwargs
+        self, session: Any, skip_phases: list[PipelinePhase] | None = None, **kwargs
     ) -> tuple[dict[str, Any], PipelineMetrics]:
         """
         Translate a Claude Code session into a light format diagram.
@@ -184,7 +184,7 @@ class PhaseCoordinator:
 
         return diagram, metrics
 
-    def preprocess_only(self, session: Any, processing_config: Optional[PipelineConfig] = None):
+    def preprocess_only(self, session: Any, processing_config: PipelineConfig | None = None):
         """
         Run only the preprocessing phase.
 
@@ -224,7 +224,7 @@ class PhaseCoordinator:
     def post_process_only(
         self,
         diagram: dict[str, Any],
-        processing_config: Optional[PipelineConfig] = None,
+        processing_config: PipelineConfig | None = None,
     ) -> tuple[dict[str, Any], Any]:
         """
         Run only the post-processing phase.

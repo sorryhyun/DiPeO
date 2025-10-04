@@ -2,8 +2,6 @@
 
 import json
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from collections.abc import AsyncGenerator
 from datetime import datetime
 from typing import Any
@@ -12,12 +10,14 @@ from strawberry.scalars import JSON
 
 from dipeo.application.graphql.schema.base_subscription_resolver import BaseSubscriptionResolver
 from dipeo.application.registry import ServiceRegistry
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import Status
 from dipeo.diagram_generated.domain_models import ExecutionID
 from dipeo.diagram_generated.enums import EventType
 from dipeo.diagram_generated.graphql.domain_types import ExecutionUpdate
 
 logger = get_module_logger(__name__)
+
 
 def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdate | None:
     """Transform raw event to ExecutionUpdate type."""
@@ -130,6 +130,7 @@ def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdate | None
         timestamp=str(timestamp),
     )
 
+
 def _filter_node_updates(event: dict[str, Any], node_id: str | None = None) -> bool:
     """Filter for node update events."""
     # Since NODE_STATUS_CHANGED and NODE_PROGRESS are removed,
@@ -143,6 +144,7 @@ def _filter_node_updates(event: dict[str, Any], node_id: str | None = None) -> b
 
     return True
 
+
 def _transform_node_update(event: dict[str, Any]) -> dict[str, Any] | None:
     """Transform node update event."""
     data = event.get("data", {})
@@ -153,9 +155,11 @@ def _transform_node_update(event: dict[str, Any]) -> dict[str, Any] | None:
             data = {}
     return data
 
+
 def _filter_interactive_prompts(event: dict[str, Any]) -> bool:
     """Filter for interactive prompt events."""
     return event.get("type") == EventType.INTERACTIVE_PROMPT
+
 
 def _transform_interactive_prompt(event: dict[str, Any]) -> dict[str, Any] | None:
     """Transform interactive prompt event."""
@@ -167,9 +171,11 @@ def _transform_interactive_prompt(event: dict[str, Any]) -> dict[str, Any] | Non
             data = {}
     return data
 
+
 def _filter_execution_logs(event: dict[str, Any]) -> bool:
     """Filter for execution log events."""
     return event.get("type") == EventType.EXECUTION_LOG
+
 
 def _transform_execution_log(event: dict[str, Any]) -> dict[str, Any] | None:
     """Transform execution log event."""
@@ -180,6 +186,7 @@ def _transform_execution_log(event: dict[str, Any]) -> dict[str, Any] | None:
         except Exception:
             data = {}
     return data
+
 
 async def execution_updates(
     registry: ServiceRegistry, execution_id: str, last_seq: int | None = None
@@ -220,6 +227,7 @@ async def execution_updates(
         logger.error(f"Error in execution subscription: {e}")
         raise
 
+
 async def node_updates(
     registry: ServiceRegistry,
     execution_id: str,
@@ -238,6 +246,7 @@ async def node_updates(
     ):
         yield event
 
+
 async def interactive_prompts(
     registry: ServiceRegistry, execution_id: str, last_seq: int | None = None
 ) -> AsyncGenerator[JSON]:
@@ -252,6 +261,7 @@ async def interactive_prompts(
         last_seq=last_seq,
     ):
         yield event
+
 
 async def execution_logs(
     registry: ServiceRegistry, execution_id: str, last_seq: int | None = None

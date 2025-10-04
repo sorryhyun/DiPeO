@@ -14,7 +14,7 @@ from .registry import TypeRegistry
 from .resolver import UnifiedTypeResolver
 
 __all__ = [
-    "UnifiedTypeConverter",
     "TypeRegistry",
+    "UnifiedTypeConverter",
     "UnifiedTypeResolver",
 ]

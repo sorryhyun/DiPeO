@@ -28,8 +28,8 @@ class UnifiedTypeConverter:
 
     def __init__(
         self,
-        config_dir: Optional[Path] = None,
-        custom_mappings: Optional[dict[str, dict[str, str]]] = None,
+        config_dir: Path | None = None,
+        custom_mappings: dict[str, dict[str, str]] | None = None,
     ):
         """Initialize the unified type converter.
 
@@ -132,7 +132,10 @@ class UnifiedTypeConverter:
         ts_type = self._strip_inline_comments(ts_type).strip()
 
         # Check custom mappings
-        if "ts_to_python" in self.custom_mappings and ts_type in self.custom_mappings["ts_to_python"]:
+        if (
+            "ts_to_python" in self.custom_mappings
+            and ts_type in self.custom_mappings["ts_to_python"]
+        ):
             result = self.custom_mappings["ts_to_python"][ts_type]
             self._type_cache[cache_key] = result
             return result
@@ -312,7 +315,7 @@ class UnifiedTypeConverter:
                 return f"Dict[{key_type}, {value_type}]"
         return "Dict[str, Any]"
 
-    def _try_branded_scalar(self, ts_type: str) -> Optional[str]:
+    def _try_branded_scalar(self, ts_type: str) -> str | None:
         """Try to extract branded scalar type."""
         # Check if it's a known branded type
         if ts_type in self._branded_types:
@@ -373,7 +376,10 @@ class UnifiedTypeConverter:
         ts_type = ts_type.strip()
 
         # Check custom mappings
-        if "ts_to_graphql" in self.custom_mappings and ts_type in self.custom_mappings["ts_to_graphql"]:
+        if (
+            "ts_to_graphql" in self.custom_mappings
+            and ts_type in self.custom_mappings["ts_to_graphql"]
+        ):
             return self.custom_mappings["ts_to_graphql"][ts_type]
 
         # Handle arrays
@@ -409,7 +415,10 @@ class UnifiedTypeConverter:
             return "any"
 
         # Check custom mappings
-        if "graphql_to_ts" in self.custom_mappings and graphql_type in self.custom_mappings["graphql_to_ts"]:
+        if (
+            "graphql_to_ts" in self.custom_mappings
+            and graphql_type in self.custom_mappings["graphql_to_ts"]
+        ):
             return self.custom_mappings["graphql_to_ts"][graphql_type]
 
         # Handle arrays [T]
@@ -539,7 +548,11 @@ class UnifiedTypeConverter:
             return f"List[{python_type}]"
 
         # Handle Record<K, V> and Dict patterns
-        if ts_type.startswith("Record<") or ts_type.startswith("Dict") or ts_type.startswith("dict"):
+        if (
+            ts_type.startswith("Record<")
+            or ts_type.startswith("Dict")
+            or ts_type.startswith("dict")
+        ):
             return "JSON"
 
         # Default: return as-is (likely a type reference)

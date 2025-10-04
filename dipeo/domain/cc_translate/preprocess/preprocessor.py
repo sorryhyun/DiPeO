@@ -20,7 +20,7 @@ from .session_field_pruner import SessionFieldPruner
 class Preprocessor(BasePreprocessor):
     """Orchestrates session-level preprocessing for Claude Code translation."""
 
-    def __init__(self, config: Optional[PreprocessConfig] = None):
+    def __init__(self, config: PreprocessConfig | None = None):
         """Initialize the preprocessor.
 
         Args:
@@ -137,7 +137,7 @@ class Preprocessor(BasePreprocessor):
 
         return metadata
 
-    def _get_first_user_message(self, session: DomainSession) -> Optional[str]:
+    def _get_first_user_message(self, session: DomainSession) -> str | None:
         """Extract the first user message from the session.
 
         Args:
@@ -204,7 +204,7 @@ class Preprocessor(BasePreprocessor):
         return preprocessed_data, reports
 
     def process(
-        self, session: DomainSession, config: Optional[Any] = None
+        self, session: DomainSession, config: Any | None = None
     ) -> tuple[PreprocessedData, SessionProcessingReport]:
         """
         Standard interface: process a session and return preprocessed data with report.

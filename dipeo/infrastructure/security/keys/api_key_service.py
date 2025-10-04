@@ -11,6 +11,7 @@ from dipeo.domain.base.exceptions import ValidationError
 from dipeo.domain.base.mixins import InitializationMixin, LoggingMixin, ValidationMixin
 from dipeo.domain.integrations.ports import APIKeyPort
 
+
 class APIKeyService(LoggingMixin, InitializationMixin, ValidationMixin, APIKeyPort):
     def __init__(self, file_path: Path | None = None):
         InitializationMixin.__init__(self)
@@ -121,7 +122,9 @@ class APIKeyService(LoggingMixin, InitializationMixin, ValidationMixin, APIKeyPo
             "service": api_key_data["service"],
         }
 
+
 VALID_SERVICES = VALID_LLM_SERVICES
+
 
 def validate_service_name(service: str) -> str:
     normalized = normalize_service_name(service)
@@ -132,6 +135,7 @@ def validate_service_name(service: str) -> str:
         )
 
     return normalized
+
 
 def validate_api_key_format(key: str, service: str) -> None:
     if not key or not key.strip():
@@ -147,8 +151,10 @@ def validate_api_key_format(key: str, service: str) -> None:
     if service == APIServiceType.ANTHROPIC.value and not key.startswith("sk-ant-"):
         raise ValidationError("Anthropic API keys must start with 'sk-ant-'")
 
+
 def generate_api_key_id() -> str:
     return f"APIKEY_{uuid.uuid4().hex[:6].upper()}"
+
 
 def format_api_key_info(key_id: str, info: dict) -> dict:
     if isinstance(info, dict):
@@ -159,6 +165,7 @@ def format_api_key_info(key_id: str, info: dict) -> dict:
             "key": info.get("key", ""),
         }
     return info
+
 
 def extract_api_key_summary(key_id: str, info: dict) -> dict:
     if isinstance(info, dict) and "service" in info:

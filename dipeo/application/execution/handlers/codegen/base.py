@@ -59,7 +59,7 @@ class BaseCodegenHandler(TypedNodeHandler):
 
     def detect_batch_mode(
         self, node: BaseModel, inputs: dict[str, Any]
-    ) -> tuple[bool, Optional[dict]]:
+    ) -> tuple[bool, dict | None]:
         """Detect if node should run in batch mode.
 
         Common batch detection logic used across codegen handlers.

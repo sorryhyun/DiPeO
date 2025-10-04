@@ -1,8 +1,6 @@
 import asyncio
 import contextlib
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from collections.abc import AsyncGenerator, Callable
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Optional
@@ -15,6 +13,7 @@ from dipeo.application.registry import (
     PREPARE_DIAGRAM_USE_CASE,
     STATE_STORE,
 )
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.enums import Status
 from dipeo.domain.base.mixins import InitializationMixin, LoggingMixin
 
@@ -29,6 +28,7 @@ if TYPE_CHECKING:
     from ...registry import ServiceRegistry
 
 logger = get_module_logger(__name__)
+
 
 class ExecuteDiagramUseCase(LoggingMixin, InitializationMixin):
     def __init__(

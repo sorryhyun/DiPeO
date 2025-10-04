@@ -2,6 +2,7 @@ import ast
 import operator
 from typing import Any
 
+
 class ConditionEvaluator:
     def check_nodes_executed(
         self,

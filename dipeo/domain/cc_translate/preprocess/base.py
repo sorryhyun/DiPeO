@@ -28,7 +28,7 @@ class SessionChange:
     change_type: SessionChangeType
     description: str
     target: str  # What was changed (e.g., "event_123", "field:content")
-    details: Optional[dict[str, Any]] = None
+    details: dict[str, Any] | None = None
     timestamp: datetime = field(default_factory=datetime.now)
 
     def __str__(self) -> str:
@@ -102,7 +102,7 @@ class SessionProcessingReport:
 class BaseSessionProcessor(ABC):
     """Abstract base class for all session processors in the preprocess phase."""
 
-    def __init__(self, config: Optional[Any] = None):
+    def __init__(self, config: Any | None = None):
         """Initialize processor with optional configuration."""
         self.config = config or self._get_default_config()
 
@@ -158,7 +158,7 @@ class BasePreprocessor(ABC):
 
     @abstractmethod
     def process(
-        self, session: DomainSession, config: Optional[Any] = None
+        self, session: DomainSession, config: Any | None = None
     ) -> tuple[PreprocessedData, SessionProcessingReport]:
         """
         Standard interface: process a session and return preprocessed data with report.

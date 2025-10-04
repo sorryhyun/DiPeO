@@ -12,7 +12,7 @@ from .base_node_builder import BaseNodeBuilder
 class CodeNodeBuilder(BaseNodeBuilder):
     """Builder for creating code execution nodes."""
 
-    def __init__(self, position_manager: Optional[Any] = None):
+    def __init__(self, position_manager: Any | None = None):
         """Initialize the code node builder.
 
         Args:
@@ -36,8 +36,8 @@ class CodeNodeBuilder(BaseNodeBuilder):
         self,
         tool_name: str,
         tool_input: dict[str, Any],
-        tool_result: Optional[dict[str, Any]] = None,
-    ) -> Optional[dict[str, Any]]:
+        tool_result: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """Create a code execution node.
 
         Args:

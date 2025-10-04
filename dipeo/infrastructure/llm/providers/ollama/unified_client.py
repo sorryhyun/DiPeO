@@ -2,8 +2,6 @@
 
 import asyncio
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -12,6 +10,7 @@ from ollama import AsyncClient
 from pydantic import BaseModel
 from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.config.llm import (
     DEFAULT_TEMPERATURE,
     OLLAMA_MAX_CONTEXT_LENGTH,
@@ -28,6 +27,7 @@ from dipeo.infrastructure.llm.drivers.types import (
 )
 
 logger = get_module_logger(__name__)
+
 
 class UnifiedOllamaClient:
     """Unified Ollama client that combines adapter and wrapper functionality."""

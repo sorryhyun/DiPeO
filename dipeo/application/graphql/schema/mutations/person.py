@@ -1,20 +1,20 @@
 """Person mutations using ServiceRegistry."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from uuid import uuid4
 
 import strawberry
 
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import EXECUTION_ORCHESTRATOR
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import DomainPerson
 from dipeo.diagram_generated.domain_models import ApiKeyID, LLMService, PersonID, PersonLLMConfig
 from dipeo.diagram_generated.graphql.inputs import CreatePersonInput, UpdatePersonInput
 from dipeo.diagram_generated.graphql.results import DeleteResult, PersonResult
 
 logger = get_module_logger(__name__)
+
 
 # Standalone resolver functions for operation executor
 async def create_person(registry: ServiceRegistry, input: CreatePersonInput) -> PersonResult:
@@ -50,6 +50,7 @@ async def create_person(registry: ServiceRegistry, input: CreatePersonInput) -> 
     except Exception as e:
         logger.error(f"Failed to create person: {e}")
         return PersonResult.error_result(error=f"Failed to create person: {e!s}")
+
 
 async def update_person(
     registry: ServiceRegistry, person_id: strawberry.ID, input: UpdatePersonInput
@@ -131,6 +132,7 @@ async def update_person(
     except Exception as e:
         logger.error(f"Failed to update person {person_id}: {e}")
         return PersonResult.error_result(error=f"Failed to update person: {e!s}")
+
 
 async def delete_person(registry: ServiceRegistry, person_id: strawberry.ID) -> DeleteResult:
     """Delete a person (not currently supported)."""

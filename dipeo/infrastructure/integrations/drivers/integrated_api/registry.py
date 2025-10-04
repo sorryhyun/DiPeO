@@ -5,16 +5,16 @@ import importlib
 import importlib.metadata
 import json
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from pathlib import Path
 from typing import Any
 
 import yaml
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.integrations.ports import ApiProvider as ApiProviderPort
 
 logger = get_module_logger(__name__)
+
 
 class ProviderRegistry:
     """Manages discovery, registration, and lifecycle of API providers.

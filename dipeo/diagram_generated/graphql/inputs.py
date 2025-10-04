@@ -2,7 +2,7 @@
 GraphQL input types for DiPeO mutations.
 Auto-generated from TypeScript definitions.
 
-Generated at: 2025-10-03T21:25:07.527785
+Generated at: 2025-10-04T12:05:47.558208
 """
 
 from datetime import datetime
@@ -147,6 +147,25 @@ class UnregisterCliSessionInput:
     execution_id: ID
 
 
+@strawberry.input
+class ExecuteIntegrationInput:
+    provider: String
+    operation: String
+    config: JSON
+    api_key_id: Optional[ID] = None
+    timeout: Optional[Int] = None
+    resource_id: Optional[String] = None
+
+
+@strawberry.input
+class TestIntegrationInput:
+    provider: String
+    operation: String
+    config_preview: JSON
+    api_key_id: Optional[ID] = None
+    dry_run: Optional[Boolean] = None
+
+
 # Export all input types
 __all__ = [
     'Vec2Input',
@@ -165,4 +184,6 @@ __all__ = [
     'InteractiveResponseInput',
     'RegisterCliSessionInput',
     'UnregisterCliSessionInput',
+    'ExecuteIntegrationInput',
+    'TestIntegrationInput',
 ]

@@ -1,6 +1,4 @@
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import os
 from pathlib import Path
 from typing import Any
@@ -11,6 +9,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handlers.core.base import TypedNodeHandler
 from dipeo.application.execution.handlers.core.decorators import requires_services
 from dipeo.application.execution.handlers.core.factory import register_handler
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.unified_nodes.code_job_node import CodeJobNode, NodeType
 from dipeo.domain.base.storage_port import FileSystemPort
 from dipeo.domain.diagram.ports import TemplateProcessorPort
@@ -24,6 +23,7 @@ from .executors import (
 )
 
 logger = get_module_logger(__name__)
+
 
 @register_handler
 @requires_services()  # No services actually used

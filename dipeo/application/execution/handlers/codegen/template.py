@@ -1,7 +1,5 @@
 import hashlib
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import time
 from importlib import import_module
 from pathlib import Path
@@ -14,6 +12,7 @@ from dipeo.application.execution.handlers.core.base import TypedNodeHandler
 from dipeo.application.execution.handlers.core.decorators import requires_services
 from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER, TEMPLATE_RENDERER
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.unified_nodes.template_job_node import NodeType, TemplateJobNode
 from dipeo.domain.codegen.ports import TemplateRendererPort
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
@@ -22,6 +21,7 @@ if TYPE_CHECKING:
     pass
 
 logger = get_module_logger(__name__)
+
 
 @register_handler
 @requires_services(

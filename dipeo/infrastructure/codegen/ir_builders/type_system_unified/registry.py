@@ -6,8 +6,9 @@ and enum types at runtime, allowing for dynamic type registration and lookup.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from dipeo.config.base_logger import get_module_logger
 
@@ -21,10 +22,10 @@ class TypeInfo:
     name: str
     category: str  # 'branded', 'enum', 'custom', 'domain'
     python_type: str
-    graphql_type: Optional[str] = None
-    strawberry_type: Optional[str] = None
+    graphql_type: str | None = None
+    strawberry_type: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
-    converter: Optional[Callable[[Any], Any]] = None
+    converter: Callable[[Any], Any] | None = None
 
 
 class TypeRegistry:
@@ -42,10 +43,10 @@ class TypeRegistry:
         name: str,
         category: str,
         python_type: str,
-        graphql_type: Optional[str] = None,
-        strawberry_type: Optional[str] = None,
-        metadata: Optional[dict[str, Any]] = None,
-        converter: Optional[Callable[[Any], Any]] = None,
+        graphql_type: str | None = None,
+        strawberry_type: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        converter: Callable[[Any], Any] | None = None,
     ) -> None:
         """Register a custom type in the registry.
 
@@ -84,8 +85,8 @@ class TypeRegistry:
         self,
         name: str,
         python_type: str = "str",
-        graphql_type: Optional[str] = None,
-        strawberry_type: Optional[str] = None,
+        graphql_type: str | None = None,
+        strawberry_type: str | None = None,
     ) -> None:
         """Register a branded ID type.
 
@@ -113,7 +114,7 @@ class TypeRegistry:
         self,
         name: str,
         values: list[str],
-        python_type: Optional[str] = None,
+        python_type: str | None = None,
     ) -> None:
         """Register an enum type.
 
@@ -137,9 +138,9 @@ class TypeRegistry:
         self,
         name: str,
         python_type: str,
-        graphql_type: Optional[str] = None,
-        strawberry_type: Optional[str] = None,
-        converter: Optional[Callable[[Any], Any]] = None,
+        graphql_type: str | None = None,
+        strawberry_type: str | None = None,
+        converter: Callable[[Any], Any] | None = None,
     ) -> None:
         """Register a custom type with optional conversion logic.
 
@@ -163,8 +164,8 @@ class TypeRegistry:
         self,
         name: str,
         fields: dict[str, str],
-        graphql_type: Optional[str] = None,
-        strawberry_type: Optional[str] = None,
+        graphql_type: str | None = None,
+        strawberry_type: str | None = None,
     ) -> None:
         """Register a domain model type.
 
@@ -189,7 +190,7 @@ class TypeRegistry:
             metadata={"fields": fields},
         )
 
-    def get_type_info(self, name: str) -> Optional[TypeInfo]:
+    def get_type_info(self, name: str) -> TypeInfo | None:
         """Get type information by name.
 
         Args:
@@ -200,7 +201,7 @@ class TypeRegistry:
         """
         return self._types.get(name)
 
-    def get_python_type(self, name: str) -> Optional[str]:
+    def get_python_type(self, name: str) -> str | None:
         """Get Python type string for a registered type.
 
         Args:
@@ -212,7 +213,7 @@ class TypeRegistry:
         type_info = self._types.get(name)
         return type_info.python_type if type_info else None
 
-    def get_graphql_type(self, name: str) -> Optional[str]:
+    def get_graphql_type(self, name: str) -> str | None:
         """Get GraphQL type string for a registered type.
 
         Args:
@@ -224,7 +225,7 @@ class TypeRegistry:
         type_info = self._types.get(name)
         return type_info.graphql_type if type_info else None
 
-    def get_strawberry_type(self, name: str) -> Optional[str]:
+    def get_strawberry_type(self, name: str) -> str | None:
         """Get Strawberry type string for a registered type.
 
         Args:
@@ -432,7 +433,7 @@ class TypeRegistry:
 
 
 # Global type registry instance
-_global_registry: Optional[TypeRegistry] = None
+_global_registry: TypeRegistry | None = None
 
 
 def get_global_registry() -> TypeRegistry:

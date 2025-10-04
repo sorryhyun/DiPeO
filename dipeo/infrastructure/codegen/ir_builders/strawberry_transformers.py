@@ -3,26 +3,26 @@
 from __future__ import annotations
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from pathlib import Path
 from typing import Any, Optional
 
-from dipeo.infrastructure.codegen.ir_builders.utils import (
-    pascal_case,
-    snake_to_pascal,
-)
+from dipeo.config.base_logger import get_module_logger
 from dipeo.infrastructure.codegen.ir_builders.type_system_unified import (
     UnifiedTypeConverter,
     UnifiedTypeResolver,
 )
+from dipeo.infrastructure.codegen.ir_builders.utils import (
+    pascal_case,
+    snake_to_pascal,
+)
 
 logger = get_module_logger(__name__)
+
 
 def transform_domain_types(
     interfaces: list[dict[str, Any]],
     config: dict[str, Any],
-    type_converter: Optional[UnifiedTypeConverter] = None,
+    type_converter: UnifiedTypeConverter | None = None,
 ) -> list[dict[str, Any]]:
     """Transform TypeScript interfaces to Strawberry domain types.
 
@@ -54,8 +54,9 @@ def transform_domain_types(
     # logger.info(f"Created {len(domain_types)} domain types")
     return domain_types
 
+
 def transform_input_types(
-    extracted_input_types: list[dict[str, Any]], type_converter: Optional[UnifiedTypeConverter] = None
+    extracted_input_types: list[dict[str, Any]], type_converter: UnifiedTypeConverter | None = None
 ) -> list[dict[str, Any]]:
     """Transform extracted GraphQL input types from TypeScript to Python.
 
@@ -105,8 +106,9 @@ def transform_input_types(
     # logger.info(f"Transformed {len(transformed_types)} input types")
     return transformed_types
 
+
 def transform_result_types(
-    operations: list[dict[str, Any]], type_converter: Optional[UnifiedTypeConverter] = None
+    operations: list[dict[str, Any]], type_converter: UnifiedTypeConverter | None = None
 ) -> list[dict[str, Any]]:
     """Transform operation fields to GraphQL result types.
 
@@ -130,6 +132,7 @@ def transform_result_types(
 
     # logger.info(f"Created {len(result_types)} result types")
     return result_types
+
 
 def _is_domain_type(interface_name: str) -> bool:
     """Check if an interface should be treated as a domain type.
@@ -179,6 +182,7 @@ def _is_domain_type(interface_name: str) -> bool:
 
     # Allow all other interfaces (including PersonLLMConfig, ToolConfig, etc.)
     return True
+
 
 def _create_domain_type(
     interface: dict[str, Any],
@@ -262,6 +266,7 @@ def _create_domain_type(
         "description": interface.get("description", f"{interface_name} domain type"),
     }
 
+
 # DEPRECATED: This function created circular references by trying to create input types
 # from operation variables. Input types should be extracted from TypeScript AST instead.
 # Kept for reference but no longer used.
@@ -294,7 +299,10 @@ def _create_domain_type(
 #         "description": f"Input type for {operation_name}",
 #     }
 
-def _create_result_type(operation: dict[str, Any], type_converter: UnifiedTypeConverter) -> dict[str, Any]:
+
+def _create_result_type(
+    operation: dict[str, Any], type_converter: UnifiedTypeConverter
+) -> dict[str, Any]:
     """Create a result type definition from operation fields.
 
     Args:
@@ -312,6 +320,7 @@ def _create_result_type(operation: dict[str, Any], type_converter: UnifiedTypeCo
         "fields": fields,
         "description": f"Result type for {operation_name}",
     }
+
 
 def _extract_fields_as_types(
     fields: list[Any], type_converter: UnifiedTypeConverter

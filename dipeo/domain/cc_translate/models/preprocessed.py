@@ -38,7 +38,7 @@ class ProcessingChange:
     change_type: ChangeType
     description: str
     timestamp: datetime = field(default_factory=datetime.now)
-    target_id: Optional[str] = None  # Event UUID or other identifier
+    target_id: str | None = None  # Event UUID or other identifier
     details: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
@@ -62,8 +62,8 @@ class ProcessingStats:
     events_pruned: int = 0
     events_modified: int = 0
     fields_removed: int = 0
-    processing_time_ms: Optional[int] = None
-    memory_usage_mb: Optional[float] = None
+    processing_time_ms: int | None = None
+    memory_usage_mb: float | None = None
 
     def get_reduction_ratio(self) -> float:
         """Calculate the reduction ratio."""
@@ -162,8 +162,8 @@ class PreprocessedData:
         self,
         change_type: ChangeType,
         description: str,
-        target_id: Optional[str] = None,
-        details: Optional[dict] = None,
+        target_id: str | None = None,
+        details: dict | None = None,
     ) -> None:
         """Record a processing change."""
         change = ProcessingChange(

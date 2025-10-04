@@ -1,8 +1,6 @@
 """Unified OpenAI client that merges adapter and wrapper layers."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import os
 from collections.abc import AsyncIterator
 from typing import Any
@@ -11,6 +9,7 @@ from openai import AsyncOpenAI, OpenAI
 from pydantic import BaseModel
 from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.config.llm import (
     DECISION_EVALUATION_MAX_TOKENS,
     DEFAULT_TEMPERATURE,
@@ -32,6 +31,7 @@ from dipeo.infrastructure.llm.drivers.types import (
 from .prompts import LLM_DECISION_PROMPT, MEMORY_SELECTION_PROMPT
 
 logger = get_module_logger(__name__)
+
 
 class UnifiedOpenAIClient:
     """Unified OpenAI client combining adapter and wrapper functionality."""

@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.codegen.ir_builder_port import IRData, IRMetadata
 from dipeo.infrastructure.codegen.ir_builders.core.base import BaseIRBuilder
 from dipeo.infrastructure.codegen.ir_builders.core.base_steps import BaseAssemblerStep
@@ -27,6 +26,7 @@ from dipeo.infrastructure.codegen.ir_builders.modules.typescript_indexes import 
 )
 
 logger = get_module_logger(__name__)
+
 
 class BackendAssemblerStep(BaseAssemblerStep):
     """Assemble final backend IR data from pipeline results."""
@@ -64,7 +64,12 @@ class BackendAssemblerStep(BaseAssemblerStep):
         if dep_name in ["extract_node_specs", "extract_enums", "extract_integrations"]:
             return []
         # Return empty dict for dict-based dependencies
-        if dep_name in ["build_node_factory", "build_category_metadata", "extract_conversions", "extract_typescript_indexes"]:
+        if dep_name in [
+            "build_node_factory",
+            "build_category_metadata",
+            "extract_conversions",
+            "extract_typescript_indexes",
+        ]:
             return {}
         # Domain models needs special structure
         if dep_name == "extract_domain_models":
@@ -84,7 +89,10 @@ class BackendAssemblerStep(BaseAssemblerStep):
         # Get results from dependencies
         node_specs = dependency_data.get("extract_node_specs") or []
         enums = dependency_data.get("extract_enums") or []
-        domain_models = dependency_data.get("extract_domain_models") or {"models": [], "aliases": {}}
+        domain_models = dependency_data.get("extract_domain_models") or {
+            "models": [],
+            "aliases": {},
+        }
         integrations = dependency_data.get("extract_integrations") or []
         conversions = dependency_data.get("extract_conversions") or {}
         typescript_indexes = dependency_data.get("extract_typescript_indexes") or {}
@@ -132,6 +140,7 @@ class BackendAssemblerStep(BaseAssemblerStep):
         }
 
         return backend_data
+
 
 class BackendBuilder(BaseIRBuilder):
     """Backend IR builder using step-based pipeline.

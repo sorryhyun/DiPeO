@@ -12,7 +12,7 @@ from .person_registry import PersonRegistry
 class DiagramAssembler:
     """Assembles final light format diagram from components."""
 
-    def __init__(self, person_registry: Optional[PersonRegistry] = None):
+    def __init__(self, person_registry: PersonRegistry | None = None):
         """Initialize the diagram assembler.
 
         Args:
@@ -24,8 +24,8 @@ class DiagramAssembler:
         self,
         nodes: list[dict[str, Any]],
         connections: list[dict[str, Any]],
-        persons: Optional[dict[str, Any]] = None,
-        metadata: Optional[dict[str, Any]] = None,
+        persons: dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Assemble components into light format diagram.
 

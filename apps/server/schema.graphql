@@ -24,6 +24,14 @@ type ApiKeyResult {
 """Branded scalar type for ArrowID"""
 scalar ArrowID
 
+type AuthConfigType {
+  strategy: String!
+  header: String
+  query_param: String
+  format: String
+  scopes: [String!]
+}
+
 type CliSessionResult {
   success: Boolean!
   message: String
@@ -203,6 +211,15 @@ input ExecuteDiagramInput {
   variables: JSON = null
 }
 
+input ExecuteIntegrationInput {
+  provider: String!
+  operation: String!
+  config: JSON!
+  api_key_id: ID = null
+  timeout: Int = null
+  resource_id: String = null
+}
+
 input ExecutionControlInput {
   action: String!
   execution_id: ID!
@@ -292,6 +309,16 @@ enum HandleLabel {
 """Branded scalar type for HookID"""
 scalar HookID
 
+type IntegrationTestResultType {
+  success: Boolean!
+  provider: String!
+  operation: String!
+  status_code: Int
+  response_time_ms: Float
+  error: String
+  response_preview: JSON
+}
+
 input InteractiveResponseInput {
   execution_id: ID!
   metadata: JSON = null
@@ -343,6 +370,9 @@ type Mutation {
   createPerson(input: CreatePersonInput!): PersonResult!
   updatePerson(person_id: String!, input: UpdatePersonInput!): PersonResult!
   deletePerson(person_id: String!): DeleteResult!
+  executeIntegration(input: ExecuteIntegrationInput!): JSON!
+  testIntegration(input: TestIntegrationInput!): IntegrationTestResultType!
+  reloadProvider(name: String!): Boolean!
 }
 
 """Branded scalar type for NodeID"""
@@ -377,6 +407,26 @@ enum NodeType {
   DIFF_PATCH
 }
 
+type OperationSchemaType {
+  operation: String!
+  method: String!
+  path: String!
+  description: String
+  request_body: JSON
+  query_params: JSON
+  response: JSON
+}
+
+type OperationType {
+  name: String!
+  method: String!
+  path: String!
+  description: String
+  required_scopes: [String!]
+  has_pagination: Boolean!
+  timeout_override: Float
+}
+
 """Branded scalar type for PersonID"""
 scalar PersonID
 
@@ -405,6 +455,33 @@ type PersonResult {
   person: DomainPersonType @deprecated(reason: "Use 'data' field instead")
 }
 
+type ProviderMetadataType {
+  version: String!
+  type: String!
+  manifest_path: String
+  description: String
+  documentation_url: String
+  support_email: String
+}
+
+type ProviderStatisticsType {
+  total_providers: Int!
+  total_operations: Int!
+  provider_types: JSON!
+  providers: [JSON!]!
+}
+
+type ProviderType {
+  name: String!
+  operations: [OperationType!]!
+  metadata: ProviderMetadataType!
+  base_url: String
+  auth_config: AuthConfigType
+  rate_limit: RateLimitConfigType
+  retry_policy: RetryPolicyType
+  default_timeout: Float!
+}
+
 type Query {
   getApiKeys(service: String = null): JSON!
   getApiKey(api_key_id: String!): DomainApiKeyType!
@@ -419,9 +496,11 @@ type Query {
   listPersons(limit: Float = null): [DomainPersonType!]!
   listPromptFiles: [JSON!]!
   getPromptFile(filename: String!): JSON!
-  getProviders: JSON!
-  getProviderOperations(provider: String!): JSON!
-  getOperationSchema(provider: String!, operation: String!): JSON!
+  listProviders: [ProviderType!]!
+  getProvider(name: String!): ProviderType
+  getProviderOperations(provider: String!): [OperationType!]!
+  getOperationSchema(provider: String!, operation: String!): OperationSchemaType
+  getProviderStatistics: ProviderStatisticsType!
   getSystemInfo: JSON!
   getExecutionCapabilities: JSON!
   healthCheck: JSON!
@@ -431,11 +510,26 @@ type Query {
   getActiveCliSession: JSON!
 }
 
+type RateLimitConfigType {
+  algorithm: String!
+  capacity: Int!
+  refill_per_sec: Float!
+  window_size_sec: Int
+}
+
 input RegisterCliSessionInput {
   execution_id: ID!
   diagram_name: String!
   diagram_format: DiagramFormatGraphQL!
   diagram_data: JSON = null
+}
+
+type RetryPolicyType {
+  strategy: String!
+  max_retries: Int!
+  base_delay_ms: Int!
+  max_delay_ms: Int
+  retry_on_status: [Int!]!
 }
 
 enum Status {
@@ -455,6 +549,14 @@ type Subscription {
 
 """Branded scalar type for TaskID"""
 scalar TaskID
+
+input TestIntegrationInput {
+  provider: String!
+  operation: String!
+  config_preview: JSON!
+  api_key_id: ID = null
+  dry_run: Boolean = null
+}
 
 input UnregisterCliSessionInput {
   execution_id: ID!

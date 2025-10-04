@@ -2,7 +2,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-10-03T21:25:07.527785
+Generated at: 2025-10-04T12:05:47.558208
 """
 
 import strawberry
@@ -2149,6 +2149,108 @@ class NodeMutations:
         service = registry.resolve(PERSON_REPOSITORY)
         result = await service.handle_mutation("DeletePerson", variables)
 
+        
+
+        return result
+
+
+    @strawberry.mutation
+    async def execute_integration(
+        self,
+        info: Info,
+        
+        
+        input: ExecuteIntegrationInput
+        
+        
+    ) -> Any:  # Return type will be determined by the resolver
+        """ExecuteIntegration - Provider mutation"""
+        registry: ServiceRegistry = info.context["registry"]
+
+        # Build variables dict
+        variables = {
+            
+            
+            "input": input
+            
+            
+        }
+
+        # Determine service and execute mutation based on type
+        mutation_lower = "ExecuteIntegration".lower()
+
+        
+        # Default to DIAGRAM_PORT
+        service = registry.resolve(DIAGRAM_PORT)
+        result = await service.handle_mutation("ExecuteIntegration", variables)
+        
+
+        return result
+
+
+    @strawberry.mutation
+    async def test_integration(
+        self,
+        info: Info,
+        
+        
+        input: TestIntegrationInput
+        
+        
+    ) -> Any:  # Return type will be determined by the resolver
+        """TestIntegration - Provider mutation"""
+        registry: ServiceRegistry = info.context["registry"]
+
+        # Build variables dict
+        variables = {
+            
+            
+            "input": input
+            
+            
+        }
+
+        # Determine service and execute mutation based on type
+        mutation_lower = "TestIntegration".lower()
+
+        
+        # Default to DIAGRAM_PORT
+        service = registry.resolve(DIAGRAM_PORT)
+        result = await service.handle_mutation("TestIntegration", variables)
+        
+
+        return result
+
+
+    @strawberry.mutation
+    async def reload_provider(
+        self,
+        info: Info,
+        
+        
+        name: str
+        
+        
+    ) -> Any:  # Return type will be determined by the resolver
+        """ReloadProvider - Provider mutation"""
+        registry: ServiceRegistry = info.context["registry"]
+
+        # Build variables dict
+        variables = {
+            
+            
+            "name": name
+            
+            
+        }
+
+        # Determine service and execute mutation based on type
+        mutation_lower = "ReloadProvider".lower()
+
+        
+        # Default to DIAGRAM_PORT
+        service = registry.resolve(DIAGRAM_PORT)
+        result = await service.handle_mutation("ReloadProvider", variables)
         
 
         return result

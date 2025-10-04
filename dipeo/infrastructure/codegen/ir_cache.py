@@ -3,15 +3,15 @@
 import hashlib
 import json
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.config.paths import CACHE_DIR
 
 logger = get_module_logger(__name__)
+
 
 class IRCache:
     """Cache for IR data with TTL support."""
@@ -29,7 +29,7 @@ class IRCache:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.ttl = timedelta(hours=ttl_hours)
 
-    async def get(self, key: str) -> Optional[Any]:
+    async def get(self, key: str) -> Any | None:
         """Get cached IR data.
 
         Args:

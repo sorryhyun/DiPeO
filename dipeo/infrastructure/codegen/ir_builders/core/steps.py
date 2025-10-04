@@ -40,7 +40,7 @@ class StepResult:
 
     success: bool
     data: Any = None
-    error: Optional[str] = None
+    error: str | None = None
     metadata: dict[str, Any] = None
 
     def __post_init__(self):
@@ -306,7 +306,7 @@ class PipelineOrchestrator:
 
         return self._results
 
-    def get_result(self, step_name: str) -> Optional[StepResult]:
+    def get_result(self, step_name: str) -> StepResult | None:
         """Get result for a specific step.
 
         Args:
@@ -351,7 +351,7 @@ class StepRegistry:
         cls._steps[name] = step_class
 
     @classmethod
-    def get(cls, name: str) -> Optional[type[BuildStep]]:
+    def get(cls, name: str) -> type[BuildStep] | None:
         """Get registered step class by name.
 
         Args:
@@ -363,7 +363,7 @@ class StepRegistry:
         return cls._steps.get(name)
 
     @classmethod
-    def create(cls, name: str, **kwargs) -> Optional[BuildStep]:
+    def create(cls, name: str, **kwargs) -> BuildStep | None:
         """Create instance of registered step.
 
         Args:

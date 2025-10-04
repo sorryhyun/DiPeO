@@ -2,16 +2,16 @@
 
 import io
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from collections.abc import AsyncIterator
 from typing import BinaryIO
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.base import StorageError
 from dipeo.domain.base.mixins import InitializationMixin, LoggingMixin
 from dipeo.domain.base.storage_port import BlobStorePort
 
 logger = get_module_logger(__name__)
+
 
 class S3Adapter(LoggingMixin, InitializationMixin, BlobStorePort):
     """AWS S3 implementation of BlobStorePort."""

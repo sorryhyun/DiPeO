@@ -13,7 +13,7 @@ from ..position_manager import PositionManager
 class BaseNodeBuilder(ABC):
     """Abstract base class for all node builders."""
 
-    def __init__(self, position_manager: Optional[PositionManager] = None):
+    def __init__(self, position_manager: PositionManager | None = None):
         """Initialize the base node builder.
 
         Args:
@@ -51,8 +51,8 @@ class BaseNodeBuilder(ABC):
         label: str,
         node_type: str,
         props: dict[str, Any],
-        position: Optional[dict[str, int]] = None,
-        metadata: Optional[dict[str, Any]] = None,
+        position: dict[str, int] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Create a base node structure.
 
@@ -96,8 +96,8 @@ class BaseNodeBuilder(ABC):
         self,
         tool_name: str,
         tool_input: dict[str, Any],
-        tool_result: Optional[dict[str, Any]] = None,
-    ) -> Optional[dict[str, Any]]:
+        tool_result: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """Create a node for the given tool.
 
         Args:
@@ -165,7 +165,7 @@ class SimpleNodeBuilder(BaseNodeBuilder):
         self,
         supported_tools: list[str],
         node_type: str,
-        position_manager: Optional[PositionManager] = None,
+        position_manager: PositionManager | None = None,
     ):
         """Initialize a simple node builder.
 
@@ -193,8 +193,8 @@ class SimpleNodeBuilder(BaseNodeBuilder):
         self,
         tool_name: str,
         tool_input: dict[str, Any],
-        tool_result: Optional[dict[str, Any]] = None,
-    ) -> Optional[dict[str, Any]]:
+        tool_result: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """Create a node for the given tool.
 
         Args:
@@ -221,7 +221,7 @@ class SimpleNodeBuilder(BaseNodeBuilder):
         self,
         tool_name: str,
         tool_input: dict[str, Any],
-        tool_result: Optional[dict[str, Any]] = None,
+        tool_result: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Build node properties.
 

@@ -2,12 +2,11 @@
 
 import logging
 
-from dipeo.config.base_logger import get_module_logger
-
 import strawberry
 
 from dipeo.application.execution.use_cases import CliSessionService
 from dipeo.application.registry import CLI_SESSION_SERVICE, ServiceRegistry
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.graphql.enums import convert_diagramformat_from_graphql
 from dipeo.diagram_generated.graphql.inputs import (
     RegisterCliSessionInput,
@@ -16,6 +15,7 @@ from dipeo.diagram_generated.graphql.inputs import (
 from dipeo.diagram_generated.graphql.results import CliSessionResult
 
 logger = get_module_logger(__name__)
+
 
 # Standalone resolver functions for operation executor
 async def register_cli_session(
@@ -122,6 +122,7 @@ async def register_cli_session(
     except Exception as e:
         logger.error(f"Failed to register CLI session: {e}")
         return CliSessionResult.error_result(error=f"Failed to register CLI session: {e!s}")
+
 
 async def unregister_cli_session(
     registry: ServiceRegistry, input: UnregisterCliSessionInput

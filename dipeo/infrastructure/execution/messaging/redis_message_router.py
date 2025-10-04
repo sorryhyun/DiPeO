@@ -9,15 +9,15 @@ import contextlib
 import json
 import logging
 
-from dipeo.config.base_logger import get_module_logger
-
 import redis.asyncio as redis
 from redis.asyncio.client import PubSub
 
 from dipeo.config import get_settings
+from dipeo.config.base_logger import get_module_logger
 from dipeo.infrastructure.execution.messaging.base_message_router import BaseMessageRouter
 
 logger = get_module_logger(__name__)
+
 
 class RedisMessageRouter(BaseMessageRouter):
     """Redis-backed message router for multi-worker GraphQL subscriptions.

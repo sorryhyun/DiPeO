@@ -26,12 +26,12 @@ class StateSnapshot:
     status: Status
     node_states: dict[NodeID, NodeState]
     start_time: datetime
-    end_time: Optional[datetime]
-    error: Optional[str]
+    end_time: datetime | None
+    error: str | None
     metadata: dict[str, Any]
     version: int  # Event sequence number
 
-    def get_node_state(self, node_id: NodeID) -> Optional[NodeState]:
+    def get_node_state(self, node_id: NodeID) -> NodeState | None:
         """Get state for a specific node."""
         return self.node_states.get(node_id)
 
@@ -109,7 +109,7 @@ class StateManager:
         async with self._cache_lock:
             await self._update_state_from_event(execution_id, event)
 
-    async def get_state(self, execution_id: ExecutionID) -> Optional[StateSnapshot]:
+    async def get_state(self, execution_id: ExecutionID) -> StateSnapshot | None:
         """
         Get current state snapshot for an execution.
 
@@ -122,14 +122,12 @@ class StateManager:
 
             return self._state_cache.get(execution_id)
 
-    async def get_node_state(
-        self, execution_id: ExecutionID, node_id: NodeID
-    ) -> Optional[NodeState]:
+    async def get_node_state(self, execution_id: ExecutionID, node_id: NodeID) -> NodeState | None:
         """Get state for a specific node."""
         state = await self.get_state(execution_id)
         return state.get_node_state(node_id) if state else None
 
-    async def get_execution_status(self, execution_id: ExecutionID) -> Optional[Status]:
+    async def get_execution_status(self, execution_id: ExecutionID) -> Status | None:
         """Get current status of an execution."""
         state = await self.get_state(execution_id)
         return state.status if state else None

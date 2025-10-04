@@ -113,10 +113,12 @@ Quick command: `make codegen-auto` (USE WITH CAUTION)
 
 ### 3-Tier Architecture
 1. **Generated Layer**: `/dipeo/diagram_generated/graphql/` (operations.py, inputs/results/types)
-2. **Application Layer**: `/dipeo/application/graphql/` (schema, resolvers, executor)
-3. **Execution Layer**: EnhancedServiceRegistry, EventBus, Envelope pattern
+2. **Application Layer**: `/dipeo/application/graphql/` (direct service access resolvers)
+3. **Execution Layer**: OperationExecutor with auto-discovery and validation
 
 **45 operations** (23 queries, 21 mutations, 1 subscription) - Frontend hooks in `@/__generated__/graphql`, Python classes in `dipeo/diagram_generated/graphql/operations.py`
+
+**Resolver Pattern**: Direct service access via `async def resolver(registry, **kwargs)` - no class-based resolvers except ProviderResolver
 
 ### Adding New GraphQL Operations
 1. Add definition to `/dipeo/models/src/frontend/query-definitions/[entity].ts`

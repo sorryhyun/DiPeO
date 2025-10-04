@@ -2,8 +2,6 @@
 
 import json
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import time
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -14,6 +12,7 @@ from dipeo.application.execution.handlers.core.base import TypedNodeHandler
 from dipeo.application.execution.handlers.core.decorators import requires_services
 from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.registry.keys import EXECUTION_ORCHESTRATOR, PROMPT_BUILDER
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.unified_nodes.condition_node import ConditionNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
@@ -29,6 +28,7 @@ if TYPE_CHECKING:
     from dipeo.domain.execution.execution_context import ExecutionContext
 
 logger = get_module_logger(__name__)
+
 
 @register_handler
 @requires_services(

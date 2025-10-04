@@ -19,9 +19,9 @@ from dipeo.infrastructure.codegen.ir_builders.core.steps import (
 )
 
 __all__ = [
-    "BaseIRBuilder",
     "BaseAssemblerStep",
     "BaseExtractionStep",
+    "BaseIRBuilder",
     "BaseTransformStep",
     "BaseValidatorStep",
     "BuildContext",

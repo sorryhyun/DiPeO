@@ -26,10 +26,10 @@ class BuildContext:
     - Cached resources
     """
 
-    config_path: Optional[Path] = None
+    config_path: Path | None = None
     config: dict[str, Any] = field(default_factory=dict)
-    _type_converter: Optional[UnifiedTypeConverter] = None
-    _base_dir: Optional[Path] = None
+    _type_converter: UnifiedTypeConverter | None = None
+    _base_dir: Path | None = None
     _cache: dict[str, Any] = field(default_factory=dict)
     _step_results: dict[str, Any] = field(default_factory=dict)
     _metadata: dict[str, Any] = field(default_factory=dict)
@@ -97,7 +97,11 @@ class BuildContext:
         """
         if self._type_converter is None:
             custom_mappings = self.config.get("type_mappings")
-            self._type_converter = UnifiedTypeConverter(custom_mappings=custom_mappings) if custom_mappings else UnifiedTypeConverter()
+            self._type_converter = (
+                UnifiedTypeConverter(custom_mappings=custom_mappings)
+                if custom_mappings
+                else UnifiedTypeConverter()
+            )
         return self._type_converter
 
     @property
@@ -124,7 +128,7 @@ class BuildContext:
             data_str = str(source_data)
         return hashlib.sha256(data_str.encode()).hexdigest()
 
-    def cache_get(self, key: str) -> Optional[Any]:
+    def cache_get(self, key: str) -> Any | None:
         """Get cached value by key.
 
         Args:

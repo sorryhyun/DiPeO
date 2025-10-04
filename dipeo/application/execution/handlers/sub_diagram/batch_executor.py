@@ -9,12 +9,11 @@ This executor implements optimizations for batch parallel execution:
 
 import asyncio
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
+from dipeo.config.base_logger import get_module_logger
 from dipeo.config.execution import SUB_DIAGRAM_BATCH_SIZE, SUB_DIAGRAM_MAX_CONCURRENT
 from dipeo.diagram_generated import Status
 from dipeo.diagram_generated.unified_nodes.sub_diagram_node import SubDiagramNode
@@ -26,6 +25,7 @@ if TYPE_CHECKING:
     pass
 
 logger = get_module_logger(__name__)
+
 
 class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
     """Executor for batch sub-diagram execution with optimizations for parallel processing."""

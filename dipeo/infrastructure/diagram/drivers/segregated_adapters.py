@@ -212,7 +212,7 @@ class RepositoryAdapter(LoggingMixin, DiagramRepositoryPort):
         self.log_debug(f"Created diagram: {diagram_id}")
         return diagram_id
 
-    async def get(self, diagram_id: str) -> Optional[DomainDiagram]:
+    async def get(self, diagram_id: str) -> DomainDiagram | None:
         try:
             path = self._get_diagram_path(diagram_id)
             if not self.filesystem.exists(path):

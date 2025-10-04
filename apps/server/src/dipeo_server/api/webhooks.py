@@ -6,10 +6,10 @@ import json
 import time
 from typing import Any
 
-from dipeo.config.base_logger import get_module_logger
 from fastapi import APIRouter, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.events import (
     DomainEvent,
     EventScope,

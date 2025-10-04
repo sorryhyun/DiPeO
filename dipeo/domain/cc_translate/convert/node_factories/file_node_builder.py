@@ -15,8 +15,8 @@ class FileNodeBuilder(BaseNodeBuilder):
 
     def __init__(
         self,
-        payload_processor: Optional[PayloadProcessor] = None,
-        position_manager: Optional[Any] = None,
+        payload_processor: PayloadProcessor | None = None,
+        position_manager: Any | None = None,
     ):
         """Initialize the file node builder.
 
@@ -43,8 +43,8 @@ class FileNodeBuilder(BaseNodeBuilder):
         self,
         tool_name: str,
         tool_input: dict[str, Any],
-        tool_result: Optional[dict[str, Any]] = None,
-    ) -> Optional[dict[str, Any]]:
+        tool_result: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """Create a file operation node.
 
         Args:
@@ -107,7 +107,7 @@ class FileNodeBuilder(BaseNodeBuilder):
         return node
 
     def create_write_node(
-        self, tool_input: dict[str, Any], tool_result: Optional[dict[str, Any]] = None
+        self, tool_input: dict[str, Any], tool_result: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Create a DB node for file write operation.
 
@@ -150,8 +150,8 @@ class FileNodeBuilder(BaseNodeBuilder):
         self,
         tool_name: str,
         tool_input: dict[str, Any],
-        tool_result: Optional[dict[str, Any]] = None,
-    ) -> Optional[dict[str, Any]]:
+        tool_result: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """Create a diff_patch node for file edit operation.
 
         Args:

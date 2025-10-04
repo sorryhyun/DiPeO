@@ -2,11 +2,10 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional
 
 import yaml
 
-from dipeo.application.registry import Registry
+from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import PROVIDER_REGISTRY
 from dipeo.config import BASE_DIR
 from dipeo.config.base_logger import get_module_logger
@@ -18,7 +17,7 @@ logger = get_module_logger(__name__)
 class IntegrationsManager:
     """Manages API integrations and providers."""
 
-    def __init__(self, registry: Registry):
+    def __init__(self, registry: ServiceRegistry):
         """Initialize the integrations manager."""
         self.registry = registry
         self.provider_registry: ProviderRegistry = registry.resolve(PROVIDER_REGISTRY)
@@ -56,7 +55,7 @@ class IntegrationsManager:
             logger.error(f"Failed to initialize workspace: {e}")
             return False
 
-    async def validate_providers(self, path: str, provider: Optional[str] = None) -> bool:
+    async def validate_providers(self, path: str, provider: str | None = None) -> bool:
         """Validate provider manifests."""
         try:
             workspace_path = Path(path)
@@ -95,13 +94,13 @@ class IntegrationsManager:
         self,
         openapi_path: str,
         name: str,
-        output: Optional[str] = None,
-        base_url: Optional[str] = None,
+        output: str | None = None,
+        base_url: str | None = None,
     ) -> bool:
         """Import an OpenAPI specification as a provider."""
         try:
             # Load OpenAPI spec
-            with open(openapi_path, "r") as f:
+            with open(openapi_path) as f:
                 if openapi_path.endswith(".json"):
                     spec = json.load(f)
                 else:
@@ -124,13 +123,15 @@ class IntegrationsManager:
             for path, path_item in spec.get("paths", {}).items():
                 for method, operation in path_item.items():
                     if method in ["get", "post", "put", "patch", "delete"]:
-                        manifest["operations"].append({
-                            "id": operation.get("operationId", f"{method}_{path}"),
-                            "name": operation.get("summary", f"{method.upper()} {path}"),
-                            "description": operation.get("description", ""),
-                            "method": method.upper(),
-                            "path": path,
-                        })
+                        manifest["operations"].append(
+                            {
+                                "id": operation.get("operationId", f"{method}_{path}"),
+                                "name": operation.get("summary", f"{method.upper()} {path}"),
+                                "description": operation.get("description", ""),
+                                "method": method.upper(),
+                                "path": path,
+                            }
+                        )
 
             # Save provider manifest
             output_dir = Path(output or "./integrations") / name
@@ -149,8 +150,8 @@ class IntegrationsManager:
     async def test_provider(
         self,
         provider: str,
-        operation: Optional[str] = None,
-        config: Optional[str] = None,
+        operation: str | None = None,
+        config: str | None = None,
         record: bool = False,
         replay: bool = False,
     ) -> bool:
@@ -183,10 +184,10 @@ class IntegrationsManager:
         self,
         watch_todos: bool = False,
         sync_mode: str = "off",
-        output_dir: Optional[str] = None,
+        output_dir: str | None = None,
         auto_execute: bool = False,
         debounce: float = 2.0,
-        timeout: Optional[int] = None,
+        timeout: int | None = None,
     ) -> bool:
         """Set up Claude Code TODO synchronization."""
         try:
@@ -211,7 +212,7 @@ class IntegrationsManager:
     async def _validate_manifest(self, manifest_path: Path) -> bool:
         """Validate a single provider manifest."""
         try:
-            with open(manifest_path, "r") as f:
+            with open(manifest_path) as f:
                 if manifest_path.suffix == ".json":
                     manifest = json.load(f)
                 else:

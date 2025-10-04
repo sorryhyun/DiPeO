@@ -20,9 +20,9 @@ class DiagramGenerationResult:
     """Result of diagram generation."""
 
     success: bool
-    diagram_path: Optional[str] = None
-    diagram_data: Optional[dict[str, Any]] = None
-    error_message: Optional[str] = None
+    diagram_path: str | None = None
+    diagram_data: dict[str, Any] | None = None
+    error_message: str | None = None
 
 
 class DiPeOAIGenerator:
@@ -113,7 +113,7 @@ edges:
     target: process
 """
 
-    def _parse_diagram_response(self, response: str) -> Optional[dict[str, Any]]:
+    def _parse_diagram_response(self, response: str) -> dict[str, Any] | None:
         """Parse the diagram from LLM response."""
         try:
             # Try to extract YAML from response

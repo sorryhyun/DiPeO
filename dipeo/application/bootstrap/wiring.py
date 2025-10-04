@@ -6,13 +6,13 @@ The application layer should not import or create infrastructure services direct
 """
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
 from dipeo.application.registry import ServiceRegistry
+from dipeo.config.base_logger import get_module_logger
 
 logger = get_module_logger(__name__)
+
 
 def wire_application_services(registry: ServiceRegistry) -> None:
     """Wire application-level services that don't require infrastructure.
@@ -33,6 +33,7 @@ def wire_application_services(registry: ServiceRegistry) -> None:
     wire_execution(registry)
     logger.info("Wired execution services")
 
+
 def wire_feature_flags(registry: ServiceRegistry, features: list[str]) -> None:
     """Wire optional features based on feature flags.
 
@@ -51,6 +52,7 @@ def wire_feature_flags(registry: ServiceRegistry, features: list[str]) -> None:
             logger.info("Enabling experimental handlers")
             # Wire experimental handlers
         # Add more application-level feature flags as needed
+
 
 # Note: The following functions have been moved to the composition root:
 # - bootstrap_services() -> apps/server/bootstrap.py

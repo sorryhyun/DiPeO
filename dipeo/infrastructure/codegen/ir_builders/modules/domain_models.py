@@ -77,7 +77,9 @@ class ExtractDomainModelsStep(BaseExtractionStep):
         models = self._extract_models(file_data, type_converter, self._processed_models)
         self._all_models.extend(models)
 
-    def post_extraction_hook(self, extracted_data: list[Any], context: BuildContext) -> dict[str, Any]:
+    def post_extraction_hook(
+        self, extracted_data: list[Any], context: BuildContext
+    ) -> dict[str, Any]:
         """Assemble domain models data after extraction.
 
         Args:
@@ -189,7 +191,7 @@ class ExtractDomainModelsStep(BaseExtractionStep):
 
     def _convert_property_to_field(
         self, prop: dict[str, Any], type_converter: UnifiedTypeConverter
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Convert interface property to field definition.
 
         Args:
@@ -430,7 +432,9 @@ class ExtractConversionsStep(BaseExtractionStep):
                     }
                 )
 
-    def post_extraction_hook(self, extracted_data: list[Any], context: BuildContext) -> dict[str, Any]:
+    def post_extraction_hook(
+        self, extracted_data: list[Any], context: BuildContext
+    ) -> dict[str, Any]:
         """Assemble conversions data after extraction.
 
         Args:
@@ -456,6 +460,7 @@ class ExtractConversionsStep(BaseExtractionStep):
         """
         if isinstance(extracted_data, dict):
             return {
-                "conversion_count": len(extracted_data.get("type_mappings", [])) + len(extracted_data.get("enum_mappings", []))
+                "conversion_count": len(extracted_data.get("type_mappings", []))
+                + len(extracted_data.get("enum_mappings", []))
             }
         return {"conversion_count": 0}

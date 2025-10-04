@@ -2,17 +2,17 @@
 
 import asyncio
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import os
 from collections import deque
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 logger = get_module_logger(__name__)
+
 
 @dataclass
 class SubDiagramTask:
@@ -26,6 +26,7 @@ class SubDiagramTask:
     completed_at: datetime | None = None
     result: Envelope | None = None
     error: Exception | None = None
+
 
 class ParallelExecutionManager:
     """Manages parallel execution of sub-diagrams with configurable limits and queuing."""

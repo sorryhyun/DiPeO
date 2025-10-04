@@ -26,7 +26,7 @@ class IRBuilderRegistry:
     }
 
     @classmethod
-    def get_builder(cls, builder_type: str, config_path: Optional[str] = None) -> IRBuilderPort:
+    def get_builder(cls, builder_type: str, config_path: str | None = None) -> IRBuilderPort:
         """Get IR builder instance by type.
 
         Args:

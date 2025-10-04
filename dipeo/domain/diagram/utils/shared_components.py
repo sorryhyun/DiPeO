@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import DataType, HandleDirection, HandleLabel, NodeID, NodeType
 
 from .handle_utils import create_handle_id
@@ -27,11 +26,13 @@ __all__ = (
     "extract_common_arrows",
 )
 
+
 def _create_handle_id_from_enums(
     node_id: str, label: HandleLabel, direction: HandleDirection
 ) -> str:
     result = create_handle_id(NodeID(node_id), label, direction)
     return str(result)
+
 
 def _push_handle(container: dict[str, Any] | Any, handle: dict[str, Any]) -> None:
     if isinstance(container, dict):
@@ -46,6 +47,7 @@ def _push_handle(container: dict[str, Any] | Any, handle: dict[str, Any]) -> Non
             container.handles[handle["id"]] = handle
         else:
             container.handles.append(handle)
+
 
 def _make_handle(
     node_id: str,
@@ -62,6 +64,7 @@ def _make_handle(
         "data_type": dtype.value,
         "position": "left" if direction == HandleDirection.INPUT else "right",
     }
+
 
 class HandleGenerator:
     def generate_for_node(
@@ -151,6 +154,7 @@ class HandleGenerator:
             _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.OUTPUT),
         )
 
+
 class PositionCalculator:
     def __init__(
         self,
@@ -179,6 +183,7 @@ class PositionCalculator:
             "y": y,
         }
 
+
 class ArrowBuilder:
     @staticmethod
     def create_arrow_id(source_handle: str, target_handle: str) -> str:
@@ -194,6 +199,7 @@ class ArrowBuilder:
         s = str(create_handle_id(NodeID(source_node), source_label, HandleDirection.OUTPUT))
         t = str(create_handle_id(NodeID(target_node), target_label, HandleDirection.INPUT))
         return ArrowBuilder.create_arrow_id(s, t), s, t
+
 
 def coerce_to_dict(
     seq_or_map: Mapping[str, Any] | Sequence[Any] | None,
@@ -211,8 +217,10 @@ def coerce_to_dict(
         }
     return {}
 
+
 def build_node(id: str, type_: str, pos: dict[str, float] | None = None, **data) -> dict[str, Any]:
     return {"id": id, "type": type_, "position": pos or {}, **data}
+
 
 def ensure_position(
     node_dict: dict[str, Any],
@@ -223,6 +231,7 @@ def ensure_position(
         calc = position_calculator or PositionCalculator()
         vec = calc.calculate_grid_position(index)
         node_dict["position"] = {"x": vec.get("x"), "y": vec.get("y")}
+
 
 def extract_common_arrows(arrows: Any) -> list[dict[str, Any]]:
     if not arrows:

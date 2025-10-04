@@ -3,11 +3,12 @@
 import ast
 import logging
 
-from dipeo.config.base_logger import get_module_logger
-
 from pydantic import BaseModel
 
+from dipeo.config.base_logger import get_module_logger
+
 logger = get_module_logger(__name__)
+
 
 def compile_pydantic_model(code_str: str) -> type[BaseModel] | None:
     """
@@ -88,6 +89,7 @@ from dipeo.domain.type_defs import JsonValue, JsonDict, JsonList, JsonPrimitive
     except Exception as e:
         logger.error(f"Error compiling Pydantic model: {e}")
         return None
+
 
 def is_pydantic_code(text_format: str) -> bool:
     """

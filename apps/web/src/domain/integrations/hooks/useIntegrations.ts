@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
-import { GETPROVIDERS_QUERY, GETPROVIDEROPERATIONS_QUERY, GETOPERATIONSCHEMA_QUERY } from '@/__generated__/queries/all-queries';
+import { GETPROVIDER_QUERY, GETPROVIDEROPERATIONS_QUERY, GETOPERATIONSCHEMA_QUERY } from '@/__generated__/queries/all-queries';
 
 // TODO: These mutations need to be implemented in the backend
 // const TEST_INTEGRATION = gql`
@@ -85,7 +85,7 @@ export function useIntegrations() {
     loading: providersLoading,
     error: providersError,
     refetch: refetchProviders,
-  } = useQuery(GETPROVIDERS_QUERY);
+  } = useQuery(GETPROVIDER_QUERY);
 
   // Fetch operations for selected provider
   const {

@@ -1,13 +1,13 @@
 """Conversation handling utilities for PersonJob nodes."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.domain_models import Message
 
 logger = get_module_logger(__name__)
+
 
 class ConversationHandler:
     """Handles conversation-related operations for PersonJob execution."""

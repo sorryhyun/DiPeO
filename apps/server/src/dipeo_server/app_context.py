@@ -36,6 +36,7 @@ async def create_server_container() -> Container:
         PROVIDER_REGISTRY,
         STATE_STORE,
     )
+
     # Bootstrap all services
     bootstrap_services(container.registry, redis_client=None)
 

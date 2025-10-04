@@ -33,7 +33,7 @@ class ResolvedField:
     is_literal: bool
     is_custom_list: bool
     needs_conversion: bool
-    conversion_expr: Optional[str] = None  # Expression for from_pydantic conversion
+    conversion_expr: str | None = None  # Expression for from_pydantic conversion
 
 
 @dataclass
@@ -85,8 +85,8 @@ class UnifiedTypeResolver:
 
     def __init__(
         self,
-        config_path: Optional[Path] = None,
-        converter: Optional[UnifiedTypeConverter] = None,
+        config_path: Path | None = None,
+        converter: UnifiedTypeConverter | None = None,
     ):
         """Initialize unified type resolver.
 
@@ -153,7 +153,9 @@ class UnifiedTypeResolver:
         is_custom_list = self._is_custom_list(field_type)
 
         # Resolve Strawberry type
-        strawberry_type = self._resolve_strawberry_type(field_name, field_type, is_optional, type_name)
+        strawberry_type = self._resolve_strawberry_type(
+            field_name, field_type, is_optional, type_name
+        )
 
         # Determine default value
         default = self._get_default_value(strawberry_type, is_optional)
@@ -263,7 +265,9 @@ class UnifiedTypeResolver:
             base_type = f"{field_type}Type"
 
         # Handle enums (these should be imported from enums module)
-        elif field_type in self.graphql_config.get("strawberry_type_rules", {}).get("enum_types", []):
+        elif field_type in self.graphql_config.get("strawberry_type_rules", {}).get(
+            "enum_types", []
+        ):
             base_type = field_type  # Keep enum name as-is
 
         # Handle Union types
@@ -440,7 +444,9 @@ class UnifiedTypeResolver:
 
         lines.append("    )")
 
-        return ConversionMethod(type_name=type_name, method_code="\n".join(lines), needs_method=True)
+        return ConversionMethod(
+            type_name=type_name, method_code="\n".join(lines), needs_method=True
+        )
 
     def process_type(self, interface: dict[str, Any]) -> dict[str, Any]:
         """Process a complete type for template rendering.

@@ -2,8 +2,6 @@
 
 import asyncio
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import uuid
 
 import strawberry
@@ -11,6 +9,7 @@ import strawberry
 from dipeo.application.execution import ExecuteDiagramUseCase
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import DIAGRAM_PORT, MESSAGE_ROUTER, STATE_STORE
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.domain_models import ExecutionID
 from dipeo.diagram_generated.enums import EventType, Status
 from dipeo.diagram_generated.graphql.domain_types import ExecutionStateType
@@ -24,6 +23,7 @@ from dipeo.diagram_generated.graphql.results import ExecutionResult
 from dipeo.infrastructure.diagram.adapters import UnifiedSerializerAdapter
 
 logger = get_module_logger(__name__)
+
 
 # Standalone resolver functions for use with OperationExecutor
 async def execute_diagram(registry: ServiceRegistry, input: ExecuteDiagramInput) -> ExecutionResult:
@@ -121,6 +121,7 @@ async def execute_diagram(registry: ServiceRegistry, input: ExecuteDiagramInput)
         logger.error(f"Traceback: {traceback.format_exc()}")
         return ExecutionResult.error_result(error=f"Failed to execute diagram: {e!s}")
 
+
 async def update_node_state(
     registry: ServiceRegistry, input: UpdateNodeStateInput
 ) -> ExecutionResult:
@@ -166,6 +167,7 @@ async def update_node_state(
     except Exception as e:
         logger.error(f"Failed to update node state: {e}")
         return ExecutionResult.error_result(error=f"Failed to update node state: {e!s}")
+
 
 async def control_execution(
     registry: ServiceRegistry, input: ExecutionControlInput
@@ -215,6 +217,7 @@ async def control_execution(
     except Exception as e:
         logger.error(f"Failed to control execution: {e}")
         return ExecutionResult.error_result(error=f"Failed to control execution: {e!s}")
+
 
 async def send_interactive_response(
     registry: ServiceRegistry, input: InteractiveResponseInput

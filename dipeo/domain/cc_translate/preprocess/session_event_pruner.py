@@ -23,7 +23,7 @@ class SessionEventPruner(BaseSessionProcessor):
     - Custom pattern matches
     """
 
-    def __init__(self, config: Optional[SessionEventPrunerConfig] = None):
+    def __init__(self, config: SessionEventPrunerConfig | None = None):
         """Initialize the session event pruner."""
         super().__init__(config)
 

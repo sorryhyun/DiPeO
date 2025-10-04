@@ -277,42 +277,32 @@ This architecture enables:
 
 ### GraphQL Architecture
 
-The GraphQL layer provides a production-ready architecture:
+The GraphQL layer provides a production-ready architecture with 45 operations (23 queries, 21 mutations, 1 subscription):
 
-- **45 operations** with full GraphQL query strings as constants (23 queries, 21 mutations, 1 subscription)
-- **Type-safe operation classes** with proper TypedDict for variables and automatic Strawberry input conversion
-- **Well-structured resolver implementations** following consistent patterns with ServiceRegistry dependency injection
-- **Clean 3-tier architecture** separating generated code, application logic, and execution layer
-- **Comprehensive type safety** throughout the entire stack
-
-### Architecture Overview
-
-The GraphQL layer uses a clean 3-tier architecture:
-
+**3-Tier Architecture**:
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Generated Layer                         │
-│  /dipeo/diagram_generated/graphql/ (Automated from TypeScript) │
+│ Generated Layer: operations.py, inputs, results, types          │
+│ /dipeo/diagram_generated/graphql/ (TypeScript → Python)         │
 ├─────────────────────────────────────────────────────────────────┤
-│                      Application Layer                         │
-│  /dipeo/application/graphql/ (Manual Business Logic)           │
+│ Application Layer: Direct service access resolvers              │
+│ /dipeo/application/graphql/ (schema/, resolvers/)               │
 ├─────────────────────────────────────────────────────────────────┤
-│                      Execution Layer                           │
-│  OperationExecutor (Runtime mapping and validation)            │
+│ Execution Layer: OperationExecutor with auto-discovery          │
+│ Convention-based mapping, validation, module caching            │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Key Components
+**Key Features**:
+- **Direct Service Access**: Resolvers use ServiceRegistry directly (no class wrappers)
+- **Auto-discovery**: Convention-based resolver mapping (CamelCase → snake_case)
+- **Type Safety**: TypedDict validation and result type checking
+- **Performance**: Module caching, pre-compiled queries (353-line executor)
+- **Single Pattern**: Consistent `async def resolver(registry, **kwargs)` signature
 
-- **Generated Layer**: `/dipeo/diagram_generated/graphql/operations.py` - All 45 operations with complete GraphQL query strings and typed operation classes
-- **Application Layer**: `/dipeo/application/graphql/` - Resolver implementations following consistent patterns with ServiceRegistry integration
-- **Execution Layer**: `OperationExecutor` - Type-safe mapping between operations and resolvers with validation
-
-### Integration Benefits
-
-- **Event System**: GraphQL subscriptions use the unified EventBus for real-time updates
-- **Envelope System**: All resolvers work with DiPeO's standardized Envelope data flow
-- **Service Registry**: Clean dependency injection throughout all GraphQL resolvers
-- **Type Safety**: Full TypeScript-to-Python type safety across the entire stack
+**Integration**:
+- EventBus for GraphQL subscriptions
+- Envelope pattern for resolver outputs
+- ServiceRegistry for dependency injection
 
 For detailed documentation, see [GraphQL Layer Architecture](graphql-layer.md).

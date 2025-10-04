@@ -76,6 +76,15 @@ export type ApiKeyResult = {
   success: Scalars['Boolean']['output'];
 };
 
+export type AuthConfigType = {
+  __typename?: 'AuthConfigType';
+  format?: Maybe<Scalars['String']['output']>;
+  header?: Maybe<Scalars['String']['output']>;
+  query_param?: Maybe<Scalars['String']['output']>;
+  scopes?: Maybe<Array<Scalars['String']['output']>>;
+  strategy: Scalars['String']['output'];
+};
+
 export type CliSessionResult = {
   __typename?: 'CliSessionResult';
   data?: Maybe<Scalars['JSON']['output']>;
@@ -249,6 +258,15 @@ export type ExecuteDiagramInput = {
   variables?: InputMaybe<Scalars['JSON']['input']>;
 };
 
+export type ExecuteIntegrationInput = {
+  api_key_id?: InputMaybe<Scalars['ID']['input']>;
+  config: Scalars['JSON']['input'];
+  operation: Scalars['String']['input'];
+  provider: Scalars['String']['input'];
+  resource_id?: InputMaybe<Scalars['String']['input']>;
+  timeout?: InputMaybe<Scalars['Int']['input']>;
+};
+
 export type ExecutionControlInput = {
   action: Scalars['String']['input'];
   execution_id: Scalars['ID']['input'];
@@ -323,6 +341,17 @@ export { HandleDirection };
 
 export { HandleLabel };
 
+export type IntegrationTestResultType = {
+  __typename?: 'IntegrationTestResultType';
+  error?: Maybe<Scalars['String']['output']>;
+  operation: Scalars['String']['output'];
+  provider: Scalars['String']['output'];
+  response_preview?: Maybe<Scalars['JSON']['output']>;
+  response_time_ms?: Maybe<Scalars['Float']['output']>;
+  status_code?: Maybe<Scalars['Int']['output']>;
+  success: Scalars['Boolean']['output'];
+};
+
 export type InteractiveResponseInput = {
   execution_id: Scalars['ID']['input'];
   metadata?: InputMaybe<Scalars['JSON']['input']>;
@@ -353,9 +382,12 @@ export type Mutation = {
   deleteNode: DeleteResult;
   deletePerson: DeleteResult;
   executeDiagram: ExecutionResult;
+  executeIntegration: Scalars['JSON']['output'];
   registerCliSession: CliSessionResult;
+  reloadProvider: Scalars['Boolean']['output'];
   sendInteractiveResponse: ExecutionResult;
   testApiKey: ApiKeyResult;
+  testIntegration: IntegrationTestResultType;
   unregisterCliSession: CliSessionResult;
   updateNode: NodeResult;
   updateNodeState: ExecutionResult;
@@ -425,8 +457,18 @@ export type MutationexecuteDiagramArgs = {
 };
 
 
+export type MutationexecuteIntegrationArgs = {
+  input: ExecuteIntegrationInput;
+};
+
+
 export type MutationregisterCliSessionArgs = {
   input: RegisterCliSessionInput;
+};
+
+
+export type MutationreloadProviderArgs = {
+  name: Scalars['String']['input'];
 };
 
 
@@ -437,6 +479,11 @@ export type MutationsendInteractiveResponseArgs = {
 
 export type MutationtestApiKeyArgs = {
   api_key_id: Scalars['String']['input'];
+};
+
+
+export type MutationtestIntegrationArgs = {
+  input: TestIntegrationInput;
 };
 
 
@@ -494,6 +541,28 @@ export type NodeResult = {
 
 export { NodeType };
 
+export type OperationSchemaType = {
+  __typename?: 'OperationSchemaType';
+  description?: Maybe<Scalars['String']['output']>;
+  method: Scalars['String']['output'];
+  operation: Scalars['String']['output'];
+  path: Scalars['String']['output'];
+  query_params?: Maybe<Scalars['JSON']['output']>;
+  request_body?: Maybe<Scalars['JSON']['output']>;
+  response?: Maybe<Scalars['JSON']['output']>;
+};
+
+export type OperationType = {
+  __typename?: 'OperationType';
+  description?: Maybe<Scalars['String']['output']>;
+  has_pagination: Scalars['Boolean']['output'];
+  method: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+  path: Scalars['String']['output'];
+  required_scopes?: Maybe<Array<Scalars['String']['output']>>;
+  timeout_override?: Maybe<Scalars['Float']['output']>;
+};
+
 export type PersonLLMConfigInput = {
   api_key_id: Scalars['ID']['input'];
   model: Scalars['String']['input'];
@@ -522,6 +591,36 @@ export type PersonResult = {
   success: Scalars['Boolean']['output'];
 };
 
+export type ProviderMetadataType = {
+  __typename?: 'ProviderMetadataType';
+  description?: Maybe<Scalars['String']['output']>;
+  documentation_url?: Maybe<Scalars['String']['output']>;
+  manifest_path?: Maybe<Scalars['String']['output']>;
+  support_email?: Maybe<Scalars['String']['output']>;
+  type: Scalars['String']['output'];
+  version: Scalars['String']['output'];
+};
+
+export type ProviderStatisticsType = {
+  __typename?: 'ProviderStatisticsType';
+  provider_types: Scalars['JSON']['output'];
+  providers: Array<Scalars['JSON']['output']>;
+  total_operations: Scalars['Int']['output'];
+  total_providers: Scalars['Int']['output'];
+};
+
+export type ProviderType = {
+  __typename?: 'ProviderType';
+  auth_config?: Maybe<AuthConfigType>;
+  base_url?: Maybe<Scalars['String']['output']>;
+  default_timeout: Scalars['Float']['output'];
+  metadata: ProviderMetadataType;
+  name: Scalars['String']['output'];
+  operations: Array<OperationType>;
+  rate_limit?: Maybe<RateLimitConfigType>;
+  retry_policy?: Maybe<RetryPolicyType>;
+};
+
 export type Query = {
   __typename?: 'Query';
   getActiveCliSession: Scalars['JSON']['output'];
@@ -534,11 +633,12 @@ export type Query = {
   getExecutionHistory: Scalars['JSON']['output'];
   getExecutionMetrics: Scalars['JSON']['output'];
   getExecutionOrder: Scalars['JSON']['output'];
-  getOperationSchema: Scalars['JSON']['output'];
+  getOperationSchema?: Maybe<OperationSchemaType>;
   getPerson: DomainPersonType;
   getPromptFile: Scalars['JSON']['output'];
-  getProviderOperations: Scalars['JSON']['output'];
-  getProviders: Scalars['JSON']['output'];
+  getProvider?: Maybe<ProviderType>;
+  getProviderOperations: Array<OperationType>;
+  getProviderStatistics: ProviderStatisticsType;
   getSupportedFormats: Scalars['JSON']['output'];
   getSystemInfo: Scalars['JSON']['output'];
   healthCheck: Scalars['JSON']['output'];
@@ -547,6 +647,7 @@ export type Query = {
   listExecutions: Array<ExecutionStateType>;
   listPersons: Array<DomainPersonType>;
   listPromptFiles: Array<Scalars['JSON']['output']>;
+  listProviders: Array<ProviderType>;
 };
 
 
@@ -609,6 +710,11 @@ export type QuerygetPromptFileArgs = {
 };
 
 
+export type QuerygetProviderArgs = {
+  name: Scalars['String']['input'];
+};
+
+
 export type QuerygetProviderOperationsArgs = {
   provider: Scalars['String']['input'];
 };
@@ -643,11 +749,28 @@ export type QuerylistPersonsArgs = {
   limit?: InputMaybe<Scalars['Float']['input']>;
 };
 
+export type RateLimitConfigType = {
+  __typename?: 'RateLimitConfigType';
+  algorithm: Scalars['String']['output'];
+  capacity: Scalars['Int']['output'];
+  refill_per_sec: Scalars['Float']['output'];
+  window_size_sec?: Maybe<Scalars['Int']['output']>;
+};
+
 export type RegisterCliSessionInput = {
   diagram_data?: InputMaybe<Scalars['JSON']['input']>;
   diagram_format: DiagramFormatGraphQL;
   diagram_name: Scalars['String']['input'];
   execution_id: Scalars['ID']['input'];
+};
+
+export type RetryPolicyType = {
+  __typename?: 'RetryPolicyType';
+  base_delay_ms: Scalars['Int']['output'];
+  max_delay_ms?: Maybe<Scalars['Int']['output']>;
+  max_retries: Scalars['Int']['output'];
+  retry_on_status: Array<Scalars['Int']['output']>;
+  strategy: Scalars['String']['output'];
 };
 
 export { Status };
@@ -660,6 +783,14 @@ export type Subscription = {
 
 export type SubscriptionexecutionUpdatesArgs = {
   execution_id: Scalars['String']['input'];
+};
+
+export type TestIntegrationInput = {
+  api_key_id?: InputMaybe<Scalars['ID']['input']>;
+  config_preview: Scalars['JSON']['input'];
+  dry_run?: InputMaybe<Scalars['Boolean']['input']>;
+  operation: Scalars['String']['input'];
+  provider: Scalars['String']['input'];
 };
 
 export type UnregisterCliSessionInput = {
@@ -793,17 +924,24 @@ export type GetPromptFileQueryVariables = Exact<{
 
 export type GetPromptFileQuery = { __typename?: 'Query', getPromptFile: any };
 
-export type GetProvidersQueryVariables = Exact<{ [key: string]: never; }>;
+export type ListProvidersQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetProvidersQuery = { __typename?: 'Query', getProviders: any };
+export type ListProvidersQuery = { __typename?: 'Query', listProviders: Array<{ __typename?: 'ProviderType', name: string, base_url?: string | null, default_timeout: number, operations: Array<{ __typename?: 'OperationType', name: string, method: string, path: string, description?: string | null, required_scopes?: Array<string> | null, has_pagination: boolean, timeout_override?: number | null }>, metadata: { __typename?: 'ProviderMetadataType', version: string, type: string, manifest_path?: string | null, description?: string | null, documentation_url?: string | null, support_email?: string | null }, auth_config?: { __typename?: 'AuthConfigType', strategy: string, header?: string | null, query_param?: string | null, format?: string | null, scopes?: Array<string> | null } | null, rate_limit?: { __typename?: 'RateLimitConfigType', algorithm: string, capacity: number, refill_per_sec: number, window_size_sec?: number | null } | null, retry_policy?: { __typename?: 'RetryPolicyType', strategy: string, max_retries: number, base_delay_ms: number, max_delay_ms?: number | null, retry_on_status: Array<number> } | null }> };
+
+export type GetProviderQueryVariables = Exact<{
+  name: Scalars['String']['input'];
+}>;
+
+
+export type GetProviderQuery = { __typename?: 'Query', getProvider?: { __typename?: 'ProviderType', name: string, base_url?: string | null, default_timeout: number, operations: Array<{ __typename?: 'OperationType', name: string, method: string, path: string, description?: string | null, required_scopes?: Array<string> | null, has_pagination: boolean, timeout_override?: number | null }>, metadata: { __typename?: 'ProviderMetadataType', version: string, type: string, manifest_path?: string | null, description?: string | null, documentation_url?: string | null, support_email?: string | null }, auth_config?: { __typename?: 'AuthConfigType', strategy: string, header?: string | null, query_param?: string | null, format?: string | null, scopes?: Array<string> | null } | null, rate_limit?: { __typename?: 'RateLimitConfigType', algorithm: string, capacity: number, refill_per_sec: number, window_size_sec?: number | null } | null, retry_policy?: { __typename?: 'RetryPolicyType', strategy: string, max_retries: number, base_delay_ms: number, max_delay_ms?: number | null, retry_on_status: Array<number> } | null } | null };
 
 export type GetProviderOperationsQueryVariables = Exact<{
   provider: Scalars['String']['input'];
 }>;
 
 
-export type GetProviderOperationsQuery = { __typename?: 'Query', getProviderOperations: any };
+export type GetProviderOperationsQuery = { __typename?: 'Query', getProviderOperations: Array<{ __typename?: 'OperationType', name: string, method: string, path: string, description?: string | null, required_scopes?: Array<string> | null, has_pagination: boolean, timeout_override?: number | null }> };
 
 export type GetOperationSchemaQueryVariables = Exact<{
   provider: Scalars['String']['input'];
@@ -811,7 +949,12 @@ export type GetOperationSchemaQueryVariables = Exact<{
 }>;
 
 
-export type GetOperationSchemaQuery = { __typename?: 'Query', getOperationSchema: any };
+export type GetOperationSchemaQuery = { __typename?: 'Query', getOperationSchema?: { __typename?: 'OperationSchemaType', operation: string, method: string, path: string, description?: string | null, request_body?: any | null, query_params?: any | null, response?: any | null } | null };
+
+export type GetProviderStatisticsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetProviderStatisticsQuery = { __typename?: 'Query', getProviderStatistics: { __typename?: 'ProviderStatisticsType', total_providers: number, total_operations: number, provider_types: any, providers: Array<any> } };
 
 export type GetSystemInfoQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -1012,6 +1155,27 @@ export type DeletePersonMutationVariables = Exact<{
 
 
 export type DeletePersonMutation = { __typename?: 'Mutation', deletePerson: { __typename?: 'DeleteResult', success: boolean, message?: string | null, error?: string | null } };
+
+export type ExecuteIntegrationMutationVariables = Exact<{
+  input: ExecuteIntegrationInput;
+}>;
+
+
+export type ExecuteIntegrationMutation = { __typename?: 'Mutation', executeIntegration: any };
+
+export type TestIntegrationMutationVariables = Exact<{
+  input: TestIntegrationInput;
+}>;
+
+
+export type TestIntegrationMutation = { __typename?: 'Mutation', testIntegration: { __typename?: 'IntegrationTestResultType', success: boolean, provider: string, operation: string, status_code?: number | null, response_time_ms?: number | null, error?: string | null, response_preview?: any | null } };
+
+export type ReloadProviderMutationVariables = Exact<{
+  name: Scalars['String']['input'];
+}>;
+
+
+export type ReloadProviderMutation = { __typename?: 'Mutation', reloadProvider: boolean };
 
 export type ExecutionUpdatesSubscriptionVariables = Exact<{
   execution_id: Scalars['String']['input'];
@@ -1636,46 +1800,174 @@ export type GetPromptFileQueryHookResult = ReturnType<typeof useGetPromptFileQue
 export type GetPromptFileLazyQueryHookResult = ReturnType<typeof useGetPromptFileLazyQuery>;
 export type GetPromptFileSuspenseQueryHookResult = ReturnType<typeof useGetPromptFileSuspenseQuery>;
 export type GetPromptFileQueryResult = Apollo.QueryResult<GetPromptFileQuery, GetPromptFileQueryVariables>;
-export const GetProvidersDocument = gql`
-    query GetProviders {
-  getProviders
+export const ListProvidersDocument = gql`
+    query ListProviders {
+  listProviders {
+    name
+    operations {
+      name
+      method
+      path
+      description
+      required_scopes
+      has_pagination
+      timeout_override
+    }
+    metadata {
+      version
+      type
+      manifest_path
+      description
+      documentation_url
+      support_email
+    }
+    base_url
+    auth_config {
+      strategy
+      header
+      query_param
+      format
+      scopes
+    }
+    rate_limit {
+      algorithm
+      capacity
+      refill_per_sec
+      window_size_sec
+    }
+    retry_policy {
+      strategy
+      max_retries
+      base_delay_ms
+      max_delay_ms
+      retry_on_status
+    }
+    default_timeout
+  }
 }
     `;
 
 /**
- * __useGetProvidersQuery__
+ * __useListProvidersQuery__
  *
- * To run a query within a React component, call `useGetProvidersQuery` and pass it any options that fit your needs.
- * When your component renders, `useGetProvidersQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * To run a query within a React component, call `useListProvidersQuery` and pass it any options that fit your needs.
+ * When your component renders, `useListProvidersQuery` returns an object from Apollo Client that contains loading, error, and data properties
  * you can use to render your UI.
  *
  * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
  *
  * @example
- * const { data, loading, error } = useGetProvidersQuery({
+ * const { data, loading, error } = useListProvidersQuery({
  *   variables: {
  *   },
  * });
  */
-export function useGetProvidersQuery(baseOptions?: Apollo.QueryHookOptions<GetProvidersQuery, GetProvidersQueryVariables>) {
+export function useListProvidersQuery(baseOptions?: Apollo.QueryHookOptions<ListProvidersQuery, ListProvidersQueryVariables>) {
         const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<GetProvidersQuery, GetProvidersQueryVariables>(GetProvidersDocument, options);
+        return Apollo.useQuery<ListProvidersQuery, ListProvidersQueryVariables>(ListProvidersDocument, options);
       }
-export function useGetProvidersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetProvidersQuery, GetProvidersQueryVariables>) {
+export function useListProvidersLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ListProvidersQuery, ListProvidersQueryVariables>) {
           const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<GetProvidersQuery, GetProvidersQueryVariables>(GetProvidersDocument, options);
+          return Apollo.useLazyQuery<ListProvidersQuery, ListProvidersQueryVariables>(ListProvidersDocument, options);
         }
-export function useGetProvidersSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetProvidersQuery, GetProvidersQueryVariables>) {
+export function useListProvidersSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ListProvidersQuery, ListProvidersQueryVariables>) {
           const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<GetProvidersQuery, GetProvidersQueryVariables>(GetProvidersDocument, options);
+          return Apollo.useSuspenseQuery<ListProvidersQuery, ListProvidersQueryVariables>(ListProvidersDocument, options);
         }
-export type GetProvidersQueryHookResult = ReturnType<typeof useGetProvidersQuery>;
-export type GetProvidersLazyQueryHookResult = ReturnType<typeof useGetProvidersLazyQuery>;
-export type GetProvidersSuspenseQueryHookResult = ReturnType<typeof useGetProvidersSuspenseQuery>;
-export type GetProvidersQueryResult = Apollo.QueryResult<GetProvidersQuery, GetProvidersQueryVariables>;
+export type ListProvidersQueryHookResult = ReturnType<typeof useListProvidersQuery>;
+export type ListProvidersLazyQueryHookResult = ReturnType<typeof useListProvidersLazyQuery>;
+export type ListProvidersSuspenseQueryHookResult = ReturnType<typeof useListProvidersSuspenseQuery>;
+export type ListProvidersQueryResult = Apollo.QueryResult<ListProvidersQuery, ListProvidersQueryVariables>;
+export const GetProviderDocument = gql`
+    query GetProvider($name: String!) {
+  getProvider(name: $name) {
+    name
+    operations {
+      name
+      method
+      path
+      description
+      required_scopes
+      has_pagination
+      timeout_override
+    }
+    metadata {
+      version
+      type
+      manifest_path
+      description
+      documentation_url
+      support_email
+    }
+    base_url
+    auth_config {
+      strategy
+      header
+      query_param
+      format
+      scopes
+    }
+    rate_limit {
+      algorithm
+      capacity
+      refill_per_sec
+      window_size_sec
+    }
+    retry_policy {
+      strategy
+      max_retries
+      base_delay_ms
+      max_delay_ms
+      retry_on_status
+    }
+    default_timeout
+  }
+}
+    `;
+
+/**
+ * __useGetProviderQuery__
+ *
+ * To run a query within a React component, call `useGetProviderQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetProviderQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetProviderQuery({
+ *   variables: {
+ *      name: // value for 'name'
+ *   },
+ * });
+ */
+export function useGetProviderQuery(baseOptions: Apollo.QueryHookOptions<GetProviderQuery, GetProviderQueryVariables> & ({ variables: GetProviderQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetProviderQuery, GetProviderQueryVariables>(GetProviderDocument, options);
+      }
+export function useGetProviderLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetProviderQuery, GetProviderQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetProviderQuery, GetProviderQueryVariables>(GetProviderDocument, options);
+        }
+export function useGetProviderSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetProviderQuery, GetProviderQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetProviderQuery, GetProviderQueryVariables>(GetProviderDocument, options);
+        }
+export type GetProviderQueryHookResult = ReturnType<typeof useGetProviderQuery>;
+export type GetProviderLazyQueryHookResult = ReturnType<typeof useGetProviderLazyQuery>;
+export type GetProviderSuspenseQueryHookResult = ReturnType<typeof useGetProviderSuspenseQuery>;
+export type GetProviderQueryResult = Apollo.QueryResult<GetProviderQuery, GetProviderQueryVariables>;
 export const GetProviderOperationsDocument = gql`
     query GetProviderOperations($provider: String!) {
-  getProviderOperations(provider: $provider)
+  getProviderOperations(provider: $provider) {
+    name
+    method
+    path
+    description
+    required_scopes
+    has_pagination
+    timeout_override
+  }
 }
     `;
 
@@ -1713,7 +2005,15 @@ export type GetProviderOperationsSuspenseQueryHookResult = ReturnType<typeof use
 export type GetProviderOperationsQueryResult = Apollo.QueryResult<GetProviderOperationsQuery, GetProviderOperationsQueryVariables>;
 export const GetOperationSchemaDocument = gql`
     query GetOperationSchema($provider: String!, $operation: String!) {
-  getOperationSchema(provider: $provider, operation: $operation)
+  getOperationSchema(provider: $provider, operation: $operation) {
+    operation
+    method
+    path
+    description
+    request_body
+    query_params
+    response
+  }
 }
     `;
 
@@ -1750,6 +2050,48 @@ export type GetOperationSchemaQueryHookResult = ReturnType<typeof useGetOperatio
 export type GetOperationSchemaLazyQueryHookResult = ReturnType<typeof useGetOperationSchemaLazyQuery>;
 export type GetOperationSchemaSuspenseQueryHookResult = ReturnType<typeof useGetOperationSchemaSuspenseQuery>;
 export type GetOperationSchemaQueryResult = Apollo.QueryResult<GetOperationSchemaQuery, GetOperationSchemaQueryVariables>;
+export const GetProviderStatisticsDocument = gql`
+    query GetProviderStatistics {
+  getProviderStatistics {
+    total_providers
+    total_operations
+    provider_types
+    providers
+  }
+}
+    `;
+
+/**
+ * __useGetProviderStatisticsQuery__
+ *
+ * To run a query within a React component, call `useGetProviderStatisticsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetProviderStatisticsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetProviderStatisticsQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useGetProviderStatisticsQuery(baseOptions?: Apollo.QueryHookOptions<GetProviderStatisticsQuery, GetProviderStatisticsQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetProviderStatisticsQuery, GetProviderStatisticsQueryVariables>(GetProviderStatisticsDocument, options);
+      }
+export function useGetProviderStatisticsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetProviderStatisticsQuery, GetProviderStatisticsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetProviderStatisticsQuery, GetProviderStatisticsQueryVariables>(GetProviderStatisticsDocument, options);
+        }
+export function useGetProviderStatisticsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetProviderStatisticsQuery, GetProviderStatisticsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetProviderStatisticsQuery, GetProviderStatisticsQueryVariables>(GetProviderStatisticsDocument, options);
+        }
+export type GetProviderStatisticsQueryHookResult = ReturnType<typeof useGetProviderStatisticsQuery>;
+export type GetProviderStatisticsLazyQueryHookResult = ReturnType<typeof useGetProviderStatisticsLazyQuery>;
+export type GetProviderStatisticsSuspenseQueryHookResult = ReturnType<typeof useGetProviderStatisticsSuspenseQuery>;
+export type GetProviderStatisticsQueryResult = Apollo.QueryResult<GetProviderStatisticsQuery, GetProviderStatisticsQueryVariables>;
 export const GetSystemInfoDocument = gql`
     query GetSystemInfo {
   getSystemInfo
@@ -2795,6 +3137,107 @@ export function useDeletePersonMutation(baseOptions?: Apollo.MutationHookOptions
 export type DeletePersonMutationHookResult = ReturnType<typeof useDeletePersonMutation>;
 export type DeletePersonMutationResult = Apollo.MutationResult<DeletePersonMutation>;
 export type DeletePersonMutationOptions = Apollo.BaseMutationOptions<DeletePersonMutation, DeletePersonMutationVariables>;
+export const ExecuteIntegrationDocument = gql`
+    mutation ExecuteIntegration($input: ExecuteIntegrationInput!) {
+  executeIntegration(input: $input)
+}
+    `;
+export type ExecuteIntegrationMutationFn = Apollo.MutationFunction<ExecuteIntegrationMutation, ExecuteIntegrationMutationVariables>;
+
+/**
+ * __useExecuteIntegrationMutation__
+ *
+ * To run a mutation, you first call `useExecuteIntegrationMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useExecuteIntegrationMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [executeIntegrationMutation, { data, loading, error }] = useExecuteIntegrationMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useExecuteIntegrationMutation(baseOptions?: Apollo.MutationHookOptions<ExecuteIntegrationMutation, ExecuteIntegrationMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ExecuteIntegrationMutation, ExecuteIntegrationMutationVariables>(ExecuteIntegrationDocument, options);
+      }
+export type ExecuteIntegrationMutationHookResult = ReturnType<typeof useExecuteIntegrationMutation>;
+export type ExecuteIntegrationMutationResult = Apollo.MutationResult<ExecuteIntegrationMutation>;
+export type ExecuteIntegrationMutationOptions = Apollo.BaseMutationOptions<ExecuteIntegrationMutation, ExecuteIntegrationMutationVariables>;
+export const TestIntegrationDocument = gql`
+    mutation TestIntegration($input: TestIntegrationInput!) {
+  testIntegration(input: $input) {
+    success
+    provider
+    operation
+    status_code
+    response_time_ms
+    error
+    response_preview
+  }
+}
+    `;
+export type TestIntegrationMutationFn = Apollo.MutationFunction<TestIntegrationMutation, TestIntegrationMutationVariables>;
+
+/**
+ * __useTestIntegrationMutation__
+ *
+ * To run a mutation, you first call `useTestIntegrationMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useTestIntegrationMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [testIntegrationMutation, { data, loading, error }] = useTestIntegrationMutation({
+ *   variables: {
+ *      input: // value for 'input'
+ *   },
+ * });
+ */
+export function useTestIntegrationMutation(baseOptions?: Apollo.MutationHookOptions<TestIntegrationMutation, TestIntegrationMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<TestIntegrationMutation, TestIntegrationMutationVariables>(TestIntegrationDocument, options);
+      }
+export type TestIntegrationMutationHookResult = ReturnType<typeof useTestIntegrationMutation>;
+export type TestIntegrationMutationResult = Apollo.MutationResult<TestIntegrationMutation>;
+export type TestIntegrationMutationOptions = Apollo.BaseMutationOptions<TestIntegrationMutation, TestIntegrationMutationVariables>;
+export const ReloadProviderDocument = gql`
+    mutation ReloadProvider($name: String!) {
+  reloadProvider(name: $name)
+}
+    `;
+export type ReloadProviderMutationFn = Apollo.MutationFunction<ReloadProviderMutation, ReloadProviderMutationVariables>;
+
+/**
+ * __useReloadProviderMutation__
+ *
+ * To run a mutation, you first call `useReloadProviderMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useReloadProviderMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [reloadProviderMutation, { data, loading, error }] = useReloadProviderMutation({
+ *   variables: {
+ *      name: // value for 'name'
+ *   },
+ * });
+ */
+export function useReloadProviderMutation(baseOptions?: Apollo.MutationHookOptions<ReloadProviderMutation, ReloadProviderMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ReloadProviderMutation, ReloadProviderMutationVariables>(ReloadProviderDocument, options);
+      }
+export type ReloadProviderMutationHookResult = ReturnType<typeof useReloadProviderMutation>;
+export type ReloadProviderMutationResult = Apollo.MutationResult<ReloadProviderMutation>;
+export type ReloadProviderMutationOptions = Apollo.BaseMutationOptions<ReloadProviderMutation, ReloadProviderMutationVariables>;
 export const ExecutionUpdatesDocument = gql`
     subscription ExecutionUpdates($execution_id: String!) {
   executionUpdates(execution_id: $execution_id) {

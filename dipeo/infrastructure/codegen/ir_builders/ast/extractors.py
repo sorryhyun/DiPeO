@@ -28,7 +28,6 @@ from typing import Any, Optional
 
 from dipeo.infrastructure.codegen.ir_builders.ast.filters import FileFilter, NodeFilter
 
-
 # ============================================================================
 # BASE EXTRACTOR
 # ============================================================================
@@ -46,8 +45,8 @@ class BaseExtractor(ABC):
 
     def __init__(
         self,
-        file_filter: Optional[FileFilter] = None,
-        node_filter: Optional[NodeFilter] = None,
+        file_filter: FileFilter | None = None,
+        node_filter: NodeFilter | None = None,
     ):
         """Initialize extractor.
 
@@ -88,9 +87,7 @@ class BaseExtractor(ABC):
         return results
 
     @abstractmethod
-    def _extract_from_file(
-        self, file_data: dict[str, Any], file_path: str
-    ) -> list[dict[str, Any]]:
+    def _extract_from_file(self, file_data: dict[str, Any], file_path: str) -> list[dict[str, Any]]:
         """Extract nodes from a single file's AST data.
 
         Args:
@@ -123,8 +120,8 @@ class InterfaceExtractor(BaseExtractor):
 
     def __init__(
         self,
-        suffix: Optional[str] = None,
-        file_filter: Optional[FileFilter] = None,
+        suffix: str | None = None,
+        file_filter: FileFilter | None = None,
     ):
         """Initialize interface extractor.
 
@@ -206,8 +203,8 @@ class ConstantExtractor(BaseExtractor):
 
     def __init__(
         self,
-        pattern: Optional[str] = None,
-        file_filter: Optional[FileFilter] = None,
+        pattern: str | None = None,
+        file_filter: FileFilter | None = None,
     ):
         """Initialize constant extractor.
 
