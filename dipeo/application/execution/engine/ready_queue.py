@@ -9,7 +9,7 @@ from dipeo.diagram_generated import NodeID
 from dipeo.domain.execution.token_types import ConcurrencyPolicy, EdgeRef
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.typed_execution_context import TypedExecutionContext
+    from dipeo.application.execution.engine.context import TypedExecutionContext
 
 logger = get_module_logger(__name__)
 

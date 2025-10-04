@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.execution.engine.request import ExecutionRequest
 from dipeo.application.execution.handlers.core.base import TypedNodeHandler
 from dipeo.application.execution.handlers.core.decorators import requires_services
 from dipeo.application.execution.handlers.core.factory import register_handler
@@ -14,6 +14,7 @@ from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
     pass
+
 
 @register_handler
 @requires_services(ast_parser=AST_PARSER)
@@ -56,6 +57,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     def validate(self, request: ExecutionRequest[TypescriptAstNode]) -> str | None:
         """Validate the TypeScript AST parser configuration - static checks only."""
         from dipeo.config.base_logger import get_module_logger
+
         logger = get_module_logger(__name__)
         node = request.node
         logger.info(f"[TypescriptAstNode {node.id}] Validating node")
@@ -76,6 +78,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     async def pre_execute(self, request: ExecutionRequest[TypescriptAstNode]) -> Envelope | None:
         """Runtime validation and setup."""
         from dipeo.config.base_logger import get_module_logger
+
         logger = get_module_logger(__name__)
 
         # Set debug flag for later use via handler state
@@ -90,6 +93,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     ) -> Any:
         """Execute TypeScript AST parsing."""
         from dipeo.config.base_logger import get_module_logger
+
         logger = get_module_logger(__name__)
         node = request.node
 
@@ -226,6 +230,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     ) -> Envelope:
         """Custom serialization for TypeScript AST results."""
         from dipeo.config.base_logger import get_module_logger
+
         logger = get_module_logger(__name__)
         node = request.node
         trace_id = request.execution_id or ""

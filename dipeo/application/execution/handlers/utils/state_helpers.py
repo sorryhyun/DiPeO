@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.typed_execution_context import TypedExecutionContext
+    from dipeo.application.execution.engine.context import TypedExecutionContext
     from dipeo.diagram_generated.domain_models import NodeID
     from dipeo.diagram_generated.enums import Status
 

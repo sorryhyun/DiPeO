@@ -12,7 +12,8 @@ import uuid
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
-from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.execution.engine.request import ExecutionRequest
+from dipeo.application.execution.engine.typed_engine import TypedExecutionEngine
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import ExecutionID, ExecutionState, LLMUsage, NodeState, Status
 from dipeo.diagram_generated.unified_nodes.sub_diagram_node import SubDiagramNode
@@ -285,7 +286,6 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         Returns:
             Tuple of (execution_results, execution_errors)
         """
-        from dipeo.application.execution.typed_engine import TypedExecutionEngine
 
         # Create isolated service registry (copy from parent but independent)
         parent_registry = request.parent_registry or request.services

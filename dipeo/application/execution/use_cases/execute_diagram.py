@@ -4,6 +4,7 @@ import logging
 from collections.abc import AsyncGenerator, Callable
 from typing import TYPE_CHECKING, Any, Optional
 
+from dipeo.application.execution.engine.typed_engine import TypedExecutionEngine
 from dipeo.application.execution.use_cases.diagram_preparation import prepare_and_compile_diagram
 from dipeo.application.execution.use_cases.state_initialization import initialize_execution_state
 from dipeo.application.registry import (
@@ -73,7 +74,6 @@ class ExecuteDiagramUseCase(LoggingMixin, InitializationMixin):
         # Store event filter in options for the engine to use
         if event_filter:
             options["event_filter"] = event_filter
-        from dipeo.application.execution.typed_engine import TypedExecutionEngine
         from dipeo.application.registry.keys import EVENT_BUS
 
         # Get event bus from registry if available

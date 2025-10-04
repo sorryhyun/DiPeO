@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.execution.engine.request import ExecutionRequest
 from dipeo.application.execution.handlers.api_job.request_builder import (
     apply_auth_headers,
     parse_json_inputs,

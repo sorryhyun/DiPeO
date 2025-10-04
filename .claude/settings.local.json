@@ -32,7 +32,8 @@
       "Bash(dipeocc convert:*)",
       "WebSearch",
       "Bash(uv sync:*)",
-      "Bash(curl -X POST http://localhost:8000/graphql )"
+      "Bash(curl -X POST http://localhost:8000/graphql )",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": [],
     "ask": []

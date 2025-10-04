@@ -5,10 +5,10 @@ import logging
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Any, Optional
 
+from dipeo.application.execution.engine.context import TypedExecutionContext
+from dipeo.application.execution.engine.node_executor import execute_single_node
+from dipeo.application.execution.engine.scheduler import NodeScheduler
 from dipeo.application.execution.events import EventPipeline
-from dipeo.application.execution.node_executor import execute_single_node
-from dipeo.application.execution.scheduler import NodeScheduler
-from dipeo.application.execution.typed_execution_context import TypedExecutionContext
 from dipeo.config import get_settings
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import ExecutionState, NodeID
@@ -131,7 +131,7 @@ class TypedExecutionEngine:
                 for node_id in results:
                     self._scheduler.mark_node_completed(NodeID(node_id), context)
 
-                from dipeo.application.execution.reporting import calculate_progress
+                from dipeo.application.execution.engine.reporting import calculate_progress
 
                 progress = calculate_progress(context)
 

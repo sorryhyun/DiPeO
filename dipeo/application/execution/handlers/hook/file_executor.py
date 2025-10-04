@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any
 
-from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.execution.engine.request import ExecutionRequest
 from dipeo.application.execution.handlers.utils import serialize_data
 from dipeo.diagram_generated.unified_nodes.hook_node import HookNode
 from dipeo.domain.base.exceptions import NodeExecutionError

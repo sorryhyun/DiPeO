@@ -20,11 +20,20 @@ Orchestrates business logic between domain and infrastructure layers.
 - **port_metrics.py**: Performance metrics tracking
 
 ### Execution Engine (`execution/`)
-- **engine.py**: TypedExecutionEngine - event-driven node execution
-  - Configurable concurrency via `ENGINE_MAX_CONCURRENT` setting
-- **scheduler.py**: NodeScheduler - optimized node scheduling
-  - Pre-fetched edge maps for efficient ready-node detection
-  - Eliminates N+1 query patterns
+- **engine/**: Core execution engine components
+  - **typed_engine.py**: TypedExecutionEngine - event-driven node execution
+    - Configurable concurrency via `ENGINE_MAX_CONCURRENT` setting
+  - **scheduler.py**: NodeScheduler - optimized node scheduling
+    - Pre-fetched edge maps for efficient ready-node detection
+    - Eliminates N+1 query patterns
+  - **context.py**: TypedExecutionContext - execution context management
+  - **dependency_tracker.py**: DependencyTracker - node dependency tracking
+  - **ready_queue.py**: ReadyQueue - ready node queue management
+  - **node_executor.py**: execute_single_node - single node execution logic
+  - **request.py**: ExecutionRequest - execution request modeling
+  - **helpers.py**: Helper utilities (get_handler, extract_llm_usage, format_node_result)
+  - **reporting.py**: Reporting utilities (calculate_progress)
+  - Uses lazy imports via `__getattr__` to avoid circular dependencies
 - **orchestrators/**: Central coordination for execution concerns
   - Person management with unified caching
   - Prompt loading delegation
@@ -174,6 +183,12 @@ from dipeo.domain.ports.storage import FileSystemPort
 from dipeo.domain.integrations.api_services import APIBusinessLogic
 from dipeo.application.execution.orchestrators import ExecutionOrchestrator
 from dipeo.application.execution.use_cases import PromptLoadingUseCase
+from dipeo.application.execution.engine import (
+    TypedExecutionEngine,
+    TypedExecutionContext,
+    NodeScheduler,
+    ExecutionRequest,
+)
 ```
 
 ## Diagram Access Patterns

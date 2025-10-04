@@ -3,7 +3,7 @@
 import logging
 from typing import TYPE_CHECKING, Any
 
-from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.execution.engine.request import ExecutionRequest
 from dipeo.application.execution.handlers.sub_diagram.base_executor import BaseSubDiagramExecutor
 from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
 from dipeo.config.base_logger import get_module_logger

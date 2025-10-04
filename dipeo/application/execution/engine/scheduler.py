@@ -2,15 +2,15 @@
 
 from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo.application.execution.dependency_tracker import DependencyTracker
-from dipeo.application.execution.ready_queue import ReadyQueue
+from dipeo.application.execution.engine.dependency_tracker import DependencyTracker
+from dipeo.application.execution.engine.ready_queue import ReadyQueue
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import NodeID, NodeType, Status
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
 from dipeo.domain.execution.token_types import ConcurrencyPolicy, EdgeRef, JoinPolicy
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.typed_execution_context import TypedExecutionContext
+    from dipeo.application.execution.engine.context import TypedExecutionContext
 
 logger = get_module_logger(__name__)
 

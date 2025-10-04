@@ -3,6 +3,7 @@
 from dipeo.diagram_generated import ExecutionOptions
 from dipeo.domain.execution.execution_context import ExecutionContext
 
+from .engine import TypedExecutionEngine
 from .handlers.core.base import TypedNodeHandler
 from .handlers.core.factory import (
     HandlerRegistry,
@@ -10,7 +11,6 @@ from .handlers.core.factory import (
     register_handler,
 )
 from .observers import MetricsObserver
-from .typed_engine import TypedExecutionEngine
 from .use_cases import ExecuteDiagramUseCase
 
 __all__ = [

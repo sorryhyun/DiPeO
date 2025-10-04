@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 from dipeo.diagram_generated import Status
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.typed_execution_context import TypedExecutionContext
+    from dipeo.application.execution.engine.context import TypedExecutionContext
 
 
 def get_execution_summary(context: "TypedExecutionContext") -> dict[str, Any]:

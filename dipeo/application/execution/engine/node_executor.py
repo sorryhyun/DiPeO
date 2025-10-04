@@ -4,7 +4,7 @@ import logging
 import time
 from typing import TYPE_CHECKING, Any
 
-from dipeo.application.execution.engine_helpers import (
+from dipeo.application.execution.engine.helpers import (
     extract_llm_usage,
     format_node_result,
     get_handler,
@@ -12,9 +12,9 @@ from dipeo.application.execution.engine_helpers import (
 from dipeo.config.base_logger import get_module_logger
 
 if TYPE_CHECKING:
+    from dipeo.application.execution.engine.context import TypedExecutionContext
+    from dipeo.application.execution.engine.scheduler import NodeScheduler
     from dipeo.application.execution.events import EventPipeline
-    from dipeo.application.execution.scheduler import NodeScheduler
-    from dipeo.application.execution.typed_execution_context import TypedExecutionContext
     from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
 
 logger = get_module_logger(__name__)
@@ -167,7 +167,7 @@ def _create_execution_request(
     node: "ExecutableNode", context: "TypedExecutionContext", inputs: Any, service_registry: Any
 ) -> Any:
     """Create execution request for node handler."""
-    from dipeo.application.execution.execution_request import ExecutionRequest
+    from dipeo.application.execution.engine.request import ExecutionRequest
 
     request_metadata = {}
     if hasattr(context.diagram, "metadata") and context.diagram.metadata:

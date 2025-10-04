@@ -11,7 +11,7 @@ from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.execution_request import ExecutionRequest
+    from dipeo.application.execution.engine.request import ExecutionRequest
 
 logger = get_module_logger(__name__)
 

@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
-from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.execution.engine.request import ExecutionRequest
 from dipeo.config.base_logger import get_module_logger
 from dipeo.config.execution import BATCH_MAX_CONCURRENT, BATCH_SIZE
 from dipeo.diagram_generated.unified_nodes.person_job_node import PersonJobNode

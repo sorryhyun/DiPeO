@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.execution.engine.request import ExecutionRequest
 from dipeo.application.execution.handlers.utils import get_node_execution_count
 from dipeo.config.base_logger import get_module_logger
 from dipeo.config.llm import PERSON_JOB_MAX_TOKENS, PERSON_JOB_TEMPERATURE
