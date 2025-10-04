@@ -204,8 +204,8 @@ class PrepareDiagramForExecutionUseCase(LoggingMixin, InitializationMixin):
                 executable_diagram.metadata["diagram_id"] = diagram_source_path
 
         # Check if this is a TO-DO-backed diagram and register for monitoring
-        await register_todo_diagram_if_needed(
-            self.todo_sync_service, domain_diagram, executable_diagram
-        )
+        # await register_todo_diagram_if_needed(
+        #     self.todo_sync_service, domain_diagram, executable_diagram
+        # )
 
         return executable_diagram

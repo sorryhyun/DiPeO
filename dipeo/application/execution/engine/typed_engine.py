@@ -173,6 +173,10 @@ class TypedExecutionEngine:
             }
             raise
         finally:
+            # Wait for all pending events to complete
+            if event_pipeline:
+                await event_pipeline.wait_for_pending_events()
+
             if log_handler:
                 from dipeo.infrastructure.execution.logging_handler import (
                     teardown_execution_logging,
@@ -212,9 +216,10 @@ class TypedExecutionEngine:
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         output = {}
-        for node_id, result in results:
+        for result in results:
             if isinstance(result, Exception):
                 raise result
-            output[node_id] = result
+            node_id, node_result = result
+            output[node_id] = node_result
 
         return output

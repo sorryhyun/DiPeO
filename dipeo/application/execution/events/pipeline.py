@@ -1,5 +1,6 @@
 """Core event pipeline for centralized event emission."""
 
+import asyncio
 import logging
 import time
 from typing import TYPE_CHECKING, Any, Optional
@@ -61,6 +62,7 @@ class EventPipeline:
         self._event_count = 0
         self._start_time = time.time()
         self._sequence_counter = 0
+        self._background_tasks: set[asyncio.Task] = set()
 
     async def emit(self, event_type: str, **kwargs) -> None:
         """Generic event emission with automatic routing."""
@@ -141,10 +143,10 @@ class EventPipeline:
             scope=EventScope(execution_id=self.execution_id),
             meta=data or {},
         )
-        await self._publish(event)
+        self._publish(event)
 
-    async def _publish(self, event: DomainEvent) -> None:
-        """Publish event through the event bus with metadata and sequence number."""
+    def _publish(self, event: DomainEvent) -> None:
+        """Publish event through the event bus with metadata and sequence number (fire-and-forget)."""
         self._sequence_counter += 1
 
         meta = event.meta or {}
@@ -159,7 +161,21 @@ class EventPipeline:
             meta=meta,
         )
 
-        await self.event_bus.publish(enriched_event)
+        task = asyncio.create_task(self._publish_async(enriched_event))
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+
+    async def _publish_async(self, event: DomainEvent) -> None:
+        """Asynchronously publish event to event bus."""
+        try:
+            await self.event_bus.publish(event)
+        except Exception as e:
+            logger.error(f"Failed to publish event {event.type}: {e}", exc_info=True)
+
+    async def wait_for_pending_events(self) -> None:
+        """Wait for all pending background event publishing tasks to complete."""
+        if self._background_tasks:
+            await asyncio.gather(*self._background_tasks, return_exceptions=True)
 
     async def _emit_execution_started(
         self,
@@ -174,7 +190,7 @@ class EventPipeline:
             variables=variables or {},
             initiated_by=initiated_by,
         )
-        await self._publish(event)
+        self._publish(event)
 
     async def _emit_execution_completed(
         self,
@@ -203,7 +219,7 @@ class EventPipeline:
                 meta=meta,
             )
 
-        await self._publish(event)
+        self._publish(event)
 
     async def _emit_execution_error(self, exc: Exception) -> None:
         """Emit execution error event."""
@@ -222,7 +238,7 @@ class EventPipeline:
             meta=meta,
         )
 
-        await self._publish(event)
+        self._publish(event)
         logger.debug(f"[EventPipeline] Execution error: {self.execution_id}, error: {exc}")
 
     async def _emit_node_started(
@@ -243,7 +259,7 @@ class EventPipeline:
             iteration=iteration,
         )
 
-        await self._publish(event)
+        self._publish(event)
 
     async def _emit_node_completed(
         self,
@@ -276,7 +292,7 @@ class EventPipeline:
             node_type=str(node.type) if node else None,
         )
 
-        await self._publish(event)
+        self._publish(event)
 
     async def _emit_node_error(
         self,
@@ -294,7 +310,7 @@ class EventPipeline:
             error_type=exc.__class__.__name__,
         )
 
-        await self._publish(event)
+        self._publish(event)
         logger.debug(f"[EventPipeline] Node error: {node.id}, error: {exc}")
 
     def get_stats(self) -> dict[str, Any]:
