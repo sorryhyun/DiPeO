@@ -348,7 +348,7 @@ export type IntegrationTestResultType = {
   provider: Scalars['String']['output'];
   response_preview?: Maybe<Scalars['JSON']['output']>;
   response_time_ms?: Maybe<Scalars['Float']['output']>;
-  status_code?: Maybe<Scalars['Int']['output']>;
+  status_code?: Maybe<Scalars['Float']['output']>;
   success: Scalars['Boolean']['output'];
 };
 
@@ -384,7 +384,7 @@ export type Mutation = {
   executeDiagram: ExecutionResult;
   executeIntegration: Scalars['JSON']['output'];
   registerCliSession: CliSessionResult;
-  reloadProvider: Scalars['Boolean']['output'];
+  reloadProvider: Scalars['JSON']['output'];
   sendInteractiveResponse: ExecutionResult;
   testApiKey: ApiKeyResult;
   testIntegration: IntegrationTestResultType;
@@ -604,9 +604,9 @@ export type ProviderMetadataType = {
 export type ProviderStatisticsType = {
   __typename?: 'ProviderStatisticsType';
   provider_types: Scalars['JSON']['output'];
-  providers: Array<Scalars['JSON']['output']>;
-  total_operations: Scalars['Int']['output'];
-  total_providers: Scalars['Int']['output'];
+  providers: Scalars['JSON']['output'];
+  total_operations: Scalars['Float']['output'];
+  total_providers: Scalars['Float']['output'];
 };
 
 export type ProviderType = {
@@ -752,9 +752,9 @@ export type QuerylistPersonsArgs = {
 export type RateLimitConfigType = {
   __typename?: 'RateLimitConfigType';
   algorithm: Scalars['String']['output'];
-  capacity: Scalars['Int']['output'];
+  capacity: Scalars['Float']['output'];
   refill_per_sec: Scalars['Float']['output'];
-  window_size_sec?: Maybe<Scalars['Int']['output']>;
+  window_size_sec?: Maybe<Scalars['Float']['output']>;
 };
 
 export type RegisterCliSessionInput = {
@@ -766,10 +766,10 @@ export type RegisterCliSessionInput = {
 
 export type RetryPolicyType = {
   __typename?: 'RetryPolicyType';
-  base_delay_ms: Scalars['Int']['output'];
-  max_delay_ms?: Maybe<Scalars['Int']['output']>;
-  max_retries: Scalars['Int']['output'];
-  retry_on_status: Array<Scalars['Int']['output']>;
+  base_delay_ms: Scalars['Float']['output'];
+  max_delay_ms?: Maybe<Scalars['Float']['output']>;
+  max_retries: Scalars['Float']['output'];
+  retry_on_status: Array<Scalars['Float']['output']>;
   strategy: Scalars['String']['output'];
 };
 
@@ -954,7 +954,7 @@ export type GetOperationSchemaQuery = { __typename?: 'Query', getOperationSchema
 export type GetProviderStatisticsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetProviderStatisticsQuery = { __typename?: 'Query', getProviderStatistics: { __typename?: 'ProviderStatisticsType', total_providers: number, total_operations: number, provider_types: any, providers: Array<any> } };
+export type GetProviderStatisticsQuery = { __typename?: 'Query', getProviderStatistics: { __typename?: 'ProviderStatisticsType', total_providers: number, total_operations: number, provider_types: any, providers: any } };
 
 export type GetSystemInfoQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -1175,7 +1175,7 @@ export type ReloadProviderMutationVariables = Exact<{
 }>;
 
 
-export type ReloadProviderMutation = { __typename?: 'Mutation', reloadProvider: boolean };
+export type ReloadProviderMutation = { __typename?: 'Mutation', reloadProvider: any };
 
 export type ExecutionUpdatesSubscriptionVariables = Exact<{
   execution_id: Scalars['String']['input'];

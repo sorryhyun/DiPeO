@@ -211,28 +211,33 @@ class CLIRunner:
         timeout: int = 90,
         run_timeout: int = 300,
     ) -> bool:
-        """Generate a diagram from natural language."""
+        """Generate a diagram from natural language using the dipeodipeo diagram."""
         try:
-            from dipeo.application.ai.dipeodipeo import DiPeOAIGenerator
-
-            generator = DiPeOAIGenerator()
-            result = await generator.generate_diagram_from_request(
-                request=request,
+            # Run the dipeodipeo parallel generator diagram with the user's request
+            print("🤖 Generating diagram using DiPeO AI parallel generator...")
+            success = await self.run_diagram(
+                "projects/dipeodipeo/parallel_generator",
+                format_type="light",
+                input_variables={"workflow_description": request},
+                debug=debug,
                 timeout=timeout,
+                simple=True,  # Suppress detailed output during generation
             )
 
-            if result and result.diagram_path:
-                print(f"✅ Generated diagram: {result.diagram_path}")
+            if not success:
+                print("❌ Diagram generation failed")
+                return False
 
-                if and_run:
-                    print("🚀 Running generated diagram...")
-                    return await self.run_diagram(
-                        str(result.diagram_path),
-                        debug=debug,
-                        timeout=run_timeout,
-                    )
+            # The generated diagram should be in projects/dipeo_ai/generated/
+            # TODO: Extract the actual path from execution results
+            print("✅ Diagram generated successfully")
 
-            return bool(result and result.success)
+            if and_run:
+                # TODO: Get the actual generated diagram path and run it
+                print("⚠️  Auto-run not yet implemented for dipeodipeo generator")
+                return False
+
+            return True
 
         except Exception as e:
             logger.error(f"Diagram generation failed: {e}")
@@ -251,9 +256,12 @@ class CLIRunner:
     ) -> bool:
         """Convert between diagram formats."""
         try:
-            from dipeo.application.diagrams.converters import DiagramConverter
-
-            converter = DiagramConverter()
+            from dipeo.application.diagram.use_cases.serialize_diagram import (
+                SerializeDiagramUseCase,
+            )
+            from dipeo.infrastructure.diagram.adapters.serializer_adapter import (
+                UnifiedSerializerAdapter,
+            )
 
             # Load input diagram
             input_file = Path(input_path)
@@ -267,20 +275,23 @@ class CLIRunner:
             if not to_format:
                 to_format = self._detect_format(output_path)
 
-            # Convert
-            result = converter.convert(
-                input_path,
-                output_path,
-                DiagramFormat(from_format),
-                DiagramFormat(to_format),
-            )
+            # Read input file
+            with open(input_path, encoding="utf-8") as f:
+                content = f.read()
 
-            if result:
-                print(f"✅ Converted {input_path} to {output_path}")
-                return True
-            else:
-                print("❌ Conversion failed")
-                return False
+            # Create use case and convert
+            serializer = UnifiedSerializerAdapter()
+            await serializer.initialize()
+            use_case = SerializeDiagramUseCase(serializer)
+
+            converted_content = use_case.convert_format(content, to_format, from_format)
+
+            # Write output file
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(converted_content)
+
+            print(f"✅ Converted {input_path} to {output_path}")
+            return True
 
         except Exception as e:
             logger.error(f"Diagram conversion failed: {e}")
@@ -622,12 +633,75 @@ class CLIRunner:
         Returns:
             Tuple of (diagram_data, diagram_path)
         """
-        from dipeo.application.diagrams.loaders import DiagramLoader
+        import json
 
-        loader = DiagramLoader()
-        diagram_path = loader.resolve_diagram_path(diagram, format_type)
-        diagram_data = loader.load_diagram(diagram_path)
+        import yaml
+
+        # Resolve diagram path
+        diagram_path = self._resolve_diagram_path(diagram, format_type)
+
+        # Load diagram directly using yaml/json
+        with open(diagram_path, encoding="utf-8") as f:
+            if diagram_path.endswith(".json"):
+                diagram_data = json.load(f)
+            else:
+                diagram_data = yaml.safe_load(f)
+
         return diagram_data, diagram_path
+
+    def _resolve_diagram_path(self, diagram: str, format_type: str | None) -> str:
+        """Resolve diagram path based on name and format."""
+        diagram_path = Path(diagram)
+
+        # If absolute path and exists, return it
+        if diagram_path.is_absolute() and diagram_path.exists():
+            return str(diagram_path)
+
+        # Try relative path
+        if diagram_path.exists():
+            return str(diagram_path.resolve())
+
+        # If no extension, try adding format extension
+        if not diagram_path.suffix and format_type:
+            extensions = {
+                "light": [".light.yml", ".light.yaml"],
+                "native": [".json"],
+                "readable": [".yaml", ".yml"],
+            }
+
+            for ext in extensions.get(format_type, []):
+                # Try in various locations
+                for base_dir in [
+                    Path.cwd(),
+                    BASE_DIR / "examples",
+                    BASE_DIR / "examples/simple_diagrams",
+                    BASE_DIR / "projects",
+                    BASE_DIR / "files",
+                ]:
+                    test_path = base_dir / f"{diagram}{ext}"
+                    if test_path.exists():
+                        return str(test_path)
+
+        # Try standard locations without format extension
+        for base_dir in [
+            Path.cwd(),
+            BASE_DIR / "examples",
+            BASE_DIR / "examples/simple_diagrams",
+            BASE_DIR / "projects",
+            BASE_DIR / "files",
+        ]:
+            test_path = base_dir / diagram
+            if test_path.exists():
+                return str(test_path)
+
+            # Try with common extensions
+            for ext in [".json", ".yaml", ".yml", ".light.yml", ".light.yaml"]:
+                test_path = base_dir / f"{diagram}{ext}"
+                if test_path.exists():
+                    return str(test_path)
+
+        # Return original if nothing found
+        return diagram
 
     def _detect_format(self, file_path: str) -> str:
         """Detect diagram format from file extension."""

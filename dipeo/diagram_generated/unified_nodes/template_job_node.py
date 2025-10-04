@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for template_job.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-04T12:05:49.969132
+Generated at: 2025-10-04T12:21:28.648810
 """
 
 from typing import *

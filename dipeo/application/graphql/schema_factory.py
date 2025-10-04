@@ -25,8 +25,7 @@ def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
         A Strawberry GraphQL schema ready to be served
     """
     # Import scalar types from generated code
-    # Import provider types for registration
-    from dipeo.application.graphql.graphql_types.provider_types import (
+    from dipeo.diagram_generated.graphql.domain_types import (
         AuthConfigType,
         IntegrationTestResultType,
         OperationSchemaType,
@@ -79,7 +78,7 @@ def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
             ExecutionIDScalar,
             HookIDScalar,
             TaskIDScalar,
-            # Provider types (manually defined, not generated)
+            # Provider types (generated from TypeScript models)
             ProviderType,
             OperationType,
             ProviderMetadataType,

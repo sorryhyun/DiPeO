@@ -6,10 +6,10 @@ from typing import Any
 
 import strawberry
 
-from dipeo.application.graphql.graphql_types.provider_types import IntegrationTestResultType
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import API_KEY_SERVICE, INTEGRATED_API_SERVICE
 from dipeo.config.base_logger import get_module_logger
+from dipeo.diagram_generated.graphql.domain_types import IntegrationTestResultType
 from dipeo.diagram_generated.graphql.inputs import ExecuteIntegrationInput, TestIntegrationInput
 
 logger = get_module_logger(__name__)

@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces using simplified type resolver.
 
-Generated at: 2025-10-04T12:05:47.558208
+Generated at: 2025-10-04T12:21:26.051922
 """
 
 import strawberry
@@ -71,6 +71,15 @@ from ..domain_models import (
     ToolOutput,
     ChatResult,
     LLMRequestOptions,
+    AuthConfig,
+    RateLimitConfig,
+    RetryPolicy,
+    Operation,
+    OperationSchema,
+    ProviderMetadata,
+    Provider,
+    ProviderStatistics,
+    IntegrationTestResult,
     NodeUpdate,
     InteractivePrompt,
     ExecutionLogEntry,
@@ -711,6 +720,104 @@ class LLMRequestOptionsType:
     n: Optional[float] = None
     tools: Optional[List[ToolConfig]] = None
     response_format: Optional[JSONScalar] = None
+
+
+@strawberry.type
+class AuthConfigType:
+    """AuthConfig domain type"""
+    strategy: str
+    header: Optional[str] = None
+    query_param: Optional[str] = None
+    format: Optional[str] = None
+    scopes: Optional[List[str]] = None
+
+
+@strawberry.type
+class RateLimitConfigType:
+    """RateLimitConfig domain type"""
+    algorithm: str
+    capacity: float
+    refill_per_sec: float
+    window_size_sec: Optional[float] = None
+
+
+@strawberry.type
+class RetryPolicyType:
+    """RetryPolicy domain type"""
+    strategy: str
+    max_retries: float
+    base_delay_ms: float
+    max_delay_ms: Optional[float] = None
+    retry_on_status: List[float]
+
+
+@strawberry.type
+class OperationType:
+    """Operation domain type"""
+    name: str
+    method: str
+    path: str
+    description: Optional[str] = None
+    required_scopes: Optional[List[str]] = None
+    has_pagination: bool
+    timeout_override: Optional[float] = None
+
+
+@strawberry.type
+class OperationSchemaType:
+    """OperationSchema domain type"""
+    operation: str
+    method: str
+    path: str
+    description: Optional[str] = None
+    request_body: Optional[JSONScalar] = None
+    query_params: Optional[JSONScalar] = None
+    response: Optional[JSONScalar] = None
+
+
+@strawberry.type
+class ProviderMetadataType:
+    """ProviderMetadata domain type"""
+    version: str
+    type: str
+    manifest_path: Optional[str] = None
+    description: Optional[str] = None
+    documentation_url: Optional[str] = None
+    support_email: Optional[str] = None
+
+
+@strawberry.type
+class ProviderType:
+    """Provider domain type"""
+    name: str
+    operations: List["OperationType"]
+    metadata: "ProviderMetadataType"
+    base_url: Optional[str] = None
+    auth_config: Optional["AuthConfigType"] = None
+    rate_limit: Optional["RateLimitConfigType"] = None
+    retry_policy: Optional["RetryPolicyType"] = None
+    default_timeout: float
+
+
+@strawberry.type
+class ProviderStatisticsType:
+    """ProviderStatistics domain type"""
+    total_providers: float
+    total_operations: float
+    provider_types: JSONScalar
+    providers: JSONScalar
+
+
+@strawberry.type
+class IntegrationTestResultType:
+    """IntegrationTestResult domain type"""
+    success: bool
+    provider: str
+    operation: str
+    status_code: Optional[float] = None
+    response_time_ms: Optional[float] = None
+    error: Optional[str] = None
+    response_preview: Optional[JSONScalar] = None
 
 
 @strawberry.type

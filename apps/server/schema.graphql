@@ -313,7 +313,7 @@ type IntegrationTestResultType {
   success: Boolean!
   provider: String!
   operation: String!
-  status_code: Int
+  status_code: Float
   response_time_ms: Float
   error: String
   response_preview: JSON
@@ -372,7 +372,7 @@ type Mutation {
   deletePerson(person_id: String!): DeleteResult!
   executeIntegration(input: ExecuteIntegrationInput!): JSON!
   testIntegration(input: TestIntegrationInput!): IntegrationTestResultType!
-  reloadProvider(name: String!): Boolean!
+  reloadProvider(name: String!): JSON!
 }
 
 """Branded scalar type for NodeID"""
@@ -465,10 +465,10 @@ type ProviderMetadataType {
 }
 
 type ProviderStatisticsType {
-  total_providers: Int!
-  total_operations: Int!
+  total_providers: Float!
+  total_operations: Float!
   provider_types: JSON!
-  providers: [JSON!]!
+  providers: JSON!
 }
 
 type ProviderType {
@@ -512,9 +512,9 @@ type Query {
 
 type RateLimitConfigType {
   algorithm: String!
-  capacity: Int!
+  capacity: Float!
   refill_per_sec: Float!
-  window_size_sec: Int
+  window_size_sec: Float
 }
 
 input RegisterCliSessionInput {
@@ -526,10 +526,10 @@ input RegisterCliSessionInput {
 
 type RetryPolicyType {
   strategy: String!
-  max_retries: Int!
-  base_delay_ms: Int!
-  max_delay_ms: Int
-  retry_on_status: [Int!]!
+  max_retries: Float!
+  base_delay_ms: Float!
+  max_delay_ms: Float
+  retry_on_status: [Float!]!
 }
 
 enum Status {

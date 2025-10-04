@@ -12,16 +12,6 @@ from typing import Any
 import strawberry
 from strawberry.scalars import JSON
 
-from dipeo.application.graphql.graphql_types.provider_types import (
-    AuthConfigType,
-    OperationSchemaType,
-    OperationType,
-    ProviderMetadataType,
-    ProviderStatisticsType,
-    ProviderType,
-    RateLimitConfigType,
-    RetryPolicyType,
-)
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import (
     API_KEY_SERVICE,
@@ -38,10 +28,18 @@ from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import LLMService, NodeType
 from dipeo.diagram_generated.domain_models import ApiKeyID, DiagramID, ExecutionID, PersonID
 from dipeo.diagram_generated.graphql.domain_types import (
+    AuthConfigType,
     DomainApiKeyType,
     DomainDiagramType,
     DomainPersonType,
     ExecutionStateType,
+    OperationSchemaType,
+    OperationType,
+    ProviderMetadataType,
+    ProviderStatisticsType,
+    ProviderType,
+    RateLimitConfigType,
+    RetryPolicyType,
 )
 from dipeo.diagram_generated.graphql.inputs import DiagramFilterInput, ExecutionFilterInput
 from dipeo.infrastructure.integrations.drivers.integrated_api.generic_provider import (
