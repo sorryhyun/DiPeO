@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Optional
 
 from dipeo.application.execution.event_log import EventLog
-from dipeo.application.execution.state_snapshot import StateSnapshot
+from dipeo.application.execution.states.state_snapshot import StateSnapshot
 from dipeo.diagram_generated import NodeState, Status
 from dipeo.diagram_generated.domain_models import ExecutionID, NodeID
 from dipeo.domain.events import DomainEvent, EventType
@@ -43,10 +43,10 @@ class StateManager:
         self._event_handlers = {
             EventType.EXECUTION_STARTED: self._handle_execution_started,
             EventType.EXECUTION_COMPLETED: self._handle_execution_completed,
-            EventType.EXECUTION_FAILED: self._handle_execution_failed,
+            EventType.EXECUTION_ERROR: self._handle_execution_failed,
             EventType.NODE_STARTED: self._handle_node_started,
             EventType.NODE_COMPLETED: self._handle_node_completed,
-            EventType.NODE_FAILED: self._handle_node_failed,
+            EventType.NODE_ERROR: self._handle_node_failed,
         }
 
     async def apply_event(self, event: DomainEvent) -> None:

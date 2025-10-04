@@ -1,10 +1,15 @@
-import contextlib
 import json
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 
 from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.execution.handlers.api_job.request_builder import (
+    apply_auth_headers,
+    parse_json_inputs,
+    prepare_auth,
+    prepare_request_data,
+)
 from dipeo.application.execution.handlers.core.base import TypedNodeHandler
 from dipeo.application.execution.handlers.core.decorators import requires_services
 from dipeo.application.execution.handlers.core.factory import register_handler
@@ -68,7 +73,7 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         body = node.body
         auth_config = node.auth_config or {}
 
-        parsed_data = self._parse_json_inputs(headers, params, body, auth_config)
+        parsed_data = parse_json_inputs(headers, params, body, auth_config)
         if "error" in parsed_data:
             return EnvelopeFactory.create(
                 body={"error": parsed_data["error"], "type": "ValueError"}, produced_by=str(node.id)
@@ -138,7 +143,6 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         node = request.node
         api_config = inputs
 
-        # Service is injected by decorator
         api_service = self._api_service
         method = api_config["method"]
         headers = api_config["headers"]
@@ -153,9 +157,9 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         print(f"[ApiJobNode] Method: {method}")
         print(f"[ApiJobNode] Headers: {headers}")
 
-        auth = self._prepare_auth(auth_type, auth_config)
-        headers = self._apply_auth_headers(headers, auth_type, auth_config)
-        request_data = self._prepare_request_data(method, params, body)
+        auth = prepare_auth(auth_type, auth_config)
+        headers = apply_auth_headers(headers, auth_type, auth_config)
+        request_data = prepare_request_data(method, params, body)
 
         method_value = method.value if hasattr(method, "value") else str(method)
 
@@ -183,16 +187,14 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         response_dict["_api_meta"] = {
             "url": url,
             "method": method_value,
-            "status_code": 200,  # Default success code
+            "status_code": 200,
             "request_headers": headers,
-            "response_headers": getattr(last_response, "headers", {})
-            if last_response
-            else {},
+            "response_headers": getattr(last_response, "headers", {}) if last_response else {},
         }
 
         return response_dict
 
-    def _build_node_output(self, result: Any, request: ExecutionRequest[ApiJobNode]) -> Envelope:
+    def serialize_output(self, result: Any, request: ExecutionRequest[ApiJobNode]) -> Envelope:
         node = request.node
         trace_id = request.execution_id or ""
 
@@ -204,99 +206,19 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
             "url": meta.get("url", node.url),
             "method": meta.get(
                 "method",
-                str(current_method)
-                if current_method
-                else getattr(node, "method", None),
+                str(current_method) if current_method else getattr(node, "method", None),
             ),
             "request_headers": meta.get("request_headers"),
             "response_headers": meta.get("response_headers"),
         }
 
         env = EnvelopeFactory.create(
-            body=result,  # Let EnvelopeFactory auto-detect the content type
+            body=result,
             produced_by=str(node.id),
             trace_id=trace_id,
             meta={"http": http_meta},
         )
         return env
-
-    def serialize_output(self, result: Any, request: ExecutionRequest[ApiJobNode]) -> Envelope:
-        return self._build_node_output(result, request)
-
-    def _parse_json_inputs(
-        self, headers: Any, params: Any, body: Any, auth_config: Any
-    ) -> dict[str, Any]:
-        result = {
-            "headers": headers or {},
-            "params": params or {},
-            "body": body,
-            "auth_config": auth_config or {},
-        }
-
-        if isinstance(headers, str):
-            try:
-                result["headers"] = json.loads(headers)
-            except json.JSONDecodeError:
-                return {"error": "Invalid headers JSON format"}
-
-        if isinstance(params, str):
-            try:
-                result["params"] = json.loads(params)
-            except json.JSONDecodeError:
-                return {"error": "Invalid params JSON format"}
-
-        if isinstance(body, str) and body.strip():
-            with contextlib.suppress(json.JSONDecodeError):
-                result["body"] = json.loads(body)
-
-        if isinstance(auth_config, str) and auth_config.strip():
-            try:
-                result["auth_config"] = json.loads(auth_config)
-            except json.JSONDecodeError:
-                return {"error": "Invalid auth_config JSON format"}
-
-        return result
-
-    def _prepare_auth(self, auth_type: str, auth_config: dict) -> dict[str, str] | None:
-        if auth_type == "none":
-            return None
-
-        if auth_type == "basic":
-            username = auth_config.get("username", "")
-            password = auth_config.get("password", "")
-            if username and password:
-                return {"username": username, "password": password}
-
-        return None
-
-    def _prepare_request_data(
-        self, method: HttpMethod, params: dict, body: Any
-    ) -> dict[str, Any] | None:
-        if method == HttpMethod.GET:
-            return None
-
-        if body is not None:
-            return body
-
-        if method in [HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH] and params:
-            return params
-
-        return None
-
-    def _apply_auth_headers(self, headers: dict, auth_type: str, auth_config: dict) -> dict:
-        headers = headers.copy()
-
-        if auth_type == "bearer":
-            token = auth_config.get("token", "")
-            if token:
-                headers["Authorization"] = f"Bearer {token}"
-        elif auth_type == "api_key":
-            key_name = auth_config.get("key_name", "X-API-Key")
-            key_value = auth_config.get("key_value", "")
-            if key_value:
-                headers[key_name] = key_value
-
-        return headers
 
     def post_execute(self, request: ExecutionRequest[ApiJobNode], output: Envelope) -> Envelope:
         self.emit_token_outputs(request, output)
@@ -308,9 +230,7 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     ) -> Envelope | None:
         url = request.node.url or "unknown"
         current_method = request.get_handler_state("method")
-        method = (
-            str(current_method) if current_method else request.node.method or "unknown"
-        )
+        method = str(current_method) if current_method else request.node.method or "unknown"
 
         return EnvelopeFactory.create(
             body={"error": str(error), "type": error.__class__.__name__},
