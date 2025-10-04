@@ -9,6 +9,7 @@ from dipeo.config.llm import PERSON_JOB_MAX_TOKENS, PERSON_JOB_TEMPERATURE
 from dipeo.diagram_generated.domain_models import PersonID
 from dipeo.diagram_generated.unified_nodes.person_job_node import PersonJobNode
 from dipeo.domain.execution.envelope import EnvelopeFactory
+from dipeo.infrastructure.timing.context import atime_phase, time_phase
 
 from .conversation_handler import ConversationHandler
 from .output_builder import OutputBuilder
@@ -75,8 +76,9 @@ class SingleExecutor:
             PersonID(person_id), diagram=self._diagram
         )
 
-        # Extract values from Envelope objects for template processing
-        extracted_inputs = self._extract_inputs(inputs)
+        # Phase 1: Input extraction
+        with time_phase(trace_id, node.id, "input_extraction"):
+            extracted_inputs = self._extract_inputs(inputs)
 
         # Handle conversation inputs
         has_conversation_input = self._conversation_handler.has_conversation_input(extracted_inputs)
@@ -122,13 +124,14 @@ class SingleExecutor:
         # Build template context from inputs only
         template_values = context.build_template_context(inputs=input_values, globals_win=True)
 
-        # Build prompt with template substitution
-        built_prompt = self._prompt_builder.build(
-            prompt=prompt_content,
-            template_values=template_values,
-            first_only_prompt=first_only_content,
-            execution_count=execution_count,
-        )
+        # Phase 2: Prompt building
+        with time_phase(trace_id, node.id, "prompt_building"):
+            built_prompt = self._prompt_builder.build(
+                prompt=prompt_content,
+                template_values=template_values,
+                first_only_prompt=first_only_content,
+                execution_count=execution_count,
+            )
 
         # Log template warning if needed
         if "{{" in (built_prompt or ""):
@@ -155,15 +158,22 @@ class SingleExecutor:
             execution_count,
         )
 
-        # Execute LLM call with memory selection
-        result, incoming_msg, response_msg, selected_messages = await person.complete_with_memory(
-            all_messages=all_messages,
-            memorize_to=memorize_to,
-            ignore_person=ignore_person,
-            at_most=at_most,
-            prompt_preview=task_preview,
-            **complete_kwargs,
-        )
+        # Phase 3: LLM completion with memory selection
+        async with atime_phase(trace_id, node.id, "complete_with_memory"):
+            (
+                result,
+                incoming_msg,
+                response_msg,
+                selected_messages,
+            ) = await person.complete_with_memory(
+                all_messages=all_messages,
+                memorize_to=memorize_to,
+                ignore_person=ignore_person,
+                at_most=at_most,
+                prompt_preview=task_preview,
+                execution_id=trace_id,
+                **complete_kwargs,
+            )
 
         # Add messages to conversation
         if hasattr(self._execution_orchestrator, "add_message"):
@@ -174,17 +184,20 @@ class SingleExecutor:
                 response_msg, execution_id=trace_id, node_id=str(node.id)
             )
 
-        # Build and return output dict
-        return self._output_builder.build_single_output(
-            result=result,
-            person=person,
-            node=node,
-            diagram=self._diagram,
-            model=person.llm_config.model,
-            trace_id=trace_id,
-            selected_messages=selected_messages,
-            execution_orchestrator=self._execution_orchestrator,
-        )
+        # Phase 4: Output building
+        with time_phase(trace_id, node.id, "output_building"):
+            output = self._output_builder.build_single_output(
+                result=result,
+                person=person,
+                node=node,
+                diagram=self._diagram,
+                model=person.llm_config.model,
+                trace_id=trace_id,
+                selected_messages=selected_messages,
+                execution_orchestrator=self._execution_orchestrator,
+            )
+
+        return output
 
     def _extract_inputs(self, inputs: dict[str, Any]) -> dict[str, Any]:
         """Extract values from Envelope objects for template processing.

@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces using simplified type resolver.
 
-Generated at: 2025-10-04T12:21:26.051922
+Generated at: 2025-10-04T16:50:35.731775
 """
 
 import strawberry
@@ -543,6 +543,7 @@ class NodeMetricsType:
     llm_usage: Optional[LLMUsageType] = None
     error: Optional[str] = None
     dependencies: Optional[List[str]] = None
+    module_timings: Optional[JSONScalar] = None
 
 
 @strawberry.type
@@ -790,12 +791,12 @@ class ProviderMetadataType:
 class ProviderType:
     """Provider domain type"""
     name: str
-    operations: List["OperationType"]
-    metadata: "ProviderMetadataType"
+    operations: List[OperationType]
+    metadata: ProviderMetadataType
     base_url: Optional[str] = None
-    auth_config: Optional["AuthConfigType"] = None
-    rate_limit: Optional["RateLimitConfigType"] = None
-    retry_policy: Optional["RetryPolicyType"] = None
+    auth_config: Optional[AuthConfigType] = None
+    rate_limit: Optional[RateLimitConfigType] = None
+    retry_policy: Optional[RetryPolicyType] = None
     default_timeout: float
 
 

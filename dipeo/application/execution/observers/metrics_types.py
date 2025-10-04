@@ -17,6 +17,7 @@ class NodeMetrics:
     token_usage: dict[str, int] | None = None
     error: str | None = None
     dependencies: set[str] = field(default_factory=set)
+    module_timings: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass

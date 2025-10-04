@@ -3,6 +3,7 @@
 import asyncio
 import contextlib
 import json
+import os
 import sys
 import uuid
 from pathlib import Path
@@ -89,6 +90,30 @@ class CLIRunner:
                     "persons": [person.model_dump() for person in (domain_diagram.persons or [])],
                 }
 
+            # Create and subscribe MetricsObserver if debug or timing enabled
+            metrics_observer = None
+            if debug or os.getenv("DIPEO_TIMING_ENABLED") == "true":
+                from dipeo.application.execution.observers import MetricsObserver
+                from dipeo.application.registry.keys import EVENT_BUS
+                from dipeo.domain.events import EventType
+
+                event_bus = self.registry.resolve(EVENT_BUS)
+                metrics_observer = MetricsObserver(event_bus=event_bus, state_store=state_store)
+
+                # Subscribe to metrics events
+                metrics_events = [
+                    EventType.EXECUTION_STARTED,
+                    EventType.NODE_STARTED,
+                    EventType.NODE_COMPLETED,
+                    EventType.NODE_ERROR,
+                    EventType.EXECUTION_COMPLETED,
+                ]
+                await event_bus.subscribe(metrics_events, metrics_observer)
+
+                # Start the metrics observer
+                await metrics_observer.start()
+                logger.debug("MetricsObserver started for CLI execution")
+
             # Register CLI session for monitor mode support
             await self.session_manager.register_cli_session(
                 execution_id=str(execution_id),
@@ -166,6 +191,11 @@ class CLIRunner:
 
                 return False
             finally:
+                # Stop metrics observer if it was created
+                if metrics_observer:
+                    await metrics_observer.stop()
+                    logger.debug("MetricsObserver stopped")
+
                 await self.session_manager.unregister_cli_session(str(execution_id))
 
             return success
@@ -262,36 +292,30 @@ class CLIRunner:
     async def show_metrics(
         self,
         execution_id: str | None = None,
+        latest: bool = False,
         diagram_id: str | None = None,
+        breakdown: bool = False,
         bottlenecks_only: bool = False,
         optimizations_only: bool = False,
         output_json: bool = False,
     ) -> bool:
-        """Display execution metrics."""
+        """Display execution metrics from database (no server required)."""
         try:
-            from dipeo.application.execution.observers import MetricsObserver
-            from dipeo.application.registry.keys import ServiceKey
-
-            metrics_observer_key = ServiceKey[MetricsObserver]("metrics_observer")
-            if not self.registry.has(metrics_observer_key):
-                print(
-                    "❌ Metrics observer not available. Ensure server was started with metrics enabled."
-                )
-                return False
-
-            metrics_observer = self.registry.resolve(metrics_observer_key)
             state_store = self.registry.resolve(STATE_STORE)
 
+            # Find the target execution
             target_execution_id = None
-
             if execution_id:
                 target_execution_id = execution_id
-            elif diagram_id:
+            elif latest or diagram_id:
                 executions = await state_store.list_executions(diagram_id=diagram_id, limit=1)
                 if executions:
                     target_execution_id = executions[0].id
                 else:
-                    print(f"No executions found for diagram: {diagram_id}")
+                    if diagram_id:
+                        print(f"No executions found for diagram: {diagram_id}")
+                    else:
+                        print("No executions found")
                     return False
             else:
                 executions = await state_store.list_executions(limit=1)
@@ -301,21 +325,89 @@ class CLIRunner:
                     print("No executions found")
                     return False
 
-            metrics = metrics_observer.get_metrics_summary(str(target_execution_id))
-
-            if not metrics:
-                print("No metrics available")
+            # Get execution state from database
+            execution_state = await state_store.get_execution(str(target_execution_id))
+            if not execution_state:
+                print(f"❌ Execution {target_execution_id} not found")
                 return False
 
+            # Check if metrics are available
+            if not execution_state.metrics:
+                print(f"❌ No metrics available for execution {target_execution_id}")
+                print(
+                    "   Metrics are only available for executions run with --timing or --debug flags"
+                )
+                return False
+
+            # Convert Pydantic metrics to summary dict format
+            metrics_data = execution_state.metrics
+            total_token_usage = {"input": 0, "output": 0, "total": 0}
+
+            node_breakdown = []
+            for node_id, node_metrics in metrics_data.node_metrics.items():
+                # Accumulate token usage (llm_usage is a Pydantic model, not a dict)
+                if node_metrics.llm_usage:
+                    total_token_usage["input"] += node_metrics.llm_usage.input or 0
+                    total_token_usage["output"] += node_metrics.llm_usage.output or 0
+                    total_token_usage["total"] += node_metrics.llm_usage.total or 0
+
+                # Convert llm_usage Pydantic model to dict
+                token_usage_dict = {"input": 0, "output": 0, "total": 0}
+                if node_metrics.llm_usage:
+                    token_usage_dict = {
+                        "input": node_metrics.llm_usage.input or 0,
+                        "output": node_metrics.llm_usage.output or 0,
+                        "total": node_metrics.llm_usage.total or 0,
+                    }
+
+                node_breakdown.append(
+                    {
+                        "node_id": node_id,
+                        "node_type": node_metrics.node_type,
+                        "duration_ms": node_metrics.duration_ms,
+                        "token_usage": token_usage_dict,
+                        "error": node_metrics.error,
+                        "module_timings": node_metrics.module_timings or {},
+                    }
+                )
+
+            bottlenecks = []
+            if metrics_data.bottlenecks:
+                for bottleneck in metrics_data.bottlenecks[:5]:
+                    bottlenecks.append(
+                        {
+                            "node_id": bottleneck.node_id,
+                            "node_type": bottleneck.node_type,
+                            "duration_ms": bottleneck.duration_ms,
+                        }
+                    )
+
+            metrics_summary = {
+                "execution_id": str(metrics_data.execution_id),
+                "total_duration_ms": metrics_data.total_duration_ms,
+                "node_count": len(metrics_data.node_metrics),
+                "total_token_usage": total_token_usage,
+                "bottlenecks": bottlenecks,
+                "critical_path_length": len(metrics_data.critical_path)
+                if metrics_data.critical_path
+                else 0,
+                "parallelizable_groups": len(metrics_data.parallelizable_groups)
+                if metrics_data.parallelizable_groups
+                else 0,
+                "node_breakdown": node_breakdown,
+            }
+
             if output_json:
-                print(json.dumps(metrics, indent=2, default=str))
+                print(json.dumps(metrics_summary, indent=2, default=str))
             else:
-                await self.display.display_metrics(metrics, bottlenecks_only, optimizations_only)
+                await self.display.display_metrics(
+                    metrics_summary, breakdown, bottlenecks_only, optimizations_only
+                )
 
             return True
 
         except Exception as e:
-            logger.error(f"Failed to display metrics: {e}")
+            logger.error(f"Failed to display metrics: {e}", exc_info=True)
             return False
 
     async def show_stats(self, diagram_path: str) -> bool:

@@ -2,7 +2,7 @@
 # __generated__ by DiPeO
 """
 Domain models generated from TypeScript interfaces.
-Generated at: 2025-10-04T12:21:28.885211
+Generated at: 2025-10-04T16:50:38.989298
 """
 from __future__ import annotations
 
@@ -352,6 +352,8 @@ class NodeMetrics(BaseModel):
     error: Optional[str] | None = Field(default=None)
     
     dependencies: List[str] | None = Field(default=None)
+    
+    module_timings: Optional[Dict[str, float]] | None = Field(default=None)
     
 
 

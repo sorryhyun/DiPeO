@@ -18,6 +18,7 @@ from dipeo.config.memory import (
     MEMORY_WORD_OVERLAP_THRESHOLD,
 )
 from dipeo.diagram_generated.domain_models import Message, PersonID
+from dipeo.infrastructure.timing.context import atime_phase, time_phase
 
 if TYPE_CHECKING:
     from dipeo.domain.integrations.ports import LLMService as LLMServicePort
@@ -64,17 +65,27 @@ class IntelligentMemoryStrategy:
         if not self.llm_service:
             return None
 
-        filtered_candidates = self._filter_messages(candidate_messages, ignore_person)
+        # Extract execution_id for timing (if available)
+        exec_id = kwargs.get("execution_id", "")
+        person_id = kwargs.pop("person_id", PersonID("system"))
+        strategy_id = "memory_strategy"
 
-        unique_messages, frequencies = self._deduplicate_messages(filtered_candidates)
+        # Phase 1: Filtering
+        with time_phase(exec_id, strategy_id, "filtering"):
+            filtered_candidates = self._filter_messages(candidate_messages, ignore_person)
 
-        scored_messages = self._score_and_rank_messages(
-            unique_messages, frequencies, datetime.now()
-        )
+        # Phase 2: Deduplication
+        with time_phase(exec_id, strategy_id, "deduplication"):
+            unique_messages, frequencies = self._deduplicate_messages(filtered_candidates)
+
+        # Phase 3: Scoring
+        with time_phase(exec_id, strategy_id, "scoring"):
+            scored_messages = self._score_and_rank_messages(
+                unique_messages, frequencies, datetime.now()
+            )
 
         top_candidates = [msg for msg, score in scored_messages[: self.config.hard_cap]]
 
-        person_id = kwargs.pop("person_id", PersonID("system"))
         person_name = None
 
         # Get person's LLM config and name if available
@@ -108,18 +119,19 @@ class IntelligentMemoryStrategy:
             service_name = kwargs.get("service_name", "openai")
             person_name = str(person_id)
 
-        # Call LLM service directly
-        output = await self.llm_service.complete_memory_selection(
-            candidate_messages=list(top_candidates),
-            task_preview=prompt_preview,
-            criteria=memorize_to,
-            at_most=at_most,
-            model=model,
-            api_key_id=api_key_id,
-            service_name=service_name,
-            person_name=person_name,
-            **kwargs,
-        )
+        # Phase 4: LLM Selection
+        async with atime_phase(exec_id, strategy_id, "llm_selection"):
+            output = await self.llm_service.complete_memory_selection(
+                candidate_messages=list(top_candidates),
+                task_preview=prompt_preview,
+                criteria=memorize_to,
+                at_most=at_most,
+                model=model,
+                api_key_id=api_key_id,
+                service_name=service_name,
+                person_name=person_name,
+                **kwargs,
+            )
 
         # Use the structured output directly
         if not output or not output.message_ids:

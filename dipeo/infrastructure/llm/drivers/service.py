@@ -19,6 +19,7 @@ from dipeo.infrastructure.llm.drivers.types import (
     LLMResponse,
     MemorySelectionOutput,
 )
+from dipeo.infrastructure.timing.context import atime_phase
 
 
 class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
@@ -483,11 +484,12 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
 
             client = await self._get_client(service_name, model, api_key_id)
 
-            # Filter out provider-specific parameters
+            # Filter out provider-specific and timing parameters
             # person_name is only used by Claude Code for memory selection
-            claude_code_specific = {"person_name"}
+            # execution_id is only for timing/tracing, not for LLM APIs
+            filtered_params = {"person_name", "execution_id"}
 
-            client_kwargs = {k: v for k, v in kwargs.items() if k not in claude_code_specific}
+            client_kwargs = {k: v for k, v in kwargs.items() if k not in filtered_params}
 
             # Add person_name back only for Claude Code
             if service_name == "claude-code" and "person_name" in kwargs:
@@ -500,7 +502,19 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
 
                 client_kwargs["execution_phase"] = ExecutionPhase.DIRECT_EXECUTION
 
-            response = await client.async_chat(messages=messages, **client_kwargs)
+            # Extract trace_id for timing (if available)
+            trace_id = kwargs.get("trace_id", "")
+
+            # Time the LLM API call with metadata
+            async with atime_phase(
+                trace_id,
+                "llm_service",
+                "api_call",
+                model=model,
+                service=service_name,
+                execution_phase=str(client_kwargs.get("execution_phase", "unknown")),
+            ):
+                response = await client.async_chat(messages=messages, **client_kwargs)
             if hasattr(self, "logger") and response:
                 # Enhanced logging to properly display LLM responses
                 if isinstance(response, LLMResponse):

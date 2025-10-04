@@ -19,6 +19,8 @@ if sys.platform == "win32":
 
 async def run_cli_command(args: argparse.Namespace) -> bool:
     """Run CLI command using direct service calls."""
+    import logging
+
     from dipeo.application.bootstrap import init_resources, shutdown_resources
     from dipeo.infrastructure.logging_config import setup_logging
     from dipeo_server.app_context import create_server_container
@@ -26,12 +28,36 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
 
     # Setup logging for CLI
     debug = getattr(args, "debug", False)
-    log_level = "DEBUG" if debug else os.environ.get("DIPEO_LOG_LEVEL", "INFO")
-    setup_logging(component="cli", log_level=log_level, log_to_file=True, console_output=debug)
+    timing = getattr(args, "timing", False)
 
-    # Start background server if in debug mode
+    # Timing always enabled in collector (zero overhead when not logged)
+    # The --timing flag only controls whether timing logs are emitted
+
+    # Set environment variable for timing mode (used by MetricsObserver)
+    if timing:
+        os.environ["DIPEO_TIMING_ENABLED"] = "true"
+
+    # Setup logging
+    if debug:
+        log_level = "DEBUG"  # All logs including timing
+    elif timing:
+        # For timing mode, set root to DEBUG to allow timing logs through,
+        # but we'll filter other loggers in setup_logging
+        log_level = "DEBUG"
+    else:
+        log_level = os.environ.get("DIPEO_LOG_LEVEL", "INFO")
+
+    setup_logging(
+        component="cli",
+        log_level=log_level,
+        log_to_file=True,
+        console_output=debug or timing,
+        timing_only=timing and not debug,  # Only show timing logs when --timing (not --debug)
+    )
+
+    # Start background server if in debug or timing mode
     server_manager = None
-    if debug and args.command == "run":
+    if (debug or timing) and args.command == "run":
         print("🚀 Starting background server for monitoring...")
         server_manager = ServerManager()
         server_started = await server_manager.start(timeout=10)
@@ -111,7 +137,9 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
         elif args.command == "metrics":
             return await cli.show_metrics(
                 execution_id=args.execution_id,
+                latest=getattr(args, "latest", False),
                 diagram_id=getattr(args, "diagram", None),
+                breakdown=getattr(args, "breakdown", False),
                 bottlenecks_only=getattr(args, "bottlenecks", False),
                 optimizations_only=getattr(args, "optimizations", False),
                 output_json=getattr(args, "json", False),
@@ -206,6 +234,7 @@ def create_parser() -> argparse.ArgumentParser:
     run_parser = subparsers.add_parser("run", help="Execute a diagram")
     run_parser.add_argument("diagram", help="Path to diagram file or diagram name")
     run_parser.add_argument("--debug", action="store_true", help="Enable debug output")
+    run_parser.add_argument("--timing", action="store_true", help="Enable timing collection + logs")
     run_parser.add_argument("--timeout", type=int, default=300, help="Execution timeout in seconds")
     run_parser.add_argument("--simple", action="store_true", help="Use simple text display")
 
@@ -247,7 +276,13 @@ def create_parser() -> argparse.ArgumentParser:
     metrics_parser = subparsers.add_parser("metrics", help="Display execution metrics")
     metrics_parser.add_argument("execution_id", nargs="?", help="Execution ID to show metrics for")
     metrics_parser.add_argument(
+        "--latest", action="store_true", help="Show latest execution metrics"
+    )
+    metrics_parser.add_argument(
         "--diagram", type=str, help="Show metrics history for specific diagram"
+    )
+    metrics_parser.add_argument(
+        "--breakdown", action="store_true", help="Show detailed phase breakdown"
     )
     metrics_parser.add_argument(
         "--bottlenecks", action="store_true", help="Show only bottleneck analysis"

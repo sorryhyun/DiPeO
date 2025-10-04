@@ -9,6 +9,7 @@ from dipeo.diagram_generated import (
     PersonLLMConfig,
 )
 from dipeo.diagram_generated.domain_models import PersonID
+from dipeo.infrastructure.timing.context import atime_phase
 
 if TYPE_CHECKING:
     from dipeo.domain.conversation.memory_strategies import IntelligentMemoryStrategy
@@ -149,6 +150,7 @@ class Person:
         ignore_person: str | None = None,
         at_most: int | None = None,
         prompt_preview: str | None = None,
+        execution_id: str | None = None,
         **llm_options: Any,
     ) -> tuple[ChatResult, Message, Message, list[Message] | None]:
         """Complete prompt with intelligent memory selection.
@@ -165,40 +167,45 @@ class Person:
             ignore_person: Optional comma-separated list of person IDs whose messages to exclude
             at_most: Optional maximum number of messages to select
             prompt_preview: Optional preview of the task for better memory selection
+            execution_id: Optional execution ID for timing and tracing
             **llm_options: Additional options for the LLM
 
         Returns:
             Tuple of (ChatResult, incoming_message, response_message, selected_messages)
             The selected_messages can be None if no selection criteria was provided
         """
-        selected_messages = None
-        messages_for_completion = all_messages
+        exec_id = execution_id or ""
 
-        if memorize_to and self._memory_strategy:
-            preview = prompt_preview or prompt
+        async with atime_phase(exec_id, str(self.id), "person_complete_with_memory"):
+            selected_messages = None
+            messages_for_completion = all_messages
 
-            selected_messages = await self._memory_strategy.select_memories(
-                candidate_messages=all_messages,
-                prompt_preview=preview,
-                memorize_to=memorize_to,
-                ignore_person=ignore_person,
-                at_most=at_most,
-                person_id=self.id,
+            if memorize_to and self._memory_strategy:
+                preview = prompt_preview or prompt
+
+                selected_messages = await self._memory_strategy.select_memories(
+                    candidate_messages=all_messages,
+                    prompt_preview=preview,
+                    memorize_to=memorize_to,
+                    ignore_person=ignore_person,
+                    at_most=at_most,
+                    person_id=self.id,
+                    llm_service=llm_service,
+                    execution_id=exec_id,
+                )
+
+                if selected_messages is not None:
+                    messages_for_completion = selected_messages
+
+            result, incoming, response = await self.complete(
+                prompt=prompt,
+                all_messages=messages_for_completion,
                 llm_service=llm_service,
+                from_person_id=from_person_id,
+                **llm_options,
             )
 
-            if selected_messages is not None:
-                messages_for_completion = selected_messages
-
-        result, incoming, response = await self.complete(
-            prompt=prompt,
-            all_messages=messages_for_completion,
-            llm_service=llm_service,
-            from_person_id=from_person_id,
-            **llm_options,
-        )
-
-        return result, incoming, response, selected_messages
+            return result, incoming, response, selected_messages
 
     def __repr__(self) -> str:
         memory_info = "with_strategy" if self._memory_strategy else "no_memory"

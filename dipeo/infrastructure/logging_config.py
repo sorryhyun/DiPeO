@@ -5,6 +5,28 @@ import logging.handlers
 import os
 from datetime import datetime
 from pathlib import Path
+from queue import Queue
+
+# Define custom TIMING level (between DEBUG and INFO)
+TIMING = 15
+logging.addLevelName(TIMING, "TIMING")
+
+
+def timing(self, message, *args, **kwargs):
+    """Log timing message at TIMING level."""
+    if self.isEnabledFor(TIMING):
+        self._log(TIMING, message, args, **kwargs)
+
+
+# Add timing method to Logger class
+logging.Logger.timing = timing
+
+
+class TimingOnlyFilter(logging.Filter):
+    """Filter that only allows dipeo.timing logs through."""
+
+    def filter(self, record):
+        return record.name.startswith("dipeo.timing")
 
 
 def setup_logging(
@@ -13,6 +35,7 @@ def setup_logging(
     log_to_file: bool = True,
     log_dir: str = ".logs",
     console_output: bool = True,
+    timing_only: bool = False,
 ) -> logging.Logger:
     """
     Configure logging for DiPeO components.
@@ -23,6 +46,7 @@ def setup_logging(
         log_to_file: Whether to write logs to file
         log_dir: Directory for log files (relative to DIPEO_BASE_DIR)
         console_output: Whether to output to console
+        timing_only: Only show timing logs on console (when True)
 
     Returns:
         Configured logger instance
@@ -57,11 +81,16 @@ def setup_logging(
         console_handler = logging.StreamHandler()
         console_handler.setLevel(log_level)
         console_handler.setFormatter(simple_formatter)
+
+        # Add timing-only filter if requested
+        if timing_only:
+            console_handler.addFilter(TimingOnlyFilter())
+
         root_logger.addHandler(console_handler)
 
-    # File handlers
+    # File handlers with QueueHandler for non-blocking I/O
     if log_to_file:
-        # Main log file - overwrite on each run
+        # Create file handlers
         log_file = log_path / f"{component}.log"
         file_handler = logging.FileHandler(
             log_file,
@@ -70,9 +99,7 @@ def setup_logging(
         )
         file_handler.setLevel(log_level)
         file_handler.setFormatter(detailed_formatter)
-        root_logger.addHandler(file_handler)
 
-        # Error log file - overwrite on each run
         error_log_file = log_path / f"{component}.error.log"
         error_handler = logging.FileHandler(
             error_log_file,
@@ -81,9 +108,7 @@ def setup_logging(
         )
         error_handler.setLevel(logging.ERROR)
         error_handler.setFormatter(detailed_formatter)
-        root_logger.addHandler(error_handler)
 
-        # Daily log file for important events - append mode for daily accumulation
         daily_log_file = log_path / f"{component}.{datetime.now().strftime('%Y%m%d')}.log"
         daily_handler = logging.FileHandler(
             daily_log_file,
@@ -92,7 +117,20 @@ def setup_logging(
         )
         daily_handler.setLevel(logging.INFO)
         daily_handler.setFormatter(simple_formatter)
-        root_logger.addHandler(daily_handler)
+
+        # Set up QueueHandler for non-blocking file I/O
+        log_queue = Queue(-1)  # Unbounded queue
+        queue_handler = logging.handlers.QueueHandler(log_queue)
+        queue_handler.setLevel(log_level)
+
+        # QueueListener handles actual file writes in background thread
+        queue_listener = logging.handlers.QueueListener(
+            log_queue, file_handler, error_handler, daily_handler, respect_handler_level=True
+        )
+        queue_listener.start()
+
+        # Add queue handler to root logger (not the file handlers directly)
+        root_logger.addHandler(queue_handler)
 
     # Configure noisy loggers
     suppress_noisy_loggers(log_level)

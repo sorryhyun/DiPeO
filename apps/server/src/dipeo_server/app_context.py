@@ -110,7 +110,7 @@ async def create_server_container() -> Container:
     # Create and subscribe metrics observer
     from dipeo.application.execution.observers import MetricsObserver
 
-    metrics_observer = MetricsObserver(event_bus=event_bus)
+    metrics_observer = MetricsObserver(event_bus=event_bus, state_store=state_store)
 
     # Register metrics observer in the container for external access
     METRICS_OBSERVER_KEY = ServiceKey[MetricsObserver]("metrics_observer")
@@ -128,6 +128,9 @@ async def create_server_container() -> Container:
     # Subscribe metrics observer to events
     for event_type in metrics_events:
         await event_bus.subscribe(event_type, metrics_observer)
+
+    # Start the metrics observer
+    await metrics_observer.start()
 
     # Initialize provider registry for webhook integration
     from dipeo.infrastructure.integrations.drivers.integrated_api.registry import (
