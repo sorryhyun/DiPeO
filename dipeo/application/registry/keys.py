@@ -371,12 +371,6 @@ EXECUTE_DIAGRAM_USE_CASE = ServiceKey["ExecuteDiagramUseCase"](
     description="Use case for executing diagrams",
 )
 
-DIAGRAM_RESOLVER = ServiceKey["DiagramResolver"](
-    "diagram.resolver",
-    service_type=ServiceType.APPLICATION,
-    description="GraphQL resolver for diagram operations",
-)
-
 
 # =============================================================================
 # EXPORTS
@@ -404,7 +398,6 @@ __all__ = [
     # Diagram Operations
     "DIAGRAM_PORT",
     "DIAGRAM_REPOSITORY",
-    "DIAGRAM_RESOLVER",
     "DIAGRAM_SERIALIZER",
     "DIAGRAM_VALIDATOR",
     # Core Infrastructure

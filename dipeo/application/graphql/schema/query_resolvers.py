@@ -17,10 +17,10 @@ from dipeo.application.graphql.graphql_types.provider_types import (
     ProviderStatisticsType,
     ProviderType,
 )
-from dipeo.application.graphql.resolvers import DiagramResolver, ExecutionResolver, PersonResolver
 from dipeo.application.graphql.resolvers.provider_resolver import ProviderResolver
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import (
+    API_KEY_SERVICE,
     CLI_SESSION_SERVICE,
     DIAGRAM_PORT,
     EXECUTION_ORCHESTRATOR,
@@ -48,9 +48,17 @@ async def get_diagram(
     registry: ServiceRegistry, diagram_id: strawberry.ID
 ) -> DomainDiagramType | None:
     """Get a single diagram by ID."""
-    diagram_resolver = DiagramResolver(registry)
-    diagram_id_typed = DiagramID(str(diagram_id))
-    return await diagram_resolver.get_diagram(diagram_id_typed)
+    try:
+        service = registry.resolve(DIAGRAM_PORT)
+        diagram_id_typed = DiagramID(str(diagram_id))
+        diagram_data = await service.get_diagram(diagram_id_typed)
+        return diagram_data
+    except FileNotFoundError:
+        logger.warning(f"Diagram not found: {diagram_id}")
+        return None
+    except Exception as e:
+        logger.error(f"Error fetching diagram {diagram_id}: {e}")
+        raise
 
 
 async def list_diagrams(
@@ -60,8 +68,88 @@ async def list_diagrams(
     offset: int = 0,
 ) -> list[DomainDiagramType]:
     """List diagrams with optional filtering."""
-    diagram_resolver = DiagramResolver(registry)
-    return await diagram_resolver.list_diagrams(filter, limit, offset)
+    try:
+        service = registry.resolve(DIAGRAM_PORT)
+        all_infos = await service.list_diagrams()
+        logger.debug(f"Retrieved {len(all_infos)} diagram infos")
+
+        filtered_infos = all_infos
+        if filter:
+            filtered_infos = [info for info in all_infos if _matches_diagram_filter(info, filter)]
+
+        paginated_infos = filtered_infos[offset : offset + limit]
+        diagrams = []
+        for info in paginated_infos:
+            try:
+                diagram = await service.get_diagram(info.id)
+                if diagram:
+                    diagrams.append(diagram)
+            except Exception as e:
+                logger.warning(f"Failed to load diagram {info.id}: {e}")
+                from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
+
+                name = None
+                if info.metadata and "name" in info.metadata:
+                    name = info.metadata["name"]
+                elif info.path:
+                    name = Path(info.path).stem
+
+                now_str = datetime.now().isoformat()
+
+                try:
+                    minimal_diagram = DomainDiagram(
+                        nodes=[],
+                        arrows=[],
+                        handles=[],
+                        persons=[],
+                        metadata=DiagramMetadata(
+                            id=info.id,
+                            name=name or info.id,
+                            description=f"Failed to load: {str(e)[:100]}",
+                            version="1.0",
+                            created=str(info.created) if info.created else now_str,
+                            modified=str(info.modified) if info.modified else now_str,
+                        ),
+                    )
+                    diagrams.append(minimal_diagram)
+                except Exception as fallback_error:
+                    logger.error(
+                        f"Failed to create minimal diagram for {info.id}: {fallback_error}"
+                    )
+                    continue
+
+        return diagrams
+
+    except Exception as e:
+        import traceback
+
+        logger.error(f"Error listing diagrams: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return []
+
+
+def _matches_diagram_filter(info, filter: DiagramFilterInput) -> bool:
+    """Helper function to check if a DiagramInfo matches the filter criteria."""
+    name = ""
+    if info.metadata and "name" in info.metadata:
+        name = info.metadata["name"]
+    elif info.path:
+        name = info.path.stem
+
+    if filter.name and filter.name.lower() not in name.lower():
+        return False
+
+    if filter.author:
+        author = info.metadata.get("author", "") if info.metadata else ""
+        if filter.author != author:
+            return False
+
+    if filter.tags:
+        tags = info.metadata.get("tags", []) if info.metadata else []
+        if not any(tag in tags for tag in filter.tags):
+            return False
+
+    return True
 
 
 # Query resolvers - Executions
@@ -69,15 +157,19 @@ async def get_execution(
     registry: ServiceRegistry, execution_id: strawberry.ID
 ) -> ExecutionStateType | None:
     """Get a single execution by ID."""
-    execution_resolver = ExecutionResolver(registry)
-    execution_id_typed = ExecutionID(str(execution_id))
-    execution_state = await execution_resolver.get_execution(execution_id_typed)
+    try:
+        state_store = registry.resolve(STATE_STORE)
+        execution_id_typed = ExecutionID(str(execution_id))
+        execution = await state_store.get_state(str(execution_id_typed))
 
-    if execution_state is None:
+        if not execution:
+            return None
+
+        return ExecutionStateType.from_pydantic(execution)
+
+    except Exception as e:
+        logger.error(f"Error fetching execution {execution_id}: {e}")
         return None
-
-    # Convert Pydantic model to Strawberry type
-    return ExecutionStateType.from_pydantic(execution_state)
 
 
 async def list_executions(
@@ -87,18 +179,27 @@ async def list_executions(
     offset: int = 0,
 ) -> list[ExecutionStateType]:
     """List executions with optional filtering."""
-    execution_resolver = ExecutionResolver(registry)
-    execution_states = await execution_resolver.list_executions(filter, limit, offset)
+    try:
+        state_store = registry.resolve(STATE_STORE)
+        executions = await state_store.list_executions(
+            diagram_id=filter.diagram_id if filter else None,
+            status=filter.status if filter else None,
+            limit=limit,
+            offset=offset,
+        )
 
-    # Convert Pydantic models to Strawberry types
-    return [ExecutionStateType.from_pydantic(state) for state in execution_states]
+        return [ExecutionStateType.from_pydantic(state) for state in executions]
+
+    except Exception as e:
+        logger.error(f"Error listing executions: {e}")
+        return []
 
 
 async def get_execution_order(registry: ServiceRegistry, execution_id: strawberry.ID) -> JSON:
     """Get the execution order for a given execution."""
-    execution_resolver = ExecutionResolver(registry)
+    state_store = registry.resolve(STATE_STORE)
     execution_id_typed = ExecutionID(str(execution_id))
-    execution = await execution_resolver.get_execution(execution_id_typed)
+    execution = await state_store.get_state(str(execution_id_typed))
 
     if not execution:
         return {
@@ -183,7 +284,7 @@ async def get_execution_metrics(
     from dipeo.application.execution.observers import MetricsObserver
     from dipeo.application.registry.keys import ServiceKey
 
-    execution_resolver = ExecutionResolver(registry)
+    state_store = registry.resolve(STATE_STORE)
     execution_id_typed = ExecutionID(str(execution_id))
 
     try:
@@ -212,7 +313,7 @@ async def get_execution_metrics(
     except Exception:
         pass
 
-    execution = await execution_resolver.get_execution(execution_id_typed)
+    execution = await state_store.get_state(str(execution_id_typed))
     if not execution or not hasattr(execution, "metrics"):
         return {}
 
@@ -226,22 +327,29 @@ async def get_execution_history(
     include_metrics: bool = False,
 ) -> list[ExecutionStateType]:
     """Get execution history with optional filtering."""
-    execution_resolver = ExecutionResolver(registry)
-    filter_input = None
-    if diagram_id:
-        filter_input = ExecutionFilterInput(diagram_id=DiagramID(str(diagram_id)))
+    try:
+        state_store = registry.resolve(STATE_STORE)
+        filter_input = None
+        if diagram_id:
+            filter_input = ExecutionFilterInput(diagram_id=DiagramID(str(diagram_id)))
 
-    executions = await execution_resolver.list_executions(
-        filter=filter_input, limit=limit, offset=0
-    )
+        executions = await state_store.list_executions(
+            diagram_id=filter_input.diagram_id if filter_input else None,
+            status=filter_input.status if filter_input else None,
+            limit=limit,
+            offset=0,
+        )
 
-    if not include_metrics:
-        for execution in executions:
-            if hasattr(execution, "metrics"):
-                execution.metrics = None
+        if not include_metrics:
+            for execution in executions:
+                if hasattr(execution, "metrics"):
+                    execution.metrics = None
 
-    # Convert Pydantic models to Strawberry types
-    return [ExecutionStateType.from_pydantic(execution) for execution in executions]
+        return [ExecutionStateType.from_pydantic(execution) for execution in executions]
+
+    except Exception as e:
+        logger.error(f"Error getting execution history: {e}")
+        return []
 
 
 # Query resolvers - Persons
@@ -249,15 +357,89 @@ async def get_person(
     registry: ServiceRegistry, person_id: strawberry.ID
 ) -> DomainPersonType | None:
     """Get a single person by ID."""
-    person_resolver = PersonResolver(registry)
-    person_id_typed = PersonID(str(person_id))
-    return await person_resolver.get_person(person_id_typed)
+    try:
+        from dipeo.diagram_generated.domain_models import PersonLLMConfig
+
+        integrated_service = registry.resolve(DIAGRAM_PORT)
+        if not integrated_service:
+            logger.warning("Integrated diagram service not available")
+            return None
+
+        diagram_infos = await integrated_service.list_diagrams()
+        person_id_typed = PersonID(str(person_id))
+
+        for diagram_info in diagram_infos:
+            path = diagram_info.get("path", "")
+            diagram_id = path.split(".")[0] if path else diagram_info.get("id")
+
+            diagram_dict = await integrated_service.get_diagram(diagram_id)
+            if not diagram_dict:
+                continue
+
+            persons = diagram_dict.get("persons", {})
+            if str(person_id_typed) in persons:
+                person_data = persons[str(person_id_typed)]
+                return DomainPersonType(
+                    id=person_id_typed,
+                    label=person_data.get("name", ""),
+                    llm_config=PersonLLMConfig(
+                        service=person_data.get("service", "openai"),
+                        model=person_data.get("modelName", "gpt-4.1-nano"),
+                        api_key_id=person_data.get("apiKeyId", ""),
+                        system_prompt=person_data.get("systemPrompt", ""),
+                    ),
+                    type="person",
+                )
+
+        return None
+
+    except Exception as e:
+        logger.error(f"Error fetching person {person_id}: {e}")
+        return None
 
 
 async def list_persons(registry: ServiceRegistry, limit: int = 100) -> list[DomainPersonType]:
     """List all persons."""
-    person_resolver = PersonResolver(registry)
-    return await person_resolver.list_persons(limit)
+    try:
+        from dipeo.diagram_generated.domain_models import PersonLLMConfig
+
+        integrated_service = registry.resolve(DIAGRAM_PORT)
+        if not integrated_service:
+            logger.warning("Integrated diagram service not available")
+            return []
+
+        all_persons = {}
+        diagram_infos = await integrated_service.list_diagrams()
+
+        for diagram_info in diagram_infos:
+            path = diagram_info.get("path", "")
+            diagram_id = path.split(".")[0] if path else diagram_info.get("id")
+
+            diagram_dict = await integrated_service.get_diagram(diagram_id)
+            if not diagram_dict:
+                continue
+
+            persons = diagram_dict.get("persons", {})
+            for person_id, person_data in persons.items():
+                if person_id not in all_persons:
+                    all_persons[person_id] = DomainPersonType(
+                        id=PersonID(person_id),
+                        label=person_data.get("name", ""),
+                        llm_config=PersonLLMConfig(
+                            service=person_data.get("service", "openai"),
+                            model=person_data.get("modelName", "gpt-4.1-nano"),
+                            api_key_id=person_data.get("apiKeyId", ""),
+                            system_prompt=person_data.get("systemPrompt", ""),
+                        ),
+                        type="person",
+                    )
+
+        domain_persons = list(all_persons.values())
+        return domain_persons[:limit]
+
+    except Exception as e:
+        logger.error(f"Error listing persons: {e}")
+        return []
 
 
 # Query resolvers - API Keys
@@ -265,26 +447,91 @@ async def get_api_key(
     registry: ServiceRegistry, api_key_id: strawberry.ID
 ) -> DomainApiKeyType | None:
     """Get a single API key by ID."""
-    person_resolver = PersonResolver(registry)
-    api_key_id_typed = ApiKeyID(str(api_key_id))
-    return await person_resolver.get_api_key(api_key_id_typed)
+    try:
+        import asyncio
+
+        apikey_service = registry.resolve(API_KEY_SERVICE)
+        api_keys = await asyncio.to_thread(apikey_service.list_api_keys)
+        api_key_id_typed = ApiKeyID(str(api_key_id))
+
+        for key_data in api_keys:
+            if key_data.get("id") == str(api_key_id_typed):
+                return DomainApiKeyType(
+                    id=key_data["id"],
+                    label=key_data["label"],
+                    service=key_data["service"],
+                    key=key_data.get("key", "***hidden***"),
+                )
+
+        return None
+
+    except Exception as e:
+        logger.error(f"Error fetching API key {api_key_id}: {e}")
+        return None
 
 
 async def get_api_keys(
     registry: ServiceRegistry, service: str | None = None
 ) -> list[DomainApiKeyType]:
     """List API keys, optionally filtered by service."""
-    person_resolver = PersonResolver(registry)
-    return await person_resolver.list_api_keys(service)
+    try:
+        import asyncio
+
+        from dipeo.diagram_generated.enums import APIServiceType
+
+        valid_services = {s.value for s in APIServiceType}
+
+        apikey_service = registry.resolve(API_KEY_SERVICE)
+        logger.debug(f"Got apikey_service: {apikey_service}")
+        api_keys = await asyncio.to_thread(apikey_service.list_api_keys)
+        logger.debug(f"Got {len(api_keys)} API keys from service")
+
+        domain_keys = []
+        for key_data in api_keys:
+            if key_data.get("service") not in valid_services:
+                logger.debug(f"Skipping non-LLM service: {key_data.get('service')}")
+                continue
+
+            if service and key_data.get("service") != service:
+                continue
+
+            domain_keys.append(
+                DomainApiKeyType(
+                    id=key_data["id"],
+                    label=key_data["label"],
+                    service=key_data["service"],
+                    key=key_data.get("key", "***hidden***"),
+                )
+            )
+
+        return domain_keys
+
+    except Exception as e:
+        logger.error(f"Error listing API keys: {e}")
+        return []
 
 
 async def get_available_models(
     registry: ServiceRegistry, service: str, api_key_id: strawberry.ID
 ) -> list[str]:
     """Get available models for a given service and API key."""
-    person_resolver = PersonResolver(registry)
-    api_key_id_typed = ApiKeyID(str(api_key_id))
-    return await person_resolver.get_available_models(service, api_key_id_typed)
+    try:
+        api_key_id_typed = ApiKeyID(str(api_key_id))
+        api_key = await get_api_key(registry, api_key_id)
+        if not api_key:
+            logger.warning(f"API key not found: {api_key_id}")
+            return []
+
+        from dipeo.application.registry.keys import LLM_SERVICE
+
+        llm_service = registry.resolve(LLM_SERVICE)
+        models = await llm_service.get_available_models(api_key_id_typed)
+
+        return models
+
+    except Exception as e:
+        logger.error(f"Error getting available models: {e}")
+        return []
 
 
 # Query resolvers - Providers

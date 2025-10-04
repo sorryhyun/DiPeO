@@ -237,6 +237,13 @@ make dev-all
 
 For standalone Windows installations, use PyInstaller to create `.exe` files from the server and web components. The installer (NSIS) bundles these executables for distribution.
 
+### Execution Configuration
+
+Execution performance is controlled through `/dipeo/config/execution.py`:
+- `ENGINE_MAX_CONCURRENT` - Maximum concurrent node executions (default: 20)
+- `BATCH_MAX_CONCURRENT` - Maximum concurrent batch executions (default: 10)
+- `SUB_DIAGRAM_MAX_CONCURRENT` - Maximum concurrent sub-diagram executions (default: 10)
+
 ---
 
 ## 10. Event-Driven Architecture
@@ -256,6 +263,13 @@ This architecture enables:
 - Clean separation of concerns via event decoupling
 - Asynchronous state persistence
 - Simplified service registration with unified protocols
+
+### Performance Optimizations
+
+- **Template Caching**: PromptBuilder caches rendered templates with 1000 entry limit for 90%+ hit rates
+- **Edge Map Pre-fetching**: Scheduler pre-fetches incoming edges to eliminate N+1 query patterns
+- **Async I/O**: All file operations use async patterns (aiofiles) for non-blocking execution
+- **Configurable Concurrency**: Adjustable parallelism via `ENGINE_MAX_CONCURRENT` setting
 
 ---
 

@@ -56,7 +56,10 @@ filesystem = request.services.get("filesystem_adapter")
 - **adapters/**: Diagram-specific adapters for various formats
 - **drivers/**: High-level diagram services and orchestration
 - **prompt_templates/**: Prompt template processing
-  - `PromptBuilder`: Builds prompts from templates with variable substitution
+  - `PromptBuilder`: Builds prompts from templates with variable substitution and caching
+    - Template caching with 1000 entry limit
+    - Cache key based on template + values for deduplication
+    - Automatic cleanup when cache exceeds limit
   - `SimpleTemplateProcessor`: Template processing implementation using Jinja2
 
 ### JSON Database Services (`storage/json_db/`)

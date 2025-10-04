@@ -129,8 +129,13 @@ class NodeScheduler:
         all_nodes = self.diagram.get_nodes_by_type(None) or self.diagram.nodes
         epoch = context.current_epoch()
 
+        # Pre-fetch all incoming edges to avoid N+1 queries
+        incoming_edges_map = {
+            node.id: self.diagram.get_incoming_edges(node.id) for node in all_nodes
+        }
+
         for node in all_nodes:
-            is_ready = self._is_node_ready(node, context)
+            is_ready = self._is_node_ready_optimized(node, context, incoming_edges_map)
             if is_ready:
                 ready_nodes.append(node)
         return self._prioritize_nodes(ready_nodes)
@@ -206,6 +211,40 @@ class NodeScheduler:
         if hasattr(context, "has_new_inputs") and hasattr(context, "current_epoch"):
             epoch = context.current_epoch()
             incoming_edges = self.diagram.get_incoming_edges(node.id)
+
+            if not incoming_edges:
+                return True
+
+            has_tokens = context.has_new_inputs(node.id, epoch)
+
+            if has_tokens:
+                loop_ok = self._handle_loop_node(node, context)
+                if not loop_ok:
+                    return False
+
+                has_priority_pending = self._has_pending_higher_priority_siblings(node, context)
+                return not has_priority_pending
+            else:
+                return False
+
+        logger.warning(
+            f"Node {node.id} readiness check without token context - this should not happen in Phase 6"
+        )
+        return False
+
+    def _is_node_ready_optimized(
+        self,
+        node: ExecutableNode,
+        context: "TypedExecutionContext",
+        incoming_edges_map: dict,
+    ) -> bool:
+        incoming_edges = incoming_edges_map.get(node.id, [])
+
+        if node.type == NodeType.START and not incoming_edges:
+            return context.state.get_node_execution_count(node.id) == 0
+
+        if hasattr(context, "has_new_inputs") and hasattr(context, "current_epoch"):
+            epoch = context.current_epoch()
 
             if not incoming_edges:
                 return True

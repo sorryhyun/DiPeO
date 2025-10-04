@@ -176,6 +176,7 @@ Node scheduling and execution order calculation has been moved to the applicatio
 - **Loop iteration limits**: Automatic handling of max iterations
 - **Priority-based execution**: Respects execution priorities between sibling nodes
 - **Condition branch validation**: Proper handling of conditional dependencies
+- **Optimized edge lookups**: Pre-fetches incoming edges map to eliminate N+1 queries
 
 The scheduler is integrated directly with the execution engine and uses token-based flow control as the primary scheduling mechanism, with status tracking maintained only for UI visualization purposes.
 
@@ -525,6 +526,9 @@ def test_execution_flow():
 - **Parallel Detection**: Pre-compute parallel groups
 - **Lazy Evaluation**: Evaluate rules only when needed
 - **Index Optimization**: Use indices for fast lookups
+- **Template Caching**: PromptBuilder caches rendered templates (1000 entry limit)
+- **Edge Map Pre-fetching**: Scheduler pre-fetches incoming edges to avoid N+1 queries
+- **Async I/O**: All file operations use async patterns (aiofiles)
 
 ## Dependencies
 

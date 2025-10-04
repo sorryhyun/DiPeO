@@ -188,7 +188,9 @@ class TypedExecutionEngine:
         context: TypedExecutionContext,
         event_pipeline: EventPipeline,
     ) -> dict[str, dict[str, Any]]:
-        max_concurrent = 20
+        from dipeo.config.execution import ENGINE_MAX_CONCURRENT
+
+        max_concurrent = ENGINE_MAX_CONCURRENT
 
         if len(nodes) == 1:
             node = nodes[0]

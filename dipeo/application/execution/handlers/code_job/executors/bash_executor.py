@@ -58,8 +58,10 @@ class BashExecutor(BaseCodeExecutor):
                     "Bash interpreter not found. Please install Git for Windows or WSL."
                 )
 
-            with open(file_path) as f:
-                script_content = f.read()
+            import aiofiles
+
+            async with aiofiles.open(file_path) as f:
+                script_content = await f.read()
 
             proc = await asyncio.create_subprocess_exec(
                 bash_cmd,

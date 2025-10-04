@@ -4,13 +4,13 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import yaml
 
 from dipeo.config import BASE_DIR
 from dipeo.config.base_logger import get_module_logger
-from dipeo.infrastructure.llm_adapters.unified import UnifiedLLMClient
+from dipeo.infrastructure.llm.drivers.service import UnifiedLLMClient
 
 logger = get_module_logger(__name__)
 
@@ -21,7 +21,7 @@ class DiagramGenerationResult:
 
     success: bool
     diagram_path: Optional[str] = None
-    diagram_data: Optional[Dict[str, Any]] = None
+    diagram_data: Optional[dict[str, Any]] = None
     error_message: Optional[str] = None
 
 
@@ -113,7 +113,7 @@ edges:
     target: process
 """
 
-    def _parse_diagram_response(self, response: str) -> Optional[Dict[str, Any]]:
+    def _parse_diagram_response(self, response: str) -> Optional[dict[str, Any]]:
         """Parse the diagram from LLM response."""
         try:
             # Try to extract YAML from response

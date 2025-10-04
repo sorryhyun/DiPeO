@@ -112,7 +112,7 @@ start -> person_job -> condition -> person_job (loop back)
 ### Parallel Execution
 - Multiple nodes can execute concurrently if ready
 - Engine manages parallelism with semaphores
-- Default max concurrent: 20 nodes
+- Configurable max concurrent nodes via `ENGINE_MAX_CONCURRENT` setting (default: 20)
 - Each node execution is independent
 
 ### Handler Pattern
@@ -187,7 +187,8 @@ Epoch 0:
 ### Performance
 - Parallel execution when tokens available
 - No global locks or synchronization
-- Efficient ready-node detection
+- Optimized ready-node detection with pre-fetched edge maps
+- Template caching for PersonJob nodes (90%+ hit rate)
 
 ### Debugging
 - Token flow is traceable

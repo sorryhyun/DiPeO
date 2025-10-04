@@ -31,7 +31,8 @@
       "Bash(sqlite3:*)",
       "Bash(dipeocc convert:*)",
       "WebSearch",
-      "Bash(uv sync:*)"
+      "Bash(uv sync:*)",
+      "Bash(curl -X POST http://localhost:8000/graphql )"
     ],
     "deny": [],
     "ask": []

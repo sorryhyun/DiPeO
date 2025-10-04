@@ -21,6 +21,10 @@ Orchestrates business logic between domain and infrastructure layers.
 
 ### Execution Engine (`execution/`)
 - **engine.py**: TypedExecutionEngine - event-driven node execution
+  - Configurable concurrency via `ENGINE_MAX_CONCURRENT` setting
+- **scheduler.py**: NodeScheduler - optimized node scheduling
+  - Pre-fetched edge maps for efficient ready-node detection
+  - Eliminates N+1 query patterns
 - **orchestrators/**: Central coordination for execution concerns
   - Person management with unified caching
   - Prompt loading delegation
@@ -29,6 +33,7 @@ Orchestrates business logic between domain and infrastructure layers.
 - **handlers/**: Node-specific execution handlers
   - Simple handlers: Single file (e.g., `start.py`, `api_job.py`, `db.py`)
   - Complex handlers: Package structure (e.g., `person_job/`, `code_job/`, `sub_diagram/`)
+  - Async I/O throughout (aiofiles for file operations)
 - **states/**: Execution state management
 - **observers/**: Event observation and monitoring
 - **use_cases/**: Business logic use cases

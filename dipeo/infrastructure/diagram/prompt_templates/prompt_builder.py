@@ -1,16 +1,17 @@
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import warnings
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.diagram.ports import TemplateProcessorPort
 
 logger = get_module_logger(__name__)
 
+
 class PromptBuilder:
     def __init__(self, template_processor: TemplateProcessorPort | None = None):
         self._processor = template_processor
+        self._template_cache: dict[tuple, str] = {}
 
     def build(
         self,
@@ -27,15 +28,49 @@ class PromptBuilder:
             return ""
 
         if self._processor:
+            # Create a cache key from the template and values
+            # Convert template_values to a hashable representation
+            cache_key = self._make_cache_key(selected_prompt, template_values)
+
+            # Check cache first
+            if cache_key in self._template_cache:
+                logger.debug("Using cached template result")
+                return self._template_cache[cache_key]
+
+            # Process template
             result = self._processor.process(selected_prompt, template_values)
             if result.errors:
                 logger.warning(f"Template processing errors: {result.errors}")
             if result.missing_keys:
                 logger.warning(f"Template missing keys: {result.missing_keys}")
+
+            # Cache the result
+            self._template_cache[cache_key] = result.content
+
+            # Limit cache size to prevent memory growth
+            if len(self._template_cache) > 1000:
+                # Remove oldest 20% of entries
+                items_to_remove = len(self._template_cache) // 5
+                for _ in range(items_to_remove):
+                    self._template_cache.pop(next(iter(self._template_cache)))
+
             return result.content
         else:
             logger.warning("No template processor available!")
             return selected_prompt
+
+    def _make_cache_key(self, template: str, values: dict[str, Any]) -> tuple:
+        """Create a hashable cache key from template and values."""
+        import json
+
+        # Sort values for consistent hashing
+        try:
+            # Convert to JSON string for a stable representation
+            values_str = json.dumps(values, sort_keys=True, default=str)
+            return (template, values_str)
+        except (TypeError, ValueError):
+            # If JSON serialization fails, create a simpler key
+            return (template, str(sorted(values.items())))
 
     def prepare_template_values(self, inputs: dict[str, Any]) -> dict[str, Any]:
         """Prepare template values from inputs."""
