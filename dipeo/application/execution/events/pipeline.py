@@ -28,7 +28,7 @@ from dipeo.domain.events.unified_ports import EventBus
 from dipeo.domain.execution.envelope import Envelope
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.state_manager import StateManager
+    from dipeo.application.execution.states.state_manager import StateManager
     from dipeo.domain.execution.state_tracker import StateTracker
 
 logger = get_module_logger(__name__)

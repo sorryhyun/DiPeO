@@ -1,6 +1,5 @@
 """Prompt file resolution utility for PersonJob handler."""
 
-import logging
 import os
 from pathlib import Path
 from typing import Any
@@ -48,7 +47,8 @@ class PromptFileResolver:
         """Load prompt content from file."""
         if not self.filesystem:
             logger.error(
-                f"[PromptResolver] No filesystem adapter available! Cannot load prompt file: {prompt_filename}"
+                f"[PromptResolver] No filesystem adapter available! "
+                f"Cannot load prompt file: {prompt_filename}"
             )
             return None
         if not prompt_filename:

@@ -4,6 +4,10 @@ import logging
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Optional
 
+from dipeo.application.execution.use_cases.diagram_helpers import (
+    extract_api_keys_from_domain,
+    register_todo_diagram_if_needed,
+)
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
 from dipeo.domain.base.mixins import InitializationMixin, LoggingMixin
@@ -17,7 +21,6 @@ if TYPE_CHECKING:
         ValidateDiagramUseCase,
     )
     from dipeo.application.registry import ServiceRegistry
-    from dipeo.application.todo_sync import TodoSyncService
 
 logger = get_module_logger(__name__)
 
@@ -29,13 +32,11 @@ class PrepareDiagramForExecutionUseCase(LoggingMixin, InitializationMixin):
         self,
         api_key_service: APIKeyDomainService,
         service_registry: Optional["ServiceRegistry"] = None,
-        todo_sync_service: Optional["TodoSyncService"] = None,
     ):
         # Initialize mixins
         InitializationMixin.__init__(self)
         self.api_key_service = api_key_service
         self.service_registry = service_registry
-        self.todo_sync_service = todo_sync_service
 
         # Lazy-loaded use cases
         self._load_diagram_use_case: LoadDiagramUseCase | None = None
@@ -121,7 +122,7 @@ class PrepareDiagramForExecutionUseCase(LoggingMixin, InitializationMixin):
 
         # Step 3: Fix API keys and extract them
         # Extract API keys directly from DomainDiagram
-        api_keys = self._extract_api_keys_from_domain(domain_diagram)
+        api_keys = extract_api_keys_from_domain(domain_diagram, self.api_key_service)
 
         # Step 4: Update metadata if needed
         if diagram_id and (not domain_diagram.metadata or not domain_diagram.metadata.id):
@@ -202,106 +203,9 @@ class PrepareDiagramForExecutionUseCase(LoggingMixin, InitializationMixin):
             if not diagram_id:
                 executable_diagram.metadata["diagram_id"] = diagram_source_path
 
-        # Check if this is a TODO-backed diagram and register for monitoring
-        await self._register_todo_diagram_if_needed(domain_diagram, executable_diagram)
-
-        return executable_diagram
-
-    def _extract_api_keys_from_domain(self, diagram: DomainDiagram) -> dict[str, str]:
-        """Extract API keys needed for execution from DomainDiagram."""
-        keys = {}
-
-        # Get all available API keys
-        all_keys = {
-            info["id"]: self.api_key_service.get_api_key(info["id"])["key"]
-            for info in self.api_key_service.list_api_keys()
-        }
-
-        # Extract API keys from persons
-        if hasattr(diagram, "persons") and diagram.persons:
-            # Handle both dict and list formats
-            persons_list = (
-                list(diagram.persons.values())
-                if isinstance(diagram.persons, dict)
-                else diagram.persons
-            )
-            for person in persons_list:
-                # Get api_key_id from llm_config
-                if hasattr(person, "llm_config") and hasattr(person.llm_config, "api_key_id"):
-                    api_key_id = str(person.llm_config.api_key_id)
-
-                    # Add the API key to the keys dict if it exists
-                    if api_key_id in all_keys:
-                        keys[api_key_id] = all_keys[api_key_id]
-                    else:
-                        logger.warning(f"API key {api_key_id} not found in available keys")
-
-        return keys
-
-    async def _register_todo_diagram_if_needed(
-        self,
-        domain_diagram: DomainDiagram,
-        executable_diagram: ExecutableDiagram,
-    ) -> None:
-        """
-        Check if this is a TODO-backed diagram and register it with TodoSyncService.
-
-        Args:
-            domain_diagram: The domain diagram
-            executable_diagram: The executable diagram
-        """
-        if not self.todo_sync_service:
-            return
-
-        # Check if this diagram has TODO metadata
-        if not domain_diagram.metadata:
-            return
-
-        metadata_dict = (
-            domain_diagram.metadata.model_dump()
-            if hasattr(domain_diagram.metadata, "model_dump")
-            else domain_diagram.metadata
+        # Check if this is a TO-DO-backed diagram and register for monitoring
+        await register_todo_diagram_if_needed(
+            self.todo_sync_service, domain_diagram, executable_diagram
         )
 
-        # Look for TODO source indicators in metadata
-        is_todo_diagram = False
-        session_id = None
-        trace_id = None
-
-        # Check for claude_code_todo source
-        if metadata_dict.get("source") == "claude_code_todo":
-            is_todo_diagram = True
-            session_id = metadata_dict.get("session_id")
-            trace_id = metadata_dict.get("trace_id")
-
-        # Check for TODO-related paths
-        diagram_path = executable_diagram.metadata.get("diagram_source_path", "")
-        if "dipeo_cc" in diagram_path or "todo_" in diagram_path:
-            is_todo_diagram = True
-            # Extract session ID from path if not already set
-            if not session_id and "todo_" in diagram_path:
-                # Try to extract session ID from filename pattern: todo_<session_id>_<timestamp>
-                import re
-
-                match = re.search(r"todo_([^_/]+)_", diagram_path)
-                if match:
-                    session_id = match.group(1)
-
-        if is_todo_diagram and session_id:
-            try:
-                # Register the session with TodoSyncService
-                await self.todo_sync_service.register_session(session_id, trace_id)
-
-                # Store sync metadata in executable diagram
-                executable_diagram.metadata["todo_sync"] = {
-                    "enabled": True,
-                    "session_id": session_id,
-                    "trace_id": trace_id,
-                    "source": "claude_code_todo",
-                }
-
-                logger.info(
-                    f"[PrepareDiagramForExecution] Registered TODO diagram for session {session_id}"
-                )
-            except Exception as e:
-                logger.warning(f"[PrepareDiagramForExecution] Failed to register TODO diagram: {e}")
+        return executable_diagram

@@ -1,6 +1,5 @@
 """Text format handling for structured output in PersonJob nodes."""
 
-import logging
 import os
 from typing import Any
 

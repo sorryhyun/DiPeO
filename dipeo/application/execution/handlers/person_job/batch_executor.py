@@ -1,7 +1,6 @@
 """Batch execution logic for PersonJob nodes."""
 
 import asyncio
-import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
@@ -10,6 +9,12 @@ from dipeo.config.base_logger import get_module_logger
 from dipeo.config.execution import BATCH_MAX_CONCURRENT, BATCH_SIZE
 from dipeo.diagram_generated.unified_nodes.person_job_node import PersonJobNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+
+from .batch_helpers import (
+    extract_batch_items,
+    format_batch_error,
+    format_item_result,
+)
 
 if TYPE_CHECKING:
     pass
@@ -58,7 +63,7 @@ class BatchExecutor:
         )
 
         # Extract array from inputs
-        batch_items = self._extract_batch_items(request.inputs, batch_config["input_key"])
+        batch_items = extract_batch_items(request.inputs, batch_config["input_key"])
 
         if not batch_items:
             return self._create_empty_batch_output(node, batch_config, trace_id)
@@ -98,74 +103,6 @@ class BatchExecutor:
             "max_concurrent": getattr(node, "max_concurrent", self.DEFAULT_MAX_CONCURRENT),
         }
 
-    def _extract_batch_items(
-        self, inputs: dict[str, Any] | None, batch_input_key: str
-    ) -> list[Any]:
-        """Extract batch items from inputs.
-
-        Args:
-            inputs: Input dictionary containing batch items
-            batch_input_key: Key to extract batch items from
-
-        Returns:
-            List of batch items to process
-        """
-        if not inputs:
-            return []
-
-        logger.debug(
-            f"Extracting batch items with key '{batch_input_key}' from inputs: {list(inputs.keys())}"
-        )
-
-        batch_items = self._find_batch_items_in_inputs(inputs, batch_input_key)
-
-        if batch_items is None:
-            logger.warning(f"No batch items found for key '{batch_input_key}'")
-            return []
-
-        if not isinstance(batch_items, list):
-            logger.warning(
-                f"Batch input '{batch_input_key}' is not a list (type: {type(batch_items)}). "
-                f"Treating as single item."
-            )
-            return [batch_items]
-
-        return batch_items
-
-    def _find_batch_items_in_inputs(
-        self, inputs: dict[str, Any], batch_input_key: str
-    ) -> Any | None:
-        """Find batch items in various input structures.
-
-        Args:
-            inputs: Input dictionary to search
-            batch_input_key: Key to look for
-
-        Returns:
-            Found batch items or None
-        """
-        # Direct key in inputs
-        if batch_input_key in inputs:
-            logger.debug("Found batch items at root level")
-            return inputs[batch_input_key]
-
-        # Under 'default' key
-        if "default" in inputs:
-            default_value = inputs["default"]
-            if isinstance(default_value, dict) and batch_input_key in default_value:
-                logger.debug("Found batch items under 'default'")
-                return default_value[batch_input_key]
-            if batch_input_key == "default":
-                logger.debug("Batch items are the default value itself")
-                return default_value
-            if isinstance(default_value, dict):
-                for key, value in default_value.items():
-                    if key == batch_input_key:
-                        logger.debug(f"Found batch items in default dict at key '{key}'")
-                        return value
-
-        return None
-
     async def _execute_batch_parallel(
         self, batch_items: list[Any], request: ExecutionRequest[PersonJobNode], max_concurrent: int
     ) -> tuple[list[Any], list[dict[str, Any]]]:
@@ -201,7 +138,7 @@ class BatchExecutor:
         # Process results
         for idx, result in enumerate(task_results):
             if isinstance(result, Exception):
-                error = self._format_batch_error(idx, result, batch_items)
+                error = format_batch_error(idx, result, batch_items)
                 logger.error(f"Batch item {idx} failed: {error['error']}")
                 errors.append(error)
             else:
@@ -229,7 +166,7 @@ class BatchExecutor:
                 result = await self._execute_batch_item(item, idx, len(batch_items), request)
                 results.append(result)
             except Exception as e:
-                error = self._format_batch_error(idx, e, batch_items)
+                error = format_batch_error(idx, e, batch_items)
                 logger.error(f"Error processing batch item {idx}: {error['error']}", exc_info=True)
                 errors.append(error)
 
@@ -266,7 +203,7 @@ class BatchExecutor:
         result = await self._execute_single(item_request)
 
         # Format the result
-        return self._format_item_result(index, result)
+        return format_item_result(index, result)
 
     def _create_item_inputs(
         self, item: Any, index: int, total: int, original_request: ExecutionRequest[PersonJobNode]
@@ -323,43 +260,6 @@ class BatchExecutor:
             parent_registry=original_request.parent_registry,
             parent_container=original_request.parent_container,
         )
-
-    def _format_item_result(self, index: int, result: Any) -> dict[str, Any]:
-        """Format the result from a single item execution.
-
-        Args:
-            index: Index of the item
-            result: Execution result (usually an Envelope)
-
-        Returns:
-            Formatted result dictionary
-        """
-        if hasattr(result, "body"):  # It's an Envelope
-            output_value = result.body
-            metadata = result.meta if hasattr(result, "meta") else {}
-            return {"index": index, "output": output_value, "metadata": metadata}
-        else:
-            return {"index": index, "output": str(result), "metadata": {}}
-
-    def _format_batch_error(
-        self, index: int, error: Exception, batch_items: list[Any]
-    ) -> dict[str, Any]:
-        """Format error information for batch processing.
-
-        Args:
-            index: Index where error occurred
-            error: The exception that was raised
-            batch_items: Original batch items
-
-        Returns:
-            Dictionary with error details
-        """
-        return {
-            "index": index,
-            "error": str(error),
-            "error_type": type(error).__name__,
-            "item": batch_items[index] if index < len(batch_items) else None,
-        }
 
     def _create_empty_batch_output(
         self, node: PersonJobNode, batch_config: dict[str, Any], trace_id: str = ""
