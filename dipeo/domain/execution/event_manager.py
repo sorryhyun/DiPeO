@@ -38,7 +38,7 @@ logger = get_module_logger(__name__)
 class EventManager:
     """Manages event emission for execution context.
 
-    DEPRECATED: Use EventPipeline from dipeo.application.execution.event_pipeline
+    DEPRECATED: Use EventPipeline from dipeo.application.execution.events
     instead. EventPipeline provides the same interface with enhanced features:
     - Sequence tracking for idempotency
     - Event metrics and statistics

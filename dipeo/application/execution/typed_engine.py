@@ -6,7 +6,7 @@ import time
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Any, Optional
 
-from dipeo.application.execution.event_pipeline import EventPipeline
+from dipeo.application.execution.events import EventPipeline
 from dipeo.application.execution.scheduler import NodeScheduler
 from dipeo.application.execution.typed_execution_context import TypedExecutionContext
 from dipeo.config import get_settings

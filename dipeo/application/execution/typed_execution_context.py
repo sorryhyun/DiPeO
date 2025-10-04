@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from dipeo.application.execution.event_pipeline import EventPipeline
+from dipeo.application.execution.events import EventPipeline
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import NodeID, NodeType, Status
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram

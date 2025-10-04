@@ -171,7 +171,7 @@ from dipeo.domain.cc_translate.phase_coordinator import PhaseCoordinator  # Clau
 from dipeo.domain.cc_translate.convert.converter import Converter
 from dipeo.domain.execution.resolution import RuntimeInputResolver, TransformationEngine
 from dipeo.domain.execution.envelope import EnvelopeFactory  # Unified output pattern
-from dipeo.application.execution.event_pipeline import EventPipeline  # RECOMMENDED: Use EventPipeline instead of EventManager
+from dipeo.application.execution.events import EventPipeline  # RECOMMENDED: Use EventPipeline instead of EventManager
 from dipeo.domain.execution.event_manager import EventManager  # DEPRECATED: Use EventPipeline instead
 from dipeo.domain.execution.state_tracker import StateTracker
 from dipeo.domain.execution.token_manager import TokenManager

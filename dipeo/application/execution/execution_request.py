@@ -4,6 +4,13 @@ import warnings
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union, cast
 
+from dipeo.application.execution.handlers.utils.service_helpers import (
+    has_service as check_service_exists,
+)
+from dipeo.application.execution.handlers.utils.service_helpers import (
+    resolve_optional_service,
+    resolve_required_service,
+)
 from dipeo.diagram_generated import Status
 from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
 
@@ -35,20 +42,24 @@ class ExecutionRequest[T: ExecutableNode]:
 
     @property
     def node_id(self) -> str:
+        """Get the ID of the node being executed."""
         return self.node.id
 
     @property
     def node_type(self) -> str:
+        """Get the type of the node being executed."""
         return self.node.node_type
 
     @property
     def execution_count(self) -> int:
+        """Get the number of times this node has been executed."""
         if self.context:
             return self.context.state.get_node_execution_count(self.node_id)
         return 1
 
     @property
     def node_status(self) -> Status | None:
+        """Get the current status of the node."""
         if self.context:
             state = self.context.state.get_node_state(self.node_id)
             return state.status if state else None
@@ -87,23 +98,7 @@ class ExecutionRequest[T: ExecutableNode]:
         Raises:
             KeyError: If the service is not found
         """
-        from dipeo.application.registry import ServiceKey
-
-        # Handle string keys for backward compatibility
-        if isinstance(key, str):
-            service_key = ServiceKey(key)
-            name = key
-        else:
-            service_key = key
-            name = key.name
-
-        if isinstance(self.services, dict):
-            if name not in self.services:
-                raise KeyError(f"Required service '{name}' not found in service container")
-            return cast(S, self.services[name])
-        else:
-            # ServiceRegistry.resolve already raises KeyError if not found
-            return self.services.resolve(service_key)
+        return cast(S, resolve_required_service(self.services, key))
 
     def get_optional_service[S](
         self, key: Union["ServiceKey[S]", str], default: S | None = None
@@ -117,23 +112,7 @@ class ExecutionRequest[T: ExecutableNode]:
         Returns:
             The service instance or default value
         """
-        from dipeo.application.registry import ServiceKey
-
-        # Handle string keys for backward compatibility
-        if isinstance(key, str):
-            service_key = ServiceKey(key)
-            name = key
-        else:
-            service_key = key
-            name = key.name
-
-        if isinstance(self.services, dict):
-            return cast(S, self.services.get(name, default))
-        else:
-            try:
-                return self.services.resolve(service_key)
-            except KeyError:
-                return default
+        return cast(S, resolve_optional_service(self.services, key, default))
 
     def get_input(self, name: str, default: Any = None) -> Any:
         return self.inputs.get(name, default)
@@ -142,12 +121,8 @@ class ExecutionRequest[T: ExecutableNode]:
         self.metadata[key] = value
 
     def has_service(self, name: str) -> bool:
-        if isinstance(self.services, dict):
-            return name in self.services
-        else:
-            from dipeo.application.registry import ServiceKey
-
-            return self.services.has(ServiceKey(name))
+        """Check if a service exists in the service container."""
+        return check_service_exists(self.services, name)
 
     def has_input(self, name: str) -> bool:
         return name in self.inputs
@@ -209,27 +184,3 @@ class ExecutionRequest[T: ExecutableNode]:
             parent_registry=self.parent_registry,
             _handler_state=self._handler_state.copy(),
         )
-
-
-class ServiceProvider:
-    """Type-safe service provider for execution requests."""
-
-    def __init__(self, services: dict[str, Any]):
-        self._services = services
-
-    def get(self, key: str, default: Any = None) -> Any:
-        return self._services.get(key, default)
-
-    def require(self, key: str) -> Any:
-        if key not in self._services:
-            raise ValueError(f"Required service '{key}' not found")
-        return self._services[key]
-
-    def has(self, key: str) -> bool:
-        return key in self._services
-
-    def __getitem__(self, key: str) -> Any:
-        return self.require(key)
-
-    def __contains__(self, key: str) -> bool:
-        return self.has(key)

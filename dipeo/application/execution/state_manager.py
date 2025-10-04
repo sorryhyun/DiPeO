@@ -1,5 +1,4 @@
-"""
-Unified State Manager for execution state management.
+"""Unified State Manager for execution state management.
 
 This module provides a centralized, event-sourced state management system
 that serves as the single source of truth for execution state across all layers.
@@ -9,58 +8,14 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Optional
+from typing import Optional
 
-from dipeo.diagram_generated import ExecutionState, NodeState, Status
+from dipeo.application.execution.event_log import EventLog
+from dipeo.application.execution.state_snapshot import StateSnapshot
+from dipeo.diagram_generated import NodeState, Status
 from dipeo.diagram_generated.domain_models import ExecutionID, NodeID
 from dipeo.domain.events import DomainEvent, EventType
-
-
-@dataclass
-class StateSnapshot:
-    """Immutable snapshot of execution state at a point in time."""
-
-    execution_id: ExecutionID
-    status: Status
-    node_states: dict[NodeID, NodeState]
-    start_time: datetime
-    end_time: datetime | None
-    error: str | None
-    metadata: dict[str, Any]
-    version: int  # Event sequence number
-
-    def get_node_state(self, node_id: NodeID) -> NodeState | None:
-        """Get state for a specific node."""
-        return self.node_states.get(node_id)
-
-    def get_nodes_by_status(self, status: Status) -> list[NodeID]:
-        """Get all nodes with a specific status."""
-        return [node_id for node_id, state in self.node_states.items() if state.status == status]
-
-
-@dataclass
-class EventLog:
-    """Thread-safe event log for an execution."""
-
-    events: list[DomainEvent] = field(default_factory=list)
-    _lock: asyncio.Lock = field(default_factory=asyncio.Lock)
-
-    async def append(self, event: DomainEvent) -> None:
-        """Append an event to the log."""
-        async with self._lock:
-            self.events.append(event)
-
-    async def get_events(self, after_version: int = 0) -> list[DomainEvent]:
-        """Get events after a specific version."""
-        async with self._lock:
-            return self.events[after_version:]
-
-    async def get_all_events(self) -> list[DomainEvent]:
-        """Get all events in the log."""
-        async with self._lock:
-            return self.events.copy()
 
 
 class StateManager:
