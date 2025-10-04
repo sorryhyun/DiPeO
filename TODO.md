@@ -310,86 +310,47 @@ dipeo/application/execution/
 
 ---
 
-## Phase 0: Fix Foundation Issues (~180 lines saved)
+## ✅ Phase 0: Fix Foundation Issues (COMPLETED)
 
-**Status:** Not started
+**Status:** ✅ Completed
 
-Address critical infrastructure files that were missing from original plan:
-
-### 0a. Refactor `execution_request.py` (235 lines)
-- [ ] Extract service resolution helpers to `handlers/utils/service_helpers.py` (~40 lines)
-- [ ] Keep core ExecutionRequest dataclass in place (widely used)
-- [ ] Add better documentation for property methods
-- **Outcome:** 235 → ~195 lines
-
-### 0b. Simplify `reporting.py` (82 lines)
-- [ ] Review and consolidate progress calculation functions
-- [ ] Add comprehensive documentation
-- [ ] Consider minor cleanup of duplicate logic
-- **Outcome:** Keep mostly as-is (~65-75 lines)
-
-### 0c. Refactor `state_manager.py` (326 lines → 3 modules)
-- [ ] Create `state_manager.py` - Core StateManager class (~180 lines)
-- [ ] Create `state_snapshot.py` - StateSnapshot + query helpers (~80 lines)
-- [ ] Create `event_log.py` - EventLog implementation (~70 lines)
-- **Outcome:** 326 → ~330 lines (better organized, no size reduction)
-
-### 0d. Refactor `event_pipeline.py` (400 lines → 3 modules in `events/`)
-- [ ] Create `events/` directory for event-related modules
-- [ ] Create `events/pipeline.py` - Core EventPipeline (~240 lines)
-- [ ] Create `events/builders.py` - Event creation helpers (~90 lines)
-- [ ] Create `events/validators.py` - Event validation logic (~70 lines)
-- [ ] Update imports across codebase to use new `events/` package
-- **Outcome:** 400 → ~400 lines (better organized in dedicated package)
-
-**Expected Outcome:**
-- Better organized critical infrastructure
-- New `events/` package for event-related modules
-- ~180 lines saved from extraction
-- Clearer module boundaries
+**Actual Results:**
+- execution_request.py: 236 → 184 lines (52 lines saved)
+- reporting.py: 83 → 68 lines (15 lines saved)
+- state_manager.py split into 3 modules: state_manager.py (281), state_snapshot.py (74), event_log.py (55)
+- event_pipeline.py → events/ package: pipeline.py (307), builders.py (104), validators.py (66)
+- Created `handlers/utils/` package with service_helpers.py
+- All imports updated, tests passing
 
 ---
 
-## Phase 1: Extract Common Utilities (~390 lines of reusable code)
+## ✅ Phase 1: Extract Common Utilities (COMPLETED)
 
-**Status:** Not started
+**Status:** ✅ Completed
 
-Create `dipeo/application/execution/handlers/utils/` package with shared helpers:
+**Actual Results:**
+- Created `handlers/utils/` package with 6 comprehensive utility modules
+- serialization.py: 74 lines (serialize_data, deserialize_data)
+- envelope_helpers.py: 94 lines (create_error_body, create_batch_result_body, create_text_result_body, create_operation_result_body)
+- input_helpers.py: 113 lines (extract_first_non_empty, extract_content_value, prepare_template_values, get_input_by_priority)
+- validation_helpers.py: 145 lines (validate_file_paths, validate_operation, validate_required_field, validate_config_field)
+- service_helpers.py: 62 lines (from Phase 0: has_service, normalize_service_key, resolve_optional/required_service)
+- state_helpers.py: 140 lines (get_node_execution_count, get_node_status, get_node_result, has_node_executed, is_node_completed, get_all_node_results)
+- __init__.py: 71 lines (exports all 24 utility functions)
 
-- [ ] Create `handlers/utils/` directory
-- [ ] Implement `serialization.py`
-  - Extract JSON/YAML serialization from `db.py`
-  - Add `serialize_data(data, format_type)` helper
-  - Add `deserialize_data(content, format_type)` helper
-  - ~80 lines
-- [ ] Implement `envelope_helpers.py`
-  - Extract common envelope creation patterns (from 23 files)
-  - Add `create_error_envelope()` helper
-  - Add `create_batch_envelope()` helper
-  - Add `create_text_envelope()` helper
-  - ~90 lines
-- [ ] Implement `input_helpers.py`
-  - Extract common input preparation patterns
-  - Add `extract_first_non_empty()` helper
-  - Add `prepare_template_values()` helper
-  - ~70 lines
-- [ ] Implement `validation_helpers.py`
-  - Extract common validation patterns
-  - Add `validate_file_paths()` helper
-  - Add `validate_operation()` helper
-  - ~60 lines
-- [ ] Implement `service_helpers.py` (NEW)
-  - Extract from execution_request.py
-  - Service resolution patterns
-  - Registry access helpers
-  - ~40 lines
-- [ ] Implement `state_helpers.py` (NEW)
-  - Common state query operations
-  - Status checking utilities
-  - Node state access patterns
-  - ~50 lines
+**Total:** 699 lines of well-documented, reusable utilities (vs ~390 expected)
+- Exceeded expected line count due to comprehensive documentation and examples
+- All utilities tested and working correctly
+- All code formatted and linted
 
-**Expected Outcome:** ~390 lines of reusable utilities for other phases
+**Key Achievements:**
+- ✓ Comprehensive serialization utilities for JSON/YAML formats
+- ✓ Consistent error body and result body builders
+- ✓ Powerful input extraction and preparation helpers
+- ✓ Reusable validation patterns for common operations
+- ✓ Service resolution utilities from Phase 0
+- ✓ Complete state query API for execution context
+- ✓ Ready for use in subsequent refactoring phases
 
 ---
 
@@ -667,15 +628,15 @@ After each phase:
 
 ### Phase-by-Phase Savings
 
-| Phase | Description | Lines Saved |
-|-------|-------------|-------------|
-| Phase 0 | Foundation fixes | ~180 |
-| Phase 1 | Common utilities | ~390 (reusable) |
-| Phase 2 | Core infrastructure | ~250 |
-| Phase 3 | Handler subsystems | ~800 |
-| Phase 4 | Large handlers | ~300 |
-| Phase 5 | Core engine | ~250 |
-| **Total** | | **~2,170 net** |
+| Phase | Description | Lines Saved | Status |
+|-------|-------------|-------------|--------|
+| Phase 0 | Foundation fixes | 67 (actual) | ✅ Done |
+| Phase 1 | Common utilities | 699 (reusable) | ✅ Done |
+| Phase 2 | Core infrastructure | ~250 | Pending |
+| Phase 3 | Handler subsystems | ~800 | Pending |
+| Phase 4 | Large handlers | ~300 | Pending |
+| Phase 5 | Core engine | ~250 | Pending |
+| **Total** | | **~2,366 net** | |
 
 ### Qualitative Improvements
 - ✅ All files <350 lines (100% compliance)
@@ -693,15 +654,16 @@ After each phase:
 
 **Priority-based approach for maximum impact:**
 
-1. **Phase 0** (Foundation) - Fix critical infrastructure first
-   - Addresses user-mentioned files (execution_request, reporting, state_manager)
-   - Establishes patterns for subsequent phases
+1. ✅ **Phase 0** (Foundation) - COMPLETED
+   - Fixed critical infrastructure (execution_request, reporting, state_manager, event_pipeline)
+   - Established patterns for subsequent phases
 
-2. **Phase 1** (Utilities) - Build reusable foundation
-   - Creates shared utilities used by all other phases
+2. ✅ **Phase 1** (Utilities) - COMPLETED
+   - Created comprehensive shared utilities used by all other phases
    - Enables cleaner refactoring in later phases
+   - 699 lines of reusable code with full documentation
 
-3. **Phase 3** (Handlers) - Refactor handler subsystems (biggest impact)
+3. **Phase 3** (Handlers) - Refactor handler subsystems (biggest impact) ← NEXT
    - Largest line count reduction (~800 lines)
    - Addresses most complex subsystems
    - High user-facing value
@@ -752,7 +714,7 @@ After each phase:
 - use_cases/prepare_diagram.py (307)
 
 ### Plan Improvements
-- ✅ Added Phase 0 for foundation issues
+- ✅ Added Phase 0 for foundation issues - **COMPLETED**
 - ✅ Expanded Phase 1 with 2 new utilities
 - ✅ Added Phase 2 for core infrastructure
 - ✅ Expanded Phase 3 to cover ALL handler subsystems
@@ -760,6 +722,10 @@ After each phase:
 - ✅ Enhanced Phase 5 with use_cases coverage
 - ✅ Updated metrics to reflect actual scope
 - ✅ Added execution order guidance
+
+### Completed Work
+- **Phase 0**: execution_request.py (52 lines saved), reporting.py (15 lines saved), state_manager split (3 modules), event_pipeline → events/ package (3 modules), handlers/utils/ created
+- **Phase 1**: 6 comprehensive utility modules (699 lines total): serialization.py, envelope_helpers.py, input_helpers.py, validation_helpers.py, service_helpers.py, state_helpers.py - all tested, documented, and formatted
 
 ---
 

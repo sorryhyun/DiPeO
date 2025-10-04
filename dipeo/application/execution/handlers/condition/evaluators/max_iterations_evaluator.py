@@ -3,6 +3,7 @@
 import logging
 from typing import Any
 
+from dipeo.application.execution.handlers.utils import get_node_execution_count
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.unified_nodes.condition_node import ConditionNode, NodeType
 from dipeo.domain.execution.execution_context import ExecutionContext
@@ -33,7 +34,7 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
 
         for node in person_job_nodes:
             # Check if this node has been executed at least once
-            exec_count = context.state.get_node_execution_count(node.id)
+            exec_count = get_node_execution_count(context, node.id)
             logger.debug(
                 f"MaxIterationsEvaluator: node {node.id} exec_count={exec_count}, max_iteration={node.max_iteration}"
             )

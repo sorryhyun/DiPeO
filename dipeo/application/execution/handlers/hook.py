@@ -12,6 +12,11 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handlers.core.base import TypedNodeHandler
 from dipeo.application.execution.handlers.core.decorators import Optional, requires_services
 from dipeo.application.execution.handlers.core.factory import register_handler
+from dipeo.application.execution.handlers.utils import (
+    create_error_body,
+    serialize_data,
+    validate_config_field,
+)
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.enums import HookType
 from dipeo.diagram_generated.unified_nodes.hook_node import HookNode, NodeType
@@ -57,47 +62,45 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         valid_hook_types = {HookType.SHELL, HookType.WEBHOOK, HookType.PYTHON, HookType.FILE}
         if node.hook_type not in valid_hook_types:
             return EnvelopeFactory.create(
-                body={"error": f"Unknown hook type: {node.hook_type}", "type": "ValueError"},
+                body=create_error_body(f"Unknown hook type: {node.hook_type}"),
                 produced_by=str(node.id),
             )
 
         config = node.config or {}
 
         if node.hook_type == HookType.SHELL:
-            if not config.get("command"):
+            error = validate_config_field(config, "command", "shell")
+            if error:
                 return EnvelopeFactory.create(
-                    body={"error": "Shell hook requires 'command' in config", "type": "ValueError"},
+                    body=create_error_body(error),
                     produced_by=str(node.id),
                 )
         elif node.hook_type == HookType.WEBHOOK:
-            if not config.get("url"):
+            error = validate_config_field(config, "url", "webhook")
+            if error:
                 return EnvelopeFactory.create(
-                    body={"error": "Webhook hook requires 'url' in config", "type": "ValueError"},
+                    body=create_error_body(error),
                     produced_by=str(node.id),
                 )
         elif node.hook_type == HookType.PYTHON:
-            if not config.get("script"):
+            error = validate_config_field(config, "script", "python")
+            if error:
                 return EnvelopeFactory.create(
-                    body={"error": "Python hook requires 'script' in config", "type": "ValueError"},
+                    body=create_error_body(error),
                     produced_by=str(node.id),
                 )
         elif node.hook_type == HookType.FILE:
-            if not config.get("file_path"):
+            error = validate_config_field(config, "file_path", "file")
+            if error:
                 return EnvelopeFactory.create(
-                    body={
-                        "error": "File hook requires 'file_path' in config",
-                        "type": "ValueError",
-                    },
+                    body=create_error_body(error),
                     produced_by=str(node.id),
                 )
             filesystem_adapter = request.get_optional_service(FILESYSTEM_ADAPTER)
 
             if not filesystem_adapter:
                 return EnvelopeFactory.create(
-                    body={
-                        "error": "Filesystem adapter is required for file hooks",
-                        "type": "ValueError",
-                    },
+                    body=create_error_body("Filesystem adapter is required for file hooks"),
                     produced_by=str(node.id),
                 )
             request.set_handler_state("filesystem_adapter", filesystem_adapter)
@@ -173,7 +176,9 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
 
         return output
 
-    async def _execute_hook(self, node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]) -> Any:
+    async def _execute_hook(
+        self, node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]
+    ) -> Any:
         if node.hook_type == HookType.SHELL:
             return await self._execute_shell_hook(node, inputs, request)
         elif node.hook_type == HookType.WEBHOOK:
@@ -185,7 +190,9 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         else:
             raise InvalidDiagramError(f"Unknown hook type: {node.hook_type}")
 
-    async def _execute_shell_hook(self, node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]) -> Any:
+    async def _execute_shell_hook(
+        self, node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]
+    ) -> Any:
         config = node.config
         command = config.get("command")
 
@@ -221,7 +228,9 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         except TimeoutError:
             raise NodeExecutionError(f"Shell command timed out after {timeout} seconds") from None
 
-    async def _execute_webhook_hook(self, node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]) -> Any:
+    async def _execute_webhook_hook(
+        self, node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]
+    ) -> Any:
         """Execute webhook hook - send request or subscribe to events."""
         config = node.config
 
@@ -314,7 +323,9 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
                 "message": f"Webhook subscription timed out after {timeout} seconds",
             }
 
-    async def _execute_python_hook(self, node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]) -> Any:
+    async def _execute_python_hook(
+        self, node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]
+    ) -> Any:
         config = node.config
         script = config.get("script")
 
@@ -351,7 +362,9 @@ print(json.dumps(result))
         except json.JSONDecodeError as e:
             raise NodeExecutionError(f"Failed to parse Python script output: {e!s}") from e
 
-    async def _execute_file_hook(self, node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]) -> Any:
+    async def _execute_file_hook(
+        self, node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]
+    ) -> Any:
         config = node.config
         file_path = config.get("file_path")
 
@@ -369,14 +382,7 @@ print(json.dumps(result))
             if parent_dir != Path() and not filesystem_adapter.exists(parent_dir):
                 filesystem_adapter.mkdir(parent_dir, parents=True)
 
-            if format_type == "json":
-                content = json.dumps(data, indent=2)
-            elif format_type == "yaml":
-                import yaml
-
-                content = yaml.dump(data, default_flow_style=False)
-            else:  # text
-                content = str(data)
+            content = serialize_data(data, format_type)
 
             with filesystem_adapter.open(path, "wb") as f:
                 f.write(content.encode("utf-8"))

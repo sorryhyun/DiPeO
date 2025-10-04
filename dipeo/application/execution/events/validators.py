@@ -60,7 +60,7 @@ def is_critical_event(event_type: EventType) -> bool:
     critical_types = {
         EventType.EXECUTION_STARTED,
         EventType.EXECUTION_COMPLETED,
-        EventType.EXECUTION_FAILED,
-        EventType.NODE_FAILED,
+        EventType.EXECUTION_ERROR,
+        EventType.NODE_ERROR,
     }
     return event_type in critical_types

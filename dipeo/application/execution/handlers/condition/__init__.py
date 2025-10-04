@@ -11,6 +11,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handlers.core.base import TypedNodeHandler
 from dipeo.application.execution.handlers.core.decorators import requires_services
 from dipeo.application.execution.handlers.core.factory import register_handler
+from dipeo.application.execution.handlers.utils import get_node_execution_count
 from dipeo.application.registry.keys import EXECUTION_ORCHESTRATOR, PROMPT_BUILDER
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.unified_nodes.condition_node import ConditionNode, NodeType
@@ -178,7 +179,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             # Use the execution count directly as loop index (0-based)
             # The execution count is incremented BEFORE run() is called,
             # so we subtract 1 to get a 0-based index
-            execution_count = context.state.get_node_execution_count(node.id)
+            execution_count = get_node_execution_count(context, node.id)
             current_loop_index = max(0, execution_count - 1)  # 0-based index
             context.set_variable(node.expose_index_as, current_loop_index)
 

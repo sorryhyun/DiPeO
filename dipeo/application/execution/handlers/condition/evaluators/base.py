@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Protocol, TypedDict
 
+from dipeo.application.execution.handlers.utils import get_node_result
 from dipeo.diagram_generated.unified_nodes.condition_node import ConditionNode
 from dipeo.domain.execution.execution_context import ExecutionContext
 
@@ -43,7 +44,7 @@ class BaseConditionEvaluator(ABC):
         # Access diagram through context
         all_nodes = context.diagram.get_nodes_by_type(None) or context.diagram.nodes
         for node in all_nodes:
-            node_result = context.state.get_node_result(node.id)
+            node_result = get_node_result(context, node.id)
             if node_result and "value" in node_result:
                 node_outputs[str(node.id)] = {"node_id": node.id, "value": node_result["value"]}
         return node_outputs

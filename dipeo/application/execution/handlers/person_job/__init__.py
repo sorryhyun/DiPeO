@@ -17,6 +17,7 @@ from dipeo.application.execution.handlers.core.decorators import (
     requires_services,
 )
 from dipeo.application.execution.handlers.core.factory import register_handler
+from dipeo.application.execution.handlers.utils import get_node_execution_count
 from dipeo.application.execution.use_cases import PromptLoadingUseCase
 from dipeo.application.registry.keys import (
     DIAGRAM,
@@ -210,7 +211,7 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
 
         # Direct typed access to person_id
         person_id = node.person
-        execution_count = context.state.get_node_execution_count(node.id)
+        execution_count = get_node_execution_count(context, node.id)
 
         # Get or create person using the orchestrator
         if not self._execution_orchestrator:

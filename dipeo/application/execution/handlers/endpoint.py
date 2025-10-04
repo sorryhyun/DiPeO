@@ -8,6 +8,7 @@ from dipeo.application.execution.execution_request import ExecutionRequest
 from dipeo.application.execution.handlers.core.base import TypedNodeHandler
 from dipeo.application.execution.handlers.core.decorators import Optional, requires_services
 from dipeo.application.execution.handlers.core.factory import register_handler
+from dipeo.application.execution.handlers.utils import create_error_body, serialize_data
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.enums import NodeType
 from dipeo.diagram_generated.unified_nodes.endpoint_node import EndpointNode
@@ -52,10 +53,9 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
 
             if not filesystem_adapter:
                 return EnvelopeFactory.create(
-                    body={
-                        "error": "Filesystem adapter is required when save_to_file is enabled",
-                        "type": "ValueError",
-                    },
+                    body=create_error_body(
+                        "Filesystem adapter is required when save_to_file is enabled"
+                    ),
                     produced_by=str(node.id),
                 )
 
@@ -117,10 +117,9 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
 
             if filesystem_adapter:
                 try:
-                    if isinstance(result_data, dict):
-                        content = json.dumps(result_data, indent=2)
-                    else:
-                        content = str(result_data)
+                    content = serialize_data(
+                        result_data, "json" if isinstance(result_data, dict) else "text"
+                    )
 
                     file_path = Path(file_name)
                     parent_dir = file_path.parent

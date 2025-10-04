@@ -1,15 +1,17 @@
-"""Unified event pipeline for centralized event emission.
-
-This module provides a single, consistent pipeline for all event emission
-in the execution engine, ensuring proper metadata, routing, and validation.
-"""
+"""Core event pipeline for centralized event emission."""
 
 import logging
 import time
 from typing import TYPE_CHECKING, Any, Optional
 
+from dipeo.application.execution.events.builders import (
+    create_output_summary,
+    extract_envelope_metadata,
+    extract_token_usage,
+    get_node_state,
+)
 from dipeo.config.base_logger import get_module_logger
-from dipeo.diagram_generated import NodeID, NodeState, Status
+from dipeo.diagram_generated import Status
 from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
 from dipeo.domain.events import (
     DomainEvent,
@@ -50,15 +52,7 @@ class EventPipeline:
         state_tracker: Optional["StateTracker"] = None,
         state_manager: Optional["StateManager"] = None,
     ):
-        """Initialize the event pipeline.
-
-        Args:
-            execution_id: The execution identifier
-            diagram_id: The diagram identifier
-            event_bus: The event bus for publishing events
-            state_tracker: Optional state tracker for accessing node states
-            state_manager: Optional unified state manager for event-sourced state
-        """
+        """Initialize the event pipeline."""
         self.execution_id = execution_id
         self.diagram_id = diagram_id
         self.event_bus = event_bus
@@ -66,16 +60,10 @@ class EventPipeline:
         self.state_manager = state_manager
         self._event_count = 0
         self._start_time = time.time()
-        self._sequence_counter = 0  # For idempotency tracking
+        self._sequence_counter = 0
 
     async def emit(self, event_type: str, **kwargs) -> None:
-        """Generic event emission with automatic routing.
-
-        Args:
-            event_type: The type of event to emit
-            **kwargs: Event-specific parameters
-        """
-        # Map event types to specific emission methods
+        """Generic event emission with automatic routing."""
         emission_map = {
             "execution_started": self._emit_execution_started,
             "execution_completed": self._emit_execution_completed,
@@ -93,7 +81,6 @@ class EventPipeline:
         await handler(**kwargs)
         self._event_count += 1
 
-    # Public API methods for backward compatibility with EventManager
     async def emit_execution_started(
         self,
         diagram_name: str | None = None,
@@ -148,12 +135,7 @@ class EventPipeline:
         await self._emit_node_error(node, exc)
 
     async def emit_event(self, event_type: EventType, data: dict[str, Any] | None = None) -> None:
-        """Generic event emission (backward compatibility with EventManager).
-
-        Args:
-            event_type: The type of event to emit
-            data: Optional event metadata
-        """
+        """Generic event emission (backward compatibility with EventManager)."""
         event = DomainEvent(
             type=event_type,
             scope=EventScope(execution_id=self.execution_id),
@@ -163,17 +145,13 @@ class EventPipeline:
 
     async def _publish(self, event: DomainEvent) -> None:
         """Publish event through the event bus with metadata and sequence number."""
-        # Increment sequence counter for idempotency
         self._sequence_counter += 1
 
-        # Add standard metadata by creating a new event (DomainEvent is frozen)
         meta = event.meta or {}
         meta["pipeline_event_count"] = self._event_count
         meta["pipeline_uptime_ms"] = int((time.time() - self._start_time) * 1000)
-        # Add sequence number in metadata for idempotency
         meta["seq"] = self._sequence_counter
 
-        # Create new event with updated metadata and sequence number
         enriched_event = DomainEvent(
             type=event.type,
             scope=event.scope,
@@ -181,7 +159,6 @@ class EventPipeline:
             meta=meta,
         )
 
-        # Publish through event bus (routes to StateStore, MessageRouter, Metrics)
         await self.event_bus.publish(enriched_event)
 
     async def _emit_execution_started(
@@ -198,7 +175,6 @@ class EventPipeline:
             initiated_by=initiated_by,
         )
         await self._publish(event)
-        # logger.debug(f"[EventPipeline] Execution started: {self.execution_id}")
 
     async def _emit_execution_completed(
         self,
@@ -217,7 +193,6 @@ class EventPipeline:
             node_count=total_steps,
         )
 
-        # Add execution_path to metadata if provided
         if execution_path:
             meta = event.meta or {}
             meta["execution_path"] = execution_path
@@ -229,7 +204,6 @@ class EventPipeline:
             )
 
         await self._publish(event)
-        # logger.debug(f"[EventPipeline] Execution completed: {self.execution_id}, status: {status}")
 
     async def _emit_execution_error(self, exc: Exception) -> None:
         """Emit execution error event."""
@@ -239,7 +213,6 @@ class EventPipeline:
             error_type=exc.__class__.__name__,
         )
 
-        # Add diagram_id to metadata
         meta = event.meta or {}
         meta["diagram_id"] = self.diagram_id
         event = DomainEvent(
@@ -259,7 +232,7 @@ class EventPipeline:
         iteration: int | None = None,
     ) -> None:
         """Emit node started event."""
-        node_state = self._get_node_state(node, Status.RUNNING)
+        node_state = get_node_state(node, Status.RUNNING, state_tracker=self.state_tracker)
 
         event = node_started(
             execution_id=self.execution_id,
@@ -271,7 +244,6 @@ class EventPipeline:
         )
 
         await self._publish(event)
-        # logger.debug(f"[EventPipeline] Node started: {node.id}")
 
     async def _emit_node_completed(
         self,
@@ -281,25 +253,14 @@ class EventPipeline:
         duration_ms: float | None = None,
     ) -> None:
         """Emit node completed event."""
-        node_state = self._get_node_state(node, Status.COMPLETED, exec_count)
+        node_state = get_node_state(
+            node, Status.COMPLETED, exec_count, state_tracker=self.state_tracker
+        )
 
-        # Extract output information
-        output = None
-        output_summary = None
-        token_usage = None
-        person_id = None
-        model = None
-        memory_selection = None
-
-        if envelope:
-            output = envelope.body
-            output_summary = self._create_output_summary(output)
-            token_usage = self._extract_token_usage(envelope)
-            # Extract person_id, model, and memory_selection from envelope metadata
-            if hasattr(envelope, "meta") and isinstance(envelope.meta, dict):
-                person_id = envelope.meta.get("person_id")
-                model = envelope.meta.get("model")
-                memory_selection = envelope.meta.get("memory_selection")
+        output = envelope.body if envelope else None
+        output_summary = create_output_summary(output)
+        token_usage = extract_token_usage(envelope)
+        envelope_meta = extract_envelope_metadata(envelope)
 
         event = node_completed(
             execution_id=self.execution_id,
@@ -309,17 +270,13 @@ class EventPipeline:
             duration_ms=int(duration_ms) if duration_ms else None,
             output_summary=output_summary,
             token_usage=token_usage,
-            person_id=person_id,
-            model=model,
-            memory_selection=memory_selection,
+            person_id=envelope_meta.get("person_id"),
+            model=envelope_meta.get("model"),
+            memory_selection=envelope_meta.get("memory_selection"),
             node_type=str(node.type) if node else None,
         )
 
         await self._publish(event)
-        # logger.debug(
-        #     f"[EventPipeline] Node completed: {node.id}, "
-        #     f"exec_count: {exec_count}, duration_ms: {duration_ms}"
-        # )
 
     async def _emit_node_error(
         self,
@@ -327,7 +284,7 @@ class EventPipeline:
         exc: Exception,
     ) -> None:
         """Emit node error event."""
-        node_state = self._get_node_state(node, Status.FAILED)
+        node_state = get_node_state(node, Status.FAILED, state_tracker=self.state_tracker)
 
         event = node_error(
             execution_id=self.execution_id,
@@ -339,56 +296,6 @@ class EventPipeline:
 
         await self._publish(event)
         logger.debug(f"[EventPipeline] Node error: {node.id}, error: {exc}")
-
-        # logger.debug(f"[EventPipeline] Node status changed: {node_id} -> {status}")
-
-    def _get_node_state(
-        self,
-        node: ExecutableNode,
-        status: Status,
-        exec_count: int = 0,
-    ) -> NodeState:
-        """Get or create node state."""
-        if self.state_tracker:
-            node_state = self.state_tracker.get_node_state(node.id)
-            if node_state:
-                return node_state
-
-        return NodeState(
-            node_id=str(node.id),
-            status=status,
-            execution_count=exec_count,
-        )
-
-    def _create_output_summary(self, output: Any) -> str | None:
-        """Create a summary of the output for logging."""
-        if output is None:
-            return None
-
-        if isinstance(output, str):
-            return output[:100] + "..." if len(output) > 100 else output
-        elif isinstance(output, dict):
-            return f"Object with {len(output)} keys"
-        elif isinstance(output, list):
-            return f"Array with {len(output)} items"
-        else:
-            return str(type(output).__name__)
-
-    def _extract_token_usage(self, envelope: Envelope) -> dict | None:
-        """Extract token usage from envelope metadata."""
-        if not envelope or not hasattr(envelope, "meta") or not isinstance(envelope.meta, dict):
-            return None
-
-        llm_usage = envelope.meta.get("llm_usage") or envelope.meta.get("token_usage")
-        if not llm_usage:
-            return None
-
-        if hasattr(llm_usage, "model_dump"):
-            return llm_usage.model_dump()
-        elif isinstance(llm_usage, dict):
-            return llm_usage
-
-        return None
 
     def get_stats(self) -> dict[str, Any]:
         """Get pipeline statistics."""
