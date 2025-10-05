@@ -126,33 +126,3 @@ class StreamConfig:
     chunk_size: int = 1024
     buffer_size: int = 4096
     timeout: int = 30
-
-
-class ProviderError(Exception):
-    """Base exception for provider-specific errors."""
-
-    pass
-
-
-class RateLimitError(ProviderError):
-    """Rate limit exceeded error."""
-
-    pass
-
-
-class AuthenticationError(ProviderError):
-    """Authentication failed error."""
-
-    pass
-
-
-class ModelNotFoundError(ProviderError):
-    """Model not found error."""
-
-    pass
-
-
-class TimeoutError(ProviderError):
-    """Request timeout error."""
-
-    pass

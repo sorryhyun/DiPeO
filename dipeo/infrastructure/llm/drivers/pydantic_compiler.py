@@ -1,7 +1,6 @@
 """Utility for compiling Pydantic model definitions from string code."""
 
 import ast
-import logging
 
 from pydantic import BaseModel
 

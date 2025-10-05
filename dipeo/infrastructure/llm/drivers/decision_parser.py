@@ -35,50 +35,9 @@ class DecisionParser(LoggingMixin):
         if response_lower.startswith("no"):
             return False
 
-        # Keyword matching
-        affirmative_keywords = [
-            "yes",
-            "true",
-            "valid",
-            "approved",
-            "approve",
-            "accept",
-            "accepted",
-            "correct",
-            "pass",
-            "passed",
-            "good",
-            "ok",
-            "okay",
-            "proceed",
-            "continue",
-            "affirmative",
-            "positive",
-            "success",
-            "successful",
-        ]
-
-        negative_keywords = [
-            "no",
-            "false",
-            "invalid",
-            "rejected",
-            "reject",
-            "deny",
-            "denied",
-            "incorrect",
-            "fail",
-            "failed",
-            "bad",
-            "not ok",
-            "not okay",
-            "stop",
-            "halt",
-            "negative",
-            "unsuccessful",
-            "error",
-            "wrong",
-        ]
+        # Keyword matching (limited to 4 most essential keywords each)
+        affirmative_keywords = ["yes", "true", "correct", "pass"]
+        negative_keywords = ["no", "false", "incorrect", "fail"]
 
         affirmative_count = sum(1 for keyword in affirmative_keywords if keyword in response_lower)
         negative_count = sum(1 for keyword in negative_keywords if keyword in response_lower)

@@ -102,9 +102,16 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
                     service_name = service_name.value
                 service_name = normalize_service_name(str(service_name))
 
-            client = await self._client_manager.get_client(service_name, model, api_key_id)
+            # Extract trace_id for timing (if available)
+            trace_id = kwargs.get("trace_id", "")
 
-            # Filter out provider-specific and timing parameters
+            # Time client pool operations
+            async with atime_phase(
+                trace_id, "client_manager", f"get_client__{service_name}", service=service_name, model=model
+            ):
+                client = await self._client_manager.get_client(service_name, model, api_key_id)
+
+            # Filter out provider-specific parameters (keep trace_id for timing)
             filtered_params = {"person_name", "execution_id"}
             client_kwargs = {k: v for k, v in kwargs.items() if k not in filtered_params}
 
@@ -112,15 +119,16 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
             if service_name == "claude-code" and "person_name" in kwargs:
                 client_kwargs["person_name"] = kwargs["person_name"]
 
+            # Ensure trace_id is passed to client for timing
+            if trace_id:
+                client_kwargs["trace_id"] = trace_id
+
             if execution_phase:
                 client_kwargs["execution_phase"] = execution_phase
             else:
                 from dipeo.diagram_generated.enums import ExecutionPhase
 
                 client_kwargs["execution_phase"] = ExecutionPhase.DIRECT_EXECUTION
-
-            # Extract trace_id for timing (if available)
-            trace_id = kwargs.get("trace_id", "")
 
             # Time the LLM API call with hierarchical phase names
             execution_phase_obj = client_kwargs.get("execution_phase", "unknown")

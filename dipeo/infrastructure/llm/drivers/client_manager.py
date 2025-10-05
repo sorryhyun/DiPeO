@@ -11,7 +11,13 @@ from dipeo.domain.base import APIKeyError, LLMServiceError
 from dipeo.domain.base.mixins import LoggingMixin
 from dipeo.domain.integrations.ports import APIKeyPort
 from dipeo.infrastructure.common.utils import SingleFlightCache
-from dipeo.infrastructure.llm.drivers.types import AdapterConfig
+from dipeo.infrastructure.llm.drivers.types import AdapterConfig, ProviderType
+
+# Provider client registry - maps provider names to their client classes
+PROVIDER_CLIENTS = {
+    LLMServiceName.OPENAI.value: "UnifiedOpenAIClient",
+    LLMServiceName.ANTHROPIC.value: "UnifiedAnthropicClient",
+}
 
 
 class ClientManager(LoggingMixin):
@@ -41,8 +47,6 @@ class ClientManager(LoggingMixin):
     def _create_provider_client(
         self, provider: str, model: str, api_key: str, base_url: str | None = None
     ) -> Any:
-        from dipeo.infrastructure.llm.drivers.types import ProviderType
-
         provider_type_map = {
             LLMServiceName.OPENAI.value: ProviderType.OPENAI,
             LLMServiceName.ANTHROPIC.value: ProviderType.ANTHROPIC,
@@ -65,32 +69,28 @@ class ClientManager(LoggingMixin):
             retry_backoff=2.0,
         )
 
-        if provider == LLMServiceName.OPENAI.value:
-            from dipeo.infrastructure.llm.providers.openai.unified_client import UnifiedOpenAIClient
+        # Use registry for unified clients
+        if provider in PROVIDER_CLIENTS:
+            client_class_name = PROVIDER_CLIENTS[provider]
+            if client_class_name == "UnifiedOpenAIClient":
+                from dipeo.infrastructure.llm.providers.openai.unified_client import (
+                    UnifiedOpenAIClient,
+                )
 
-            return UnifiedOpenAIClient(config)
-        elif provider == LLMServiceName.ANTHROPIC.value:
-            from dipeo.infrastructure.llm.providers.anthropic.unified_client import (
-                UnifiedAnthropicClient,
-            )
+                return UnifiedOpenAIClient(config)
+            elif client_class_name == "UnifiedAnthropicClient":
+                from dipeo.infrastructure.llm.providers.anthropic.unified_client import (
+                    UnifiedAnthropicClient,
+                )
 
-            return UnifiedAnthropicClient(config)
-        elif provider == LLMServiceName.OLLAMA.value:
-            from dipeo.infrastructure.llm.drivers.factory import create_adapter
+                return UnifiedAnthropicClient(config)
 
-            return create_adapter(provider, model, api_key, base_url=base_url, async_mode=True)
-        elif (
-            provider == LLMServiceName.GOOGLE.value
-            or provider == LLMServiceName.CLAUDE_CODE.value
-            or provider == LLMServiceName.CLAUDE_CODE_CUSTOM.value
-        ):
-            from dipeo.infrastructure.llm.drivers.factory import create_adapter
+        # Fallback to factory for other providers
+        from dipeo.infrastructure.llm.drivers.factory import create_adapter
 
-            return create_adapter(provider, model, api_key, async_mode=True)
-        else:
-            from dipeo.infrastructure.llm.drivers.factory import create_adapter
-
-            return create_adapter(provider, model, api_key, base_url=base_url, async_mode=True)
+        return create_adapter(
+            provider, model, api_key, base_url=base_url if base_url else None, async_mode=True
+        )
 
     async def get_client(self, service_name: str, model: str, api_key_id: str) -> Any:
         """Get or create a client for the specified service and model."""

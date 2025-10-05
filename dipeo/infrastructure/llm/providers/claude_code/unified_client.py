@@ -25,6 +25,7 @@ from dipeo.infrastructure.llm.drivers.types import (
     LLMResponse,
     ProviderCapabilities,
 )
+from dipeo.infrastructure.timing.context import atime_phase
 
 from .message_processor import ClaudeCodeMessageProcessor
 from .response_parser import ClaudeCodeResponseParser
@@ -116,7 +117,7 @@ class UnifiedClaudeCodeClient:
             kwargs.pop("trace_id", None)
 
     async def _get_or_create_template(
-        self, options: ClaudeAgentOptions, execution_phase: str
+        self, options: ClaudeAgentOptions, execution_phase: str, trace_id: str = ""
     ) -> ClaudeSDKClient:
         """Get or create a template session for the given phase.
 
@@ -126,6 +127,7 @@ class UnifiedClaudeCodeClient:
         Args:
             options: Claude Code options with system prompt
             execution_phase: Execution phase identifier
+            trace_id: Trace ID for timing metrics
 
         Returns:
             Template session (not for direct use, should be forked)
@@ -141,9 +143,14 @@ class UnifiedClaudeCodeClient:
             if FORK_SESSION_ENABLED:
                 options.fork_session = True
 
-            # Create and connect template session
-            template_session = ClaudeSDKClient(options=options)
-            await template_session.connect(None)
+            # Create and connect template session with timing
+            async with atime_phase(
+                trace_id,
+                "claude_code",
+                f"session__template_create__{execution_phase}",
+            ):
+                template_session = ClaudeSDKClient(options=options)
+                await template_session.connect(None)
 
             # Store template
             self._template_sessions[execution_phase] = template_session
@@ -151,7 +158,7 @@ class UnifiedClaudeCodeClient:
             return template_session
 
     async def _create_forked_session(
-        self, options: ClaudeAgentOptions, execution_phase: str
+        self, options: ClaudeAgentOptions, execution_phase: str, trace_id: str = ""
     ) -> ClaudeSDKClient:
         """Create a session by forking from template or creating fresh.
 
@@ -161,6 +168,7 @@ class UnifiedClaudeCodeClient:
         Args:
             options: Claude Code options with system prompt
             execution_phase: Execution phase identifier
+            trace_id: Trace ID for timing metrics
 
         Returns:
             New or forked ClaudeSDKClient session for this request
@@ -169,7 +177,7 @@ class UnifiedClaudeCodeClient:
         if FORK_SESSION_ENABLED:
             try:
                 # Get or create the template session for this phase
-                template = await self._get_or_create_template(options, execution_phase)
+                template = await self._get_or_create_template(options, execution_phase, trace_id)
 
                 # Create a forked session from the template
                 # The fork will inherit the template's configuration but have its own state
@@ -178,16 +186,21 @@ class UnifiedClaudeCodeClient:
                 )
 
                 # Create new session with resume from template (this creates a fork)
-                fork_options = ClaudeAgentOptions(
-                    **{
-                        **options.__dict__,
-                        "resume": template.session_id if hasattr(template, "session_id") else None,
-                        "fork_session": True,
-                    }
-                )
+                async with atime_phase(
+                    trace_id,
+                    "claude_code",
+                    f"session__fork__{execution_phase}",
+                ):
+                    fork_options = ClaudeAgentOptions(
+                        **{
+                            **options.__dict__,
+                            "resume": template.session_id if hasattr(template, "session_id") else None,
+                            "fork_session": True,
+                        }
+                    )
 
-                forked_session = ClaudeSDKClient(options=fork_options)
-                await forked_session.connect(None)
+                    forked_session = ClaudeSDKClient(options=fork_options)
+                    await forked_session.connect(None)
 
                 # Track the forked session for cleanup
                 async with self._session_lock:
@@ -203,8 +216,13 @@ class UnifiedClaudeCodeClient:
         # Fallback: Create a fresh session if forking is not available or failed
         logger.debug(f"[ClaudeCode] Creating fresh session for phase '{execution_phase}'")
 
-        session = ClaudeSDKClient(options=options)
-        await session.connect(None)
+        async with atime_phase(
+            trace_id,
+            "claude_code",
+            f"session__fresh_create__{execution_phase}",
+        ):
+            session = ClaudeSDKClient(options=options)
+            await session.connect(None)
 
         # Track session for cleanup
         async with self._session_lock:
@@ -305,37 +323,44 @@ class UnifiedClaudeCodeClient:
         **kwargs,
     ) -> LLMResponse:
         """Execute async chat completion with simplified template management."""
+        # Extract trace_id for timing (removed from kwargs by _setup_workspace)
+        trace_id = kwargs.get("trace_id", "")
+
         # Prepare messages for Claude SDK
         logger.debug(
             "[ClaudeCode] Preparing %d messages for phase %s",
             len(messages),
             execution_phase,
         )
-        system_message, formatted_messages = self._processor.prepare_message(messages)
+        async with atime_phase(trace_id, "claude_code", "request__prepare_messages"):
+            system_message, formatted_messages = self._processor.prepare_message(messages)
 
         # Configure MCP server based on execution phase
         use_tools = execution_phase in (
             ExecutionPhase.MEMORY_SELECTION,
             ExecutionPhase.DECISION_EVALUATION,
         )
-        tool_options = self._processor.create_tool_options(execution_phase, use_tools)
+        async with atime_phase(trace_id, "claude_code", "request__configure_tools"):
+            tool_options = self._processor.create_tool_options(execution_phase, use_tools)
 
         # Get system prompt based on execution phase
-        system_prompt = self._processor.build_system_prompt(
-            system_message,
-            execution_phase,
-            use_tools,
-            **kwargs,
-        )
+        async with atime_phase(trace_id, "claude_code", "request__build_system_prompt"):
+            system_prompt = self._processor.build_system_prompt(
+                system_message,
+                execution_phase,
+                use_tools,
+                **kwargs,
+            )
 
         # Set up workspace directory for claude-code
         self._setup_workspace(kwargs)
 
         # Create Claude Code options
-        options_dict = self._processor.build_claude_options(
-            system_prompt, tool_options, hooks_config, stream=False, **kwargs
-        )
-        options = ClaudeAgentOptions(**options_dict)
+        async with atime_phase(trace_id, "claude_code", "request__build_options"):
+            options_dict = self._processor.build_claude_options(
+                system_prompt, tool_options, hooks_config, stream=False, **kwargs
+            )
+            options = ClaudeAgentOptions(**options_dict)
 
         # Set up retry logic
         retry = AsyncRetrying(
@@ -351,7 +376,7 @@ class UnifiedClaudeCodeClient:
         async def _make_request():
             # Fork from template or create fresh session for this request
             phase_key = execution_phase.value if execution_phase else "default"
-            session = await self._create_forked_session(options, phase_key)
+            session = await self._create_forked_session(options, phase_key, trace_id)
 
             # Create async generator for messages to yield them individually
             async def message_generator():
@@ -373,7 +398,12 @@ class UnifiedClaudeCodeClient:
 
             # Execute query with unique session ID
             session_id = f"{phase_key}_{uuid4()}"
-            return await self._execute_query(session, query_input, execution_phase, session_id)
+            async with atime_phase(
+                trace_id,
+                "claude_code",
+                f"request__query__{phase_key}",
+            ):
+                return await self._execute_query(session, query_input, execution_phase, session_id)
 
         async for attempt in retry:
             with attempt:
