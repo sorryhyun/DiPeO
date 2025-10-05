@@ -304,8 +304,11 @@ class MetricsObserver(EventBus):
         timing_data = timing_collector.pop(execution_id)
 
         # Merge module timings into node metrics
+        # Hierarchical phase names (e.g., "memory_selection__api_call") are preserved
+        # to enable nested timing display in the CLI
         for node_id, phase_timings in timing_data.items():
             # Filter out metadata entries (end with "_metadata")
+            # The hierarchical phase names themselves contain all needed info
             timings = {
                 phase: dur_ms
                 for phase, dur_ms in phase_timings.items()

@@ -137,28 +137,118 @@ class DisplayManager:
                         f"Avg: {int(stat['avg']):6d}ms Max: {int(stat['max']):6d}ms Count: {stat['count']}"
                     )
 
-            # Show node-level phases
+            # Show node-level phases with hierarchical structure
             if node_phases:
                 print("\n⏱️  Node Phase Timing Summary:")
-                phase_stats = []
+
+                # Parse hierarchical phases
+                hierarchical_stats = {}
+                flat_stats = {}
+
                 for phase, durations in node_phases.items():
                     total = sum(durations)
                     avg = total / len(durations)
                     max_dur = max(durations)
                     count = len(durations)
-                    phase_stats.append(
-                        {"phase": phase, "total": total, "avg": avg, "max": max_dur, "count": count}
-                    )
 
-                # Sort by total time
-                phase_stats.sort(key=lambda x: x["total"], reverse=True)
+                    # Check if this is a hierarchical phase (contains __)
+                    if "__" in phase:
+                        parent, child = phase.split("__", 1)
 
-                for stat in phase_stats[:10]:  # Top 10 phases
-                    pct = (stat["total"] / total_duration * 100) if total_duration > 0 else 0
+                        # Track parent phase
+                        if parent not in hierarchical_stats:
+                            hierarchical_stats[parent] = {
+                                "total": 0,
+                                "count": 0,
+                                "children": {}
+                            }
+                        hierarchical_stats[parent]["total"] += total
+                        hierarchical_stats[parent]["count"] += count
+
+                        # Track child under parent
+                        if child not in hierarchical_stats[parent]["children"]:
+                            hierarchical_stats[parent]["children"][child] = {
+                                "total": 0,
+                                "avg": 0,
+                                "max": 0,
+                                "count": 0
+                            }
+                        hierarchical_stats[parent]["children"][child]["total"] += total
+                        hierarchical_stats[parent]["children"][child]["count"] += count
+                        hierarchical_stats[parent]["children"][child]["avg"] = (
+                            hierarchical_stats[parent]["children"][child]["total"] /
+                            hierarchical_stats[parent]["children"][child]["count"]
+                        )
+                        hierarchical_stats[parent]["children"][child]["max"] = max(
+                            hierarchical_stats[parent]["children"][child]["max"],
+                            max_dur
+                        )
+                    else:
+                        # Non-hierarchical phase
+                        flat_stats[phase] = {
+                            "phase": phase,
+                            "total": total,
+                            "avg": avg,
+                            "max": max_dur,
+                            "count": count
+                        }
+
+                # Display hierarchical phases
+                for parent, parent_data in sorted(
+                    hierarchical_stats.items(),
+                    key=lambda x: x[1]["total"],
+                    reverse=True
+                ):
+                    parent_total = parent_data["total"]
+                    parent_count = parent_data["count"]
+                    parent_pct = (parent_total / total_duration * 100) if total_duration > 0 else 0
+
+                    print(f"\n  📦 {parent}:")
                     print(
-                        f"  {stat['phase']:30s} Total: {int(stat['total']):7d}ms ({pct:5.1f}%) "
-                        f"Avg: {int(stat['avg']):6d}ms Max: {int(stat['max']):6d}ms Count: {stat['count']}"
+                        f"    Total: {int(parent_total):7d}ms ({parent_pct:5.1f}%) "
+                        f"Count: {parent_count}"
                     )
+
+                    # Show children
+                    children_total = 0
+                    for child, child_data in sorted(
+                        parent_data["children"].items(),
+                        key=lambda x: x[1]["total"],
+                        reverse=True
+                    ):
+                        child_total = child_data["total"]
+                        child_avg = child_data["avg"]
+                        child_max = child_data["max"]
+                        child_count = child_data["count"]
+                        child_pct = (child_total / parent_total * 100) if parent_total > 0 else 0
+                        children_total += child_total
+
+                        print(
+                            f"      ↳ {child:25s} {int(child_total):7d}ms ({child_pct:5.1f}%) "
+                            f"Avg: {int(child_avg):6d}ms Max: {int(child_max):6d}ms Count: {child_count}"
+                        )
+
+                    # Calculate and show overhead
+                    overhead = parent_total - children_total
+                    if overhead > 0:
+                        overhead_pct = (overhead / parent_total * 100) if parent_total > 0 else 0
+                        print(
+                            f"      ↳ {'[overhead]':25s} {int(overhead):7d}ms ({overhead_pct:5.1f}%)"
+                        )
+
+                # Display flat (non-hierarchical) phases
+                if flat_stats:
+                    print("\n  📋 Other Phases:")
+                    for stat in sorted(
+                        flat_stats.values(),
+                        key=lambda x: x["total"],
+                        reverse=True
+                    )[:10]:
+                        pct = (stat["total"] / total_duration * 100) if total_duration > 0 else 0
+                        print(
+                            f"    {stat['phase']:28s} Total: {int(stat['total']):7d}ms ({pct:5.1f}%) "
+                            f"Avg: {int(stat['avg']):6d}ms Max: {int(stat['max']):6d}ms Count: {stat['count']}"
+                        )
 
             print("\n⏱️  Per-Node Timing Breakdown:")
             for node_data in node_breakdown:

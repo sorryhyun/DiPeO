@@ -58,7 +58,7 @@ make dev-web          # Start frontend only
 ### Running Diagrams
 ```bash
 # Run with debug mode (auto-starts monitoring server)
-dipeo run examples/simple_diagrams/simple_iter --light --debug --timeout=40
+dipeo run examples/simple_diagrams/simple_iter --light --debug --timeout=40 --timing
 
 # Run with custom input data
 dipeo run [diagram] --input-data '{"key": "value"}' --light --debug
