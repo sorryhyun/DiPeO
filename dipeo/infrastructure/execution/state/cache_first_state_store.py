@@ -374,19 +374,22 @@ class CacheFirstStateStore(StateStorePort, ExecutionStateService, ExecutionCache
 
     async def save_state(self, state: ExecutionState):
         """Save state to cache (deferred database write)."""
+        from dipeo.infrastructure.timing import atime_phase
+
         exec_id = state.id
 
-        entry = await self._cache_manager.get_entry(exec_id)
-        if entry:
-            entry.state = state
-            entry.mark_dirty()
-        else:
-            entry = CacheEntry(
-                state=state,
-                is_dirty=True,
-                is_persisted=False,
-            )
-            await self._cache_manager.put_entry(exec_id, entry)
+        async with atime_phase(str(exec_id), "system", "cache_write"):
+            entry = await self._cache_manager.get_entry(exec_id)
+            if entry:
+                entry.state = state
+                entry.mark_dirty()
+            else:
+                entry = CacheEntry(
+                    state=state,
+                    is_dirty=True,
+                    is_persisted=False,
+                )
+                await self._cache_manager.put_entry(exec_id, entry)
 
         # Check if we need a checkpoint
         node_count = len(state.executed_nodes)

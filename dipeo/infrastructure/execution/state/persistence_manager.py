@@ -132,7 +132,10 @@ class PersistenceManager:
         self, execution_id: str, entry: CacheEntry, use_full_sync: bool = False
     ) -> None:
         """Persist a cache entry to database with optional enhanced durability."""
-        state_dict = entry.state.model_dump()
+        from dipeo.infrastructure.timing import atime_phase
+
+        async with atime_phase(str(execution_id), "system", "db_serialize"):
+            state_dict = entry.state.model_dump()
 
         # Use enhanced durability for critical writes
         if use_full_sync:
@@ -142,49 +145,51 @@ class PersistenceManager:
             )
 
         try:
-            await self.execute(
-                """
-                INSERT INTO execution_states
-                (execution_id, status, diagram_id, started_at, ended_at,
-                 node_states, node_outputs, llm_usage, error, variables,
-                 exec_counts, executed_nodes, metrics, access_count, last_accessed)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(execution_id) DO UPDATE SET
-                    status=excluded.status,
-                    ended_at=excluded.ended_at,
-                    node_states=excluded.node_states,
-                    node_outputs=excluded.node_outputs,
-                    llm_usage=excluded.llm_usage,
-                    error=excluded.error,
-                    variables=excluded.variables,
-                    exec_counts=excluded.exec_counts,
-                    executed_nodes=excluded.executed_nodes,
-                    metrics=excluded.metrics,
-                    access_count=excluded.access_count,
-                    last_accessed=excluded.last_accessed
-                """,
-                (
-                    entry.state.id,
-                    entry.state.status.value,
-                    entry.state.diagram_id,
-                    entry.state.started_at,
-                    entry.state.ended_at,
-                    json.dumps(state_dict["node_states"]),
-                    json.dumps(state_dict["node_outputs"]),
-                    json.dumps(state_dict["llm_usage"]),
-                    entry.state.error,
-                    json.dumps(state_dict["variables"]),
-                    json.dumps(state_dict["exec_counts"]),
-                    json.dumps(state_dict["executed_nodes"]),
-                    json.dumps(state_dict.get("metrics")) if state_dict.get("metrics") else None,
-                    entry.access_count,
-                    datetime.now().isoformat(),
-                ),
-            )
+            async with atime_phase(str(execution_id), "system", "db_write"):
+                await self.execute(
+                    """
+                    INSERT INTO execution_states
+                    (execution_id, status, diagram_id, started_at, ended_at,
+                     node_states, node_outputs, llm_usage, error, variables,
+                     exec_counts, executed_nodes, metrics, access_count, last_accessed)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(execution_id) DO UPDATE SET
+                        status=excluded.status,
+                        ended_at=excluded.ended_at,
+                        node_states=excluded.node_states,
+                        node_outputs=excluded.node_outputs,
+                        llm_usage=excluded.llm_usage,
+                        error=excluded.error,
+                        variables=excluded.variables,
+                        exec_counts=excluded.exec_counts,
+                        executed_nodes=excluded.executed_nodes,
+                        metrics=excluded.metrics,
+                        access_count=excluded.access_count,
+                        last_accessed=excluded.last_accessed
+                    """,
+                    (
+                        entry.state.id,
+                        entry.state.status.value,
+                        entry.state.diagram_id,
+                        entry.state.started_at,
+                        entry.state.ended_at,
+                        json.dumps(state_dict["node_states"]),
+                        json.dumps(state_dict["node_outputs"]),
+                        json.dumps(state_dict["llm_usage"]),
+                        entry.state.error,
+                        json.dumps(state_dict["variables"]),
+                        json.dumps(state_dict["exec_counts"]),
+                        json.dumps(state_dict["executed_nodes"]),
+                        json.dumps(state_dict.get("metrics")) if state_dict.get("metrics") else None,
+                        entry.access_count,
+                        datetime.now().isoformat(),
+                    ),
+                )
 
             # Force commit for critical writes
             if use_full_sync:
-                await loop.run_in_executor(self._executor, self._conn.commit)
+                async with atime_phase(str(execution_id), "system", "db_commit"):
+                    await loop.run_in_executor(self._executor, self._conn.commit)
 
         finally:
             # Restore normal synchronous mode after critical write

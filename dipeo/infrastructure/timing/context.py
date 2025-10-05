@@ -39,15 +39,16 @@ def time_phase(exec_id: str, node_id: str, phase: str, **metadata: Any):
         raise
     finally:
         dur_ms = (time.perf_counter_ns() - start) / 1_000_000
-        timing_collector.record(exec_id, node_id, phase, dur_ms, **metadata)
+        dur_ms_int = round(dur_ms)
+        timing_collector.record(exec_id, node_id, phase, dur_ms_int, **metadata)
 
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(
-                "exec_id=%s node_id=%s phase=%s dur_ms=%.3f status=%s",
+                "exec_id=%s node_id=%s phase=%s dur_ms=%dms status=%s",
                 exec_id,
                 node_id,
                 phase,
-                dur_ms,
+                dur_ms_int,
                 "error" if exception_occurred else "ok",
                 extra={"timing": metadata},
             )

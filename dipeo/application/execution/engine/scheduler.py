@@ -66,19 +66,25 @@ class NodeScheduler:
 
     async def get_ready_nodes(self, context: "TypedExecutionContext") -> list[ExecutableNode]:
         """Get all nodes that are ready to execute."""
+        from dipeo.infrastructure.timing import time_phase
+
         ready_nodes = []
         all_nodes = self.diagram.get_nodes_by_type(None) or self.diagram.nodes
         epoch = context.current_epoch()
 
-        incoming_edges_map = {
-            node.id: self.diagram.get_incoming_edges(node.id) for node in all_nodes
-        }
+        with time_phase(str(context.execution_id), "system", "edge_map_building"):
+            incoming_edges_map = {
+                node.id: self.diagram.get_incoming_edges(node.id) for node in all_nodes
+            }
 
-        for node in all_nodes:
-            is_ready = self._is_node_ready_optimized(node, context, incoming_edges_map)
-            if is_ready:
-                ready_nodes.append(node)
-        return self._prioritize_nodes(ready_nodes)
+        with time_phase(str(context.execution_id), "system", "readiness_checking"):
+            for node in all_nodes:
+                is_ready = self._is_node_ready_optimized(node, context, incoming_edges_map)
+                if is_ready:
+                    ready_nodes.append(node)
+
+        with time_phase(str(context.execution_id), "system", "node_prioritization"):
+            return self._prioritize_nodes(ready_nodes)
 
     def mark_node_completed(self, node_id: NodeID, context: "TypedExecutionContext") -> set[NodeID]:
         """Mark a node as completed and return newly ready nodes."""

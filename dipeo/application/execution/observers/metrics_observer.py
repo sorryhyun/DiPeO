@@ -305,14 +305,25 @@ class MetricsObserver(EventBus):
 
         # Merge module timings into node metrics
         for node_id, phase_timings in timing_data.items():
+            # Filter out metadata entries (end with "_metadata")
+            timings = {
+                phase: dur_ms
+                for phase, dur_ms in phase_timings.items()
+                if not phase.endswith("_metadata")
+            }
+
             if node_id in metrics.node_metrics:
-                # Filter out metadata entries (end with "_metadata")
-                timings = {
-                    phase: dur_ms
-                    for phase, dur_ms in phase_timings.items()
-                    if not phase.endswith("_metadata")
-                }
                 metrics.node_metrics[node_id].module_timings = timings
+            else:
+                # Create entry for system-level operations (scheduler, persistence, etc.)
+                metrics.node_metrics[node_id] = DataclassNodeMetrics(
+                    node_id=node_id,
+                    node_type="system",
+                    start_time=metrics.start_time,
+                    end_time=metrics.end_time,
+                    duration_ms=sum(timings.values()) if timings else 0,
+                    module_timings=timings,
+                )
 
         # Persist metrics to database if state_store is available
         if self.state_store:

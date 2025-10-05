@@ -116,7 +116,10 @@ class TypedExecutionEngine:
 
             step_count = 0
             while not context.is_execution_complete():
-                ready_nodes = await self._scheduler.get_ready_nodes(context)
+                from dipeo.infrastructure.timing import atime_phase
+
+                async with atime_phase(str(context.execution_id), "system", "node_scheduling"):
+                    ready_nodes = await self._scheduler.get_ready_nodes(context)
 
                 if not ready_nodes:
                     poll_interval = getattr(

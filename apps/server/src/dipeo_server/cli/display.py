@@ -96,20 +96,52 @@ class DisplayManager:
 
         # Module-level breakdown
         if show_breakdown and node_breakdown:
-            # Collect all phases across all nodes
-            all_phases = {}
+            # Collect system-level and node-level phases separately
+            system_phases = {}
+            node_phases = {}
+
             for node_data in node_breakdown:
                 module_timings = node_data.get("module_timings", {})
-                for phase, duration in module_timings.items():
-                    if phase not in all_phases:
-                        all_phases[phase] = []
-                    all_phases[phase].append(duration)
+                node_id = node_data.get("node_id", "")
 
-            if all_phases:
-                print("\n⏱️  Phase Timing Summary:")
-                # Calculate stats for each phase
+                for phase, duration in module_timings.items():
+                    # System operations have node_id = "system"
+                    if node_id == "system":
+                        if phase not in system_phases:
+                            system_phases[phase] = []
+                        system_phases[phase].append(duration)
+                    else:
+                        if phase not in node_phases:
+                            node_phases[phase] = []
+                        node_phases[phase].append(duration)
+
+            # Show system-level operations first
+            if system_phases:
+                print("\n🔧 System Operations Timing:")
+                system_stats = []
+                for phase, durations in system_phases.items():
+                    total = sum(durations)
+                    avg = total / len(durations)
+                    max_dur = max(durations)
+                    count = len(durations)
+                    system_stats.append(
+                        {"phase": phase, "total": total, "avg": avg, "max": max_dur, "count": count}
+                    )
+
+                system_stats.sort(key=lambda x: x["total"], reverse=True)
+
+                for stat in system_stats:
+                    pct = (stat["total"] / total_duration * 100) if total_duration > 0 else 0
+                    print(
+                        f"  {stat['phase']:30s} Total: {int(stat['total']):7d}ms ({pct:5.1f}%) "
+                        f"Avg: {int(stat['avg']):6d}ms Max: {int(stat['max']):6d}ms Count: {stat['count']}"
+                    )
+
+            # Show node-level phases
+            if node_phases:
+                print("\n⏱️  Node Phase Timing Summary:")
                 phase_stats = []
-                for phase, durations in all_phases.items():
+                for phase, durations in node_phases.items():
                     total = sum(durations)
                     avg = total / len(durations)
                     max_dur = max(durations)
@@ -124,13 +156,18 @@ class DisplayManager:
                 for stat in phase_stats[:10]:  # Top 10 phases
                     pct = (stat["total"] / total_duration * 100) if total_duration > 0 else 0
                     print(
-                        f"  {stat['phase']:30s} Total: {stat['total']:7.0f}ms ({pct:5.1f}%) "
-                        f"Avg: {stat['avg']:6.0f}ms Max: {stat['max']:6.0f}ms Count: {stat['count']}"
+                        f"  {stat['phase']:30s} Total: {int(stat['total']):7d}ms ({pct:5.1f}%) "
+                        f"Avg: {int(stat['avg']):6d}ms Max: {int(stat['max']):6d}ms Count: {stat['count']}"
                     )
 
             print("\n⏱️  Per-Node Timing Breakdown:")
             for node_data in node_breakdown:
                 node_id = node_data["node_id"]
+
+                # Skip system node as it's shown separately
+                if node_id == "system":
+                    continue
+
                 node_type = node_data.get("node_type", "unknown")
                 total_ms = node_data.get("duration_ms", 0)
                 module_timings = node_data.get("module_timings", {})
@@ -153,7 +190,7 @@ class DisplayManager:
 
                 for phase, duration in sorted_phases:
                     pct = (duration / total_ms * 100) if total_ms > 0 else 0
-                    print(f"    ├─ {phase:30s} {duration:7.0f}ms ({pct:5.1f}%)")
+                    print(f"    ├─ {phase:30s} {int(duration):7d}ms ({pct:5.1f}%)")
 
         if optimizations_only:
             optimizations = metrics.get("optimization_suggestions", [])

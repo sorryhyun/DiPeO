@@ -30,15 +30,18 @@ class TimingCollector:
             exec_id: Execution ID
             node_id: Node ID (use "system" for non-node phases)
             phase: Phase name (e.g., "input_extraction", "llm_completion")
-            dur_ms: Duration in milliseconds
+            dur_ms: Duration in milliseconds (will be rounded to integer)
             **metadata: Additional context (model, token_count, etc.)
         """
+        # Round to integer milliseconds (show 0 for sub-millisecond operations)
+        dur_ms_int = round(dur_ms)
+
         with self._data_lock:
             if phase in self._data[exec_id][node_id]:
                 # Accumulate if phase runs multiple times
-                self._data[exec_id][node_id][phase] += dur_ms
+                self._data[exec_id][node_id][phase] += dur_ms_int
             else:
-                self._data[exec_id][node_id][phase] = dur_ms
+                self._data[exec_id][node_id][phase] = dur_ms_int
 
             # Store metadata separately if provided
             if metadata:
