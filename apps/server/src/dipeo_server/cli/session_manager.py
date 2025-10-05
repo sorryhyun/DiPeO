@@ -40,6 +40,11 @@ class SessionManager:
     ) -> None:
         """Register a CLI session via GraphQL mutation to the running server."""
         try:
+            # Check if server is available first - skip registration if not
+            if not await SessionManager.is_server_available():
+                logger.debug("Server not available, skipping CLI session registration")
+                return
+
             input_data = RegisterCliSessionInput(
                 execution_id=execution_id,
                 diagram_name=diagram_name,

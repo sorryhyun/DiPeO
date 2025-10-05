@@ -82,6 +82,7 @@ def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdate | None
             "metrics": event_data.get("metrics"),
             "error": event_data.get("error"),
             "token_usage": event_data.get("token_usage"),  # From data payload
+            "memory_selection": event_meta.get("memory_selection") or event_data.get("memory_selection"),  # Check meta first, then data
             "person_id": event_meta.get("person_id"),  # From metadata
             "model": event_meta.get("model"),  # From metadata
         }

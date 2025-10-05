@@ -384,17 +384,31 @@ class BaseMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
                     if event.type == EventType.NODE_COMPLETED
                     else "FAILED"
                 )
+                # Start with full payload data and add UI-specific fields
+                ui_data = payload.get("data", {}) if isinstance(payload.get("data"), dict) else {}
+                ui_data.update({
+                    "node_id": event.scope.node_id,
+                    "status": node_status,
+                    "timestamp": event.occurred_at.isoformat(),
+                })
+
                 ui_payload = {
                     "type": event.type.value,
                     "event_type": event.type.value,
                     "execution_id": str(event.scope.execution_id),
-                    "data": {
-                        "node_id": event.scope.node_id,
-                        "status": node_status,
-                        "timestamp": event.occurred_at.isoformat(),
-                    },
+                    "data": ui_data,
+                    "meta": payload.get("metadata", {}),  # Include metadata (person_id, model, etc.)
                     "timestamp": event.occurred_at.isoformat(),
                 }
+
+                # Debug logging for NODE_COMPLETED
+                if event.type == EventType.NODE_COMPLETED:
+                    logger.debug(
+                        f"[MessageRouter] Broadcasting NODE_COMPLETED - "
+                        f"data keys: {list(ui_data.keys())}, "
+                        f"has token_usage: {'token_usage' in ui_data}"
+                    )
+
                 await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
 
         else:

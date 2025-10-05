@@ -18,6 +18,9 @@ async def create_server_container() -> Container:
 
     This replaces the complex ServerContainer with a simple configuration-based approach.
     """
+    import time
+    start_time = time.time()
+
     # Get unified settings
     settings = get_settings()
 
@@ -38,7 +41,9 @@ async def create_server_container() -> Container:
     )
 
     # Bootstrap all services
+    logger.debug("Bootstrapping services...")
     bootstrap_services(container.registry, redis_client=None)
+    logger.debug(f"Services bootstrapped in {(time.time() - start_time) * 1000:.1f}ms")
 
     # Wire optional features if specified
     features = os.getenv("DIPEO_FEATURES", "").split(",") if os.getenv("DIPEO_FEATURES") else []
@@ -70,8 +75,10 @@ async def create_server_container() -> Container:
     from dipeo.application.registry import ServiceKey
     from dipeo.application.registry.keys import STATE_REPOSITORY
 
+    logger.debug("Initializing state repository...")
     state_store = container.registry.resolve(STATE_REPOSITORY)
     await initialize_service(state_store)
+    logger.debug(f"State repository initialized in {(time.time() - start_time) * 1000:.1f}ms")
 
     # Register for backward compatibility
     # Guard against duplicate registration (STATE_STORE is marked as immutable)
@@ -82,10 +89,14 @@ async def create_server_container() -> Container:
 
     # CacheFirstStateStore is now wired and subscribed in bootstrap.py
     # Execute event subscriptions to activate state store event handling
+    logger.debug("Executing event subscriptions...")
     await execute_event_subscriptions(container.registry)
+    logger.debug(f"Event subscriptions executed in {(time.time() - start_time) * 1000:.1f}ms")
 
     # Initialize and wire MessageRouter
+    logger.debug("Initializing message router...")
     await message_router.initialize()
+    logger.debug(f"Message router initialized in {(time.time() - start_time) * 1000:.1f}ms")
 
     if domain_event_bus is not None:
         from dipeo.domain.events.types import EventPriority
@@ -110,6 +121,7 @@ async def create_server_container() -> Container:
     # Create and subscribe metrics observer
     from dipeo.application.execution.observers import MetricsObserver
 
+    logger.debug("Setting up metrics observer...")
     metrics_observer = MetricsObserver(event_bus=event_bus, state_store=state_store)
 
     # Register metrics observer in the container for external access
@@ -131,12 +143,14 @@ async def create_server_container() -> Container:
 
     # Start the metrics observer
     await metrics_observer.start()
+    logger.debug(f"Metrics observer started in {(time.time() - start_time) * 1000:.1f}ms")
 
     # Initialize provider registry for webhook integration
     from dipeo.infrastructure.integrations.drivers.integrated_api.registry import (
         ProviderRegistry,
     )
 
+    logger.debug("Initializing provider registry...")
     provider_registry = ProviderRegistry()
 
     # Initialize the registry first
@@ -156,11 +170,14 @@ async def create_server_container() -> Container:
         logger.warning(f"Failed to load provider manifests: {e}")
 
     container.registry.register(PROVIDER_REGISTRY, provider_registry)
+    logger.debug(f"Provider registry initialized in {(time.time() - start_time) * 1000:.1f}ms")
 
     # Initialize services
+    logger.debug("Initializing event buses...")
     if domain_event_bus is not None:
         await domain_event_bus.initialize()
     await event_bus.initialize()
+    logger.debug(f"Event buses initialized in {(time.time() - start_time) * 1000:.1f}ms")
     # state_manager is initialized via execute_event_subscriptions
     # metrics_observer doesn't require initialization
 
@@ -174,6 +191,9 @@ async def create_server_container() -> Container:
     unused = container.registry.report_unused()
     if unused:
         logger.info(f"🔎 Unused registrations this run ({len(unused)}): {', '.join(unused)}")
+
+    total_time = (time.time() - start_time) * 1000
+    logger.info(f"✅ Server container initialized in {total_time:.1f}ms")
 
     return container
 

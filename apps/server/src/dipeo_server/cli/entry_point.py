@@ -55,17 +55,14 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
         timing_only=timing and not debug,  # Only show timing logs when --timing (not --debug)
     )
 
-    # Start background server if in debug or timing mode
+    # Start background server if in debug or timing mode (async, non-blocking)
     server_manager = None
     if (debug or timing) and args.command == "run":
-        print("🚀 Starting background server for monitoring...")
+        print("🚀 Starting background server for monitoring (async)...")
         server_manager = ServerManager()
-        server_started = await server_manager.start(timeout=10)
-        if server_started:
-            print("✅ Server ready - Monitor at http://localhost:3000/?monitor=true")
-        else:
-            print("⚠️  Failed to start background server for monitoring")
-            print("    Execution will continue, but monitoring won't be available")
+        # Start server without waiting - it will be ready in background
+        asyncio.create_task(server_manager.start_async())
+        print("💡 Monitor will be available at http://localhost:3000/?monitor=true (starting...)")
 
     # Create container and initialize resources
     container = await create_server_container()
