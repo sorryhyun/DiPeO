@@ -106,6 +106,11 @@ class UnifiedTypeResolver:
         self.manual_conversion_types = set(self.graphql_config.get("manual_conversion_types", []))
         self.pydantic_decorator_types = set(self.graphql_config.get("pydantic_decorator_types", []))
 
+        # Load type_suffix_types from config
+        self.type_suffix_types = set(
+            self.graphql_config.get("strawberry_type_rules", {}).get("type_suffix_types", [])
+        )
+
         self.conversion_registry = TypeConversionRegistry()
 
     def _load_config(self, filename: str) -> dict[str, Any]:
@@ -250,18 +255,8 @@ class UnifiedTypeResolver:
             base_type = self._resolve_strawberry_type(field_name, inner_type, False, type_name)
             is_optional = True  # Mark as optional for later processing
 
-        # Handle known complex types
-        elif field_type in [
-            "Vec2",
-            "PersonLLMConfig",
-            "DiagramMetadata",
-            "EnvelopeMeta",
-            "ExecutionMetrics",
-            "LLMUsage",
-            "ConversationMetadata",
-            "NodeState",
-            "NodeMetrics",
-        ]:
+        # Handle known complex types that need Type suffix
+        elif field_type in self.type_suffix_types:
             base_type = f"{field_type}Type"
 
         # Handle enums (these should be imported from enums module)
@@ -341,12 +336,9 @@ class UnifiedTypeResolver:
         # Handle list of domain types
         if inner_type.startswith("Domain"):
             return f"List[{inner_type}Type]"
-        elif inner_type == "Message":
-            return "List[MessageType]"
-        elif inner_type == "ConversationMetadata":
-            return "List[ConversationMetadataType]"
-        elif inner_type == "Bottleneck":
-            return "List[BottleneckType]"
+        # Check if inner type needs Type suffix
+        elif inner_type in self.type_suffix_types:
+            return f"List[{inner_type}Type]"
         else:
             return f"List[{inner_type}]"
 

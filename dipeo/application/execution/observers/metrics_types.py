@@ -16,6 +16,7 @@ class NodeMetrics:
     memory_usage: int | None = None
     token_usage: dict[str, int] | None = None
     error: str | None = None
+    iteration: int | None = None
     dependencies: set[str] = field(default_factory=set)
     module_timings: dict[str, float] = field(default_factory=dict)
 

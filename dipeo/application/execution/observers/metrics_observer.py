@@ -50,6 +50,8 @@ class MetricsObserver(EventBus):
         self._cleanup_task: asyncio.Task | None = None
         self._running = False
         self._max_completed_metrics = 10
+        # Track active metrics key for each node_id in each execution
+        self._active_node_keys: dict[str, dict[str, str]] = {}
 
         self._analyzer = MetricsAnalyzer(event_bus=event_bus, analysis_threshold_ms=1000)
 
@@ -171,10 +173,21 @@ class MetricsObserver(EventBus):
             return
 
         payload = cast(NodeStartedPayload, event.payload)
-        metrics.node_metrics[node_id] = DataclassNodeMetrics(
+        iteration = payload.iteration if payload.iteration is not None else 0
+
+        # Use compound key to track iterations separately
+        metrics_key = f"{node_id}_iter_{iteration}" if iteration > 0 or payload.iteration is not None else node_id
+
+        # Track this as the active key for this node
+        if execution_id not in self._active_node_keys:
+            self._active_node_keys[execution_id] = {}
+        self._active_node_keys[execution_id][node_id] = metrics_key
+
+        metrics.node_metrics[metrics_key] = DataclassNodeMetrics(
             node_id=node_id,
             node_type=payload.node_type or "unknown",
             start_time=event.occurred_at.timestamp(),
+            iteration=iteration,
         )
 
         if payload.inputs and isinstance(payload.inputs, dict):
@@ -192,10 +205,16 @@ class MetricsObserver(EventBus):
             return
 
         node_id = event.scope.node_id
-        if not node_id or node_id not in metrics.node_metrics:
+        if not node_id:
             return
 
-        node_metrics = metrics.node_metrics[node_id]
+        # Get the active metrics key for this node
+        metrics_key = self._active_node_keys.get(execution_id, {}).get(node_id, node_id)
+
+        if metrics_key not in metrics.node_metrics:
+            return
+
+        node_metrics = metrics.node_metrics[metrics_key]
         node_metrics.end_time = event.occurred_at.timestamp()
 
         payload = cast(NodeCompletedPayload, event.payload)
@@ -207,7 +226,7 @@ class MetricsObserver(EventBus):
         if payload.token_usage:
             node_metrics.token_usage = payload.token_usage
             logger.debug(
-                f"[MetricsObserver] Recorded token usage for {node_id}: {payload.token_usage}"
+                f"[MetricsObserver] Recorded token usage for {metrics_key}: {payload.token_usage}"
             )
 
     async def _handle_node_failed(self, event: DomainEvent) -> None:
@@ -218,10 +237,16 @@ class MetricsObserver(EventBus):
             return
 
         node_id = event.scope.node_id
-        if not node_id or node_id not in metrics.node_metrics:
+        if not node_id:
             return
 
-        node_metrics = metrics.node_metrics[node_id]
+        # Get the active metrics key for this node
+        metrics_key = self._active_node_keys.get(execution_id, {}).get(node_id, node_id)
+
+        if metrics_key not in metrics.node_metrics:
+            return
+
+        node_metrics = metrics.node_metrics[metrics_key]
         node_metrics.end_time = event.occurred_at.timestamp()
         node_metrics.duration_ms = (node_metrics.end_time - node_metrics.start_time) * 1000
 
@@ -380,6 +405,9 @@ class MetricsObserver(EventBus):
             del self._completed_metrics[oldest_id]
 
         del self._metrics_buffer[execution_id]
+        # Clean up tracking dictionaries
+        if execution_id in self._active_node_keys:
+            del self._active_node_keys[execution_id]
         self._analyzer.clear_node_dependencies(execution_id)
 
     async def _cleanup_loop(self) -> None:

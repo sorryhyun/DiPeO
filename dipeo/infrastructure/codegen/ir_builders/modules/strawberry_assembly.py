@@ -102,17 +102,19 @@ class BuildDomainIRStep(BuildStep):
         return domain_data
 
     def _organize_domain_types(self, domain_types: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Organize and validate domain types.
+        """Organize and validate domain types, sorted by dependencies.
 
         Args:
             domain_types: List of domain type definitions
 
         Returns:
-            Organized list of domain types
+            Organized list of domain types sorted topologically
         """
         organized = []
         seen_names = set()
 
+        # First pass: deduplicate
+        unique_types = []
         for dtype in domain_types:
             name = dtype.get("name", "")
             if not name:
@@ -122,9 +124,83 @@ class BuildDomainIRStep(BuildStep):
                 continue
 
             seen_names.add(name)
-            organized.append(dtype)
+            unique_types.append(dtype)
 
-        return organized
+        # Second pass: topological sort by dependencies
+        sorted_types = self._topological_sort_types(unique_types)
+
+        return sorted_types
+
+    def _topological_sort_types(self, types: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Sort types topologically by their dependencies.
+
+        Args:
+            types: List of type definitions
+
+        Returns:
+            List of types sorted so dependencies come first
+        """
+        # Build dependency graph
+        type_map = {t["name"]: t for t in types}
+        dependencies = {}  # type_name -> set of types it depends on
+
+        for dtype in types:
+            name = dtype.get("name", "")
+            deps = set()
+
+            # Extract dependencies from resolved_fields
+            for field in dtype.get("resolved_fields", []):
+                field_type = field.get("strawberry_type", "")
+                # Extract type names from complex types like List[XType], Optional[XType]
+                deps.update(self._extract_type_names(field_type))
+
+            # Filter to only include types that exist in our set, excluding self-references
+            dependencies[name] = {d for d in deps if d in type_map and d != name}
+
+        # Perform topological sort using Kahn's algorithm
+        sorted_names = []
+        in_degree = {name: len(deps) for name, deps in dependencies.items()}
+        queue = [name for name, degree in in_degree.items() if degree == 0]
+
+        while queue:
+            # Sort queue for deterministic output
+            queue.sort()
+            current = queue.pop(0)
+            sorted_names.append(current)
+
+            # Reduce in-degree for dependent types
+            for name, deps in dependencies.items():
+                if current in deps:
+                    in_degree[name] -= 1
+                    if in_degree[name] == 0:
+                        queue.append(name)
+
+        # Add any remaining types (circular dependencies or isolated types)
+        remaining = [name for name in type_map.keys() if name not in sorted_names]
+        sorted_names.extend(sorted(remaining))
+
+        # Return types in sorted order
+        return [type_map[name] for name in sorted_names if name in type_map]
+
+    def _extract_type_names(self, type_str: str) -> set[str]:
+        """Extract type names from a type string (e.g., List[SessionEventType] -> {SessionEvent}).
+
+        Args:
+            type_str: Type string to extract names from
+
+        Returns:
+            Set of type names found (with 'Type' suffix stripped to match IR type names)
+        """
+        import re
+
+        # Extract all capitalized words ending with 'Type'
+        # This matches: SessionEventType, DomainNodeType, etc.
+        pattern = r'\b([A-Z][a-zA-Z0-9]*Type)\b'
+        matches = re.findall(pattern, type_str)
+
+        # Strip the 'Type' suffix to match the type names in IR
+        # E.g., 'LLMUsageType' -> 'LLMUsage'
+        return {match[:-4] if match.endswith('Type') else match for match in matches}
 
     def _organize_interfaces(self, interfaces: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Organize and filter interfaces.

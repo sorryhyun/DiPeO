@@ -251,36 +251,88 @@ class DisplayManager:
                         )
 
             print("\n⏱️  Per-Node Timing Breakdown:")
+
+            # Group nodes by base node_id to show iterations together
+            nodes_by_base_id = {}
             for node_data in node_breakdown:
-                node_id = node_data["node_id"]
+                metrics_key = node_data["node_id"]
 
                 # Skip system node as it's shown separately
-                if node_id == "system":
+                if metrics_key == "system":
                     continue
 
-                node_type = node_data.get("node_type", "unknown")
-                total_ms = node_data.get("duration_ms", 0)
-                module_timings = node_data.get("module_timings", {})
-                token_usage = node_data.get("token_usage", {})
+                # Extract base node_id and iteration from metrics_key
+                # Format: "node_1_iter_0" or just "node_1" (for non-iterating nodes)
+                if "_iter_" in metrics_key:
+                    parts = metrics_key.rsplit("_iter_", 1)
+                    base_node_id = parts[0]
+                    iteration = int(parts[1])
+                else:
+                    base_node_id = metrics_key
+                    iteration = None
 
-                if not module_timings:
-                    continue
+                if base_node_id not in nodes_by_base_id:
+                    nodes_by_base_id[base_node_id] = []
+                nodes_by_base_id[base_node_id].append((iteration, node_data, metrics_key))
 
-                pct_of_total = (total_ms / total_duration * 100) if total_duration > 0 else 0
-                token_str = ""
-                if token_usage and token_usage.get("total", 0) > 0:
-                    token_str = f" | Tokens: {token_usage.get('total', 0):,}"
+            # Display nodes, grouping iterations
+            for base_node_id in sorted(nodes_by_base_id.keys()):
+                iterations = sorted(nodes_by_base_id[base_node_id], key=lambda x: x[0] if x[0] is not None else 0)
 
-                print(
-                    f"\n  {node_id} ({node_type}) - {total_ms:.0f}ms ({pct_of_total:.1f}%){token_str}"
-                )
+                # If single iteration or no iteration tracking, show normally
+                if len(iterations) == 1 and iterations[0][0] is None:
+                    iteration, node_data, metrics_key = iterations[0]
+                    node_type = node_data.get("node_type", "unknown")
+                    total_ms = node_data.get("duration_ms", 0)
+                    module_timings = node_data.get("module_timings", {})
+                    token_usage = node_data.get("token_usage", {})
 
-                # Sort by duration descending
-                sorted_phases = sorted(module_timings.items(), key=lambda x: x[1], reverse=True)
+                    if not module_timings:
+                        continue
 
-                for phase, duration in sorted_phases:
-                    pct = (duration / total_ms * 100) if total_ms > 0 else 0
-                    print(f"    ├─ {phase:30s} {int(duration):7d}ms ({pct:5.1f}%)")
+                    pct_of_total = (total_ms / total_duration * 100) if total_duration > 0 else 0
+                    token_str = ""
+                    if token_usage and token_usage.get("total", 0) > 0:
+                        token_str = f" | Tokens: {token_usage.get('total', 0):,}"
+
+                    print(
+                        f"\n  {base_node_id} ({node_type}) - {total_ms:.0f}ms ({pct_of_total:.1f}%){token_str}"
+                    )
+
+                    # Sort by duration descending
+                    sorted_phases = sorted(module_timings.items(), key=lambda x: x[1], reverse=True)
+
+                    for phase, duration in sorted_phases:
+                        pct = (duration / total_ms * 100) if total_ms > 0 else 0
+                        print(f"    ├─ {phase:30s} {int(duration):7d}ms ({pct:5.1f}%)")
+                else:
+                    # Multiple iterations - show grouped
+                    total_iterations = len(iterations)
+                    total_time = sum(node_data.get("duration_ms", 0) for _, node_data, _ in iterations)
+                    node_type = iterations[0][1].get("node_type", "unknown")
+                    pct_of_total = (total_time / total_duration * 100) if total_duration > 0 else 0
+
+                    print(
+                        f"\n  {base_node_id} ({node_type}) - {total_iterations} iterations, {total_time:.0f}ms total ({pct_of_total:.1f}%)"
+                    )
+
+                    # Show each iteration
+                    for iteration, node_data, metrics_key in iterations:
+                        total_ms = node_data.get("duration_ms", 0)
+                        token_usage = node_data.get("token_usage", {})
+                        module_timings = node_data.get("module_timings", {})
+
+                        token_str = ""
+                        if token_usage and token_usage.get("total", 0) > 0:
+                            token_str = f" | Tokens: {token_usage.get('total', 0):,}"
+
+                        print(f"    └─ Iteration {iteration}: {total_ms:.0f}ms{token_str}")
+
+                        if module_timings:
+                            sorted_phases = sorted(module_timings.items(), key=lambda x: x[1], reverse=True)
+                            for phase, duration in sorted_phases[:3]:  # Show top 3 phases per iteration
+                                pct = (duration / total_ms * 100) if total_ms > 0 else 0
+                                print(f"       ├─ {phase:30s} {int(duration):7d}ms ({pct:5.1f}%)")
 
         if optimizations_only:
             optimizations = metrics.get("optimization_suggestions", [])
