@@ -289,6 +289,16 @@ class CLIRunner:
             logger.error(f"Diagram conversion failed: {e}")
             return False
 
+    def _is_main_execution(self, execution_id: str) -> bool:
+        """Check if execution ID is a main execution (not lightweight or sub-diagram).
+
+        Filters out:
+        - Lightweight executions (starting with "lightweight_")
+        - Sub-diagram executions (containing "_sub_")
+        """
+        exec_id_str = str(execution_id)
+        return not (exec_id_str.startswith("lightweight_") or "_sub_" in exec_id_str)
+
     async def show_metrics(
         self,
         execution_id: str | None = None,
@@ -308,21 +318,27 @@ class CLIRunner:
             if execution_id:
                 target_execution_id = execution_id
             elif latest or diagram_id:
-                executions = await state_store.list_executions(diagram_id=diagram_id, limit=1)
-                if executions:
-                    target_execution_id = executions[0].id
+                # Fetch more executions to filter out lightweight/sub-diagram ones
+                executions = await state_store.list_executions(diagram_id=diagram_id, limit=50)
+                # Filter to main executions only
+                main_executions = [e for e in executions if self._is_main_execution(e.id)]
+                if main_executions:
+                    target_execution_id = main_executions[0].id
                 else:
                     if diagram_id:
-                        print(f"No executions found for diagram: {diagram_id}")
+                        print(f"No main executions found for diagram: {diagram_id}")
                     else:
-                        print("No executions found")
+                        print("No main executions found")
                     return False
             else:
-                executions = await state_store.list_executions(limit=1)
-                if executions:
-                    target_execution_id = executions[0].id
+                # Fetch more executions to filter out lightweight/sub-diagram ones
+                executions = await state_store.list_executions(limit=50)
+                # Filter to main executions only
+                main_executions = [e for e in executions if self._is_main_execution(e.id)]
+                if main_executions:
+                    target_execution_id = main_executions[0].id
                 else:
-                    print("No executions found")
+                    print("No main executions found")
                     return False
 
             # Get execution state from database

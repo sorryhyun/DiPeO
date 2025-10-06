@@ -23,12 +23,13 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
     def __init__(self):
         super().__init__()
 
-    def set_services(self, state_store, message_router, diagram_service, service_registry=None):
+    def set_services(self, state_store, message_router, diagram_service, service_registry=None, event_bus=None):
         super().set_services(
             state_store=state_store,
             message_router=message_router,
             diagram_service=diagram_service,
             service_registry=service_registry,
+            event_bus=event_bus,
         )
 
     async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> Envelope:

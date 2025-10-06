@@ -107,11 +107,17 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         diagram_service = request.get_optional_service(DIAGRAM_PORT)
         prepare_use_case = request.get_optional_service(PREPARE_DIAGRAM_USE_CASE)
 
+        # Get event bus from registry to ensure metrics are captured for sub-diagrams
+        from dipeo.application.registry import EVENT_BUS
+
+        event_bus = request.get_optional_service(EVENT_BUS)
+
         self.single_executor.set_services(
             state_store=state_store,
             message_router=message_router,
             diagram_service=diagram_service,
             service_registry=request.services,
+            event_bus=event_bus,
         )
 
         self.batch_executor.set_services(
@@ -119,12 +125,14 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             message_router=message_router,
             diagram_service=diagram_service,
             service_registry=request.services,
+            event_bus=event_bus,
         )
 
         self.lightweight_executor.set_services(
             prepare_use_case=prepare_use_case,
             diagram_service=diagram_service,
             service_registry=request.services,
+            event_bus=event_bus,
         )
 
         return None

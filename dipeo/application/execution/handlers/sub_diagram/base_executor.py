@@ -22,6 +22,7 @@ class BaseSubDiagramExecutor:
         self._prepare_use_case = None
         self._load_diagram_use_case = None  # Resolved from registry when available
         self._service_registry = None
+        self._event_bus = None
 
     def set_services(self, **kwargs):
         """Set services for the executor to use.
@@ -33,6 +34,7 @@ class BaseSubDiagramExecutor:
         self._diagram_service = kwargs.get("diagram_service")
         self._prepare_use_case = kwargs.get("prepare_use_case")
         self._service_registry = kwargs.get("service_registry")
+        self._event_bus = kwargs.get("event_bus")
 
         if self._service_registry and not self._load_diagram_use_case:
             from dipeo.application.registry.keys import LOAD_DIAGRAM_USE_CASE

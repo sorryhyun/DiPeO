@@ -37,11 +37,12 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         self._parallel_manager: ParallelExecutionManager | None = None
         self._fail_fast = os.getenv("DIPEO_FAIL_FAST", "false").lower() == "true"
 
-    def set_services(self, prepare_use_case, diagram_service, service_registry=None):
+    def set_services(self, prepare_use_case, diagram_service, service_registry=None, event_bus=None):
         super().set_services(
             prepare_use_case=prepare_use_case,
             diagram_service=diagram_service,
             service_registry=service_registry,
+            event_bus=event_bus,
         )
 
     async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> Envelope:
@@ -250,9 +251,13 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
 
         await self._register_diagram_persons(diagram, isolated_registry)
 
+        # Use parent event bus if available to ensure metrics are captured
+        # If no parent event bus is available, fall back to InMemoryEventBus
+        event_bus = self._event_bus if self._event_bus else InMemoryEventBus()
+
         engine = TypedExecutionEngine(
             service_registry=isolated_registry,
-            event_bus=InMemoryEventBus(),
+            event_bus=event_bus,
         )
 
         execution_results = {}
