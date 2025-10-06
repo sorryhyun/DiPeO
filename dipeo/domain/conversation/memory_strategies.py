@@ -73,18 +73,22 @@ class IntelligentMemoryStrategy:
         # Phase 1: Filtering
         with time_phase(exec_id, strategy_id, "filtering"):
             filtered_candidates = self._filter_messages(candidate_messages, ignore_person)
+            print(f"[Memory] After filtering: {len(filtered_candidates)} messages (from {len(candidate_messages)} original)")
 
         # Phase 2: Deduplication
         with time_phase(exec_id, strategy_id, "deduplication"):
             unique_messages, frequencies = self._deduplicate_messages(filtered_candidates)
+            print(f"[Memory] After deduplication: {len(unique_messages)} unique messages")
 
         # Phase 3: Scoring
         with time_phase(exec_id, strategy_id, "scoring"):
             scored_messages = self._score_and_rank_messages(
                 unique_messages, frequencies, datetime.now()
             )
+            print(f"[Memory] After scoring: {len(scored_messages)} scored messages")
 
         top_candidates = [msg for msg, score in scored_messages[: self.config.hard_cap]]
+        print(f"[Memory] Top candidates (hard_cap={self.config.hard_cap}): {len(top_candidates)} messages")
 
         person_name = None
 
@@ -134,8 +138,13 @@ class IntelligentMemoryStrategy:
             )
 
         # Use the structured output directly
-        if not output or not output.message_ids:
+        if not output:
             return None
+
+        # If no message IDs were selected, return empty list (not None)
+        # This tells the caller that selection was performed but nothing matched
+        if not output.message_ids:
+            return []
 
         idset = set(output.message_ids)
         return [m for m in filtered_candidates if m.id and m.id in idset]

@@ -98,24 +98,39 @@ class CompletionHandlers(LoggingMixin):
         # Parse MemorySelectionOutput from text response
         ids = []
         if result.text:
+            self.log_debug(f"Memory selection raw LLM response: {result.text[:500]}")
             try:
+                # First try to parse as JSON
                 parsed = json.loads(result.text)
                 if isinstance(parsed, dict) and "message_ids" in parsed:
                     ids = parsed["message_ids"]
                 elif isinstance(parsed, list):
                     ids = parsed
                 else:
-                    self.log_warning(f"Unexpected memory selection format: {type(parsed)}")
+                    self.log_warning(f"Unexpected memory selection format: {type(parsed)}, value: {parsed}")
                     ids = []
             except (json.JSONDecodeError, ValueError) as e:
-                self.log_warning(f"Failed to parse memory selection JSON: {e}")
-                ids = []
+                # If JSON parsing fails, try to extract message IDs from text
+                self.log_warning(f"Failed to parse memory selection JSON: {e}. Response: {result.text[:200]}")
+                # Try to extract from formats like "message_ids=['id1', 'id2']" or "['id1', 'id2']"
+                import re
+                # Look for array-like patterns with quotes
+                match = re.search(r'\[([^\]]+)\]', result.text)
+                if match:
+                    # Extract the content inside brackets and parse as JSON
+                    try:
+                        ids = json.loads(f"[{match.group(1)}]")
+                        self.log_info(f"Recovered {len(ids)} message IDs from non-standard format")
+                    except:
+                        ids = []
+                else:
+                    ids = []
         else:
             self.log_warning("Memory selection result.text is empty")
 
         output = MemorySelectionOutput(message_ids=ids)
         self.log_info(
-            f"Memory selection extracted {len(output.message_ids)} message IDs from candidates: {[msg.id for msg in candidate_messages[:3]]}"
+            f"Memory selection extracted {len(output.message_ids)} message IDs from {len(candidate_messages)} candidates (showing first 3): {[msg.id for msg in candidate_messages[:3]]}"
         )
         return output
 

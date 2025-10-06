@@ -1,7 +1,8 @@
 {
   "env": {
     "CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR": "true",
-    "MAX_THINKING_TOKENS": 8192
+    "MAX_THINKING_TOKENS": 8192,
+    "MAX_MCP_OUTPUT_TOKENS": 128000
   },
   "permissions": {
     "allow": [

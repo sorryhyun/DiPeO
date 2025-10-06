@@ -64,7 +64,7 @@ class UnifiedAnthropicClient:
         self._capabilities = get_provider_capabilities_object(
             "anthropic",
             max_context_length=200000,  # Claude's context window
-            max_output_tokens=4096,  # Claude's default max output
+            max_output_tokens=128000,  # Claude's default max output
         )
 
     @property
