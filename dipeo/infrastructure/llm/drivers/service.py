@@ -28,7 +28,6 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
         super().__init__()
         self.api_key_service = api_key_service
 
-        # Composed components
         self._client_manager = ClientManager(api_key_service)
         self._response_converter = ResponseConverter()
         self._decision_parser = DecisionParser()
@@ -51,7 +50,6 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
         service_name: str,
         **kwargs,
     ) -> MemorySelectionOutput:
-        """Delegate to completion handlers."""
         return await self._completion_handlers.complete_memory_selection(
             candidate_messages=candidate_messages,
             task_preview=task_preview,
@@ -72,7 +70,6 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
         service_name: str,
         **kwargs,
     ) -> DecisionOutput:
-        """Delegate to completion handlers."""
         return await self._completion_handlers.complete_decision(
             prompt=prompt,
             context=context,
@@ -96,30 +93,24 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
 
             execution_phase = kwargs.pop("execution_phase", None)
 
-            # Use the explicit service parameter if provided, otherwise infer from model
             if service_name:
                 if hasattr(service_name, "value"):
                     service_name = service_name.value
                 service_name = normalize_service_name(str(service_name))
 
-            # Extract trace_id for timing (if available)
             trace_id = kwargs.get("trace_id", "")
 
-            # Time client pool operations
             async with atime_phase(
                 trace_id, "client_manager", f"get_client__{service_name}", service=service_name, model=model
             ):
                 client = await self._client_manager.get_client(service_name, model, api_key_id)
 
-            # Filter out provider-specific parameters (keep trace_id for timing)
             filtered_params = {"person_name", "execution_id"}
             client_kwargs = {k: v for k, v in kwargs.items() if k not in filtered_params}
 
-            # Add person_name back only for Claude Code
             if service_name == "claude-code" and "person_name" in kwargs:
                 client_kwargs["person_name"] = kwargs["person_name"]
 
-            # Ensure trace_id is passed to client for timing
             if trace_id:
                 client_kwargs["trace_id"] = trace_id
 
@@ -130,9 +121,7 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
 
                 client_kwargs["execution_phase"] = ExecutionPhase.DIRECT_EXECUTION
 
-            # Time the LLM API call with hierarchical phase names
             execution_phase_obj = client_kwargs.get("execution_phase", "unknown")
-            # Use enum value if available, otherwise convert to string
             if hasattr(execution_phase_obj, "value"):
                 execution_phase_str = execution_phase_obj.value
             else:
@@ -152,7 +141,6 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
                 response = await client.async_chat(messages=messages, **client_kwargs)
 
             if hasattr(self, "logger") and response:
-                # Enhanced logging to properly display LLM responses
                 if isinstance(response, LLMResponse):
                     if response.content:
                         response_text = str(response.content)[:500]
@@ -206,18 +194,14 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
             raise LLMServiceError(service=service_name, message=str(e)) from e
 
     async def validate_api_key(self, api_key_id: str, service: str | None = None) -> bool:
-        """Validate an API key is functional."""
         try:
-            # Get the actual API key
             api_key = await self.api_key_service.get_api_key(api_key_id)
             if not api_key:
                 return False
 
-            # If service not specified, try a simple test with OpenAI
             if not service:
                 service = LLMServiceName.OPENAI.value
 
-            # Try to create a client and test with a simple message
             client = await self._client_manager.get_client(service, "gpt-4o-mini", api_key_id)
             test_response = await client.async_chat(
                 messages=[{"role": "user", "content": "test"}], max_output_tokens=1

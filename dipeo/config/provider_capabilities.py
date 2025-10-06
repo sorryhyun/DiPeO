@@ -16,7 +16,6 @@ class ProviderType(str, Enum):
     CLAUDE_CODE = "claude_code"
 
 
-# Provider capability definitions
 PROVIDER_CAPABILITIES: dict[str, dict[str, Any]] = {
     ProviderType.OPENAI: {
         "supports_async": True,
@@ -45,9 +44,9 @@ PROVIDER_CAPABILITIES: dict[str, dict[str, Any]] = {
         "supports_tools": True,
         "supports_structured_output": True,
         "supports_vision": True,
-        "supports_web_search": False,  # Not native, but can be added via tools
+        "supports_web_search": False,
         "supports_image_generation": False,
-        "supports_computer_use": False,  # Computer use is only for Claude Code
+        "supports_computer_use": False,
         "supported_models": {
             "claude-3-5-sonnet-latest",
             "claude-3-5-sonnet-20241022",
@@ -69,8 +68,8 @@ PROVIDER_CAPABILITIES: dict[str, dict[str, Any]] = {
         "supports_tools": True,
         "supports_structured_output": True,
         "supports_vision": True,
-        "supports_web_search": True,  # Via tools
-        "supports_image_generation": True,  # Via Imagen
+        "supports_web_search": True,
+        "supports_image_generation": True,
         "supports_computer_use": False,
         "supported_models": {
             "gemini-1.5-pro",
@@ -88,14 +87,13 @@ PROVIDER_CAPABILITIES: dict[str, dict[str, Any]] = {
     ProviderType.OLLAMA: {
         "supports_async": True,
         "supports_streaming": True,
-        "supports_tools": False,  # Ollama doesn't support function calling yet
+        "supports_tools": False,
         "supports_structured_output": False,
-        "supports_vision": True,  # Some models like llava support vision
+        "supports_vision": True,
         "supports_web_search": False,
         "supports_image_generation": False,
         "supports_computer_use": False,
         "supported_models": {
-            # Popular Ollama models
             "llama3.3",
             "llama3.2",
             "llama3.1",
@@ -115,20 +113,20 @@ PROVIDER_CAPABILITIES: dict[str, dict[str, Any]] = {
             "starling",
             "codellama",
             "deepseek-coder",
-            "llava",  # Vision model
-            "bakllava",  # Vision model
+            "llava",
+            "bakllava",
         },
         "streaming_modes": {StreamingMode.SSE},
     },
     ProviderType.CLAUDE_CODE: {
         "supports_async": True,
         "supports_streaming": True,
-        "supports_tools": False,  # Claude Code SDK doesn't support tools in the same way
-        "supports_structured_output": False,  # Limited structured output support
+        "supports_tools": False,
+        "supports_structured_output": False,
         "supports_vision": False,
         "supports_web_search": False,
         "supports_image_generation": False,
-        "supports_computer_use": True,  # Claude Code specific capability
+        "supports_computer_use": True,
         "supported_models": {
             "claude-code",
             "claude-code-sdk",
@@ -150,7 +148,6 @@ def get_provider_capabilities(provider: str) -> dict[str, Any]:
     Raises:
         ValueError: If provider is not found
     """
-    # Normalize provider name
     provider_key = provider.lower().replace("-", "_")
 
     if provider_key not in PROVIDER_CAPABILITIES:
@@ -238,7 +235,7 @@ def get_provider_capabilities_object(
         supports_web_search=capabilities["supports_web_search"],
         supports_image_generation=capabilities["supports_image_generation"],
         supports_computer_use=capabilities["supports_computer_use"],
-        max_context_length=max_context_length or 200000,  # Default if not provided
+        max_context_length=max_context_length or 200000,
         max_output_tokens=max_output_tokens,
         supported_models=capabilities["supported_models"],
         streaming_modes=capabilities["streaming_modes"],

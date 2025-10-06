@@ -94,7 +94,6 @@ _global_registry = HandlerRegistry()
 
 
 def register_handler(handler_class: type[TypedNodeHandler]) -> type[TypedNodeHandler]:
-    """Decorator to register a handler class."""
     _global_registry.register_class(handler_class)
     return handler_class
 

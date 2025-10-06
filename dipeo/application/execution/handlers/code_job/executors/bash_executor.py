@@ -12,7 +12,6 @@ from .base import BaseCodeExecutor
 
 
 class BashExecutor(BaseCodeExecutor):
-    """Executor for Bash/Shell scripts."""
 
     async def execute_file(
         self, file_path: Path, inputs: dict[str, Any], timeout: int, function_name: str = "main"

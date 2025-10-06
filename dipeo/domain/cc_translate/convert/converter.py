@@ -14,8 +14,6 @@ from .base import BaseConverter, ConversionContext, ConversionReport, Conversion
 from .connection_builder import ConnectionBuilder
 from .diagram_assembler import DiagramAssembler
 from .event_turn_processor import EventTurnProcessor
-
-# Use refactored NodeBuilder
 from .node_builder_refactored import NodeBuilder
 
 
@@ -26,9 +24,7 @@ class Converter(BaseConverter):
         """Initialize the converter."""
         self.node_builder = NodeBuilder()
         self.connection_builder = ConnectionBuilder()
-        # Pass person registry to assembler for better integration
         self.assembler = DiagramAssembler(self.node_builder.person_registry)
-        # Initialize event processor with node builder
         self.event_processor = EventTurnProcessor(self.node_builder)
 
     def convert(
@@ -46,46 +42,37 @@ class Converter(BaseConverter):
         Returns:
             A ConversionReport containing the result and metrics
         """
-        # Create context if not provided
         if not context:
             context = self.create_context(preprocessed_data.session.session_id)
 
         context.start()
 
         try:
-            # Validate input
             if not self.validate_input(preprocessed_data):
                 context.add_error("Invalid preprocessed data")
                 context.complete(success=False)
                 return self._create_report(context, None)
 
-            # Reset state for new conversion
             self._reset_state()
 
-            # Extract metadata from session
             session_id = preprocessed_data.session.session_id
             initial_prompt = self._extract_initial_prompt(preprocessed_data)
 
-            # Create start node
             start_node_label = self._create_start_node(session_id, initial_prompt)
             if not start_node_label:
                 context.add_error("Failed to create start node")
                 context.complete(success=False)
                 return self._create_report(context, None)
 
-            # Group events into conversation turns
             conversation_turns = self._group_events_into_turns(preprocessed_data.processed_events)
 
-            # Process conversation flow
             prev_node_label = start_node_label
             for _i, turn_events in enumerate(conversation_turns):
                 try:
-                    # Use event processor to handle the turn
                     turn_node_labels = self.event_processor.process_turn(
                         turn_events, preprocessed_data
                     )
 
-                    # Connect to previous node
                     if turn_node_labels:
                         self.connection_builder.connect_to_previous(
                             prev_node_label, turn_node_labels
@@ -100,21 +87,18 @@ class Converter(BaseConverter):
                     context.add_warning(f"Error processing turn: {e!s}")
                     continue
 
-            # Assemble the final diagram
             diagram = self.assembler.assemble_light_diagram(
                 nodes=self.node_builder.nodes,
                 connections=self.connection_builder.get_connections(),
                 persons=self.node_builder.persons,
             )
 
-            # Add processing metadata
             diagram = self.assembler.add_processing_metadata(
                 diagram=diagram,
                 preprocessing_report=self._extract_preprocessing_report(preprocessed_data),
                 conversion_stats=self._get_conversion_stats(),
             )
 
-            # Update metrics
             context.metrics.connections_created = len(self.connection_builder.get_connections())
             context.complete(success=True)
 
@@ -142,7 +126,6 @@ class Converter(BaseConverter):
         if not preprocessed_data.session:
             return False
 
-        # Validate preprocessed data integrity
         validation_errors = preprocessed_data.validate()
         if validation_errors:
             return False
@@ -179,10 +162,8 @@ class Converter(BaseConverter):
         current_turn = []
 
         for event in events:
-            # Start a new turn on non-meta user events that have content
             if event.is_user_event() and not event.is_meta and event.content.has_content():
-                # Check if this is the start of a new conversation turn
-                # A new turn starts when we encounter a user message after assistant/tool events
+                # New turn starts when encountering a user message after assistant/tool events
                 if current_turn and any(
                     e.is_assistant_event() or e.type in [EventType.TOOL_USE, EventType.TOOL_RESULT]
                     for e in current_turn
@@ -190,12 +171,10 @@ class Converter(BaseConverter):
                     turns.append(current_turn)
                     current_turn = [event]
                 else:
-                    # Continue adding to current turn (consecutive user messages or first message)
                     current_turn.append(event)
             else:
                 current_turn.append(event)
 
-        # Don't forget the last turn
         if current_turn:
             turns.append(current_turn)
 
@@ -203,11 +182,9 @@ class Converter(BaseConverter):
 
     def _extract_initial_prompt(self, preprocessed_data: PreprocessedData) -> str:
         """Extract initial prompt from preprocessed data."""
-        # Try to get from metadata first
         if "initial_prompt" in preprocessed_data.conversation_context:
             return preprocessed_data.conversation_context["initial_prompt"]
 
-        # Fall back to first non-meta user event with content
         for event in preprocessed_data.processed_events:
             if event.is_user_event() and not event.is_meta and event.content.has_content():
                 return event.content.text or "Claude Code Session"

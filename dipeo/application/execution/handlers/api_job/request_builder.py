@@ -6,18 +6,7 @@ from dipeo.diagram_generated.enums import HttpMethod
 
 
 def parse_json_inputs(headers: Any, params: Any, body: Any, auth_config: Any) -> dict[str, Any]:
-    """Parse and validate JSON inputs for API request.
-
-    Args:
-        headers: Headers dict or JSON string
-        params: Params dict or JSON string
-        body: Body data (any type)
-        auth_config: Auth config dict or JSON string
-
-    Returns:
-        Dictionary with parsed headers, params, body, and auth_config
-        Returns dict with 'error' key if parsing fails
-    """
+    """Returns dict with 'error' key if parsing fails."""
     result = {
         "headers": headers or {},
         "params": params or {},
@@ -51,15 +40,6 @@ def parse_json_inputs(headers: Any, params: Any, body: Any, auth_config: Any) ->
 
 
 def prepare_auth(auth_type: str, auth_config: dict) -> dict[str, str] | None:
-    """Prepare authentication credentials for HTTP request.
-
-    Args:
-        auth_type: Type of authentication (none, basic, bearer, api_key)
-        auth_config: Authentication configuration
-
-    Returns:
-        Auth dict for basic auth, or None for other auth types
-    """
     if auth_type == "none":
         return None
 
@@ -73,16 +53,6 @@ def prepare_auth(auth_type: str, auth_config: dict) -> dict[str, str] | None:
 
 
 def apply_auth_headers(headers: dict, auth_type: str, auth_config: dict) -> dict:
-    """Apply authentication headers to request headers.
-
-    Args:
-        headers: Existing headers dictionary
-        auth_type: Type of authentication
-        auth_config: Authentication configuration
-
-    Returns:
-        Updated headers dictionary with auth headers added
-    """
     headers = headers.copy()
 
     if auth_type == "bearer":
@@ -99,16 +69,6 @@ def apply_auth_headers(headers: dict, auth_type: str, auth_config: dict) -> dict
 
 
 def prepare_request_data(method: HttpMethod, params: dict, body: Any) -> dict[str, Any] | None:
-    """Prepare request data based on HTTP method.
-
-    Args:
-        method: HTTP method (GET, POST, PUT, PATCH, DELETE)
-        params: Query parameters
-        body: Request body
-
-    Returns:
-        Request data to send, or None for GET requests
-    """
     if method == HttpMethod.GET:
         return None
 

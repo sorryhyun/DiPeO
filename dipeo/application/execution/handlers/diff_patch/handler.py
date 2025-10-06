@@ -156,13 +156,11 @@ class DiffPatchHandler(TypedNodeHandler[DiffPatchNode]):
     async def prepare_inputs(
         self, request: ExecutionRequest[DiffPatchNode], inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Prepare inputs from envelopes."""
         return self.get_effective_inputs(request, inputs)
 
     def serialize_output(
         self, output: dict[str, Any], request: ExecutionRequest[DiffPatchNode]
     ) -> Envelope:
-        """Serialize the output to an envelope."""
         return EnvelopeFactory.create(
             body=output, produced_by=str(request.node.id), trace_id=request.execution_id
         )

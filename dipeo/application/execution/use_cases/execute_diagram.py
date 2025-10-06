@@ -38,7 +38,6 @@ class ExecuteDiagramUseCase(LoggingMixin, InitializationMixin):
         diagram_service: Optional["DiagramService"] = None,
         container: Optional["Container"] = None,
     ):
-        # Initialize mixins
         InitializationMixin.__init__(self)
         self.service_registry = service_registry
         self.container = container
@@ -59,29 +58,24 @@ class ExecuteDiagramUseCase(LoggingMixin, InitializationMixin):
 
     async def execute_diagram(  # type: ignore[override]
         self,
-        diagram: "DomainDiagram",  # Now only accepts DomainDiagram
+        diagram: "DomainDiagram",
         options: dict[str, Any],
         execution_id: str,
         interactive_handler: Callable | None = None,
-        event_filter: Any | None = None,  # EventFilter for sub-diagram scoping
+        event_filter: Any | None = None,
     ) -> AsyncGenerator[dict[str, Any]]:
-        """Execute diagram with streaming updates."""
-
-        # Use prepare diagram service for clean deserialization -> compilation
         typed_diagram = await prepare_and_compile_diagram(self.service_registry, diagram, options)
         await initialize_execution_state(self.state_store, execution_id, typed_diagram, options)
 
-        # Store event filter in options for the engine to use
         if event_filter:
             options["event_filter"] = event_filter
+
         from dipeo.application.registry.keys import EVENT_BUS
 
-        # Get event bus from registry if available
         event_bus = None
         if self.service_registry.has(EVENT_BUS):
             event_bus = self.service_registry.resolve(EVENT_BUS)
 
-        # Subscribe MetricsObserver to the event bus if available
         from dipeo.application.execution.observers import MetricsObserver
         from dipeo.application.registry.keys import ServiceKey
         from dipeo.domain.events import EventType
@@ -90,10 +84,8 @@ class ExecuteDiagramUseCase(LoggingMixin, InitializationMixin):
         if self.service_registry.has(METRICS_OBSERVER_KEY) and event_bus:
             metrics_observer = self.service_registry.resolve(METRICS_OBSERVER_KEY)
 
-            # Update the event_bus reference so METRICS_COLLECTED events go to the right place
             metrics_observer.event_bus = event_bus
 
-            # Subscribe to execution and node events for metrics collection
             metrics_events = [
                 EventType.EXECUTION_STARTED,
                 EventType.NODE_STARTED,
@@ -102,23 +94,18 @@ class ExecuteDiagramUseCase(LoggingMixin, InitializationMixin):
                 EventType.EXECUTION_COMPLETED,
             ]
 
-            # Subscribe metrics observer to events
             for event_type in metrics_events:
                 await event_bus.subscribe(event_type, metrics_observer)
 
-        # Create engine with event bus
         engine = TypedExecutionEngine(
             service_registry=self.service_registry,
             event_bus=event_bus,
         )
 
-        # No update iterator needed with unified monitoring
-
         async def run_execution():
             try:
                 exec_state = await self.state_store.get_state(execution_id)
 
-                # The engine will emit EXECUTION_STARTED event which triggers state updates
                 async for _ in engine.execute(
                     diagram=typed_diagram,
                     execution_state=exec_state,
@@ -128,72 +115,45 @@ class ExecuteDiagramUseCase(LoggingMixin, InitializationMixin):
                 ):
                     pass
 
-                # Engine handles completion events internally
-
             except Exception as e:
                 logger.error(f"Engine execution failed: {e}", exc_info=True)
-                # Error event will be emitted by the engine
                 raise
 
-        # Check if this is a sub-diagram execution (for batch parallel support)
         is_sub_diagram = options.get("is_sub_diagram", False) or options.get("parent_execution_id")
         is_batch_item = options.get("is_batch_item", False) or (
             options.get("metadata", {}).get("is_batch_item", False)
         )
 
-        # Create the execution task
         execution_task = asyncio.create_task(run_execution())
 
-        # For sub-diagrams, we need to track the task to ensure proper parallel execution
-        # Store it so the iterator below can properly coordinate
-        if is_sub_diagram:
-            # We'll handle this task specially in the update loop
-            pass
-
         try:
-            # Wait for execution completion and yield status
             if is_batch_item or is_sub_diagram:
-                # Wait for the execution task to complete
                 with contextlib.suppress(Exception):
-                    await execution_task  # Errors are already handled in run_execution
+                    await execution_task
 
-                # Get final state
                 state = await self.state_store.get_state(execution_id)
-                # Only treat FAILED and ABORTED as errors, not PENDING or RUNNING
                 is_error = state and state.status in [Status.FAILED, Status.ABORTED]
                 yield {
                     "type": "execution_error" if is_error else "execution_complete",
                     "execution_id": execution_id,
                     "status": state.status.value if state else "unknown",
-                    "error": state.error
-                    if state and state.error
-                    else ("Failed" if is_error else None),
+                    "error": state.error if state and state.error else ("Failed" if is_error else None),
                 }
             else:
-                # For web/CLI executions, run the task and poll for completion
-                # The task needs to actually run, not just be created
-
-                # Start monitoring for completion while the task runs
                 poll_task = asyncio.create_task(self._poll_execution_status(execution_id))
 
                 try:
-                    # Run both the execution and polling concurrently
-                    # The execution task will do the actual work
-                    # The poll task will monitor for completion
                     _done, pending = await asyncio.wait(
                         [execution_task, poll_task], return_when=asyncio.FIRST_COMPLETED
                     )
 
-                    # Cancel any pending tasks
                     for task in pending:
                         task.cancel()
                         with contextlib.suppress(asyncio.CancelledError):
                             await task
 
-                    # Get final state
                     state = await self.state_store.get_state(execution_id)
                     if not state:
-                        # Shouldn't happen, but handle it
                         yield {
                             "type": "execution_error",
                             "execution_id": execution_id,
@@ -201,28 +161,22 @@ class ExecuteDiagramUseCase(LoggingMixin, InitializationMixin):
                             "error": "Execution state not found",
                         }
                     else:
-                        # Only treat FAILED and ABORTED as errors
                         is_error = state.status in [Status.FAILED, Status.ABORTED]
                         yield {
                             "type": "execution_error" if is_error else "execution_complete",
                             "execution_id": execution_id,
                             "status": state.status.value,
-                            "error": state.error
-                            if state.error
-                            else ("Failed" if is_error else None),
+                            "error": state.error if state.error else ("Failed" if is_error else None),
                         }
                 except Exception:
-                    # Make sure to cancel the execution task if something goes wrong
                     execution_task.cancel()
                     with contextlib.suppress(asyncio.CancelledError):
                         await execution_task
                     raise
         except Exception:
-            # Re-raise any exceptions
             raise
 
     async def _poll_execution_status(self, execution_id: str) -> None:
-        """Poll for execution completion."""
         while True:
             state = await self.state_store.get_state(execution_id)
             if state and state.status in [

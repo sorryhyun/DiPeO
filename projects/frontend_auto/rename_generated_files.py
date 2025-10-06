@@ -9,15 +9,12 @@ from pathlib import Path
 
 
 def rename_generated_files(inputs):
-    # Get base directory from environment or use current file's location
     dipeo_base = os.environ.get("DIPEO_BASE_DIR")
     if dipeo_base:
         project_dir = Path(dipeo_base) / "projects" / "frontend_auto"
     else:
-        # Fallback to relative path from script location
         project_dir = Path(__file__).parent
 
-    # Read sections data
     sections_file = project_dir / "generated" / "sections_data.json"
     if not sections_file.exists():
         print(f"Error: {sections_file} not found")
@@ -36,8 +33,6 @@ def rename_generated_files(inputs):
         if temp_file.exists():
             target_filename = file_path
 
-            # All generated files are source files (config files are now in base_configs/)
-            # Remove leading 'src/' if present to avoid duplication
             clean_filename = (
                 target_filename.replace("src/", "", 1)
                 if target_filename.startswith("src/")
@@ -45,26 +40,20 @@ def rename_generated_files(inputs):
             )
             final_path = generated_dir / "src" / clean_filename
 
-            # Create directory if needed
             final_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Read file content and remove backticks from first and last lines
             with temp_file.open() as f:
                 lines = f.readlines()
 
-            # Remove backticks from first line if present
             if lines and lines[0].strip().startswith("```"):
                 lines = lines[1:]
 
-            # Remove backticks from last line if present
             if lines and lines[-1].strip() == "```":
                 lines = lines[:-1]
 
-            # Write cleaned content to final file
             with final_path.open("w") as f:
                 f.writelines(lines)
 
-            # Remove the temp file
             temp_file.unlink()
 
             print(f"✓ Processed temp_section_{i}.tsx -> src/{clean_filename} (removed backticks)")

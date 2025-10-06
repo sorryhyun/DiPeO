@@ -262,7 +262,6 @@ class AppSettings(BaseSettings):
         description="Environment (development, testing, production)",
     )
 
-    # Nested settings
     llm: LLMSettings = LLMSettings()
     execution: ExecutionSettings = ExecutionSettings()
     messaging: MessagingSettings = MessagingSettings()
@@ -278,7 +277,6 @@ class AppSettings(BaseSettings):
         env_file_encoding = "utf-8"
 
 
-# Singleton instance
 _settings: AppSettings | None = None
 
 
@@ -300,7 +298,6 @@ def reset_settings() -> None:
     _settings = None
 
 
-# Domain value object adapters
 def to_model_config(settings: AppSettings) -> dict:
     """Convert AppSettings to domain ModelConfig value object format.
 
@@ -311,7 +308,7 @@ def to_model_config(settings: AppSettings) -> dict:
         Dictionary compatible with ModelConfig constructor
     """
     return {
-        "provider": "openai",  # Default provider
+        "provider": "openai",
         "model": settings.llm.default_model,
         "temperature": settings.llm.temperature,
         "max_tokens": settings.llm.max_tokens,

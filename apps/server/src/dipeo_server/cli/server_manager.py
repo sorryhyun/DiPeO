@@ -38,10 +38,8 @@ class ServerManager:
             return
 
         try:
-            # Build command to start server
             python_exe = sys.executable
 
-            # Start uvicorn directly (server module exports the app)
             cmd = [
                 python_exe,
                 "-m",
@@ -52,10 +50,9 @@ class ServerManager:
                 "--port",
                 str(self.port),
                 "--log-level",
-                "error",  # Suppress output
+                "error",
             ]
 
-            # Start process with output captured for debugging
             import tempfile
             self._stdout_file = tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='_server_stdout.log')
             self._stderr_file = tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='_server_stderr.log')
@@ -64,7 +61,7 @@ class ServerManager:
                 cmd,
                 stdout=self._stdout_file,
                 stderr=self._stderr_file,
-                start_new_session=True,  # Allow process to survive parent termination
+                start_new_session=True,
             )
 
             logger.info(f"Started background server (PID: {self.process.pid}) - will be ready shortly")

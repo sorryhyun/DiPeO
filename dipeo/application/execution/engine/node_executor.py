@@ -56,8 +56,6 @@ async def execute_single_node(
 
         from dipeo.diagram_generated import NodeType
 
-        # Always emit tokens for non-condition nodes, even if output is empty/falsy
-        # This ensures downstream nodes receive tokens and can become ready
         if node.type != NodeType.CONDITION:
             outputs = {"default": output} if not isinstance(output, dict) else output
             context.emit_outputs_as_tokens(node_id, outputs, epoch)
@@ -65,7 +63,6 @@ async def execute_single_node(
         duration_ms = (time.time() - start_time) * 1000
         llm_usage = extract_llm_usage(output)
 
-        # Add metadata to envelope if applicable
         if hasattr(output, "meta") and isinstance(output.meta, dict):
             output.meta["execution_time_ms"] = duration_ms
             if llm_usage:
@@ -97,7 +94,6 @@ async def execute_single_node(
 async def _should_skip_max_iteration(
     node: "ExecutableNode", context: "TypedExecutionContext"
 ) -> bool:
-    """Check if node should skip execution due to max iteration."""
     from dipeo.diagram_generated.generated_nodes import PersonJobNode
 
     if isinstance(node, PersonJobNode):
@@ -109,7 +105,6 @@ async def _should_skip_max_iteration(
 async def _handle_max_iteration_reached(
     node: "ExecutableNode", context: "TypedExecutionContext", event_pipeline: "EventPipeline"
 ) -> dict[str, Any]:
-    """Handle node that has reached max iteration."""
     from dipeo.diagram_generated.enums import Status
     from dipeo.domain.execution.envelope import EnvelopeFactory
 
@@ -140,7 +135,6 @@ async def _execute_node_handler(
     event_pipeline: "EventPipeline",
     service_registry: Any,
 ) -> Any:
-    """Execute the node's handler."""
     with context.executing_node(node.id):
         context.state.transition_to_running(node.id, context.current_epoch())
 
@@ -166,7 +160,6 @@ async def _execute_node_handler(
 def _create_execution_request(
     node: "ExecutableNode", context: "TypedExecutionContext", inputs: Any, service_registry: Any
 ) -> Any:
-    """Create execution request for node handler."""
     from dipeo.application.execution.engine.request import ExecutionRequest
 
     request_metadata = {}
@@ -197,7 +190,6 @@ async def _handle_node_failure(
     error: Exception,
     event_pipeline: "EventPipeline",
 ) -> None:
-    """Handle node execution failure."""
     logger.error(f"Error executing node {node.id}: {error}", exc_info=True)
     context.state.transition_to_failed(node.id, str(error))
 
@@ -212,7 +204,6 @@ async def _handle_node_completion(
     context: "TypedExecutionContext",
     event_pipeline: "EventPipeline",
 ) -> None:
-    """Handle successful node completion."""
     context.state.transition_to_completed(node.id, envelope)
 
     from dipeo.diagram_generated import Status

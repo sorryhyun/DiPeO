@@ -55,7 +55,6 @@ def requires_services(
     """
 
     def decorator(cls):
-        # Parse service specifications
         parsed_specs = {}
         for name, spec in service_specs.items():
             if isinstance(spec, tuple):
@@ -68,16 +67,11 @@ def requires_services(
                 # Single value: implies required
                 parsed_specs[name] = ServiceSpec(spec, ServiceRequirement.REQUIRED)
 
-        # Store specifications on the class
         cls._service_requirements = parsed_specs
-
-        # Wrap the run method to inject services
         original_run = cls.run
 
         @functools.wraps(original_run)
         async def wrapped_run(self, inputs, request, *args, **kwargs):
-            """Wrapped run method that injects services."""
-            # Resolve services from the request
             services = {}
 
             for name, spec in parsed_specs.items():
@@ -88,14 +82,13 @@ def requires_services(
                         raise RuntimeError(
                             f"{cls.__name__} requires service '{name}' ({spec.key}) but it was not found"
                         ) from e
-                else:  # OPTIONAL
+                else:
                     services[name] = request.get_optional_service(spec.key, spec.default)
 
             # Store services as instance attributes for use in the handler
             for name, service in services.items():
                 setattr(self, f"_{name}", service)
 
-            # Call the original method
             return await original_run(self, inputs, request, *args, **kwargs)
 
         cls.run = wrapped_run
@@ -122,6 +115,5 @@ def requires_services(
     return decorator
 
 
-# Convenience exports
 Required = ServiceRequirement.REQUIRED
 Optional = ServiceRequirement.OPTIONAL

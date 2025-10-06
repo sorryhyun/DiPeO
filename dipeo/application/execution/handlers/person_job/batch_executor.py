@@ -53,7 +53,6 @@ class BatchExecutor:
         node = request.node
         trace_id = request.execution_id or ""
 
-        # Get batch configuration
         batch_config = self._get_batch_configuration(node)
 
         logger.debug(
@@ -62,7 +61,6 @@ class BatchExecutor:
             f"max_concurrent: {batch_config['max_concurrent']}"
         )
 
-        # Extract array from inputs
         batch_items = extract_batch_items(request.inputs, batch_config["input_key"])
 
         if not batch_items:
@@ -70,7 +68,6 @@ class BatchExecutor:
 
         logger.info(f"Processing batch of {len(batch_items)} items for person {node.person}")
 
-        # Execute batch items
         if batch_config["parallel"]:
             results, errors = await self._execute_batch_parallel(
                 batch_items, request, batch_config["max_concurrent"]
@@ -78,7 +75,6 @@ class BatchExecutor:
         else:
             results, errors = await self._execute_batch_sequential(batch_items, request)
 
-        # Return batch output
         return self._create_batch_output(
             node=node,
             batch_items=batch_items,
@@ -119,23 +115,19 @@ class BatchExecutor:
         results = []
         errors = []
 
-        # Create semaphore for concurrency control
         semaphore = asyncio.Semaphore(max_concurrent)
 
         async def execute_with_semaphore(batch_item: Any, index: int) -> Any:
             async with semaphore:
                 return await self._execute_batch_item(batch_item, index, len(batch_items), request)
 
-        # Create tasks for all items
         tasks = []
         for idx, item in enumerate(batch_items):
             task = execute_with_semaphore(item, idx)
             tasks.append(task)
 
-        # Wait for all tasks to complete
         task_results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # Process results
         for idx, result in enumerate(task_results):
             if isinstance(result, Exception):
                 error = format_batch_error(idx, result, batch_items)
@@ -188,21 +180,17 @@ class BatchExecutor:
         """
         node = original_request.node
 
-        # Create item-specific inputs
         item_inputs = self._create_item_inputs(
             item=item, index=index, total=total, original_request=original_request
         )
 
-        # Create a new request for this batch item
         item_request = self._create_item_request(
             node=node, item_inputs=item_inputs, index=index, original_request=original_request
         )
 
-        # Execute using single execution logic
         logger.debug(f"Executing batch item {index + 1}/{total} for person {node.person}")
         result = await self._execute_single(item_request)
 
-        # Format the result
         return format_item_result(index, result)
 
     def _create_item_inputs(
@@ -224,7 +212,6 @@ class BatchExecutor:
 
         item_inputs = {"default": item, "_batch_index": index, "_batch_total": total}
 
-        # Merge with original inputs (excluding the batch array)
         if original_request.inputs:
             for key, value in original_request.inputs.items():
                 if key != batch_input_key and key != "default":

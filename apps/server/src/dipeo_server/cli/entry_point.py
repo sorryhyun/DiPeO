@@ -7,7 +7,6 @@ import json
 import os
 import sys
 
-# Fix encoding issues on Windows
 if sys.platform == "win32":
     import io
 
@@ -26,23 +25,15 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
     from dipeo_server.app_context import create_server_container
     from dipeo_server.cli import CLIRunner, ServerManager
 
-    # Setup logging for CLI
     debug = getattr(args, "debug", False)
     timing = getattr(args, "timing", False)
 
-    # Timing always enabled in collector (zero overhead when not logged)
-    # The --timing flag only controls whether timing logs are emitted
-
-    # Set environment variable for timing mode (used by MetricsObserver)
     if timing:
         os.environ["DIPEO_TIMING_ENABLED"] = "true"
 
-    # Setup logging
     if debug:
-        log_level = "DEBUG"  # All logs including timing
+        log_level = "DEBUG"
     elif timing:
-        # For timing mode, set root to DEBUG to allow timing logs through,
-        # but we'll filter other loggers in setup_logging
         log_level = "DEBUG"
     else:
         log_level = os.environ.get("DIPEO_LOG_LEVEL", "INFO")
@@ -52,27 +43,22 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
         log_level=log_level,
         log_to_file=True,
         console_output=debug or timing,
-        timing_only=timing and not debug,  # Only show timing logs when --timing (not --debug)
+        timing_only=timing and not debug,
     )
 
-    # Start background server if in debug or timing mode (async, non-blocking)
     server_manager = None
     if (debug or timing) and args.command == "run":
         print("🚀 Starting background server for monitoring (async)...")
         server_manager = ServerManager()
-        # Start server without waiting - it will be ready in background
         asyncio.create_task(server_manager.start_async())
         print("💡 Monitor will be available at http://localhost:3000/?monitor=true (starting...)")
 
-    # Create container and initialize resources
     container = await create_server_container()
     await init_resources(container)
 
     try:
-        # Create CLI runner
         cli = CLIRunner(container)
 
-        # Execute command
         if args.command == "ask":
             return await cli.ask_diagram(
                 request=args.to,
@@ -83,7 +69,6 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
             )
 
         elif args.command == "run":
-            # Determine format type
             format_type = None
             if hasattr(args, "light") and args.light:
                 format_type = "light"
@@ -92,7 +77,6 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
             elif hasattr(args, "readable") and args.readable:
                 format_type = "readable"
 
-            # Parse input data
             input_variables = None
             if hasattr(args, "inputs") and args.inputs:
                 with open(args.inputs) as f:
@@ -122,7 +106,6 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
             return await cli.show_stats(args.diagram)
 
         elif args.command == "monitor":
-            # Open browser monitor
             import webbrowser
 
             url = "http://localhost:3000/?monitor=true"
@@ -176,7 +159,6 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
             action = args.dipeocc_action
             kwargs = {}
 
-            # Add project parameter if specified
             kwargs["project"] = getattr(args, "project", None)
 
             if action == "list":
@@ -198,10 +180,8 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
             return False
 
     finally:
-        # Cleanup
         await shutdown_resources(container)
 
-        # Stop background server if it was started
         if server_manager:
             await server_manager.stop()
 
@@ -401,14 +381,11 @@ def main():
     parser = create_parser()
     args = parser.parse_args()
 
-    # If no command specified or --server flag, run as server
     if not args.command or args.server:
-        # Run as server
         import uvicorn
 
         from dipeo.infrastructure.logging_config import setup_logging
 
-        # Setup logging
         log_level = os.environ.get("LOG_LEVEL", "INFO")
         logger = setup_logging(
             component="server",
@@ -418,7 +395,6 @@ def main():
             console_output=True,
         )
 
-        # Import and run server
         from apps.server.main import app
 
         uvicorn.run(
@@ -428,7 +404,6 @@ def main():
             log_level=log_level.lower(),
         )
     else:
-        # Run as CLI
         try:
             success = asyncio.run(run_cli_command(args))
             sys.exit(0 if success else 1)
@@ -445,7 +420,6 @@ def main():
 
 def dipeocc_main():
     """Direct entry point for dipeocc command."""
-    # Insert 'dipeocc' as the first argument to simulate the subcommand
     sys.argv = [sys.argv[0], "dipeocc"] + sys.argv[1:]
     main()
 

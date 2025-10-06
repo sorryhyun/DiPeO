@@ -1,5 +1,5 @@
 import json
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -17,9 +17,6 @@ from dipeo.application.registry import API_INVOKER
 from dipeo.diagram_generated.enums import HttpMethod
 from dipeo.diagram_generated.unified_nodes.api_job_node import ApiJobNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
-
-if TYPE_CHECKING:
-    pass
 
 
 @register_handler
@@ -90,7 +87,6 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
     async def prepare_inputs(
         self, request: ExecutionRequest[ApiJobNode], inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Prepare API request inputs from envelopes and node configuration."""
         node = request.node
 
         envelope_inputs = self.get_effective_inputs(request, inputs)

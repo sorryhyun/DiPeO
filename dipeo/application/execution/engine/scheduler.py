@@ -34,7 +34,6 @@ class NodeScheduler:
         self._initialize_ready_queue()
 
     def _initialize_policies(self) -> None:
-        """Initialize join and concurrency policies for all nodes."""
         all_nodes = self.diagram.get_nodes_by_type(None) or self.diagram.nodes
         for node in all_nodes:
             if hasattr(node, "join_policy") and node.join_policy is not None:
@@ -59,7 +58,6 @@ class NodeScheduler:
             self._ready_queue.set_concurrency_policy(node.id, policy)
 
     def _initialize_ready_queue(self) -> None:
-        """Initialize ready queue with nodes that have zero indegree."""
         initial_ready = self._dependency_tracker.get_initial_ready_nodes()
         for node_id in initial_ready:
             self._ready_queue.add_initial_ready_node(node_id)
@@ -110,7 +108,6 @@ class NodeScheduler:
         node: ExecutableNode,
         context: "TypedExecutionContext",
     ) -> bool:
-        """Check if a node is ready to execute (legacy method)."""
         if node.type == NodeType.START and not self.diagram.get_incoming_edges(node.id):
             return context.state.get_node_execution_count(node.id) == 0
 
@@ -144,7 +141,6 @@ class NodeScheduler:
         context: "TypedExecutionContext",
         incoming_edges_map: dict,
     ) -> bool:
-        """Check if a node is ready to execute with optimized edge lookups."""
         incoming_edges = incoming_edges_map.get(node.id, [])
 
         if node.type == NodeType.START and not incoming_edges:
@@ -174,7 +170,6 @@ class NodeScheduler:
         return False
 
     def _handle_loop_node(self, node: ExecutableNode, context: "TypedExecutionContext") -> bool:
-        """Check if a loop node can execute again."""
         if node.type == NodeType.PERSON_JOB:
             exec_count = context.state.get_node_execution_count(node.id)
             max_iter = getattr(node, "max_iteration", 1)
@@ -184,7 +179,6 @@ class NodeScheduler:
     def _has_pending_higher_priority_siblings(
         self, node: ExecutableNode, context: "TypedExecutionContext"
     ) -> bool:
-        """Check if higher-priority sibling nodes are still pending."""
         incoming_edges = self.diagram.get_incoming_edges(node.id)
         if not incoming_edges:
             return False
@@ -212,8 +206,6 @@ class NodeScheduler:
         return False
 
     def _prioritize_nodes(self, nodes: list[ExecutableNode]) -> list[ExecutableNode]:
-        """Sort nodes by priority (START → CONDITION → PERSON_JOB → others)."""
-
         def priority(node: ExecutableNode) -> int:
             if node.type == NodeType.START:
                 return 0
@@ -227,7 +219,6 @@ class NodeScheduler:
         return sorted(nodes, key=priority)
 
     def get_execution_stats(self) -> dict[str, Any]:
-        """Get execution statistics."""
         dep_stats = self._dependency_tracker.get_stats()
         return {
             **dep_stats,

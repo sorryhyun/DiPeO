@@ -64,7 +64,6 @@ class ClaudeCodeManager:
         Returns:
             Path to the session directory
         """
-        # Check common locations
         default_locations = [
             Path.home() / ".claude" / "projects",
             Path.home() / ".claude" / "sessions",

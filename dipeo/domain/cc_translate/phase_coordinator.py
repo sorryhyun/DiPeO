@@ -103,7 +103,6 @@ class PhaseCoordinator:
         else:
             domain_session = session
 
-        # Phase 1: Preprocess
         if PipelinePhase.PREPROCESS not in skip_phases:
             result = self.with_error_boundary(
                 PipelinePhase.PREPROCESS,
@@ -121,7 +120,6 @@ class PhaseCoordinator:
             # If preprocessing is skipped, assume session is preprocessed data
             preprocessed_data = session
 
-        # Phase 2: Convert
         if PipelinePhase.CONVERT not in skip_phases:
             result = self.with_error_boundary(
                 PipelinePhase.CONVERT,
@@ -139,9 +137,7 @@ class PhaseCoordinator:
             # If conversion is skipped, assume preprocessed_data is already a diagram
             diagram = preprocessed_data if isinstance(preprocessed_data, dict) else {}
 
-        # Phase 3: Post-process
         if PipelinePhase.POST_PROCESS not in skip_phases:
-            # Check if post-processing should be applied
             should_post_process = kwargs.get("post_process", False)
 
             if should_post_process:
@@ -150,7 +146,6 @@ class PhaseCoordinator:
                 )
                 pipeline = PostProcessor(config)
 
-                # Pass through relevant kwargs to post-processor
                 post_process_kwargs = {}
                 if "output_base_path" in kwargs:
                     post_process_kwargs["output_base_path"] = kwargs["output_base_path"]
@@ -167,7 +162,6 @@ class PhaseCoordinator:
                 if result.success:
                     diagram = result.data
 
-                    # Add metrics to diagram metadata
                     if result.report and hasattr(result.report, "has_changes"):
                         if result.report.has_changes():
                             if "metadata" not in diagram:

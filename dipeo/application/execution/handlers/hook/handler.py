@@ -1,7 +1,7 @@
 import asyncio
 import json
 import subprocess
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -23,14 +23,10 @@ from dipeo.diagram_generated.unified_nodes.hook_node import HookNode, NodeType
 from dipeo.domain.base.exceptions import InvalidDiagramError, NodeExecutionError
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
-if TYPE_CHECKING:
-    pass
-
 
 @register_handler
 @requires_services(filesystem_adapter=(FILESYSTEM_ADAPTER, Optional))
 class HookNodeHandler(TypedNodeHandler[HookNode]):
-    """Execute external hooks (shell commands, webhooks, Python scripts, or file operations)."""
 
     NODE_TYPE = NodeType.HOOK
 
@@ -51,9 +47,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
 
     @property
     def description(self) -> str:
-        return (
-            "Execute external hooks (shell commands, webhooks, Python scripts, or file operations)"
-        )
+        return "Execute external hooks: shell, webhook, Python, or file operations"
 
     async def pre_execute(self, request: ExecutionRequest[HookNode]) -> Envelope | None:
         node = request.node
@@ -185,9 +179,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     async def _execute_python_hook(
         self, node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]
     ) -> Any:
-        """Execute Python hook - run a Python script with inputs.
-
-        Python hooks are kept in the main handler as they're simpler and
+        """Python hooks are kept in the main handler as they're simpler and
         don't require extensive external dependencies.
         """
         config = node.config
@@ -201,7 +193,6 @@ import sys
 
 {script}
 
-# Execute the hook function
 result = {function_name}({json.dumps(inputs)})
 print(json.dumps(result))
 """

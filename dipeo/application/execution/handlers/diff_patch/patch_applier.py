@@ -127,14 +127,6 @@ def save_rejected_hunks(reject_file: Path, rejected_hunks: list[dict[str, Any]])
 
 
 def calculate_file_hash(content: str) -> str:
-    """Calculate SHA256 hash of file content.
-
-    Args:
-        content: File content as string
-
-    Returns:
-        Hex digest of SHA256 hash
-    """
     return hashlib.sha256(content.encode()).hexdigest()
 
 

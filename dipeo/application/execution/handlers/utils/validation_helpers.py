@@ -41,7 +41,6 @@ def validate_file_paths(
         if not path or not isinstance(path, str):
             return ([], f"Invalid path: {path}")
 
-        # Resolve relative paths
         if base_dir and not os.path.isabs(path):
             full_path = os.path.join(base_dir, path)
         else:

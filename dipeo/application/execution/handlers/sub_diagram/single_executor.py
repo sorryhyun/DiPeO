@@ -21,11 +21,9 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
     """Executor for single sub-diagram execution with state tracking."""
 
     def __init__(self):
-        """Initialize executor."""
         super().__init__()
 
     def set_services(self, state_store, message_router, diagram_service, service_registry=None):
-        """Set services for the executor to use."""
         super().set_services(
             state_store=state_store,
             message_router=message_router,
@@ -42,35 +40,27 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
         trace_id = request.execution_id or ""
 
         try:
-            # Use pre-configured services (set by handler)
             if not all([self._state_store, self._message_router, self._diagram_service]):
                 raise ValueError("Required services not configured")
 
-            # Load the diagram to execute
             domain_diagram = await self._load_diagram(node)
 
-            # Prepare execution options
             # Don't pass parent inputs to sub-diagram by default to avoid contamination
-            # Sub-diagrams should start with clean state unless explicitly configured
             options = {
-                "variables": {},  # Empty variables by default
+                "variables": {},
                 "parent_execution_id": request.execution_id,
                 "is_sub_diagram": True,
                 "metadata": {"is_sub_diagram": True, "parent_execution_id": request.execution_id},
             }
 
-            # Create a unique execution ID for the sub-diagram
             sub_execution_id = self._create_sub_execution_id(request.execution_id)
 
-            # Create the execution use case
             execute_use_case = self._create_execution_use_case(request)
 
-            # Configure event filter for sub-diagram execution
             event_filter = self._configure_event_filter(
                 request=request, sub_execution_id=sub_execution_id, options=options
             )
 
-            # Execute the sub-diagram and collect results
             execution_results, execution_error = await self._execute_sub_diagram(
                 execute_use_case=execute_use_case,
                 domain_diagram=domain_diagram,
@@ -79,7 +69,6 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
                 event_filter=event_filter,
             )
 
-            # Build and return output
             return self._build_node_output(
                 node=node,
                 sub_execution_id=sub_execution_id,
@@ -90,7 +79,6 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
         except Exception as e:
             logger.error(f"Error executing sub-diagram node {node.id}: {e}", exc_info=True)
             error_data = {"error": str(e)}
-            # Return error envelope directly
             return EnvelopeFactory.create(
                 body=error_data,
                 produced_by=node.id,
@@ -102,10 +90,8 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
     def _create_execution_use_case(
         self, request: ExecutionRequest[SubDiagramNode]
     ) -> ExecuteDiagramUseCase:
-        """Create the execution use case with proper service registry."""
         from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
 
-        # Get service registry and container
         service_registry = request.parent_registry
         if not service_registry:
             from dipeo.application.registry import ServiceKey, ServiceRegistry
@@ -137,14 +123,12 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
         """
         from dipeo.domain.events import SubDiagramFilter
 
-        # Create filter for sub-diagram execution
         event_filter = SubDiagramFilter(
             parent_execution_id=request.execution_id,
-            propagate_to_sub=True,  # Allow sub-execution events
-            scope_to_execution=False,  # Don't limit to parent only
+            propagate_to_sub=True,
+            scope_to_execution=False,
         )
 
-        # Log sub-diagram execution start
         if request.metadata:
             request.add_metadata("sub_execution_id", sub_execution_id)
 
@@ -161,11 +145,10 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
 
         Creates an Envelope containing the execution results or error.
         """
-        trace_id = sub_execution_id  # Use sub_execution_id as trace_id for continuity
+        trace_id = sub_execution_id
 
         if execution_error:
             error_data = {"error": execution_error}
-            # Return error envelope directly
             return EnvelopeFactory.create(
                 body=error_data,
                 produced_by=node.id,
@@ -173,15 +156,12 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
                 meta={"sub_execution_id": sub_execution_id, "execution_status": "failed"},
             )
 
-        # Process output mapping
         output_value = self._process_output_mapping(node, execution_results)
 
-        # Create envelope with auto-detection of content type
         envelope = EnvelopeFactory.create(
             body=output_value, produced_by=node.id, trace_id=trace_id, meta={}
         )
 
-        # Add execution metadata to envelope
         return envelope.with_meta(
             sub_execution_id=sub_execution_id,
             execution_status="completed",
@@ -189,14 +169,11 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
         )
 
     def _is_sub_diagram_context(self, request: ExecutionRequest[SubDiagramNode]) -> bool:
-        """Check if we're running in a sub-diagram context."""
-        # Check metadata for sub-diagram indicators
         if request.metadata and (
             request.metadata.get("parent_execution_id") or request.metadata.get("is_sub_diagram")
         ):
             return True
 
-        # Check context metadata if available
         return (
             hasattr(request.context, "metadata")
             and request.context.metadata
@@ -207,7 +184,6 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
         )
 
     def _create_sub_execution_id(self, parent_execution_id: str) -> str:
-        """Create a unique execution ID for sub-diagram."""
         return self._create_execution_id(parent_execution_id, "sub")
 
     async def _execute_sub_diagram(
@@ -232,7 +208,6 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
             interactive_handler=None,
             event_filter=event_filter,
         ):
-            # Process execution updates
             result, error, should_break = self._process_execution_update(update, execution_results)
 
             if error:
@@ -261,7 +236,6 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
                 node_id = data.get("node_id")
                 node_output = data.get("output")
                 if node_id and node_output:
-                    # Extract the actual value from Envelope if present
                     if hasattr(node_output, "value"):
                         execution_results[node_id] = node_output.value
                     else:
@@ -277,7 +251,6 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
             )
             return None, error, True
 
-        # Legacy support for old update types
         elif update_type == "node_complete":
             node_id = update.get("node_id")
             node_output = update.get("output")

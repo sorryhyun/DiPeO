@@ -100,7 +100,6 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         node = request.node
         condition_type = node.condition_type
 
-        # Get the currently executing diagram from the context
         diagram = request.context.diagram if request.context else None
         if diagram is None:
             return EnvelopeFactory.create(
@@ -110,7 +109,6 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                 error="ValueError",
             )
 
-        # Select and validate evaluator
         evaluator = self._evaluators.get(condition_type)
         if not evaluator:
             logger.error(f"No evaluator found for condition type: {condition_type}")
@@ -121,7 +119,6 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
                 meta={"error_type": "ValueError", "is_error": True},
             )
 
-        # Store evaluator in request state
         request.set_handler_state("evaluator", evaluator)
 
         # No early return - proceed to execute_request
@@ -139,19 +136,14 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
         envelope_inputs = self.get_effective_inputs(request, inputs)
 
-        # Convert envelopes to appropriate format based on content type
         legacy_inputs = {}
         for key, envelope in envelope_inputs.items():
             if envelope.content_type == ContentType.CONVERSATION_STATE:
-                # Handle conversation state specifically
                 legacy_inputs[key] = envelope.as_conversation()
             else:
-                # Use parent's default conversion for other types
                 try:
-                    # Try to parse as JSON first
                     legacy_inputs[key] = envelope.as_json()
                 except ValueError:
-                    # Fall back to text
                     legacy_inputs[key] = envelope.as_text()
 
         return legacy_inputs
@@ -159,15 +151,12 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     async def run(
         self, inputs: dict[str, Any], request: ExecutionRequest[ConditionNode]
     ) -> dict[str, Any]:
-        """Execute condition evaluation."""
         node = request.node
         context = request.context
         legacy_inputs = inputs
 
-        # Use evaluator from request state (set in pre_execute)
         evaluator = request.get_handler_state("evaluator")
 
-        # For LLM decision evaluator, pass required services
         if node.condition_type == "llm_decision" and hasattr(evaluator, "set_services"):
             evaluator.set_services(
                 orchestrator=self._execution_orchestrator,
@@ -175,35 +164,29 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
             )
 
         # Track and expose loop index if configured
+        # Execution count is incremented BEFORE run() is called, so subtract 1 for 0-based index
         if hasattr(node, "expose_index_as") and node.expose_index_as:
-            # Use the execution count directly as loop index (0-based)
-            # The execution count is incremented BEFORE run() is called,
-            # so we subtract 1 to get a 0-based index
             execution_count = get_node_execution_count(context, node.id)
-            current_loop_index = max(0, execution_count - 1)  # 0-based index
+            current_loop_index = max(0, execution_count - 1)
             context.set_variable(node.expose_index_as, current_loop_index)
 
             logger.debug(
                 f"ConditionNode {node.id}: Exposing loop index as '{node.expose_index_as}' = {current_loop_index} (execution_count={execution_count})"
             )
 
-        # Execute evaluation with pre-selected evaluator
         eval_result = await evaluator.evaluate(node, context, legacy_inputs)
         result = eval_result["result"]
         output_value = eval_result["output_data"] or {}
-
-        # Get evaluation metadata
         evaluation_metadata = eval_result["metadata"]
 
         # Return only the active branch data
         active_branch = "condtrue" if result else "condfalse"
 
-        # Return structured result for serialization
-        # The output_value goes directly in the response, not wrapped
+        # Direct pass-through of active branch data, not wrapped
         return {
             "result": result,
             "active_branch": active_branch,
-            "branch_data": output_value,  # Direct pass-through of active branch data
+            "branch_data": output_value,
             "condition_type": node.condition_type,
             "evaluation_metadata": evaluation_metadata,
             "timestamp": time.time(),
@@ -214,22 +197,20 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         node = request.node
         context = request.context
 
-        # Extract the active branch data
         branch_data = result.get("branch_data", {})
         active_branch = result.get("active_branch", "condfalse")
 
         # Store branch decision for downstream nodes that need it
-        context.set_variable(f"branch[{node.id}]", active_branch)  # e.g., "condtrue" | "condfalse"
+        context.set_variable(f"branch[{node.id}]", active_branch)
 
         # Return envelope with just the branch data using auto-detection
-        # The actual branch routing is handled by emitting on the correct port
+        # Actual branch routing is handled by emitting on the correct port
         output = EnvelopeFactory.create(
-            body=branch_data if branch_data is not None else "",  # Natural data output
+            body=branch_data if branch_data is not None else "",
             produced_by=str(node.id),
             trace_id=request.execution_id or "",
         )
 
-        # Store the branch decision for post_execute to use via handler state
         request.set_handler_state("active_branch", active_branch)
 
         return output
@@ -240,11 +221,9 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
         Only emits token on the active branch port to avoid confusion in TokenManager.
         TokenManager will match these ports to edges with matching source_output.
         """
-        # Use the branch decision from handler state
         active_branch = request.get_handler_state("active_branch", "condfalse")
 
-        # Emit output ONLY on the active branch port
-        # This ensures TokenManager correctly tracks which branch was taken
+        # Emit output ONLY on the active branch port to ensure TokenManager correctly tracks which branch was taken
         context = request.context
         node_id = request.node.id
         outputs = {active_branch: output}
@@ -255,7 +234,7 @@ class ConditionNodeHandler(TypedNodeHandler[ConditionNode]):
     async def on_error(
         self, request: ExecutionRequest[ConditionNode], error: Exception
     ) -> Envelope | None:
-        # Return error envelope - condition defaults to false on error
+        """Return error envelope - condition defaults to false on error."""
         return EnvelopeFactory.create(
             body=str(error),
             produced_by=request.node.id,

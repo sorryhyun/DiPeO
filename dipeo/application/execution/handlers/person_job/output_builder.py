@@ -53,16 +53,13 @@ class OutputBuilder:
         Returns:
             Dictionary with body and metadata
         """
-        # Extract LLM usage
         llm_usage = None
         if hasattr(result, "llm_usage") and result.llm_usage:
             llm_usage = result.llm_usage
 
-        # Get person and conversation IDs
         person_id = str(person.id) if person.id else None
         conversation_id = None
 
-        # Build all representations
         text_repr = self._extract_text(result)
         object_repr = self._extract_object(result, node)
 
@@ -73,31 +70,25 @@ class OutputBuilder:
                 person, selected_messages, model, result, execution_orchestrator
             )
 
-        # Determine primary body content
-        natural_body = text_repr  # Default to text
+        natural_body = text_repr
 
-        # Check if conversation output is needed
         if self._conversation_handler.needs_conversation_output(str(node.id), diagram):
             natural_body = (
                 conversation_repr if conversation_repr else {"messages": [], "last_message": None}
             )
-        # Check if structured data is available
         elif object_repr is not None:
             natural_body = object_repr
 
-        # Prepare memory selection info for metadata
         memory_selection = self._build_memory_selection_info(
             selected_messages, node, execution_orchestrator
         )
 
-        # Build all representations
         representations = {"text": text_repr}
         if object_repr is not None:
             representations["object"] = object_repr
         if conversation_repr is not None:
             representations["conversation"] = conversation_repr
 
-        # Return as dict with metadata
         return {
             "body": natural_body,
             "metadata": {

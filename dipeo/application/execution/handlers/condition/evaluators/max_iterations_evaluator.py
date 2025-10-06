@@ -19,8 +19,6 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
     async def evaluate(
         self, node: ConditionNode, context: ExecutionContext, inputs: dict[str, Any]
     ) -> EvaluationResult:
-        """Check if all executed person_job nodes have reached max iterations."""
-        # Find all person_job nodes
         person_job_nodes = context.diagram.get_nodes_by_type(NodeType.PERSON_JOB)
 
         if not person_job_nodes:
@@ -28,12 +26,10 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
                 result=False, metadata={"reason": "No person_job nodes found"}, output_data=None
             )
 
-        # Check if all executed person_job nodes have reached max iterations
         all_reached_max = True
         found_executed = False
 
         for node in person_job_nodes:
-            # Check if this node has been executed at least once
             exec_count = get_node_execution_count(context, node.id)
             logger.debug(
                 f"MaxIterationsEvaluator: node {node.id} exec_count={exec_count}, max_iteration={node.max_iteration}"
@@ -41,10 +37,8 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
             if exec_count > 0:
                 found_executed = True
 
-                # Check if execution count has reached max_iteration
                 node_state = context.state.get_node_state(node.id)
 
-                # Check if this node has reached its max iterations
                 # Use >= because if exec_count equals max_iteration, we've done all iterations
                 if exec_count < node.max_iteration:
                     logger.debug(
@@ -58,17 +52,13 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
                     )
 
         result = found_executed and all_reached_max
-
-        # Simply pass through inputs
         output_data = inputs
 
-        # Log evaluation details
         logger.debug(
             f"MaxIterationsEvaluator: found_executed={found_executed}, "
             f"all_reached_max={all_reached_max}, result={result}"
         )
 
-        # Include exposed loop index in output data
         if (
             hasattr(node, "expose_index_as")
             and node.expose_index_as
@@ -79,7 +69,6 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
                 if isinstance(output_data, dict):
                     output_data[node.expose_index_as] = loop_value
                 else:
-                    # If output_data is not a dict, wrap it
                     output_data = {"data": output_data, node.expose_index_as: loop_value}
 
         return EvaluationResult(

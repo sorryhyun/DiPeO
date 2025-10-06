@@ -39,9 +39,7 @@ class BaseConditionEvaluator(ABC):
     """Base class for condition evaluators with common functionality."""
 
     def extract_node_outputs(self, context: ExecutionContext) -> dict[str, Any]:
-        """Extract node outputs from execution context."""
         node_outputs = {}
-        # Access diagram through context
         all_nodes = context.diagram.get_nodes_by_type(None) or context.diagram.nodes
         for node in all_nodes:
             node_result = get_node_result(context, node.id)
@@ -53,5 +51,4 @@ class BaseConditionEvaluator(ABC):
     async def evaluate(
         self, node: ConditionNode, context: ExecutionContext, inputs: dict[str, Any]
     ) -> EvaluationResult:
-        """Evaluate the condition."""
         pass

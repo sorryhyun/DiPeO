@@ -64,11 +64,9 @@ class SingleExecutor:
         trace_id = request.execution_id or ""
         inputs = request.inputs
 
-        # Direct typed access to person_id
         person_id = node.person
         execution_count = get_node_execution_count(context, node.id)
 
-        # Get or create person using the orchestrator
         if not self._execution_orchestrator:
             raise ValueError(f"ExecutionOrchestrator not available for person {person_id}")
 
@@ -76,11 +74,9 @@ class SingleExecutor:
             PersonID(person_id), diagram=self._diagram
         )
 
-        # Phase 1: Input extraction
         with time_phase(trace_id, node.id, "input_extraction"):
             extracted_inputs = self._extract_inputs(inputs)
 
-        # Handle conversation inputs
         has_conversation_input = self._conversation_handler.has_conversation_input(extracted_inputs)
         if has_conversation_input:
             messages_to_add = self._conversation_handler.load_conversation_from_inputs(
@@ -92,14 +88,12 @@ class SingleExecutor:
                         msg, execution_id=trace_id, node_id=str(node.id)
                     )
 
-        # Get all messages from conversation repository
         all_messages = (
             self._execution_orchestrator.get_conversation().messages
             if hasattr(self._execution_orchestrator, "get_conversation")
             else []
         )
 
-        # Load and process prompts
         prompt_content = node.default_prompt
         first_only_content = node.first_only_prompt
 
@@ -112,19 +106,15 @@ class SingleExecutor:
             prompt_content = node.resolved_prompt
             logger.debug(f"[PersonJob {node.label or node.id}] Using pre-resolved default prompt")
 
-        # Memory selection configuration
         memorize_to = getattr(node, "memorize_to", None)
         at_most = getattr(node, "at_most", None)
         ignore_person = getattr(node, "ignore_person", None)
 
-        # Prepare template values
         input_values = self._prompt_builder.prepare_template_values(extracted_inputs)
         logger.debug(f"[PersonJob] input_values keys after prepare: {list(input_values.keys())}")
 
-        # Build template context from inputs only
         template_values = context.build_template_context(inputs=input_values, globals_win=True)
 
-        # Phase 2: Prompt building
         with time_phase(trace_id, node.id, "prompt_building"):
             built_prompt = self._prompt_builder.build(
                 prompt=prompt_content,
@@ -133,22 +123,18 @@ class SingleExecutor:
                 execution_count=execution_count,
             )
 
-        # Log template warning if needed
         if "{{" in (built_prompt or ""):
             logger.warning(
                 f"[PersonJob {node.label or node.id}] Template variables may not be "
                 f"substituted! Found '{{{{' in built prompt"
             )
 
-        # Skip if no prompt
         if not built_prompt:
             logger.warning(f"Skipping execution for person {person_id} - no prompt available")
             return EnvelopeFactory.create(body="", produced_by=str(node.id), trace_id=trace_id)
 
-        # Prepare LLM call arguments
         complete_kwargs = self._prepare_llm_kwargs(node, built_prompt, trace_id)
 
-        # Build task preview for memory selection
         task_preview = self._build_task_preview(
             memorize_to,
             at_most,
@@ -158,7 +144,6 @@ class SingleExecutor:
             execution_count,
         )
 
-        # Phase 3: LLM completion with memory selection
         async with atime_phase(trace_id, node.id, "complete_with_memory"):
             (
                 result,
@@ -175,7 +160,6 @@ class SingleExecutor:
                 **complete_kwargs,
             )
 
-        # Add messages to conversation
         if hasattr(self._execution_orchestrator, "add_message"):
             self._execution_orchestrator.add_message(
                 incoming_msg, execution_id=trace_id, node_id=str(node.id)
@@ -184,7 +168,6 @@ class SingleExecutor:
                 response_msg, execution_id=trace_id, node_id=str(node.id)
             )
 
-        # Phase 4: Output building
         with time_phase(trace_id, node.id, "output_building"):
             output = self._output_builder.build_single_output(
                 result=result,
@@ -210,11 +193,10 @@ class SingleExecutor:
         """
         extracted_inputs = {}
         for key, value in inputs.items():
-            if hasattr(value, "body"):  # It's an Envelope
+            if hasattr(value, "body"):
                 body = value.body
                 # Filter out internal metadata from conversation outputs
                 if isinstance(body, dict) and "llm_usage" in body:
-                    # Create a copy without llm_usage
                     body = {k: v for k, v in body.items() if k != "llm_usage"}
                 extracted_inputs[key] = body
             else:
@@ -242,11 +224,9 @@ class SingleExecutor:
             "max_tokens": PERSON_JOB_MAX_TOKENS,
         }
 
-        # Claude Code specific execution options
         # Pass trace_id for workspace directory creation in claude-code
         complete_kwargs["trace_id"] = trace_id
 
-        # Handle tools configuration
         if hasattr(node, "tools") and node.tools and node.tools != "none":
             tools_config = []
             if node.tools == "image":
@@ -260,7 +240,6 @@ class SingleExecutor:
             if tools_config:
                 complete_kwargs["tools"] = tools_config
 
-        # Handle text_format configuration
         from .text_format_handler import TextFormatHandler
 
         text_format_handler = TextFormatHandler()

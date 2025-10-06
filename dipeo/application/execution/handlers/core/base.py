@@ -122,7 +122,6 @@ class TypedNodeHandler[T](TokenHandlerMixin, ABC):
         elif isinstance(result, dict):
             return EnvelopeFactory.create(body=result, produced_by=node.id, trace_id=trace_id)
 
-        # Exception handling
         elif isinstance(result, Exception):
             return EnvelopeFactory.create(
                 body={"error": str(result), "type": result.__class__.__name__},

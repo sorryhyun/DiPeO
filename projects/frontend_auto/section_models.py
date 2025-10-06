@@ -156,10 +156,7 @@ EXAMPLE_RESPONSE = Response(
 
 
 if __name__ == "__main__":
-    # Rebuild models to ensure proper schema generation
     Section.model_rebuild()
     Response.model_rebuild()
-
-    # Print example for reference
     print("Example Response:")
     print(EXAMPLE_RESPONSE.model_dump_json(indent=2))

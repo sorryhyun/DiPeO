@@ -50,12 +50,10 @@ def find_batch_items_in_inputs(inputs: dict[str, Any], batch_input_key: str) -> 
     Returns:
         Found batch items or None
     """
-    # Direct key in inputs
     if batch_input_key in inputs:
         logger.debug("Found batch items at root level")
         return inputs[batch_input_key]
 
-    # Under 'default' key
     if "default" in inputs:
         default_value = inputs["default"]
         if isinstance(default_value, dict) and batch_input_key in default_value:

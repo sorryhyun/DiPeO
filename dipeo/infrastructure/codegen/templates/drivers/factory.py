@@ -35,13 +35,11 @@ def get_template_service(template_dirs: list[str] | None = None) -> CodegenTempl
         adapter=adapter, filter_registry=filter_registry, macro_library=macro_library
     )
 
-    # Always use all filters
     all_filters = filter_registry.get_all_filters()
     for name, func in all_filters.items():
         adapter.register_filter(name, func)
 
-    # Also register filters as globals so they can be called as functions in templates
-    # This is needed for filters that take multiple arguments like get_operation_return_type
+    # Register filters as globals for multi-argument filter functions in templates
     if adapter._env:
         for name, func in all_filters.items():
             adapter._env.globals[name] = func

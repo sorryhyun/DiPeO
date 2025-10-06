@@ -71,15 +71,12 @@ class BaseCodegenHandler(TypedNodeHandler):
         Returns:
             Tuple of (is_batch, batch_data)
         """
-        # Check explicit batch flag
         if hasattr(node, "batch") and node.batch:
-            # Look for batch input key
             batch_key = getattr(node, "batchInputKey", "default")
             batch_data = inputs.get(batch_key)
             if batch_data and isinstance(batch_data, dict):
                 return True, batch_data
 
-        # Check for 'sources' key (common batch pattern)
         if "sources" in inputs and isinstance(inputs.get("sources"), dict):
             return True, inputs["sources"]
 
@@ -100,7 +97,6 @@ class BaseCodegenHandler(TypedNodeHandler):
             "node_type": str(node.type),
         }
 
-        # Add any extra metadata
         metadata.update(extra)
 
         return metadata

@@ -8,54 +8,34 @@ from typing import Any
 
 
 def extract_code_blocks(content: str) -> dict[str, str]:
-    """Extract code blocks from the text with their filenames.
-
-    Handles multiple formats:
-    - Numbered lists with file paths
-    - Direct file paths in comments
-    - Section headers with code blocks
-    """
+    """Extract code blocks with filenames. Handles numbered lists, comment headers, and direct paths."""
     files = {}
 
-    # Enhanced pattern to match various code block formats
-    # Pattern 1: Numbered list format (1) path/to/file.ext)
     pattern1 = r"(\d+\))\s+([^`\n]+?)(?:\n[^`]*)?```(\w+)?\n(.*?)```"
-
-    # Pattern 2: Comment format (// path/to/file.ext or # path/to/file.ext)
     pattern2 = r"(?://|#)\s*([\w/\-\.]+\.\w+)\s*\n```(\w+)?\n(.*?)```"
-
-    # Pattern 3: Direct file path before code block
     pattern3 = r"^([\w/\-\.]+\.\w+)\s*:?\s*\n```(\w+)?\n(.*?)```"
 
-    # Try all patterns
     for pattern in [pattern1, pattern2, pattern3]:
         matches = re.findall(pattern, content, re.MULTILINE | re.DOTALL)
 
         for match in matches:
-            if len(match) == 4:  # Pattern 1
+            if len(match) == 4:
                 num, description, lang, code = match
                 file_path = extract_file_path(description)
-            elif len(match) == 3:  # Pattern 2 or 3
+            elif len(match) == 3:
                 file_path_raw, lang, code = match
                 file_path = file_path_raw.strip()
             else:
                 continue
 
             if file_path and code.strip():
-                # Normalize the file path
                 if not file_path.startswith("src/") and "src/" in file_path:
-                    # Extract src/ path if embedded
                     src_match = re.search(r"(src/[^\s]+)", file_path)
                     if src_match:
                         file_path = src_match.group(1)
 
-                # Clean up the code
-                code = code.strip()
+                files[file_path] = code.strip()
 
-                # Store the file
-                files[file_path] = code
-
-    # Also try to extract inline file definitions
     inline_pattern = r"// ([\w/\-\.]+\.\w+)\n([^`]+?)(?=\n//|\n\n|\Z)"
     inline_matches = re.findall(inline_pattern, content, re.MULTILINE | re.DOTALL)
     for file_path, code in inline_matches:
@@ -67,14 +47,12 @@ def extract_code_blocks(content: str) -> dict[str, str]:
 
 def extract_file_path(description: str) -> str:
     """Extract file path from a description string."""
-    # Look for common file extensions
     extensions = r"\.(?:ts|tsx|js|jsx|css|scss|md|json|yaml|yml|txt|html)"
 
-    # Try different path patterns
     patterns = [
         rf"((?:src/|components/|utils/|hooks/|contexts/|services/|tests?/)[^\s]+{extensions})",
-        rf"([^\s/]+{extensions})",  # Just filename
-        rf"([\w/\-\.]+{extensions})",  # Any path with extension
+        rf"([^\s/]+{extensions})",
+        rf"([\w/\-\.]+{extensions})",
     ]
 
     for pattern in patterns:
@@ -96,17 +74,14 @@ def detect_dependencies(files: dict[str, str]) -> tuple[dict[str, str], dict[str
         "vite": "^5.0.0",
     }
 
-    # Check all files for specific imports/usage
     all_code = "\n".join(files.values())
 
-    # Detect styling libraries
     if "tailwind" in all_code.lower() or "@tailwind" in all_code:
         dependencies["clsx"] = "^2.0.0"
         dev_dependencies.update(
             {"autoprefixer": "^10.4.16", "postcss": "^8.4.32", "tailwindcss": "^3.3.6"}
         )
 
-    # Detect testing libraries
     if "@testing-library" in all_code or "test(" in all_code or "describe(" in all_code:
         dev_dependencies.update(
             {
@@ -117,17 +92,14 @@ def detect_dependencies(files: dict[str, str]) -> tuple[dict[str, str], dict[str
             }
         )
 
-    # Detect form libraries
     if "react-hook-form" in all_code:
         dependencies["react-hook-form"] = "^7.48.0"
 
-    # Detect data fetching
     if "react-query" in all_code or "@tanstack/react-query" in all_code:
         dependencies["@tanstack/react-query"] = "^5.0.0"
     elif "swr" in all_code.lower():
         dependencies["swr"] = "^2.2.0"
 
-    # Detect routing
     if "react-router" in all_code or "useNavigate" in all_code:
         dependencies["react-router-dom"] = "^6.20.0"
         dev_dependencies["@types/react-router-dom"] = "^5.3.3"
@@ -137,10 +109,8 @@ def detect_dependencies(files: dict[str, str]) -> tuple[dict[str, str], dict[str
 
 def create_config_files(app_path: Path, files: dict[str, str], app_name: str = "generated-app"):
     """Create all configuration files for the React app."""
-    # Detect dependencies from code
     deps, dev_deps = detect_dependencies(files)
 
-    # Create package.json
     package_json = {
         "name": app_name,
         "version": "1.0.0",
@@ -161,7 +131,6 @@ def create_config_files(app_path: Path, files: dict[str, str], app_name: str = "
     with (app_path / "package.json").open("w") as f:
         json.dump(package_json, f, indent=2)
 
-    # Create vite.config.ts
     vite_config = """import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
@@ -178,7 +147,6 @@ export default defineConfig({
     with (app_path / "vite.config.ts").open("w") as f:
         f.write(vite_config)
 
-    # Create tsconfig.json
     tsconfig = {
         "compilerOptions": {
             "target": "ES2020",
@@ -204,7 +172,6 @@ export default defineConfig({
     with (app_path / "tsconfig.json").open("w") as f:
         json.dump(tsconfig, f, indent=2)
 
-    # Create tsconfig.node.json
     tsconfig_node = {
         "compilerOptions": {
             "composite": True,
@@ -219,7 +186,6 @@ export default defineConfig({
     with (app_path / "tsconfig.node.json").open("w") as f:
         json.dump(tsconfig_node, f, indent=2)
 
-    # Create tailwind.config.js
     tailwind_config = """/** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -236,7 +202,6 @@ export default {
     with (app_path / "tailwind.config.js").open("w") as f:
         f.write(tailwind_config)
 
-    # Create postcss.config.js
     postcss_config = """export default {
   plugins: {
     tailwindcss: {},
@@ -248,7 +213,6 @@ export default {
     with (app_path / "postcss.config.js").open("w") as f:
         f.write(postcss_config)
 
-    # Create index.html
     index_html = """<!doctype html>
 <html lang="en">
   <head>
@@ -272,23 +236,19 @@ def detect_css_imports(files: dict[str, str]) -> str:
     """Detect CSS file imports in the generated code to determine the expected CSS filename."""
     css_import_pattern = r"import\s+['\"]\./([\w/-]+\.css)['\"]"
 
-    # Check all TypeScript/JavaScript files for CSS imports
     for file_path, content in files.items():
         if file_path.endswith((".tsx", ".ts", ".jsx", ".js")):
             matches = re.findall(css_import_pattern, content)
             for match in matches:
-                # Return the first CSS import found (prioritize main.tsx)
                 if "main" in file_path.lower():
                     return match
 
-    # If no specific CSS import found in main, check other files
     for file_path, content in files.items():
         if file_path.endswith((".tsx", ".ts", ".jsx", ".js")):
             matches = re.findall(css_import_pattern, content)
             if matches:
                 return matches[0]
 
-    # Default to index.css if no imports found
     return "index.css"
 
 
@@ -334,7 +294,6 @@ code {
 
 def _create_main_tsx(files: dict[str, str], expected_css_file: str | None) -> str:
     """Create main.tsx content with appropriate style imports."""
-    # Determine style import based on what CSS files exist or are expected
     style_import = None
     if expected_css_file:
         style_import = f"./{expected_css_file}"
@@ -364,9 +323,7 @@ def _detect_components(files: dict[str, str]) -> tuple[list[str], set[str]]:
     component_names = set()
 
     for file_path in files:
-        # Check for components in components/ subdirectory
         if "components/" in file_path and file_path.endswith(".tsx"):
-            # Extract component name
             match = re.search(r"components/(\w+)/(\w+)\.tsx", file_path)
             if match and match.group(1) == match.group(2):
                 comp_name = match.group(1)
@@ -376,9 +333,7 @@ def _detect_components(files: dict[str, str]) -> tuple[list[str], set[str]]:
                         f"import {{ {comp_name} }} from './components/{comp_name}'"
                     )
 
-        # Also check for components directly in src/ (like src/List.tsx)
         elif file_path.startswith("src/") and file_path.endswith(".tsx"):
-            # Skip main, App, test files, and supporting files
             if any(
                 skip in file_path.lower()
                 for skip in [
@@ -397,12 +352,8 @@ def _detect_components(files: dict[str, str]) -> tuple[list[str], set[str]]:
             ):
                 continue
 
-            # Extract component name from file (e.g., src/List.tsx -> List)
             file_name = Path(file_path).stem
-            if (
-                file_name and file_name[0].isupper()
-            ):  # Component names should start with uppercase
-                # Try to verify it's actually a React component by checking content
+            if file_name and file_name[0].isupper():
                 content = files.get(file_path, "")
                 if "export" in content and (
                     "function " + file_name in content
@@ -453,7 +404,7 @@ def _generate_component_usage(comp_name: str) -> str:
 def _create_app_tsx(component_imports: list[str], component_names: set[str]) -> str:
     """Create App.tsx content based on detected components."""
     if component_names:
-        imports = "\n".join(component_imports[:3])  # Limit to first 3 components
+        imports = "\n".join(component_imports[:3])
         comp_name = next(iter(component_names))
         component_usage = _generate_component_usage(comp_name)
 
@@ -475,7 +426,6 @@ function App() {{
 export default App
 """
     else:
-        # Fallback generic App
         return """function App() {
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -496,34 +446,26 @@ def create_app_files(app_path: Path, files: dict[str, str]):
     src_path = app_path / "src"
     src_path.mkdir(exist_ok=True)
 
-    # Check if files already contain these critical files
     has_main, has_app, has_styles = _check_existing_files(files)
-
-    # Detect styling configuration
     uses_tailwind, expected_css_file = _detect_styling_config(files)
 
-    # Only use expected_css_file if we don't already have styles
     if has_styles:
         expected_css_file = None
 
-    # Create CSS file if needed
     if not has_styles and expected_css_file:
         css_path = f"src/{expected_css_file}"
         css_content = _create_css_content(uses_tailwind)
         files[css_path] = css_content
 
-    # Create src/main.tsx if not present
     if not has_main:
         main_tsx = _create_main_tsx(files, expected_css_file)
         files["src/main.tsx"] = main_tsx
 
-    # Create src/App.tsx if not present
     if not has_app:
         component_imports, component_names = _detect_components(files)
         app_tsx = _create_app_tsx(component_imports, component_names)
         files["src/App.tsx"] = app_tsx
 
-    # Create test setup if tests exist
     if any("test" in f.lower() for f in files):
         if "src/test-setup.ts" not in files:
             files["src/test-setup.ts"] = "import '@testing-library/jest-dom'"
@@ -564,14 +506,12 @@ pnpm dev
 
 def get_app_name_from_content(files: dict[str, str]) -> str:
     """Detect app name from generated content."""
-    # Try to find component names
     for file_path in files:
         if "components/" in file_path:
             match = re.search(r"components/(\w+)/", file_path)
             if match:
                 return f"{match.group(1).lower()}-app"
 
-    # Check for specific patterns in code
     all_code = " ".join(files.values())[:1000].lower()
     if "list" in all_code:
         return "list-app"
@@ -599,17 +539,14 @@ def validate_extracted_files(files: dict[str, str]) -> dict[str, Any]:
 
 def main(inputs):
     """Main function to extract and setup the React app."""
-    # Get DiPeO base directory from environment
     dipeo_base = os.environ.get("DIPEO_BASE_DIR", ".")
     base_path = Path(dipeo_base)
 
-    # Parse inputs
     generated_code = inputs.get("generated_code", "")
-    section_id = inputs.get("section_id")  # optional section ID for naming
+    section_id = inputs.get("section_id")
 
     content = generated_code if isinstance(generated_code, str) else json.dumps(generated_code)
 
-    # Extract code blocks with their filenames
     files = extract_code_blocks(content)
 
     if not files:
@@ -619,38 +556,27 @@ def main(inputs):
             "status": "Failed to extract code",
         }
 
-    # Validate extracted files
     validation = validate_extracted_files(files)
-
-    # Determine app name from content (or use section_id if provided)
     app_name = f"section-{section_id}" if section_id else get_app_name_from_content(files)
 
-    # Create the app structure with proper base path
     app_path = base_path / "projects" / "frontend_enhance" / app_name
     app_path.mkdir(parents=True, exist_ok=True)
 
-    # Create app files if missing (adds to files dict)
     create_app_files(app_path, files)
 
-    # Create all files (both extracted and generated)
     for file_path, code in files.items():
         full_path = app_path / file_path
         full_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Fix file extensions for TypeScript React files
         if file_path.endswith(".ts") and ("tsx" in code or "JSX" in code or "React" in code):
             full_path = full_path.with_suffix(".tsx")
 
         with full_path.open("w") as f:
             f.write(code)
 
-    # Create configuration files
     create_config_files(app_path, files, app_name)
-
-    # Create run script with proper base path
     create_run_script(base_path / "projects" / "frontend_enhance", app_name)
 
-    # Calculate relative path for output
     try:
         relative_path = app_path.relative_to(base_path)
     except ValueError:

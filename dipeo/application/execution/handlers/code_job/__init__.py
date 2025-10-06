@@ -68,15 +68,12 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         return "Executes Python, TypeScript, or Bash code from files or inline with enhanced capabilities"
 
     async def pre_execute(self, request: ExecutionRequest[CodeJobNode]) -> Envelope | None:
-        """Runtime validation and setup - prepares execution environment."""
         node = request.node
 
-        # 1. Extract configuration with defaults
         language = node.language.value if hasattr(node.language, "value") else node.language
         timeout = node.timeout or 30
         function_name = node.function_name or "main"
 
-        # 2. Runtime validation: Check executor availability
         executor = self._executors.get(language)
         if not executor:
             supported = ", ".join(self._executors.keys())
@@ -87,7 +84,6 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                 error="ValueError",
             )
 
-        # 3. Runtime validation: Resolve and check file path if needed
         file_path = None
         if node.file_path:
             file_path = Path(node.file_path)
@@ -95,7 +91,6 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                 base_dir = os.getenv("DIPEO_BASE_DIR", os.getcwd())
                 file_path = Path(base_dir) / node.file_path
 
-            # Check file exists at runtime
             if not file_path.exists():
                 return EnvelopeFactory.create(
                     body=f"File not found: {node.file_path}",
@@ -112,97 +107,73 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                     error="ValueError",
                 )
 
-        # 4. Store all validated data in request state
         request.set_handler_state("language", language)
         request.set_handler_state("timeout", timeout)
         request.set_handler_state("function_name", function_name)
         request.set_handler_state("executor", executor)
         request.set_handler_state("file_path", file_path)
 
-        return None  # Proceed to execute_request
+        return None
 
     def validate(self, request: ExecutionRequest[CodeJobNode]) -> str | None:
-        """Static validation - checks that can be done at compile/planning time."""
         node = request.node
 
-        # Check that exactly one of file_path or code is provided
         if not node.file_path and not node.code:
             return "Either file_path or code must be provided"
 
         if node.file_path and node.code:
             return "Cannot provide both file_path and code. Use one or the other."
 
-        # Note: Language validation moved to pre_execute since it depends on runtime executors
-        # File existence check also moved to pre_execute since it's a runtime concern
-
         return None
 
     async def prepare_inputs(
         self, request: ExecutionRequest[CodeJobNode], inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Prepare execution context from envelopes.
-
-        Phase 5: Now consumes tokens from incoming edges when available.
-        """
         node = request.node
 
-        # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
         envelope_inputs = self.get_effective_inputs(request, inputs)
 
-        # Prepare execution context from envelopes
         exec_context = {}
 
-        # Add all inputs to context
         for key, envelope in envelope_inputs.items():
-            # Convert envelope to appropriate Python type
             if envelope.content_type == "raw_text":
                 exec_context[key] = envelope.as_text()
             elif envelope.content_type == "object":
                 value = envelope.as_json()
-                # SEAC: Direct pass-through - no shape mutation
                 exec_context[key] = value
             elif envelope.content_type == "binary":
                 exec_context[key] = envelope.as_bytes()
             else:
-                # Default to raw body
                 exec_context[key] = envelope.body
 
-        # Add standard variables
         exec_context["inputs"] = exec_context.copy()
         exec_context["node_id"] = node.id
 
-        # Expose global variables from context to user code
         if hasattr(request.context, "get_variables"):
             exec_context["globals"] = request.context.get_variables()
 
         return exec_context
 
     async def run(self, inputs: dict[str, Any], request: ExecutionRequest[CodeJobNode]) -> Any:
-        """Execute code with prepared context."""
         import time
 
         node = request.node
-        # Ensure exec_context is always a dictionary
         exec_context = inputs if isinstance(inputs, dict) else {}
 
-        # Use pre-validated data from request state (set in pre_execute)
         timeout = request.get_handler_state("timeout")
         function_name = request.get_handler_state("function_name")
         executor = request.get_handler_state("executor")
 
-        # Track execution time
         start_time = time.time()
 
         if node.code:
             request.add_metadata("inline_code", True)
             result = await executor.execute_inline(node.code, exec_context, timeout, function_name)
         else:
-            # Use pre-resolved file path from request state
             file_path = request.get_handler_state("file_path")
             request.add_metadata("filePath", str(file_path))
             result = await executor.execute_file(file_path, exec_context, timeout, function_name)
 
-        # Store execution metadata in request state for building representations
         execution_time = time.time() - start_time
         execution_meta = {
             "execution_time": execution_time,
@@ -218,7 +189,6 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
     def _build_node_output(
         self, result: Any, request: ExecutionRequest[CodeJobNode]
     ) -> dict[str, Any]:
-        """Build multi-representation output for code execution."""
         node = request.node
         execution_meta = request.get_handler_state("execution_meta", {})
         language = request.get_handler_state("language")
@@ -227,7 +197,6 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         file_path = request.get_handler_state("file_path")
         execution_time = request.get_handler_state("execution_time", 0)
 
-        # Build representations
         representations = {
             "text": str(result) if result is not None else "",
             "object": result if isinstance(result, dict | list) else None,
@@ -243,7 +212,6 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
             },
         }
 
-        # Add code/file info
         if node.code:
             representations["code_info"] = {
                 "type": "inline",
@@ -257,7 +225,6 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
                 "file_hash": hash(str(file_path)),
             }
 
-        # Determine primary body for backward compatibility
         if result is None:
             primary = ""
         elif isinstance(result, str | bytes | dict | list):
@@ -277,42 +244,31 @@ class CodeJobNodeHandler(TypedNodeHandler[CodeJobNode]):
         }
 
     def serialize_output(self, result: Any, request: ExecutionRequest[CodeJobNode]) -> Envelope:
-        """Serialize code execution result to multi-representation envelope."""
         node = request.node
         trace_id = request.execution_id or ""
 
-        # Build multi-representation output
         output = self._build_node_output(result, request)
 
-        # Use natural data output with auto-detection
         primary = output["primary"]
         output_envelope = EnvelopeFactory.create(
-            body=primary,  # Let auto-detection handle the content type
+            body=primary,
             produced_by=node.id,
             trace_id=trace_id,
         )
 
-        # Add metadata
         if "meta" in output:
             output_envelope = output_envelope.with_meta(**output["meta"])
 
         return output_envelope
 
     def post_execute(self, request: ExecutionRequest[CodeJobNode], output: Envelope) -> Envelope:
-        """Post-execution hook for logging and token emission.
-
-        Phase 5: Now emits output as tokens to trigger downstream nodes.
-        """
-        # Use request state for language
         if request.metadata and request.metadata.get("debug"):
             language = request.get_handler_state("language")
-            # Check if output is an error by checking has_error method
             is_error = hasattr(output, "has_error") and output.has_error()
             print(f"[CodeJobNode] Executed {language} code - Success: {not is_error}")
             if is_error and hasattr(output, "value"):
                 print(f"[CodeJobNode] Error: {output.value}")
 
-        # Phase 5: Emit output as tokens to trigger downstream nodes
         self.emit_token_outputs(request, output)
 
         return output

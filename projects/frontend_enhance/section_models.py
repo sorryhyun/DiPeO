@@ -1,13 +1,10 @@
-"""
-Pydantic models for frontend_enhance multi-section planning.
-Defines structured output for Section Planner to split work into independent sections.
-"""
+"""Pydantic models for frontend_enhance multi-section planning."""
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
 class Architecture(BaseModel):
-    """Overall application architecture and design patterns."""
+    """Application architecture and design patterns."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -45,7 +42,7 @@ class Architecture(BaseModel):
 
 
 class PromptContext(BaseModel):
-    """Context information to guide prompt generation for a section."""
+    """Context to guide prompt generation for a section."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -69,7 +66,7 @@ class PromptContext(BaseModel):
 
 
 class Section(BaseModel):
-    """A single section/feature to be implemented independently."""
+    """A single feature to be implemented independently."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -103,7 +100,7 @@ class Section(BaseModel):
 
 
 class Response(BaseModel):
-    """Response containing the architecture and list of sections to implement."""
+    """Architecture and sections to implement."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -115,7 +112,6 @@ class Response(BaseModel):
     )
 
 
-# Example usage for LLM understanding
 EXAMPLE_RESPONSE = Response(
     architecture=Architecture(
         overview="A modular task management dashboard built with React 18+ and TypeScript. Features are split into independent sections that communicate through a centralized state store and event bus. Each section follows container/presentational pattern with clear separation of concerns.",
@@ -206,10 +202,8 @@ EXAMPLE_RESPONSE = Response(
 
 
 if __name__ == "__main__":
-    # Rebuild models to ensure proper schema generation
     Section.model_rebuild()
     Response.model_rebuild()
 
-    # Print example for reference
     print("Example Response:")
     print(EXAMPLE_RESPONSE.model_dump_json(indent=2))

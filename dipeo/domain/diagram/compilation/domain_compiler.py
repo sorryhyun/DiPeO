@@ -159,7 +159,6 @@ class DomainDiagramCompiler(DiagramCompiler):
         """Compile with detailed diagnostics and error reporting."""
         context = CompilationContext(domain_diagram)
 
-        # Execute compilation phases
         phases = [
             (CompilationPhase.VALIDATION, self._validation_phase),
             (CompilationPhase.NODE_TRANSFORMATION, self._node_transformation_phase),
