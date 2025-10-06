@@ -277,7 +277,7 @@ This architecture enables:
 
 ### GraphQL Architecture
 
-The GraphQL layer provides a production-ready architecture with 45 operations (23 queries, 21 mutations, 1 subscription):
+The GraphQL layer provides a production-ready architecture with 50 operations (25 queries, 24 mutations, 1 subscription):
 
 **3-Tier Architecture**:
 ```

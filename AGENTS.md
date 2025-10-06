@@ -1,4 +1,4 @@
-You should use tools as much as possible, ideally more than 50 times. You should also implement your own tests first before attempting the problem.
+You should use tools as much as possible, ideally more than 50 times. You should also implement your own tests first before attempting the problem. Use proper agents in parallel if it's feasible, but their target should not overlap.
 
 # CLAUDE.md
 
@@ -58,7 +58,7 @@ make dev-web          # Start frontend only
 ### Running Diagrams
 ```bash
 # Run with debug mode (auto-starts monitoring server)
-dipeo run examples/simple_diagrams/simple_iter --light --debug --timeout=30
+dipeo run examples/simple_diagrams/simple_iter --light --debug --timeout=30 --timing
 
 # Run with custom input data
 dipeo run [diagram] --input-data '{"key": "value"}' --light --debug
@@ -82,7 +82,7 @@ dipeocc convert session-id      # Convert specific session
 dipeocc watch --auto-execute    # Watch and auto-execute new sessions
 dipeocc stats session-id        # Show session statistics
 ```
-- **Session location**: `~/.claude/projects/-home-soryhyun-DiPeO/`
+- **Session location**: `~/.claude/projects/-home-sorryhyun-DiPeO/`
 - **Output**: `projects/claude_code/sessions/{session_id}/`
 - **Full guide**: [DiPeOCC Guide](docs/projects/dipeocc-guide.md)
 
@@ -116,7 +116,7 @@ Quick command: `make codegen-auto` (USE WITH CAUTION)
 2. **Application Layer**: `/dipeo/application/graphql/` (direct service access resolvers)
 3. **Execution Layer**: OperationExecutor with auto-discovery and validation
 
-**45 operations** (23 queries, 21 mutations, 1 subscription) - Frontend hooks in `@/__generated__/graphql`, Python classes in `dipeo/diagram_generated/graphql/operations.py`
+**50 operations** (25 queries, 24 mutations, 1 subscription) - Frontend hooks in `@/__generated__/graphql`, Python classes in `dipeo/diagram_generated/graphql/operations.py`
 
 **Resolver Pattern**: Direct service access via `async def resolver(registry, **kwargs)` - no class-based resolvers except ProviderResolver
 
@@ -155,8 +155,12 @@ make graphql-schema     # Update GraphQL types
 - **[GraphQL Layer](docs/architecture/graphql-layer.md)** - GraphQL implementation
 
 ### Node Handlers & IR Builders
-- **Node Handlers**: `/dipeo/application/execution/handlers/` - api_job, db, diff_patch, endpoint, hook, integrated_api, person_job/, sub_diagram/, code_job/, condition/, codegen/
-- **IR Builders**: `/dipeo/infrastructure/codegen/ir_builders/` - backend_builders, frontend, strawberry_builders
+- **Node Handlers**: `/dipeo/application/execution/handlers/`
+  - Simple handlers: api_job, db, endpoint, integrated_api, start, user_response
+  - Complex handlers: person_job/, sub_diagram/, code_job/, condition/, diff_patch/, hook/, codegen/
+- **IR Builders**: `/dipeo/infrastructure/codegen/ir_builders/`
+  - Builders: backend_builders/, frontend/, strawberry_builders/
+  - Core pipeline: core/, modules/, ast/, type_system_unified/, validators/
 
 See [Overall Architecture](docs/architecture/overall_architecture.md) for details.
 
@@ -189,7 +193,7 @@ DiPeO uses **EnhancedServiceRegistry** for advanced dependency injection with pr
 - **Audit Trail**: Registration history, dependency validation, usage metrics
 
 ```python
-from dipeo.infrastructure.enhanced_service_registry import EnhancedServiceRegistry, ServiceType
+from dipeo.application.registry.enhanced_service_registry import EnhancedServiceRegistry, ServiceType
 
 registry.register("my_service", instance, ServiceType.APPLICATION)
 registry.register("critical", service, ServiceType.CORE, final=True)
@@ -202,20 +206,30 @@ Protected services: EVENT_BUS (final), STATE_STORE (immutable). Integrates with 
 
 DiPeO includes specialized subagents in `.claude/agents/` for complex tasks:
 
+### Core Development Agents
 - **dipeo-core-python**: Python business logic, handlers, infrastructure (`/dipeo/`)
 - **dipeo-frontend-dev**: React components, ReactFlow editor, GraphQL hooks (`/apps/web/`)
 - **typescript-model-designer**: TypeScript specs, node definitions (`/dipeo/models/src/`)
 - **dipeo-codegen-specialist**: Code generation pipeline, IR builders, staging validation
+
+### Feature-Specific Agents
 - **dipeocc-converter**: Claude Code session conversion, DiPeOCC workflows
 - **docs-maintainer**: Documentation updates after features/refactors
 - **todo-manager**: Task planning, TODO.md management
 
-Use these agents for specialized work requiring deep domain expertise.
+### Utility Agents
+- **typecheck-fixer**: TypeScript type error resolution for frontend code
+- **import-refactor-updater**: Update imports and references after refactoring
+- **comment-cleaner**: Remove redundant comments while preserving valuable ones
+- **codebase-auditor**: Targeted code audits for security, performance, quality
+- **chatgpt-dipeo-project-manager**: ChatGPT project management and web automation
+
+Use these agents for specialized work requiring deep domain expertise. Run agents in parallel if it is possible.
 
 ## Adding New Features
 
 ### New Node Types
-1. Create specification in `/dipeo/models/src/node-specs/`
+1. Create specification in `/dipeo/models/src/nodes/`
 2. Build models: `cd dipeo/models && pnpm build`
 3. Generate: `make codegen`
 4. Apply: `make apply-test`

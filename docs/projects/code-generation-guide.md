@@ -139,7 +139,6 @@ make graphql-schema        # Export schema and generate TypeScript types
 
 ```bash
 make codegen-auto         # DANGEROUS: Runs generate_all + auto-apply + GraphQL schema
-make codegen-watch        # Watch TypeScript files for changes
 ```
 
 ### Staging Commands

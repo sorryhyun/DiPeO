@@ -5,7 +5,7 @@
 The GraphQL layer provides a production-ready, type-safe architecture for all API operations.
 
 ### Key Features
-- **45 operations** with full GraphQL query strings as constants (23 queries, 21 mutations, 1 subscription)
+- **50 operations** with full GraphQL query strings as constants (25 queries, 24 mutations, 1 subscription)
 - **Type-safe operation classes** with proper TypedDict for variables and automatic Strawberry input conversion
 - **Direct service access pattern** for resolvers with ServiceRegistry dependency injection
 - **Clean separation of concerns** using a 3-tier architecture
@@ -35,7 +35,7 @@ The GraphQL layer uses a clean 3-tier architecture that separates code generatio
 This layer is completely generated from TypeScript query definitions and provides the foundation for type-safe GraphQL operations.
 
 #### Key Files
-- **`operations.py`** - All 45 operations with complete GraphQL query strings and typed operation classes
+- **`operations.py`** - All 50 operations with complete GraphQL query strings and typed operation classes
 - **`inputs.py`** - Generated Strawberry input types
 - **`results.py`** - Generated result types for consistent response formats
 - **`domain_types.py`** - Generated domain types mapping to internal models
@@ -170,7 +170,7 @@ class OperationExecutor:
 - **Convention over Configuration**: No manual mapping needed, resolvers auto-discovered
 - **Type Safety**: Variable and result validation at runtime
 - **Performance**: Module caching reduces import overhead
-- **Maintainability**: Single consistent pattern across all 45 operations
+- **Maintainability**: Single consistent pattern across all 50 operations
 
 ## Integration with DiPeO Systems
 
@@ -369,7 +369,7 @@ The GraphQL architecture provides:
 - Efficient variable validation
 
 ### Developer Experience
-- 45 operations fully typed and validated
+- 50 operations fully typed and validated
 - Automatic hook generation for frontend
 - Clear error messages with type mismatches
 - Single pattern to learn (no class hierarchies)

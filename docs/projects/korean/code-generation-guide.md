@@ -125,7 +125,6 @@ make graphql-schema        # 스키마 내보내기 및 TypeScript 타입 생성
 
 ```bash
 make codegen-auto         # 위험: generate_all + 자동 적용 + GraphQL 스키마까지 실행
-make codegen-watch        # TypeScript 파일 변경 감시
 ```
 
 ### 스테이징 관련 명령
