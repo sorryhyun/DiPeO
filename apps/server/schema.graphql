@@ -498,7 +498,7 @@ type Query {
   getPromptFile(filename: String!): JSON!
   listProviders: [ProviderType!]!
   getProvider(name: String!): ProviderType
-  getProviderOperations(provider: String!): [OperationType!]!
+  getProviderOperations(provider: String!): JSON!
   getOperationSchema(provider: String!, operation: String!): OperationSchemaType
   getProviderStatistics: ProviderStatisticsType!
   getSystemInfo: JSON!

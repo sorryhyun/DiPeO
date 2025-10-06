@@ -2,7 +2,7 @@
 # __generated__ by DiPeO
 """
 Domain models generated from TypeScript interfaces.
-Generated at: 2025-10-06T11:12:06.745235
+Generated at: 2025-10-06T11:30:08.719169
 """
 from __future__ import annotations
 
@@ -867,7 +867,7 @@ class ProviderStatistics(BaseModel):
     
     provider_types: Any
     
-    providers: List[Any]
+    providers: Any
     
 
 

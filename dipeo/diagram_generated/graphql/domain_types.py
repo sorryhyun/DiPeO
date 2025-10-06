@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces using simplified type resolver.
 
-Generated at: 2025-10-06T11:12:03.814179
+Generated at: 2025-10-06T11:30:05.588911
 """
 
 from __future__ import annotations
@@ -637,7 +637,7 @@ class ProviderStatisticsType:
     total_providers: float
     total_operations: float
     provider_types: JSONScalar
-    providers: List[Any]
+    providers: JSONScalar
 
 
 @strawberry.type

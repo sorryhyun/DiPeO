@@ -1,6 +1,6 @@
-You should use tools as much as possible, ideally more than 50 times. You should also implement your own tests first before attempting the problem.
-
 # CLAUDE.md
+
+You should use tools as much as possible, ideally more than 50 times. You should also implement your own tests first before attempting the problem. Use proper agents in parallel if it's feasible, but their target should not overlap.
 
 This file provides guidance to Claude Code (claude.ai/code) when working with this DiPeO repository.
 
@@ -210,7 +210,7 @@ DiPeO includes specialized subagents in `.claude/agents/` for complex tasks:
 - **docs-maintainer**: Documentation updates after features/refactors
 - **todo-manager**: Task planning, TODO.md management
 
-Use these agents for specialized work requiring deep domain expertise.
+Use these agents for specialized work requiring deep domain expertise. Run agents in parallel if it is possible.
 
 ## Adding New Features
 

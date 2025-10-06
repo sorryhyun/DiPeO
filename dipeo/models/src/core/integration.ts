@@ -120,7 +120,7 @@ export interface ProviderStatistics {
   total_providers: number;
   total_operations: number;
   provider_types: any;
-  providers: any[];
+  providers: any;
 }
 
 export interface IntegrationTestResult {

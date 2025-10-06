@@ -132,7 +132,7 @@ export const providerQueries: EntityQueryDefinitions = {
           args: [
             { name: 'provider', value: 'provider', isVariable: true }
           ],
-          fields: OPERATION_TYPE_FIELDS
+          fields: []  // Returns JSON
         }
       ]
     },
@@ -214,7 +214,7 @@ export const providerQueries: EntityQueryDefinitions = {
           args: [
             { name: 'name', value: 'name', isVariable: true }
           ],
-          fields: []  // Returns Boolean
+          fields: []  // Returns JSON
         }
       ]
     }

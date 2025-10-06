@@ -637,7 +637,7 @@ export type Query = {
   getPerson: DomainPersonType;
   getPromptFile: Scalars['JSON']['output'];
   getProvider?: Maybe<ProviderType>;
-  getProviderOperations: Array<OperationType>;
+  getProviderOperations: Scalars['JSON']['output'];
   getProviderStatistics: ProviderStatisticsType;
   getSupportedFormats: Scalars['JSON']['output'];
   getSystemInfo: Scalars['JSON']['output'];
@@ -941,7 +941,7 @@ export type GetProviderOperationsQueryVariables = Exact<{
 }>;
 
 
-export type GetProviderOperationsQuery = { __typename?: 'Query', getProviderOperations: Array<{ __typename?: 'OperationType', name: string, method: string, path: string, description?: string | null, required_scopes?: Array<string> | null, has_pagination: boolean, timeout_override?: number | null }> };
+export type GetProviderOperationsQuery = { __typename?: 'Query', getProviderOperations: any };
 
 export type GetOperationSchemaQueryVariables = Exact<{
   provider: Scalars['String']['input'];
@@ -1959,15 +1959,7 @@ export type GetProviderSuspenseQueryHookResult = ReturnType<typeof useGetProvide
 export type GetProviderQueryResult = Apollo.QueryResult<GetProviderQuery, GetProviderQueryVariables>;
 export const GetProviderOperationsDocument = gql`
     query GetProviderOperations($provider: String!) {
-  getProviderOperations(provider: $provider) {
-    name
-    method
-    path
-    description
-    required_scopes
-    has_pagination
-    timeout_override
-  }
+  getProviderOperations(provider: $provider)
 }
     `;
 
