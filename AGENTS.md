@@ -1,5 +1,3 @@
-You should use tools as much as possible, ideally more than 50 times. You should also implement your own tests first before attempting the problem. Use proper agents in parallel if it's feasible, but their target should not overlap.
-
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with this DiPeO repository.
@@ -11,261 +9,117 @@ DiPeO is a monorepo for building and executing AI-powered agent workflows throug
 - **Backend** (apps/server/): FastAPI server with GraphQL API
 - **CLI** (apps/server/src/dipeo_server/cli/): Command-line tool for running diagrams (`dipeo` command)
 
-## 📚 Documentation Structure
-
-### Core Documentation
-- **[Documentation Index](docs/index.md)** - Complete documentation overview
-- **[User Guide](docs/README.md)** - Getting started with DiPeO
-- **[Motivations](docs/motivations.md)** - Project background and philosophy
-
-### Architecture & Design
-- **[Overall Architecture](docs/architecture/overall_architecture.md)** - System architecture and tech stack
-- **[GraphQL Layer](docs/architecture/graphql-layer.md)** - Complete GraphQL implementation (3-tier)
-- **[Memory System Design](docs/architecture/memory_system_design.md)** - Conversation memory architecture
-- **[GraphQL Subscriptions](docs/architecture/graphql-subscriptions.md)** - Real-time updates
-- **[Diagram Execution](docs/architecture/diagram-execution.md)** - Execution engine details
-
-### Diagram Formats
-- **[Diagram Formats Overview](docs/formats/diagram_formats.md)** - Native, Light, Readable formats
-- **[Light Diagram Guide](docs/formats/comprehensive_light_diagram_guide.md)** - Complete Light YAML guide ⭐
-  - **Essential reading** for working with Light format diagrams
-  - Includes syntax, examples, best practices
-
-### Project Guides
-- **[Code Generation Guide](docs/projects/code-generation-guide.md)** - Complete codegen pipeline
-- **[DiPeOCC Guide](docs/projects/dipeocc-guide.md)** - Claude Code session conversion ⭐
-- **[DiPeO AI Generation](docs/projects/dipeodipeo-guide.md)** - Natural language to diagrams
-- **[Frontend Auto](projects/frontend_auto/README.md)** - Rapid AI-powered frontend generation
-- **[Frontend Enhance](docs/projects/frontend-enhance-guide.md)** - Advanced intelligent memory selection
-
-### Integrations
-- **[Claude Code Integration](docs/integrations/claude-code.md)** - Claude Code SDK integration
-- **[Webhook Integration](docs/features/webhook-integration.md)** - Webhook support
-
-### Node Types
-- **[Diff Patch Node](docs/nodes/diff-patch.md)** - File modification via diffs
-
 ## Essential Commands
 
 ### Setup & Development
 ```bash
-make install          # Install all dependencies (installs uv if needed)
-make dev-all          # Start both frontend and backend
-make dev-server       # Start backend only
-make dev-web          # Start frontend only
+make install          # Install dependencies (auto-installs uv)
+make dev-all          # Start frontend + backend
+make dev-web          # Frontend only (port 3000)
+make dev-server       # Backend only (port 8000)
 ```
 
 ### Running Diagrams
 ```bash
-# Run with debug mode (auto-starts monitoring server)
-dipeo run examples/simple_diagrams/simple_iter --light --debug --timeout=30 --timing
-
-# Run with custom input data
+dipeo run examples/simple_diagrams/simple_iter --light --debug --timeout=40 --timing
 dipeo run [diagram] --input-data '{"key": "value"}' --light --debug
+dipeo metrics --latest --breakdown  # Profile latest execution
 ```
-- **Light diagrams**: Read [Light Diagram Guide](docs/formats/comprehensive_light_diagram_guide.md)
-- **Debug mode (`--debug`)**: Automatically starts background server for real-time monitoring
-- **Monitor executions**: Open `http://localhost:3000/?monitor=true` in browser when using `--debug`
-- Use `simple_iter_cc` diagram to test Claude Code adapter
 
-### Natural Language to Diagram
+### Code Generation
 ```bash
-dipeo ask --to "create a workflow that fetches weather and sends email" --and-run
+cd dipeo/models && pnpm build      # Build TypeScript specs
+make codegen                        # Generate code (→ staged/)
+make diff-staged                    # Review changes
+make apply-test                     # Apply with validation
+make graphql-schema                 # Update GraphQL types
 ```
-- See [DiPeO AI Generation Guide](docs/projects/dipeodipeo-guide.md)
 
-### Converting Claude Code Sessions
+See [Code Generation Guide](docs/projects/code-generation-guide.md)
+
+### DiPeOCC (Claude Code Session Conversion)
 ```bash
-dipeocc list                    # List recent Claude Code sessions
-dipeocc convert --latest        # Convert latest session to diagram
-dipeocc convert session-id      # Convert specific session
-dipeocc watch --auto-execute    # Watch and auto-execute new sessions
-dipeocc stats session-id        # Show session statistics
+dipeocc list                    # List recent sessions
+dipeocc convert --latest        # Convert latest
+dipeocc convert {session-id}    # Convert specific
 ```
-- **Session location**: `~/.claude/projects/-home-sorryhyun-DiPeO/`
-- **Output**: `projects/claude_code/sessions/{session_id}/`
-- **Full guide**: [DiPeOCC Guide](docs/projects/dipeocc-guide.md)
+See [DiPeOCC Guide](docs/projects/dipeocc-guide.md)
 
-### Integrations & API Management
-```bash
-dipeo integrations init               # Initialize integrations workspace
-dipeo integrations validate            # Validate provider manifests
-dipeo integrations openapi-import spec.yaml --name my-api
-dipeo integrations claude-code --sync-mode auto --watch-todos
-```
-
-## Code Generation
-
-**⚠️ WARNING**: Code generation overwrites ALL generated code in `dipeo/diagram_generated/`!
-
-### Workflow
-1. Modify TypeScript specs in `/dipeo/models/src/` → `cd dipeo/models && pnpm build`
-2. Generate: `make codegen` (outputs to `dipeo/diagram_generated_staged/`)
-3. Verify: `make diff-staged`
-4. Apply: `make apply-test` (recommended) or `make apply` or `make apply-syntax-only`
-5. Update GraphQL: `make graphql-schema`
-
-Quick command: `make codegen-auto` (USE WITH CAUTION)
-
-**Full guide**: [Code Generation Guide](docs/projects/code-generation-guide.md)
-
-## GraphQL Operations System
-
-### 3-Tier Architecture
-1. **Generated Layer**: `/dipeo/diagram_generated/graphql/` (operations.py, inputs/results/types)
-2. **Application Layer**: `/dipeo/application/graphql/` (direct service access resolvers)
-3. **Execution Layer**: OperationExecutor with auto-discovery and validation
-
-**50 operations** (25 queries, 24 mutations, 1 subscription) - Frontend hooks in `@/__generated__/graphql`, Python classes in `dipeo/diagram_generated/graphql/operations.py`
-
-**Resolver Pattern**: Direct service access via `async def resolver(registry, **kwargs)` - no class-based resolvers except ProviderResolver
-
-### Adding New GraphQL Operations
-1. Add definition to `/dipeo/models/src/frontend/query-definitions/[entity].ts`
-2. Build models: `cd dipeo/models && pnpm build`
-3. Generate: `make codegen`
-4. Apply: `make apply-test`
-5. Update schema: `make graphql-schema`
-
-**Full docs**: [GraphQL Layer Architecture](docs/architecture/graphql-layer.md)
-
-## Quality Commands
+### Quality
 ```bash
 make lint-server        # Lint Python
 make lint-web           # Lint TypeScript
-make format             # Format Python with ruff
-pnpm typecheck          # TypeScript type checking
-make graphql-schema     # Update GraphQL types
+pnpm typecheck          # TypeScript checking
+make format             # Format Python
 ```
-
-## Architecture Overview
-
-### Key Concepts
-- **Code Generation**: All models/schemas generated from TypeScript specs in `/dipeo/models/src/`
-- **Generated Code**: Lives in `dipeo/diagram_generated/` (DO NOT EDIT DIRECTLY)
-- **Diagrams**: Stored in `/examples/`, `/projects/`, or `/files/`
-- **Service Architecture**: Mixin-based composition (LoggingMixin, ValidationMixin, ConfigurationMixin, CachingMixin, InitializationMixin)
-- **Event System**: Unified EventBus protocol for all event handling
-- **Output Pattern**: Envelope pattern with EnvelopeFactory for all handler outputs
-
-### Key Architecture Documentation
-- **[Overall Architecture](docs/architecture/overall_architecture.md)** - Complete system design
-- **[Memory System](docs/architecture/memory_system_design.md)** - Conversation memory management
-- **[Diagram Execution](docs/architecture/diagram-execution.md)** - Execution flow details
-- **[GraphQL Layer](docs/architecture/graphql-layer.md)** - GraphQL implementation
-
-### Node Handlers & IR Builders
-- **Node Handlers**: `/dipeo/application/execution/handlers/`
-  - Simple handlers: api_job, db, endpoint, integrated_api, start, user_response
-  - Complex handlers: person_job/, sub_diagram/, code_job/, condition/, diff_patch/, hook/, codegen/
-- **IR Builders**: `/dipeo/infrastructure/codegen/ir_builders/`
-  - Builders: backend_builders/, frontend/, strawberry_builders/
-  - Core pipeline: core/, modules/, ast/, type_system_unified/, validators/
-
-See [Overall Architecture](docs/architecture/overall_architecture.md) for details.
-
-### Key Directories
-- `/apps/server/` - FastAPI backend (includes CLI at src/dipeo_server/cli/)
-- `/apps/web/` - React frontend ([Frontend README](apps/web/src/domain/README.md))
-- `/dipeo/` - Backend business logic (application/domain/infrastructure layers)
-- `/projects/codegen/` - Code generation system ([Codegen Guide](docs/projects/code-generation-guide.md))
-- `/projects/frontend_auto/` - AI frontend generation ([Frontend Auto](projects/frontend_auto/README.md))
-- `/projects/frontend_enhance/` - Advanced frontend generation ([Frontend Enhance](docs/projects/frontend-enhance-guide.md))
-
-### LLM Infrastructure
-- **Unified Client Architecture**: All providers use unified clients directly
-- **OpenAI API v2**:
-  - Uses `responses.create()` and `responses.parse()` APIs
-  - `input` parameter for messages
-  - `max_output_tokens` for token limits
-  - Response structure: `response.output[0].content[0].text`
-- **Domain Adapters**:
-  - `LLMMemorySelectionAdapter`: Intelligent memory filtering and selection
-  - `LLMDecisionAdapter`: Binary decision making for conditions
-- **Provider Support**: OpenAI, Anthropic, Google, Ollama, Claude Code
-- **Documentation**: [Claude Code Integration](docs/integrations/claude-code.md)
-
-## Enhanced Service Registry
-
-DiPeO uses **EnhancedServiceRegistry** for advanced dependency injection with production safety:
-- **Service Types**: CORE, APPLICATION, DOMAIN, ADAPTER, REPOSITORY
-- **Production Safety**: Registry freezing, final services (EVENT_BUS), immutable services (STATE_STORE)
-- **Audit Trail**: Registration history, dependency validation, usage metrics
-
-```python
-from dipeo.application.registry.enhanced_service_registry import EnhancedServiceRegistry, ServiceType
-
-registry.register("my_service", instance, ServiceType.APPLICATION)
-registry.register("critical", service, ServiceType.CORE, final=True)
-history = registry.get_audit_trail()
-```
-
-Protected services: EVENT_BUS (final), STATE_STORE (immutable). Integrates with service mixins and EventBus.
 
 ## Claude Code Subagents
 
-DiPeO includes specialized subagents in `.claude/agents/` for complex tasks:
+DiPeO uses specialized subagents for complex tasks.
+Run agents in parallel when possible. [Agent docs](docs/agents/index.md)
 
-### Core Development Agents
-- **dipeo-core-python**: Python business logic, handlers, infrastructure (`/dipeo/`)
-- **dipeo-frontend-dev**: React components, ReactFlow editor, GraphQL hooks (`/apps/web/`)
-- **typescript-model-designer**: TypeScript specs, node definitions (`/dipeo/models/src/`)
-- **dipeo-codegen-specialist**: Code generation pipeline, IR builders, staging validation
+## Architecture Quick Reference
 
-### Feature-Specific Agents
-- **dipeocc-converter**: Claude Code session conversion, DiPeOCC workflows
-- **docs-maintainer**: Documentation updates after features/refactors
-- **todo-manager**: Task planning, TODO.md management
+### Key Concepts
+- **Code Generation**: TypeScript specs → IR → Python
+- **Avoid editing** `dipeo/diagram_generated/` directly - modify TypeScript specs instead
+- **GraphQL**: 3-tier architecture (Generated → Application → Execution) 
+- **Service Registry**: EnhancedServiceRegistry with type categorization, audit trails
+- **Event System**: Unified EventBus protocol
+- **Output Pattern**: Envelope pattern via EnvelopeFactory
 
-### Utility Agents
-- **typecheck-fixer**: TypeScript type error resolution for frontend code
-- **import-refactor-updater**: Update imports and references after refactoring
-- **comment-cleaner**: Remove redundant comments while preserving valuable ones
-- **codebase-auditor**: Targeted code audits for security, performance, quality
-- **chatgpt-dipeo-project-manager**: ChatGPT project management and web automation
+### Key Directories
+- `/apps/server/` - FastAPI backend + CLI
+- `/apps/web/` - React frontend
+- `/dipeo/` - Core Python (application/domain/infrastructure)
+- `/dipeo/models/src/` - TypeScript specs (source of truth)
+- `/dipeo/diagram_generated/` - Generated code (don't edit)
 
-Use these agents for specialized work requiring deep domain expertise. Run agents in parallel if it is possible.
+See [Overall Architecture](docs/architecture/overall_architecture.md) for complete details.
 
 ## Adding New Features
 
 ### New Node Types
-1. Create specification in `/dipeo/models/src/nodes/`
-2. Build models: `cd dipeo/models && pnpm build`
-3. Generate: `make codegen`
-4. Apply: `make apply-test`
-5. Update GraphQL: `make graphql-schema`
-6. See: [Code Generation Guide](docs/projects/code-generation-guide.md)
+1. Create spec in `/dipeo/models/src/nodes/`
+2. Build: `cd dipeo/models && pnpm build`
+3. Generate: `make codegen` → `make diff-staged` → `make apply-test`
+4. Update schema: `make graphql-schema`
+
+### GraphQL Operations
+1. Add definition in `/dipeo/models/src/frontend/query-definitions/`
+2. Follow codegen workflow above
+3. See [GraphQL Layer](docs/architecture/graphql-layer.md)
 
 ### Other Changes
-- **API changes**: Modify GraphQL schema, then `make graphql-schema`
+- **API changes**: Modify schema → `make graphql-schema`
 - **UI changes**: Work in `/apps/web/src/`
-- **Documentation**: [GraphQL Layer](docs/architecture/graphql-layer.md)
 
 ## Important Notes
 
 - **Python 3.13+** required
-- Use **uv** for Python, **pnpm** for JavaScript (not npm/yarn)
+- **uv** for Python, **pnpm** for JavaScript (not npm/yarn)
 - Default LLM: `gpt-5-nano-2025-08-07`
-- Backend port: 8000, Frontend port: 3000
-- **Service Architecture**: Services use mixin composition with unified EventBus and Envelope pattern
-- **Enhanced Service Registry**: Production-ready dependency injection with type categorization, audit trails, and safety features
+- Backend: port 8000, Frontend: port 3000
+- Debug with `--debug` flag, check `.logs/cli.log`
+- Formal test suite under development
 
 ## Common Issues & Solutions
 
 | Issue | Solution | Documentation |
-|-------|----------|---------------|
-| Import errors | Run `make install` (uv manages activation automatically) | |
-| uv not found | `make install` (auto-installs uv) | |
-| Generated code out of sync | Run codegen workflow (see above) | [Codegen Guide](docs/projects/code-generation-guide.md) |
+|-------|----------|-------------|
+| Import errors | `make install` (uv auto-manages env) | |
+| Generated code sync | Run codegen workflow | |
 | TypeScript errors | `make graphql-schema` | |
-| Need debugging | Add `--debug` flag, check `.logs/` | |
-| OpenAI API usage | Use `input` parameter and `max_output_tokens` | |
-| Claude Code sessions | Use `dipeocc` to convert sessions | [DiPeOCC Guide](docs/projects/dipeocc-guide.md) |
+| Need debugging | Add `--debug`, check `.logs/` | |
+| Claude Code sessions | Use `dipeocc convert` | |
 
-## Testing & Debugging
+## Quick Debug Reference
 
-- **Debug diagrams**: `dipeo run [diagram] --debug`
+- **Run diagrams**: `dipeo run [diagram] --light --debug`
 - **Monitor UI**: `http://localhost:3000/?monitor=true`
 - **GraphQL playground**: `http://localhost:8000/graphql`
-- **Logs**: Check `.logs/cli.log` for detailed debugging
-- **Note**: Formal test suite is under development
+- **Logs**: `.logs/cli.log` for detailed output
+
+---
+
+**For comprehensive documentation**, see [Documentation Index](docs/index.md) 

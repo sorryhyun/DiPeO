@@ -2,7 +2,7 @@ import { DomainPerson, PersonID, apiKeyId } from '@/infrastructure/types';
 import { generatePersonId } from '@/infrastructure/types/utilities';
 import { LLMService } from '@dipeo/models';
 import { Converters } from '@/infrastructure/services';
-import type { UnifiedStore } from '../types';
+import type { UnifiedStore, SetState, GetState, StoreApiType } from '../types';
 
 export interface PersonSlice {
   // Core data
@@ -16,7 +16,7 @@ export interface PersonSlice {
   // Batch operations
   batchUpdatePersons: (updates: Array<{id: PersonID, updates: Partial<DomainPerson>}>) => void;
   importPersons: (persons: DomainPerson[]) => void;
-  importPersonsFromGraphQL: (graphqlPersons: any[]) => void;
+  importPersonsFromGraphQL: (graphqlPersons: unknown[]) => void;
 
   // Clear and restore operations
   clearPersons: () => void;
@@ -27,9 +27,9 @@ export interface PersonSlice {
 
 
 export const createPersonSlice = (
-  set: (fn: (state: UnifiedStore) => void) => void,
-  _get: () => UnifiedStore,
-  _api: any
+  set: SetState,
+  _get: GetState,
+  _api: StoreApiType
 ): PersonSlice => ({
     // Initialize data
     persons: new Map(),

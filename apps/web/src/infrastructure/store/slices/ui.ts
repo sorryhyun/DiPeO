@@ -1,6 +1,6 @@
 import { ArrowID, NodeID, PersonID } from '@/infrastructure/types';
 import { Vec2 } from '@dipeo/models';
-import type { UnifiedStore } from '../types';
+import type { UnifiedStore, SetState, GetState, StoreApiType } from '../types';
 
 export type SelectableID = NodeID | ArrowID | PersonID;
 export type SelectableType = 'node' | 'arrow' | 'person';
@@ -73,9 +73,9 @@ export interface UISlice {
 }
 
 export const createUISlice = (
-  set: (fn: (state: UnifiedStore) => void) => void,
-  _get: () => UnifiedStore,
-  _api: any
+  set: SetState,
+  _get: GetState,
+  _api: StoreApiType
 ): UISlice => ({
   // Initialize UI state
   selectedId: null,

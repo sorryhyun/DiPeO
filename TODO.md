@@ -5,30 +5,6 @@
 ### Critical Priority - Foundation (Do First)
 **These establish core infrastructure needed for all other work**
 
-- [ ] **Fix type safety in store** (2025-10-08)
-  - Replace `any` with proper Zustand types in store slices
-  - Effort: Medium
-  - Impact: High - Enables better type checking across app
-  - Dependency: Should be done before component refactoring
-
-- [ ] **Configure GraphQL scalars** (2025-10-08)
-  - Update codegen.yml with `DateTime: string`, `JSON: Record<string, unknown>`
-  - Effort: Small
-  - Impact: High - Fixes type generation issues
-  - Dependency: Required before GraphQL error handling UI
-
-- [ ] **Add error boundaries** (2025-10-08)
-  - Wrap main components: DiagramCanvas, ConversationDashboard
-  - Effort: Small
-  - Impact: Critical - Prevents app crashes
-  - Parallel: Can do independently
-
-- [ ] **Create logger utility** (2025-10-08)
-  - Replace 156 console.* calls with production-safe logger
-  - Effort: Medium
-  - Impact: High - Essential for debugging and monitoring
-  - Parallel: Can do independently, applies to all future work
-
 ---
 
 ### High Priority - Type Safety & Validation
@@ -74,7 +50,7 @@
   - Add optimistic updates and smart merge strategies
   - Effort: Large
   - Impact: Medium - Improves perceived performance
-  - Dependency: Better done after GraphQL scalars are configured (#2)
+  - Parallel: Can do independently (GraphQL scalars now configured)
 
 ---
 
@@ -143,7 +119,7 @@
   - Create consistent error toast/display for GraphQL errors
   - Effort: Medium
   - Impact: Medium - Better user feedback
-  - Dependency: Should be done after GraphQL scalars (#2)
+  - Parallel: Can do independently (GraphQL scalars now configured)
 
 - [ ] **Add accessibility attributes** (2025-10-08)
   - Add ARIA labels to interactive elements
@@ -164,9 +140,36 @@
 
 ---
 
-## Completed (2025-10-05)
+## Completed (Recent)
 
-### Metrics Tracking System Enhancement
+### Phase 2A: Complete Type Safety Foundation (2025-10-08)
+- ✅ **Fix type safety in store** (2025-10-08)
+  - Replaced all `any` types in store slices with proper Zustand types (SetState, GetState, StoreApiType)
+  - Fixed type safety in all store slices: diagram, execution, person, UI, computed
+  - Fixed middleware type safety (sideEffects middleware with proper payload extraction)
+  - Fixed helper types (crudFactory, entityHelpers)
+  - Added type guards for DiagramMetadata access
+  - Resolved all TypeScript type checking errors - `pnpm typecheck` now passes with 0 errors
+  - Impact: Full type safety across store operations, enables better type checking for all components using the store, foundation for strict mode enablement
+
+### Phase 1: Critical Foundation (2025-10-08)
+- ✅ **Configure GraphQL scalars** (2025-10-08)
+  - Added `DateTime: string` and `JSON: Record<string, unknown>` to apps/web/codegen.yml
+  - Impact: Fixed type generation issues, unblocked GraphQL error handling UI
+
+- ✅ **Add error boundaries** (2025-10-08)
+  - Created ErrorBoundary component at apps/web/src/infrastructure/components/ErrorBoundary.tsx
+  - Wrapped DiagramCanvas (in MainLayout.tsx and ExecutionView.tsx)
+  - Wrapped ConversationDashboard (in ConversationTab.tsx)
+  - Impact: Prevents app crashes from propagating
+
+- ✅ **Create logger utility** (2025-10-08)
+  - Created production-safe logger at apps/web/src/infrastructure/utils/logger.ts
+  - Supports level-based logging (debug, info, warn, error)
+  - Dev/prod modes, child logger support
+  - Impact: Ready to replace 156 console.* calls, essential for production debugging
+
+### Metrics Tracking System Enhancement (2025-10-05)
 All metrics tracking implementation tasks have been completed:
 - ✅ Modified service.py to track API calls hierarchically using phase names like "memory_selection__api_call"
 - ✅ Updated display.py to aggregate and display hierarchical phases with nested timing structure and overhead calculation

@@ -103,7 +103,9 @@ def main():
         doc_content = "".join(doc_contents)
 
         # Inject docs into the prompt via updatedInput
-        updated_prompt = f"""{tool_input.get('prompt', '')}
+        updated_prompt = f"""<agent_instruction>
+{tool_input.get('prompt', '')}
+</agent_instruction>
 <agent_documentation>
 {doc_content}
 </agent_documentation>"""
@@ -113,7 +115,10 @@ def main():
 
         # Output JSON with updatedInput
         output = {
-            "hookSpecificOutput": {"hookEventName": "PreToolUse", "updatedInput": updated_input}
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "additionalContext": updated_input,
+            }
         }
 
         print(json.dumps(output))

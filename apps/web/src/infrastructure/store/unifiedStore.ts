@@ -1,8 +1,9 @@
-import { create } from "zustand";
+import { create, StoreApi } from "zustand";
 import { devtools, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
+import { Draft } from "immer";
 import { ArrowID, NodeID, PersonID, HandleID } from '@dipeo/models';
-import { UnifiedStore } from "./types";
+import { UnifiedStore, SetState, GetState } from "./types";
 // import { logger } from "./middleware/debugMiddleware"; // TODO: implement if needed
 // import { initializeArraySync } from "./middleware/arraySyncSubscriber"; // TODO: Implement if needed
 
@@ -40,7 +41,7 @@ const devtoolsOptions = {
 };
 
 const createStore = () => {
-  const storeCreator = (set: (fn: (state: UnifiedStore) => void) => void, get: () => UnifiedStore, api: any): UnifiedStore => ({
+  const storeCreator = (set: SetState, get: GetState, api: StoreApi<UnifiedStore>): UnifiedStore => ({
         ...createDiagramSlice(set, get, api),
         ...createComputedSlice(set, get, api),
         ...createExecutionSlice(set, get, api),
@@ -70,7 +71,7 @@ const createStore = () => {
 
           const snapshot = state.history.undoStack[state.history.undoStack.length - 1];
           if (snapshot) {
-            set((state: UnifiedStore) => {
+            set((state) => {
               state.history.redoStack.push(createFullSnapshot(state));
               state.history.undoStack.pop();
             });
@@ -78,7 +79,7 @@ const createStore = () => {
             state.restoreDiagramSilently(snapshot.nodes, snapshot.arrows);
             state.restorePersonsSilently(snapshot.persons);
 
-            set((state: UnifiedStore) => {
+            set((state) => {
               state.handles = new Map(snapshot.handles);
               state.handleIndex = rebuildHandleIndex(state.handles);
             });
@@ -94,7 +95,7 @@ const createStore = () => {
           const snapshot = state.history.redoStack[state.history.redoStack.length - 1];
           if (snapshot) {
             // Save current state to undo stack
-            set((state: UnifiedStore) => {
+            set((state) => {
               state.history.undoStack.push(createFullSnapshot(state));
               state.history.redoStack.pop();
             });
@@ -104,7 +105,7 @@ const createStore = () => {
             state.restorePersonsSilently(snapshot.persons);
 
             // Restore unified store data
-            set((state: UnifiedStore) => {
+            set((state) => {
               state.handles = new Map(snapshot.handles);
               state.handleIndex = rebuildHandleIndex(state.handles);
             });
@@ -118,7 +119,7 @@ const createStore = () => {
         transaction: (fn) => {
           const transactionId = crypto.randomUUID();
 
-          set((state: UnifiedStore) => {
+          set((state) => {
             state.history.currentTransaction = {
               id: transactionId,
               changes: [],
@@ -128,8 +129,10 @@ const createStore = () => {
 
           const result = fn();
 
-          set((state: UnifiedStore) => {
+          set((state) => {
             if (state.history.currentTransaction) {
+              // Use type assertion to avoid type instantiation depth errors
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               recordHistory(state as any);
               state.history.currentTransaction = null;
             }
@@ -149,7 +152,7 @@ const createStore = () => {
           state.restorePersonsSilently(snapshot.persons);
 
           // Update UnifiedStore-specific data
-          set((state: UnifiedStore) => {
+          set((state) => {
             state.handles = new Map(snapshot.handles);
             state.handleIndex = rebuildHandleIndex(snapshot.handles);
           });
@@ -160,7 +163,7 @@ const createStore = () => {
 
         // Handle cleanup method for node deletion
         cleanupNodeHandles: (nodeId: NodeID) => {
-          set((state: UnifiedStore) => {
+          set((state) => {
             const handleIdsToDelete: HandleID[] = [];
             state.handles.forEach((handle, handleId) => {
               if (handle.node_id === nodeId) {
@@ -185,7 +188,7 @@ const createStore = () => {
           state.clearUIState();
 
           // Clear unified store specific data
-          set((state: UnifiedStore) => {
+          set((state) => {
             state.handles = new Map();
             state.handleIndex = new Map();
           });
@@ -193,29 +196,24 @@ const createStore = () => {
   });
 
   // Apply middleware based on environment
+  // Use explicit any type to avoid type instantiation depth errors with complex middleware chains
+  // This is a known limitation with Zustand's middleware typing when combining immer, subscribeWithSelector, and devtools
   if (import.meta.env.DEV) {
-    return create<UnifiedStore>()(
-      // logger( // TODO: Re-enable when logger is implemented
-        devtools(
-          subscribeWithSelector(
-            immer(storeCreator)
-          ),
-          devtoolsOptions
-        )
-        // 'UnifiedStore'
-      // )
-    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const withImmer = immer(storeCreator as any);
+    const withSelector = subscribeWithSelector(withImmer);
+    const withDevtools = devtools(withSelector, devtoolsOptions);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return create<UnifiedStore>()(withDevtools as any);
   }
 
   // Production build without logger
-  return create<UnifiedStore>()(
-    devtools(
-      subscribeWithSelector(
-        immer(storeCreator)
-      ),
-      devtoolsOptions
-    )
-  );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const withImmer = immer(storeCreator as any);
+  const withSelector = subscribeWithSelector(withImmer);
+  const withDevtools = devtools(withSelector, devtoolsOptions);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return create<UnifiedStore>()(withDevtools as any);
 };
 
 export const useUnifiedStore = createStore();

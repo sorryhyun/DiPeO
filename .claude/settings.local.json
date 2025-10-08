@@ -53,7 +53,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ../scripts/inject-agent-docs.py"
+            "command": "python3 scripts/inject-agent-docs.py"
           }
         ]
       }
