@@ -1,15 +1,22 @@
-# Domain Layer
+# Domain Layer Architecture
 
-Pure business logic following DDD and hexagonal architecture.
+Pure business logic following Domain-Driven Design (DDD) and hexagonal architecture principles.
 
-## Principles
+## Core Principles
+
 - **No dependencies** on infrastructure/application layers
 - **Port interfaces** (protocols) for infrastructure to implement
 - **Rich domain models** with behavior, not just data
+- **Pure business logic** - All domain code should be testable without I/O
 
 ## Bounded Contexts
 
+The domain is organized into 9 bounded contexts, each representing a cohesive area of business logic:
+
 ### 1. Conversation (`conversation/`)
+**Purpose**: Agent conversation and memory management
+
+**Core Concepts**:
 - **Person**: Agent with memory selection and execution capabilities
 - **IntelligentMemoryStrategy**: LLM-based memory selection with scoring and deduplication
   - MemoryConfig: Configuration for memory selection behavior
@@ -19,6 +26,9 @@ Pure business logic following DDD and hexagonal architecture.
 - **Ports**: LLMService protocol for memory selection
 
 ### 2. Diagram (`diagram/`)
+**Purpose**: Diagram compilation and format conversion
+
+**Core Concepts**:
 - **Compilation**: DomainCompiler, NodeFactory, ConnectionResolver, CompileTimeResolver
 - **Strategies**: Native, Readable, Light, Executable formats
 - **Models**: ExecutableDiagram, ExecutableNode/Edge
@@ -27,6 +37,9 @@ Pure business logic following DDD and hexagonal architecture.
 - **Utils**: Helper utilities for diagram processing
 
 ### 3. Claude Code Translation (`cc_translate/`)
+**Purpose**: Converting Claude Code sessions into DiPeO diagrams
+
+**Core Concepts**:
 - **PhaseCoordinator**: Main orchestration for session conversion
 - **Convert Module**:
   - `converter.py`: Core conversion logic
@@ -41,6 +54,9 @@ Pure business logic following DDD and hexagonal architecture.
 - **Ports**: External service interfaces
 
 ### 4. Execution (`execution/`)
+**Purpose**: Runtime execution and state management
+
+**Core Concepts**:
 - **Resolution**: RuntimeInputResolver, TransformationEngine, NodeStrategies
 - **State Management**: StateTracker, ExecutionTracker
 - **Token Management**: TokenManager, TokenTypes
@@ -49,15 +65,24 @@ Pure business logic following DDD and hexagonal architecture.
 - **Envelope**: EnvelopeFactory for unified output pattern
 
 ### 5. Codegen (`codegen/`)
+**Purpose**: Code generation domain models
+
+**Core Concepts**:
 - **IR Models**: Intermediate representation models for code generation
 - **IR Builder Port**: Port interface for IR builders
 - **Ports**: External service interfaces for code generation
 
 ### 6. Events (`events/`)
+**Purpose**: Event contracts and messaging
+
+**Core Concepts**:
 - Event contracts and messaging patterns
 - Unified EventBus protocol
 
 ### 7. Integrations (`integrations/`)
+**Purpose**: External service integration logic
+
+**Core Concepts**:
 - **API Services** (`api_services/`): APIBusinessLogic, retry policies
 - **API Value Objects** (`api_value_objects/`): API-related value objects
 - **DB Services** (`db_services/`): Database domain services
@@ -66,23 +91,39 @@ Pure business logic following DDD and hexagonal architecture.
 - **Ports**: Integration service interfaces
 
 ### 8. Base (`base/`)
+**Purpose**: Base classes and shared utilities
+
+**Core Concepts**:
 - BaseValidator, exceptions, service base classes
+
+### 9. Ports (`ports/`)
+**Purpose**: Infrastructure interface definitions
+
+**Core Concepts**:
+- Storage ports, service ports, protocol definitions
 
 ## Key Patterns
 
+### Value Objects
+Immutable, self-validating data structures:
 ```python
-# Value Objects - Immutable, self-validating
 @dataclass(frozen=True)
 class RetryPolicy:
     max_attempts: int = 3
     initial_delay: float = 1.0
+```
 
-# Domain Services - Stateless business logic
+### Domain Services
+Stateless business logic:
+```python
 class DiagramStatisticsService:
     def calculate_complexity(self, diagram: DomainDiagram) -> ComplexityMetrics:
         pass
+```
 
-# Memory Strategy - Intelligent memory selection
+### Memory Strategy
+Intelligent memory selection:
+```python
 class IntelligentMemoryStrategy:
     def __init__(self, llm_service: LLMServicePort, config: Optional[MemoryConfig] = None):
         self._llm_service = llm_service
@@ -92,19 +133,28 @@ class IntelligentMemoryStrategy:
 
     async def select_memories(self, person_id, messages, criteria, at_most):
         # LLM-based intelligent memory selection with scoring and deduplication
+```
 
-# Strategies - Pluggable algorithms
+### Strategies
+Pluggable algorithms:
+```python
 class BaseConversionStrategy(FormatStrategy, ABC):
     @abstractmethod
     def extract_nodes(self, data: dict) -> list[dict]:
         pass
+```
 
-# Validators - Rules with warnings/errors
+### Validators
+Rules with warnings/errors:
+```python
 class DiagramValidator(BaseValidator):
     def _perform_validation(self, diagram, result):
         pass
+```
 
-# Ports - Domain interfaces
+### Ports
+Domain interfaces for infrastructure to implement:
+```python
 class LLMServicePort(Protocol):
     async def select_memories(
         self, person_id: PersonID, candidate_messages: Sequence[Message],
@@ -113,17 +163,11 @@ class LLMServicePort(Protocol):
         ...
 ```
 
+## Module Organization Philosophy
 
-## Usage Guidelines
+### When to Create a Module
+When a domain service grows beyond ~400 lines, consider refactoring into a module structure:
 
-### Adding Business Logic
-1. Choose: value object, entity, or service
-2. Place in appropriate bounded context
-3. Write pure unit tests
-4. Define ports for I/O
-
-### Module Organization for Large Services
-When a domain service grows beyond ~400 lines, consider refactoring into a module:
 ```
 domain/context/service_module/
 ├── __init__.py         # Export main service class
@@ -132,88 +176,23 @@ domain/context/service_module/
 ├── utils.py            # Utility functions
 └── specialized.py      # Specialized logic
 ```
-Example: `cc_translate/` module for Claude Code translation
 
-### Extending Validators
-```python
-class MyValidator(BaseValidator):
-    def _perform_validation(self, target, result):
-        if not self._check_rule(target):
-            result.add_error(ValidationError("Rule violated"))
-```
+**Example**: `cc_translate/` module for Claude Code translation
 
-### Adding Diagram Formats
-1. Extend `BaseConversionStrategy`
-2. Register in `DiagramFormatDetector`
-3. Implement node/arrow extraction
+### Single Responsibility
+Each bounded context should have a single, well-defined responsibility and clear boundaries with other contexts.
 
+## Testing Philosophy
 
-## Testing
+- **Unit tests only** - Pure functions, no I/O
+- **No mocks** - In-memory operations
+- **Fast** - Milliseconds per test
 
-- **Unit tests only** - pure functions, no I/O
-- **No mocks** - in-memory operations
-- **Fast** - milliseconds per test
-
+Example:
 ```python
 def test_connection_rules():
     assert NodeConnectionRules.can_connect(NodeType.START, NodeType.PERSON_JOB)
     assert not NodeConnectionRules.can_connect(NodeType.ENDPOINT, NodeType.START)
-```
-
-## Import Paths
-
-```python
-# Current imports (v2.0 refactored)
-from dipeo.domain.diagram.compilation import CompileTimeResolver, Connection, TransformRules
-from dipeo.domain.cc_translate.phase_coordinator import PhaseCoordinator  # Claude Code session orchestration
-from dipeo.domain.cc_translate.convert.converter import Converter
-from dipeo.domain.execution.resolution import RuntimeInputResolver, TransformationEngine
-from dipeo.domain.execution.envelope import EnvelopeFactory  # Unified output pattern
-from dipeo.application.execution.events import EventPipeline  # Use EventPipeline for event management
-from dipeo.domain.execution.state_tracker import StateTracker
-from dipeo.domain.execution.token_manager import TokenManager
-from dipeo.domain.events import EventBus  # Unified event protocol
-from dipeo.domain.integrations.ports import LLMService as LLMServicePort
-from dipeo.domain.integrations.api_services import APIBusinessLogic
-from dipeo.domain.conversation import Person
-from dipeo.domain.conversation.memory_strategies import IntelligentMemoryStrategy, MemoryConfig
-from dipeo.domain.conversation.ports import LLMService
-from dipeo.domain.codegen.ir_models import IRSchema, IRTypeDefinition
-from dipeo.domain.codegen.ir_builder_port import IRBuilderPort
-```
-
-## Envelope Pattern Usage
-
-The unified envelope pattern uses `EnvelopeFactory.create()` for all envelope creation:
-
-```python
-from dipeo.domain.execution.envelope import EnvelopeFactory
-from dipeo.diagram_generated.enums import ContentType  # For explicit content types
-
-# Basic envelope creation (auto-detects content type)
-envelope = EnvelopeFactory.create("Hello world")  # Creates RAW_TEXT
-envelope = EnvelopeFactory.create({"key": "value"})  # Creates OBJECT
-envelope = EnvelopeFactory.create(b"binary data")  # Creates BINARY
-
-# Explicit content type specification
-envelope = EnvelopeFactory.create(
-    body="some text",
-    content_type=ContentType.RAW_TEXT,
-    produced_by="my_node"
-)
-
-# Error envelopes
-envelope = EnvelopeFactory.create(
-    body="Something went wrong", 
-    error="ValidationError",
-    produced_by="validator_node"
-)
-
-# With additional metadata
-envelope = EnvelopeFactory.create(
-    body={"result": "success"},
-    meta={"timestamp": time.time(), "custom_field": "value"}
-)
 ```
 
 ## Dependencies
@@ -221,3 +200,11 @@ envelope = EnvelopeFactory.create(
 - Python standard library
 - `dipeo.models` - Generated domain models
 - **No framework dependencies** (no FastAPI, SQLAlchemy, etc.)
+
+## Boundary Enforcement
+
+The domain layer should:
+- Never import from application or infrastructure layers
+- Define ports (protocols) for infrastructure concerns
+- Contain only pure business logic
+- Be fully testable without external dependencies
