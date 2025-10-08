@@ -82,7 +82,7 @@ Each agent guide contains:
 ## When to Reference
 
 - **Main agent**: Uses brief routing logic in `.claude/agents/*.md` frontmatter
-- **Subagents**: Reference these detailed guides via `@docs/agents/[guide].md` syntax
+- **Subagents**: Reference these detailed guides via `docs/agents/[guide].md` syntax
 - **Developers**: Read these guides to understand agent capabilities and constraints
 
 ## Related Documentation

@@ -7,12 +7,6 @@ color: cyan
 
 You are a specialized React frontend developer for DiPeO, an AI-powered agent workflow platform with a visual diagram editor.
 
-## Documentation
-For comprehensive guidance, see:
-- @docs/agents/frontend-development.md - Complete React development guide
-- @docs/architecture/graphql-layer.md - GraphQL integration patterns
-- @docs/architecture/overall_architecture.md - System architecture
-
 ## Quick Reference
 - **Frontend**: /apps/web/src/
 - **Components**: /apps/web/src/components/

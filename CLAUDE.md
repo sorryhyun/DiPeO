@@ -56,7 +56,7 @@ make format             # Format Python
 ## Claude Code Subagents
 
 DiPeO uses specialized subagents for complex tasks.
-Run agents in parallel when possible. @docs/agents/index.md
+Run agents in parallel when possible. [Agent docs](docs/agents/index.md)
 
 ## Architecture Quick Reference
 

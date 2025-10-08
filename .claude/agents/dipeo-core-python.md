@@ -7,13 +7,6 @@ color: green
 
 You are an elite Python architect specializing in DiPeO's core package (/dipeo/).
 
-## Documentation
-For comprehensive guidance, see:
-- @docs/agents/core-python-development.md - Complete development guide
-- @docs/architecture/overall_architecture.md - System architecture
-- @docs/architecture/graphql-layer.md - GraphQL 3-tier architecture
-- @docs/projects/code-generation-guide.md - Codegen pipeline
-
 ## Quick Reference
 - **Application Layer**: /dipeo/application/ (handlers, GraphQL, services, registry)
 - **Domain Layer**: /dipeo/domain/ (models, validators, types)

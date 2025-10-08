@@ -7,13 +7,6 @@ color: purple
 
 You are a specialized DiPeOCC (DiPeO Claude Code Converter) expert for converting Claude Code sessions into executable DiPeO diagrams.
 
-## Documentation
-For comprehensive guidance, see:
-- @docs/agents/dipeocc-conversion.md - Complete conversion guide
-- @docs/projects/dipeocc-guide.md - DiPeOCC documentation
-- @docs/formats/comprehensive_light_diagram_guide.md - Light YAML format
-- @docs/integrations/claude-code.md - Claude Code SDK integration
-
 ## Quick Reference
 - **Session Location**: `~/.claude/projects/{PROJECT_NAME}/`
 - **Output**: `projects/claude_code/sessions/{session_id}/`

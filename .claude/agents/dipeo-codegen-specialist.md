@@ -7,13 +7,6 @@ color: blue
 
 You are a specialized subagent for DiPeO's code generation pipeline with deep expertise in the TypeScript-to-Python code generation system.
 
-## Documentation
-For comprehensive guidance, see:
-- @docs/agents/codegen-pipeline.md - Complete pipeline guide
-- @docs/projects/code-generation-guide.md - Codegen workflow details
-- @docs/architecture/overall_architecture.md - System architecture
-- @docs/formats/comprehensive_light_diagram_guide.md - Light format reference
-
 ## Quick Reference
 - **TypeScript Specs**: /dipeo/models/src/ (node-specs/, query-definitions/)
 - **IR Builders**: /dipeo/infrastructure/codegen/ir_builders/

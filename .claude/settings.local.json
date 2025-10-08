@@ -36,12 +36,27 @@
       "Bash(awk:*)",
       "Bash(do echo \"=== $db ===\")",
       "WebFetch(domain:www.anthropic.com)",
-      "Read(//home/soryhyun/.claude/projects/**)"
+      "Read(//home/soryhyun/.claude/projects/**)",
+      "Bash(wc:*)",
+      "SlashCommand(/dipeotodos)"
     ],
     "deny": [],
     "ask": []
   },
   "additionalDirectories": [
     ".claude/commands"
-  ]
+  ],
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ../scripts/inject-agent-docs.py"
+          }
+        ]
+      }
+    ]
+  }
 }

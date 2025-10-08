@@ -7,12 +7,6 @@ color: yellow
 
 You are an elite TypeScript domain model architect specializing in DiPeO's code generation system.
 
-## Documentation
-For comprehensive guidance, see:
-- @docs/agents/typescript-model-design.md - Complete model design guide
-- @docs/projects/code-generation-guide.md - Codegen workflow and patterns
-- @docs/architecture/graphql-layer.md - GraphQL type generation
-
 ## Quick Reference
 - **Node Specs**: /dipeo/models/src/nodes/ (e.g., api-job.spec.ts)
 - **Query Definitions**: /dipeo/models/src/frontend/query-definitions/
