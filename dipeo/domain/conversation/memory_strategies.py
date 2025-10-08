@@ -65,21 +65,22 @@ class IntelligentMemoryStrategy:
         if not self.llm_service:
             return None
 
-        # Extract execution_id for timing (if available)
+        # Extract execution_id and node_id for timing
         exec_id = kwargs.get("execution_id", "")
         person_id = kwargs.pop("person_id", PersonID("system"))
-        strategy_id = "memory_strategy"
+        # Use node_id if provided, otherwise fall back to "memory_strategy"
+        node_id = kwargs.get("node_id", "memory_strategy")
 
         # Phase 1: Filtering
-        with time_phase(exec_id, strategy_id, "filtering"):
+        with time_phase(exec_id, node_id, "filtering"):
             filtered_candidates = self._filter_messages(candidate_messages, ignore_person)
 
         # Phase 2: Deduplication
-        with time_phase(exec_id, strategy_id, "deduplication"):
+        with time_phase(exec_id, node_id, "deduplication"):
             unique_messages, frequencies = self._deduplicate_messages(filtered_candidates)
 
         # Phase 3: Scoring
-        with time_phase(exec_id, strategy_id, "scoring"):
+        with time_phase(exec_id, node_id, "scoring"):
             scored_messages = self._score_and_rank_messages(
                 unique_messages, frequencies, datetime.now()
             )
@@ -123,7 +124,7 @@ class IntelligentMemoryStrategy:
             person_name = str(person_id)
 
         # Phase 4: LLM Selection
-        async with atime_phase(exec_id, strategy_id, "memory_selection"):
+        async with atime_phase(exec_id, node_id, "memory_selection"):
             output = await self.llm_service.complete_memory_selection(
                 candidate_messages=list(top_candidates),
                 task_preview=prompt_preview,

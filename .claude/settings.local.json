@@ -14,11 +14,8 @@
       "Bash(pnpm build:*)",
       "Bash(grep:*)",
       "Bash(dipeo run:*)",
-      "Bash(PYTHONPATH=\"/home/sorryhyun/PycharmProjects/DiPeO:$PYTHONPATH\" DIPEO_BASE_DIR=\"/home/sorryhyun/PycharmProjects/DiPeO\" python projects/codegen/scripts/generate_frontend.py)",
       "Bash(tree:*)",
-      "Bash(PYTHONPATH=\"/home/sorryhyun/PycharmProjects/DiPeO:$PYTHONPATH\" DIPEO_BASE_DIR=\"/home/sorryhyun/PycharmProjects/DiPeO\" python projects/codegen/scripts/generate_backend.py)",
       "Bash(pnpm typecheck:*)",
-      "Read(//home/sorryhyun/.claude/projects/**)",
       "Bash(for:*)",
       "Bash(head:*)",
       "Bash(done)",
@@ -36,7 +33,10 @@
       "Bash(uv sync:*)",
       "Bash(curl -X POST http://localhost:8000/graphql )",
       "mcp__ide__getDiagnostics",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Bash(do echo \"=== $db ===\")",
+      "WebFetch(domain:www.anthropic.com)",
+      "Read(//home/soryhyun/.claude/projects/**)"
     ],
     "deny": [],
     "ask": []

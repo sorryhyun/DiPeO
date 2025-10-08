@@ -157,6 +157,7 @@ class SingleExecutor:
                 at_most=at_most,
                 prompt_preview=task_preview,
                 execution_id=trace_id,
+                node_id=str(node.id),
                 **complete_kwargs,
             )
 

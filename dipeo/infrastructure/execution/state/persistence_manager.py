@@ -71,7 +71,7 @@ class PersistenceManager:
     async def init_schema(self) -> None:
         """Initialize database schema."""
         schema = """
-        CREATE TABLE IF NOT EXISTS execution_states (
+        CREATE TABLE IF NOT EXISTS executions (
             execution_id TEXT PRIMARY KEY,
             status TEXT NOT NULL,
             diagram_id TEXT,
@@ -90,11 +90,11 @@ class PersistenceManager:
             last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
-        CREATE INDEX IF NOT EXISTS idx_status ON execution_states(status);
-        CREATE INDEX IF NOT EXISTS idx_started_at ON execution_states(started_at);
-        CREATE INDEX IF NOT EXISTS idx_diagram_id ON execution_states(diagram_id);
-        CREATE INDEX IF NOT EXISTS idx_access_count ON execution_states(access_count DESC);
-        CREATE INDEX IF NOT EXISTS idx_last_accessed ON execution_states(last_accessed DESC);
+        CREATE INDEX IF NOT EXISTS idx_status ON executions(status);
+        CREATE INDEX IF NOT EXISTS idx_started_at ON executions(started_at);
+        CREATE INDEX IF NOT EXISTS idx_diagram_id ON executions(diagram_id);
+        CREATE INDEX IF NOT EXISTS idx_access_count ON executions(access_count DESC);
+        CREATE INDEX IF NOT EXISTS idx_last_accessed ON executions(last_accessed DESC);
 
         -- Transitions table for idempotency
         CREATE TABLE IF NOT EXISTS transitions (
@@ -148,7 +148,7 @@ class PersistenceManager:
             async with atime_phase(str(execution_id), "system", "db_write"):
                 await self.execute(
                     """
-                    INSERT INTO execution_states
+                    INSERT INTO executions
                     (execution_id, status, diagram_id, started_at, ended_at,
                      node_states, node_outputs, llm_usage, error, variables,
                      exec_counts, executed_nodes, metrics, access_count, last_accessed)
@@ -180,7 +180,9 @@ class PersistenceManager:
                         json.dumps(state_dict["variables"]),
                         json.dumps(state_dict["exec_counts"]),
                         json.dumps(state_dict["executed_nodes"]),
-                        json.dumps(state_dict.get("metrics")) if state_dict.get("metrics") else None,
+                        json.dumps(state_dict.get("metrics"))
+                        if state_dict.get("metrics")
+                        else None,
                         entry.access_count,
                         datetime.now().isoformat(),
                     ),
@@ -208,7 +210,7 @@ class PersistenceManager:
             SELECT execution_id, status, diagram_id, started_at, ended_at,
                    node_states, node_outputs, llm_usage, error, variables,
                    exec_counts, executed_nodes, metrics, access_count
-            FROM execution_states
+            FROM executions
             WHERE execution_id = ?
             """,
             (execution_id,),
@@ -229,7 +231,7 @@ class PersistenceManager:
             SELECT execution_id, status, diagram_id, started_at, ended_at,
                    node_states, node_outputs, llm_usage, error, variables,
                    exec_counts, executed_nodes, metrics, access_count
-            FROM execution_states
+            FROM executions
             WHERE status IN (?, ?)
             ORDER BY access_count DESC, last_accessed DESC
             LIMIT ?
@@ -252,7 +254,7 @@ class PersistenceManager:
         """Update access count and timestamp for an execution."""
         await self.execute(
             """
-            UPDATE execution_states
+            UPDATE executions
             SET access_count = access_count + 1,
                 last_accessed = ?
             WHERE execution_id = ?
@@ -272,7 +274,7 @@ class PersistenceManager:
         SELECT execution_id, status, diagram_id, started_at, ended_at,
                node_states, node_outputs, llm_usage, error, variables,
                exec_counts, executed_nodes, metrics
-        FROM execution_states
+        FROM executions
         """
         conditions = []
         params = []
@@ -310,7 +312,7 @@ class PersistenceManager:
         cutoff_date = datetime.now() - timedelta(days=days)
         cutoff_iso = cutoff_date.isoformat()
 
-        await self.execute("DELETE FROM execution_states WHERE started_at < ?", (cutoff_iso,))
+        await self.execute("DELETE FROM executions WHERE started_at < ?", (cutoff_iso,))
         await self.execute("VACUUM")
 
     async def record_transition(

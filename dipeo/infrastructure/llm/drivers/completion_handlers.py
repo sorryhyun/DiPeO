@@ -1,7 +1,8 @@
 """Specialized completion handlers for memory selection and decision evaluation."""
 
 import json
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from dipeo.config.llm import DECISION_EVALUATION_MAX_TOKENS, MEMORY_SELECTION_MAX_TOKENS
 from dipeo.config.memory import MEMORY_CONTENT_SNIPPET_LENGTH, MEMORY_TASK_PREVIEW_MAX_LENGTH
@@ -11,6 +12,7 @@ from dipeo.diagram_generated.enums import ExecutionPhase
 from dipeo.domain.base.mixins import LoggingMixin
 from dipeo.infrastructure.llm.drivers.decision_parser import DecisionParser
 from dipeo.infrastructure.llm.drivers.types import DecisionOutput, MemorySelectionOutput
+from dipeo.infrastructure.timing.context import atime_phase, time_phase
 
 
 class CompletionHandlers(LoggingMixin):
@@ -40,93 +42,111 @@ class CompletionHandlers(LoggingMixin):
         if not criteria or not criteria.strip():
             return MemorySelectionOutput([])
 
+        trace_id = kwargs.get("trace_id", kwargs.get("execution_id", ""))
+        node_id = "memory_selector"
+
         # Build memory listing
-        lines = []
-        for msg in candidate_messages:
-            if not getattr(msg, "id", None):
-                continue
+        with time_phase(trace_id, node_id, "memory_selection__prompt_building"):
+            lines = []
+            for msg in candidate_messages:
+                if not getattr(msg, "id", None):
+                    continue
 
-            content_snippet = (msg.content or "")[:MEMORY_CONTENT_SNIPPET_LENGTH].strip()
-            snippet = content_snippet.replace("\n", " ")
+                content_snippet = (msg.content or "")[:MEMORY_CONTENT_SNIPPET_LENGTH].strip()
+                snippet = content_snippet.replace("\n", " ")
 
-            # Determine sender label
-            if hasattr(msg, "from_person_id"):
-                if msg.from_person_id == PersonID("system"):
-                    sender_label = "system"
+                # Determine sender label
+                if hasattr(msg, "from_person_id"):
+                    if msg.from_person_id == PersonID("system"):
+                        sender_label = "system"
+                    else:
+                        sender_label = str(msg.from_person_id)
                 else:
-                    sender_label = str(msg.from_person_id)
-            else:
-                sender_label = "unknown"
+                    sender_label = "unknown"
 
-            lines.append(f"- {msg.id} ({sender_label}): {snippet}")
+                lines.append(f"- {msg.id} ({sender_label}): {snippet}")
 
-        listing = "\n".join(lines)
-        preview = (task_preview or "")[:MEMORY_TASK_PREVIEW_MAX_LENGTH]
+            listing = "\n".join(lines)
+            preview = (task_preview or "")[:MEMORY_TASK_PREVIEW_MAX_LENGTH]
 
-        constraint_text = ""
-        if at_most and at_most > 0:
-            constraint_text = f"\nCONSTRAINT: Select at most {int(at_most)} messages that best match the criteria.\n"
+            constraint_text = ""
+            if at_most and at_most > 0:
+                constraint_text = f"\nCONSTRAINT: Select at most {int(at_most)} messages that best match the criteria.\n"
 
-        user_prompt = (
-            "CANDIDATE MESSAGES (id (sender): snippet):\n"
-            f"{listing}\n\n===\n\n"
-            f"TASK PREVIEW:\n===\n\n{preview}\n\n===\n\n"
-            f"CRITERIA:\n{criteria}\n\n"
-            f"{constraint_text}"
-            "IMPORTANT: Exclude messages that duplicate content already in the task preview.\n"
-            "Return a JSON array of message IDs only."
-        )
+            user_prompt = (
+                "CANDIDATE MESSAGES (id (sender): snippet):\n"
+                f"{listing}\n\n===\n\n"
+                f"TASK PREVIEW:\n===\n\n{preview}\n\n===\n\n"
+                f"CRITERIA:\n{criteria}\n\n"
+                f"{constraint_text}"
+                "IMPORTANT: Exclude messages that duplicate content already in the task preview.\n"
+                "Return a JSON array of message IDs only."
+            )
 
-        messages = [{"role": "user", "content": user_prompt}]
+            messages = [{"role": "user", "content": user_prompt}]
 
         # Remove parameters that are not needed for the complete() method
         kwargs.pop("preprocessed", None)
         kwargs.pop("llm_service", None)
         kwargs.pop("person_id", None)
+        kwargs.pop("node_id", None)  # node_id is only for timing, not for LLM API
 
-        result = await self._complete_fn(
-            messages=messages,
-            model=model,
-            api_key_id=api_key_id,
-            service_name=service_name,
-            execution_phase=ExecutionPhase.MEMORY_SELECTION,
-            temperature=0,
-            max_tokens=MEMORY_SELECTION_MAX_TOKENS,
-            **kwargs,
-        )
+        # Map execution_id to trace_id if not already present
+        if "execution_id" in kwargs and "trace_id" not in kwargs:
+            kwargs["trace_id"] = kwargs["execution_id"]
+
+        async with atime_phase(trace_id, node_id, "memory_selection__api_call", model=model):
+            result = await self._complete_fn(
+                messages=messages,
+                model=model,
+                api_key_id=api_key_id,
+                service_name=service_name,
+                execution_phase=ExecutionPhase.MEMORY_SELECTION,
+                temperature=0,
+                max_tokens=MEMORY_SELECTION_MAX_TOKENS,
+                **kwargs,
+            )
 
         # Parse MemorySelectionOutput from text response
-        ids = []
-        if result.text:
-            self.log_debug(f"Memory selection raw LLM response: {result.text[:500]}")
-            try:
-                # First try to parse as JSON
-                parsed = json.loads(result.text)
-                if isinstance(parsed, dict) and "message_ids" in parsed:
-                    ids = parsed["message_ids"]
-                elif isinstance(parsed, list):
-                    ids = parsed
-                else:
-                    self.log_warning(f"Unexpected memory selection format: {type(parsed)}, value: {parsed}")
-                    ids = []
-            except (json.JSONDecodeError, ValueError) as e:
-                # If JSON parsing fails, try to extract message IDs from text
-                self.log_warning(f"Failed to parse memory selection JSON: {e}. Response: {result.text[:200]}")
-                # Try to extract from formats like "message_ids=['id1', 'id2']" or "['id1', 'id2']"
-                import re
-                # Look for array-like patterns with quotes
-                match = re.search(r'\[([^\]]+)\]', result.text)
-                if match:
-                    # Extract the content inside brackets and parse as JSON
-                    try:
-                        ids = json.loads(f"[{match.group(1)}]")
-                        self.log_info(f"Recovered {len(ids)} message IDs from non-standard format")
-                    except:
+        with time_phase(trace_id, node_id, "memory_selection__parsing"):
+            ids = []
+            if result.text:
+                self.log_debug(f"Memory selection raw LLM response: {result.text[:500]}")
+                try:
+                    # First try to parse as JSON
+                    parsed = json.loads(result.text)
+                    if isinstance(parsed, dict) and "message_ids" in parsed:
+                        ids = parsed["message_ids"]
+                    elif isinstance(parsed, list):
+                        ids = parsed
+                    else:
+                        self.log_warning(
+                            f"Unexpected memory selection format: {type(parsed)}, value: {parsed}"
+                        )
                         ids = []
-                else:
-                    ids = []
-        else:
-            self.log_warning("Memory selection result.text is empty")
+                except (json.JSONDecodeError, ValueError) as e:
+                    # If JSON parsing fails, try to extract message IDs from text
+                    self.log_warning(
+                        f"Failed to parse memory selection JSON: {e}. Response: {result.text[:200]}"
+                    )
+                    # Try to extract from formats like "message_ids=['id1', 'id2']" or "['id1', 'id2']"
+                    import re
+
+                    # Look for array-like patterns with quotes
+                    match = re.search(r"\[([^\]]+)\]", result.text)
+                    if match:
+                        # Extract the content inside brackets and parse as JSON
+                        try:
+                            ids = json.loads(f"[{match.group(1)}]")
+                            self.log_info(
+                                f"Recovered {len(ids)} message IDs from non-standard format"
+                            )
+                        except:
+                            ids = []
+                    else:
+                        ids = []
+            else:
+                self.log_warning("Memory selection result.text is empty")
 
         output = MemorySelectionOutput(message_ids=ids)
         self.log_info(
@@ -189,9 +209,16 @@ class CompletionHandlers(LoggingMixin):
 
         messages = [{"role": "user", "content": complete_prompt}]
 
-        # Remove any unexpected parameters
+        # Map execution_id to trace_id before removing all kwargs
+        trace_id = kwargs.get("execution_id") or kwargs.get("trace_id")
+
+        # Remove any unexpected parameters (node_id is only for timing, not for LLM API)
         for key in list(kwargs.keys()):
             kwargs.pop(key, None)
+
+        # Restore trace_id if it was present
+        if trace_id:
+            kwargs["trace_id"] = trace_id
 
         result = await self._complete_fn(
             messages=messages,

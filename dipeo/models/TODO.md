@@ -176,6 +176,6 @@ This file tracks improvements to the TypeScript domain models that generate the 
 
 ## Related Documentation
 
-- [Code Generation Guide](/home/sorryhyun/PycharmProjects/DiPeO/docs/projects/code-generation-guide.md)
+- [Code Generation Guide](docs/projects/code-generation-guide.md)
 - [Overall Architecture](/home/sorryhyun/PycharmProjects/DiPeO/docs/architecture/overall_architecture.md)
 - [Models Package](/home/sorryhyun/PycharmProjects/DiPeO/dipeo/models/)

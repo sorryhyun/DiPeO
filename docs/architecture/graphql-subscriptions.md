@@ -10,9 +10,9 @@ DiPeO uses GraphQL subscriptions exclusively for real-time updates. GraphQL subs
    - Handles all execution lifecycle events (start, complete, fail, logs, etc.)
    - Includes node status updates, interactive prompts, and execution logs
    - Used by frontend monitoring, logging, and interactive components
-   - Currently the only generated subscription from TypeScript definitions
+   - Generated from TypeScript query definitions
 
-**Note**: While the infrastructure supports multiple subscription types, only `execution_updates` is currently generated from the TypeScript query definitions. Additional subscriptions can be added by updating the query definitions and regenerating the code.
+**Note**: The infrastructure supports multiple subscription types. Additional subscriptions can be added by updating the query definitions and regenerating the code.
 
 ## Architecture
 

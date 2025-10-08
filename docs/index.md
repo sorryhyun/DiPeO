@@ -31,6 +31,23 @@
 
 - [Claude Code Integration](integrations/claude-code.md) - Integration with Anthropic's Claude Code SDK
 
+## Agent Documentation
+> Detailed guides for DiPeO's specialized Claude Code subagents
+
+- [Agent Documentation Index](agents/index.md) - Overview of all specialized agents
+- [Core Python Development](agents/core-python-development.md) - Backend Python work (dipeo-core-python)
+- [Frontend Development](agents/frontend-development.md) - React/TypeScript frontend (dipeo-frontend-dev)
+- [TypeScript Model Design](agents/typescript-model-design.md) - Model specifications (typescript-model-designer)
+- [Code Generation Pipeline](agents/codegen-pipeline.md) - Codegen system (dipeo-codegen-specialist)
+- [DiPeOCC Conversion](agents/dipeocc-conversion.md) - Session conversion (dipeocc-converter)
+- [Documentation Maintenance](agents/documentation-maintenance.md) - Docs updates (docs-maintainer)
+- [Task Management](agents/task-management.md) - TODO management (todo-manager)
+- [TypeScript Type Checking](agents/typecheck-fixing.md) - Type error fixing (typecheck-fixer)
+- [Import Refactoring](agents/import-refactoring.md) - Reference updates (import-refactor-updater)
+- [Code Auditing](agents/code-auditing.md) - Targeted audits (codebase-auditor)
+- [Comment Cleanup](agents/comment-cleanup.md) - Comment optimization (comment-cleaner)
+- [ChatGPT Integration](agents/chatgpt-integration.md) - ChatGPT management (chatgpt-dipeo-project-manager)
+
 ## Project Guides
 > Specific workflows and feature implementation guides
 

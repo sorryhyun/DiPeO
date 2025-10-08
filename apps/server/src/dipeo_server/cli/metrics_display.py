@@ -6,7 +6,7 @@ from typing import Any
 class MetricsDisplayManager:
     """Handles metrics display formatting."""
 
-    PROMOTED_PHASES = {"memory_selection", "direct_execution"}
+    PROMOTED_PHASES = {"llm_response", "memory_selection", "direct_execution"}
 
     @staticmethod
     async def display_metrics(
@@ -178,7 +178,7 @@ class MetricsDisplayManager:
             if "__" in phase:
                 belongs_to_promoted = None
                 for promoted in MetricsDisplayManager.PROMOTED_PHASES:
-                    if phase.endswith(f"__{promoted}"):
+                    if phase.startswith(f"{promoted}__"):
                         belongs_to_promoted = promoted
                         break
 
@@ -189,9 +189,11 @@ class MetricsDisplayManager:
                             "count": 0,
                             "children": {},
                             "is_promoted": True,
+                            "avg": 0,
+                            "max": 0,
                         }
 
-                    sub_phase = phase.replace(f"__{belongs_to_promoted}", "")
+                    sub_phase = phase.replace(f"{belongs_to_promoted}__", "", 1)
 
                     if sub_phase not in hierarchical_stats[belongs_to_promoted]["children"]:
                         hierarchical_stats[belongs_to_promoted]["children"][sub_phase] = {
@@ -212,6 +214,16 @@ class MetricsDisplayManager:
                     )
 
                     hierarchical_stats[belongs_to_promoted]["total"] += total
+                    hierarchical_stats[belongs_to_promoted]["count"] += count
+                    hierarchical_stats[belongs_to_promoted]["avg"] = (
+                        hierarchical_stats[belongs_to_promoted]["total"]
+                        / hierarchical_stats[belongs_to_promoted]["count"]
+                        if hierarchical_stats[belongs_to_promoted]["count"] > 0
+                        else 0
+                    )
+                    hierarchical_stats[belongs_to_promoted]["max"] = max(
+                        hierarchical_stats[belongs_to_promoted]["max"], max_dur
+                    )
                 else:
                     parent, child = phase.split("__", 1)
 
@@ -248,8 +260,14 @@ class MetricsDisplayManager:
                     }
                 hierarchical_stats[phase]["total"] += total
                 hierarchical_stats[phase]["count"] += count
-                hierarchical_stats[phase]["avg"] = avg
-                hierarchical_stats[phase]["max"] = max_dur
+                # Calculate avg from accumulated total/count, don't just overwrite
+                hierarchical_stats[phase]["avg"] = (
+                    hierarchical_stats[phase]["total"] / hierarchical_stats[phase]["count"]
+                    if hierarchical_stats[phase]["count"] > 0
+                    else 0
+                )
+                # Take maximum across all max_dur values
+                hierarchical_stats[phase]["max"] = max(hierarchical_stats[phase]["max"], max_dur)
             else:
                 flat_stats[phase] = {
                     "phase": phase,

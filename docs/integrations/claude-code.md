@@ -1,6 +1,6 @@
 # Claude Code Integration
 
-DiPeO now supports Claude Code SDK as an LLM provider, enabling integration with Anthropic's Claude Code for advanced AI agent capabilities.
+DiPeO supports Claude Code SDK as an LLM provider, enabling integration with Anthropic's Claude Code for advanced AI agent capabilities.
 
 ## Installation
 
@@ -182,7 +182,7 @@ nodes:
 - `at_most`: Maximum messages to keep (optional, system messages preserved automatically)
 - `ignore_person`: Exclude specific persons from memory selection (optional)
 
-**Migration Note:** Old diagrams using `memory_profile` (FULL, FOCUSED, MINIMAL, GOLDFISH, CUSTOM) are automatically converted by the backend for backward compatibility.
+**Backward Compatibility:** Diagrams using legacy `memory_profile` settings are automatically converted to the current memory configuration format.
 
 ## Limitations
 

@@ -25,7 +25,7 @@ from dipeo.infrastructure.llm.drivers.types import (
     LLMResponse,
     ProviderCapabilities,
 )
-from dipeo.infrastructure.timing.context import atime_phase
+from dipeo.infrastructure.timing.context import atime_phase, time_phase
 
 from .message_processor import ClaudeCodeMessageProcessor
 from .response_parser import ClaudeCodeResponseParser
@@ -147,7 +147,7 @@ class UnifiedClaudeCodeClient:
             async with atime_phase(
                 trace_id,
                 "claude_code",
-                f"session__template_create__{execution_phase}",
+                f"{execution_phase}__template_create",
             ):
                 template_session = ClaudeSDKClient(options=options)
                 await template_session.connect(None)
@@ -189,7 +189,7 @@ class UnifiedClaudeCodeClient:
                 async with atime_phase(
                     trace_id,
                     "claude_code",
-                    f"session__fork__{execution_phase}",
+                    f"{execution_phase}__fork",
                 ):
                     fork_options = ClaudeAgentOptions(
                         **{
@@ -221,7 +221,7 @@ class UnifiedClaudeCodeClient:
         async with atime_phase(
             trace_id,
             "claude_code",
-            f"session__fresh_create__{execution_phase}",
+            f"{execution_phase}__fresh_create",
         ):
             session = ClaudeSDKClient(options=options)
             await session.connect(None)
@@ -238,6 +238,7 @@ class UnifiedClaudeCodeClient:
         query_input: str | AsyncIterator[dict[str, Any]],
         execution_phase: ExecutionPhase | None,
         session_id: str,
+        trace_id: str = "",
     ) -> LLMResponse:
         """Execute a query on a session.
 
@@ -246,59 +247,62 @@ class UnifiedClaudeCodeClient:
             query_input: Message dict or async iterable of message dicts to send
             execution_phase: Execution phase for response parsing
             session_id: Unique session ID for this query
+            trace_id: Trace ID for timing metrics
 
         Returns:
             Parsed LLM response
         """
+        phase_key = execution_phase.value if execution_phase else "default"
+
         try:
             # Send query with unique session ID
-            await session.query(query_input, session_id=session_id)
+            async with atime_phase(trace_id, "claude_code", "llm_response__send"):
+                await session.query(query_input, session_id=session_id)
 
             # Collect response
             result_text = ""
             tool_invocation_data = None
 
-            async for message in session.receive_response():
-                # Check for tool invocations
-                if hasattr(message, "content") and not hasattr(message, "result"):
-                    for block in message.content:
-                        if hasattr(block, "name") and hasattr(block, "input"):
-                            if block.name.startswith("mcp__dipeo_structured_output__"):
-                                logger.debug(
-                                    f"[ClaudeCode] Found MCP tool invocation: {block.name} "
-                                    f"with input: {block.input}"
-                                )
-                                tool_invocation_data = block.input
-                                break
+            async with atime_phase(trace_id, "claude_code", "llm_response__collect"):
+                async for message in session.receive_response():
+                    # Check for tool invocations
+                    if hasattr(message, "content") and not hasattr(message, "result"):
+                        for block in message.content:
+                            if hasattr(block, "name") and hasattr(block, "input"):
+                                if block.name.startswith("mcp__dipeo_structured_output__"):
+                                    logger.debug(
+                                        f"[ClaudeCode] Found MCP tool invocation: {block.name} "
+                                        f"with input: {block.input}"
+                                    )
+                                    tool_invocation_data = block.input
+                                    break
 
-                # Process ResultMessage (final message, iterator auto-terminates after this)
-                if hasattr(message, "result"):
-                    result_text = str(message.result)
-                    # Log if session was forked
-                    if hasattr(message, "session_id") and message.session_id != session_id:
-                        logger.debug("[ClaudeCode] Session forked! ")
-                    # No need to break - receive_response() auto-terminates
+                    # Process ResultMessage (final message, iterator auto-terminates after this)
+                    if hasattr(message, "result"):
+                        result_text = str(message.result)
+                        # Log if session was forked
+                        if hasattr(message, "session_id") and message.session_id != session_id:
+                            logger.debug("[ClaudeCode] Session forked! ")
+                        # No need to break - receive_response() auto-terminates
 
             # Parse response
-            if tool_invocation_data:
-                logger.debug(
-                    f"[ClaudeCode] Using tool invocation data as response for {execution_phase}: "
-                    f"{tool_invocation_data}"
-                )
-                parsed = self._parser.parse_response_with_tool_data(
-                    tool_invocation_data, execution_phase
-                )
-                parsed.provider = self.provider_type
-                parsed.raw_response = str(tool_invocation_data)
-                return parsed
+            with time_phase(trace_id, "claude_code", "llm_response__parse"):
+                if tool_invocation_data:
+                    parsed = self._parser.parse_response_with_tool_data(
+                        tool_invocation_data, execution_phase
+                    )
+                    parsed.provider = self.provider_type
+                    parsed.raw_response = str(tool_invocation_data)
+                    return parsed
 
-            parsed = self._parser.parse_response(result_text, execution_phase)
-            parsed.provider = self.provider_type
-            parsed.raw_response = result_text
-            return parsed
+                parsed = self._parser.parse_response(result_text, execution_phase)
+                parsed.provider = self.provider_type
+                parsed.raw_response = result_text
+                return parsed
         finally:
             # Clean up session after use
-            await self._cleanup_session(session)
+            with time_phase(trace_id, "claude_code", "llm_response__cleanup"):
+                await self._cleanup_session(session)
 
     async def _cleanup_session(self, session: ClaudeSDKClient) -> None:
         """Clean up a session after use."""
@@ -401,9 +405,11 @@ class UnifiedClaudeCodeClient:
             async with atime_phase(
                 trace_id,
                 "claude_code",
-                f"request__query__{phase_key}",
+                f"{phase_key}__api_call",
             ):
-                return await self._execute_query(session, query_input, execution_phase, session_id)
+                return await self._execute_query(
+                    session, query_input, execution_phase, session_id, trace_id
+                )
 
         async for attempt in retry:
             with attempt:

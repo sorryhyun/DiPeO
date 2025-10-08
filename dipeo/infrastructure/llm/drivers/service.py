@@ -100,39 +100,41 @@ class LLMInfraService(LoggingMixin, InitializationMixin, LLMServicePort):
 
             trace_id = kwargs.get("trace_id", "")
 
+            # Determine execution phase for metrics
+            if execution_phase:
+                phase_for_client = execution_phase
+            else:
+                from dipeo.diagram_generated.enums import ExecutionPhase
+
+                phase_for_client = ExecutionPhase.DIRECT_EXECUTION
+
+            if hasattr(phase_for_client, "value"):
+                execution_phase_str = phase_for_client.value
+            else:
+                execution_phase_str = str(phase_for_client)
+
             async with atime_phase(
-                trace_id, "client_manager", f"get_client__{service_name}", service=service_name, model=model
+                trace_id,
+                "llm_infra",
+                f"{execution_phase_str}__get_client",
+                service=service_name,
+                model=model,
             ):
                 client = await self._client_manager.get_client(service_name, model, api_key_id)
 
-            filtered_params = {"person_name", "execution_id"}
+            filtered_params = {"execution_id"}
             client_kwargs = {k: v for k, v in kwargs.items() if k not in filtered_params}
-
-            if service_name == "claude-code" and "person_name" in kwargs:
-                client_kwargs["person_name"] = kwargs["person_name"]
 
             if trace_id:
                 client_kwargs["trace_id"] = trace_id
 
-            if execution_phase:
-                client_kwargs["execution_phase"] = execution_phase
-            else:
-                from dipeo.diagram_generated.enums import ExecutionPhase
-
-                client_kwargs["execution_phase"] = ExecutionPhase.DIRECT_EXECUTION
-
-            execution_phase_obj = client_kwargs.get("execution_phase", "unknown")
-            if hasattr(execution_phase_obj, "value"):
-                execution_phase_str = execution_phase_obj.value
-            else:
-                execution_phase_str = str(execution_phase_obj)
-
-            hierarchical_phase = f"{execution_phase_str}__api_call"
+            # Use the phase_for_client we determined earlier
+            client_kwargs["execution_phase"] = phase_for_client
 
             async with atime_phase(
                 trace_id,
                 "llm_service",
-                hierarchical_phase,
+                execution_phase_str,
                 model=model,
                 service=service_name,
                 execution_phase=execution_phase_str,

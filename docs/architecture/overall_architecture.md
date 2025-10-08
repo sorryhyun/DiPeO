@@ -16,7 +16,57 @@ DiPeO is an open-source platform that lets developers **design, run and monitor 
 
 ---
 
-## 2. High-level architecture
+## 2. Applications Overview
+
+DiPeO consists of three main applications that work together to provide a complete visual workflow platform:
+
+### Server (Backend API) - `apps/server`
+
+FastAPI server providing GraphQL and REST endpoints for diagram execution.
+
+**Architecture**:
+- **API Layer** (`src/dipeo_server/api/`): FastAPI/GraphQL adapters
+- **Infrastructure** (`src/dipeo_server/infra/`): State management, caching
+- **Container** (`app_context.py`): Dependency injection configuration
+- **Entry Point**: `main.py` - FastAPI + Strawberry GraphQL server
+
+**Key Features**:
+- **GraphQL API**: Strawberry-based with subscriptions at `/graphql`
+- **SSE Streaming**: Real-time updates via `/sse/executions/{id}`
+- **State Management**: SQLite persistence + in-memory cache
+- **Multi-worker**: Hypercorn support with `WORKERS=4 python main.py`
+
+**Environment Variables**:
+- `PORT`: Server port (default: 8000)
+- `WORKERS`: Worker processes (default: 4)
+- `STATE_STORE_PATH`: SQLite database path
+- `LOG_LEVEL`: INFO/DEBUG
+
+### Web (Frontend) - `apps/web`
+
+React-based visual diagram editor. See @docs/agents/frontend-development.md for detailed technical reference.
+
+**Tech Stack**: React 19, XYFlow, Apollo Client, Zustand, TailwindCSS
+**Port**: 3000 (development)
+
+### CLI - `apps/server/src/dipeo_server/cli/`
+
+Command-line tool integrated into the server package.
+
+**Key Components**:
+- **Server Manager**: Automatic backend lifecycle management
+- **Display System**: Rich terminal UI with GraphQL subscriptions
+- **Commands**: run, ask, claude_code (dipeocc), integrations, convert, metrics
+
+**Usage**:
+```bash
+dipeo run examples/simple_diagrams/simple_iter --light --debug --timeout=40
+dipeo metrics --latest --breakdown
+```
+
+---
+
+## 3. High-level architecture
 
 | Layer                        | Purpose                                      | Key tech                                                                                                            |
 | ---------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
@@ -26,7 +76,7 @@ DiPeO is an open-source platform that lets developers **design, run and monitor 
 
 ---
 
-## 3. Dependency-injection containers
+## 4. Dependency-injection containers
 
 ```text
 Top-level Container
@@ -57,7 +107,7 @@ All three share a single **ServiceRegistry**, making service resolution explicit
 
 ---
 
-## 4. Code-generation pipeline
+## 5. Code-generation pipeline
 
 1. **Define** nodes in TypeScript specs (`*.spec.ts`).
 2. **Generate** → staged Pydantic models, JSON schemas & node handlers (`/dipeo/diagram_generated_staged/`).
@@ -69,7 +119,7 @@ All three share a single **ServiceRegistry**, making service resolution explicit
 
 ---
 
-## 5. Memory & conversation model
+## 6. Memory & conversation model
 
 * Every message goes into a **global, immutable conversation log**.
 * Each *person* (LLM instance) views that log through **filters** such as `ALL_INVOLVED`, `SENT_BY_ME`, `CONVERSATION_PAIRS`, `ALL_MESSAGES`, combined with sliding-window limits.
@@ -81,7 +131,7 @@ All three share a single **ServiceRegistry**, making service resolution explicit
 
 ---
 
-## 6. Node Handler System
+## 7. Node Handler System
 
 DiPeO uses a type-safe, handler-based architecture for executing different node types:
 
@@ -154,8 +204,8 @@ Envelopes are typed data containers that flow between nodes:
 - **Structure**: `{body, content_type, produced_by, trace_id, metadata}`
 - **Content Types**: `raw_text`, `object` (JSON), `conversation_state`, `error`
 - **Purpose**: Type-safe data passing with provenance tracking
-- **Factory**: `EnvelopeFactory.create()` with auto-detection (deprecates `.text()`, `.json()`, `.error()` methods)
-- **Migration Complete**: All NodeOutput references migrated to Envelope pattern (`SerializedNodeOutput` is now an alias for `SerializedEnvelope`)
+- **Factory**: `EnvelopeFactory.create()` with auto-detection
+- **Unified Pattern**: All node outputs use the Envelope pattern (`SerializedNodeOutput` is an alias for `SerializedEnvelope`)
 
 ### Key Handler Examples
 
@@ -173,7 +223,7 @@ Handlers follow clean architecture principles:
 - **Application layer** orchestrates between domain and infrastructure
 - Handlers never directly call external services - always through injected dependencies
 
-## 7. Execution flow (simplified)
+## 8. Execution flow (simplified)
 
 ```mermaid
 sequenceDiagram
@@ -198,7 +248,7 @@ sequenceDiagram
 
 ---
 
-## 8. Tech-stack cheat-sheet
+## 9. Tech-stack cheat-sheet
 
 | Area             | Tools / libs                                                                                                               |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -213,7 +263,7 @@ sequenceDiagram
 
 ---
 
-## 9. Running & deploying
+## 10. Running & deploying
 
 ### Local development
 
@@ -246,7 +296,7 @@ Execution performance is controlled through `/dipeo/config/execution.py`:
 
 ---
 
-## 10. Event-Driven Architecture
+## 11. Event-Driven Architecture
 
 The system uses a fully event-driven architecture for execution and monitoring:
 
