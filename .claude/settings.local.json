@@ -45,18 +45,5 @@
   },
   "additionalDirectories": [
     ".claude/commands"
-  ],
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 scripts/inject-agent-docs.py"
-          }
-        ]
-      }
-    ]
-  }
+  ]
 }
