@@ -46,7 +46,10 @@ async def execute_single_node(
     if scheduler:
         scheduler.mark_node_running(node_id, epoch)
 
-    await event_pipeline.emit("node_started", node=node)
+    # Get current execution count for this node to track iterations
+    current_iteration = context.state.get_node_execution_count(node.id)
+
+    await event_pipeline.emit("node_started", node=node, iteration=current_iteration)
 
     try:
         if await _should_skip_max_iteration(node, context):

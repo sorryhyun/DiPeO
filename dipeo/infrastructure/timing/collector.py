@@ -40,8 +40,24 @@ class TimingCollector:
             if phase in self._data[exec_id][node_id]:
                 # Accumulate if phase runs multiple times
                 self._data[exec_id][node_id][phase] += dur_ms_int
+                # Track count of occurrences
+                count_key = f"{phase}__count"
+                self._data[exec_id][node_id][count_key] = (
+                    self._data[exec_id][node_id].get(count_key, 1) + 1
+                )
+                # Track maximum individual duration
+                max_key = f"{phase}__max"
+                self._data[exec_id][node_id][max_key] = max(
+                    self._data[exec_id][node_id].get(max_key, 0), dur_ms_int
+                )
             else:
                 self._data[exec_id][node_id][phase] = dur_ms_int
+                # Initialize count
+                count_key = f"{phase}__count"
+                self._data[exec_id][node_id][count_key] = 1
+                # Initialize max with first value
+                max_key = f"{phase}__max"
+                self._data[exec_id][node_id][max_key] = dur_ms_int
 
             # Store metadata separately if provided
             if metadata:

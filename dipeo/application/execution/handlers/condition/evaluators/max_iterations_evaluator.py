@@ -31,9 +31,7 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
 
         for node in person_job_nodes:
             exec_count = get_node_execution_count(context, node.id)
-            logger.debug(
-                f"MaxIterationsEvaluator: node {node.id} exec_count={exec_count}, max_iteration={node.max_iteration}"
-            )
+
             if exec_count > 0:
                 found_executed = True
 

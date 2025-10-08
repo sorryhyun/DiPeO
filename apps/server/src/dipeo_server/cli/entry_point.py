@@ -31,12 +31,13 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
     if timing:
         os.environ["DIPEO_TIMING_ENABLED"] = "true"
 
-    if debug:
-        log_level = "DEBUG"
-    elif timing:
+    if debug or timing:
         log_level = "DEBUG"
     else:
         log_level = os.environ.get("DIPEO_LOG_LEVEL", "INFO")
+
+    # Use overwrite mode for 'run' command, append for others (especially 'metrics')
+    file_mode = "w" if args.command == "run" else "a"
 
     setup_logging(
         component="cli",
@@ -44,6 +45,7 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
         log_to_file=True,
         console_output=debug or timing,
         timing_only=timing and not debug,
+        file_mode=file_mode,
     )
 
     server_manager = None

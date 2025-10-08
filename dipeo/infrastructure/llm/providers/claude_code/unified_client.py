@@ -194,7 +194,9 @@ class UnifiedClaudeCodeClient:
                     fork_options = ClaudeAgentOptions(
                         **{
                             **options.__dict__,
-                            "resume": template.session_id if hasattr(template, "session_id") else None,
+                            "resume": template.session_id
+                            if hasattr(template, "session_id")
+                            else None,
                             "fork_session": True,
                         }
                     )
@@ -274,9 +276,7 @@ class UnifiedClaudeCodeClient:
                     result_text = str(message.result)
                     # Log if session was forked
                     if hasattr(message, "session_id") and message.session_id != session_id:
-                        logger.debug(
-                            f"[ClaudeCode] Session forked from {session_id} to {message.session_id}"
-                        )
+                        logger.debug("[ClaudeCode] Session forked! ")
                     # No need to break - receive_response() auto-terminates
 
             # Parse response

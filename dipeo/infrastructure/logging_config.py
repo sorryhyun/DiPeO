@@ -36,6 +36,7 @@ def setup_logging(
     log_dir: str = ".logs",
     console_output: bool = True,
     timing_only: bool = False,
+    file_mode: str = "a",
 ) -> logging.Logger:
     """
     Configure logging for DiPeO components.
@@ -47,6 +48,7 @@ def setup_logging(
         log_dir: Directory for log files (relative to DIPEO_BASE_DIR)
         console_output: Whether to output to console
         timing_only: Only show timing logs on console (when True)
+        file_mode: File mode for log files ('a' for append, 'w' for overwrite)
 
     Returns:
         Configured logger instance
@@ -94,7 +96,7 @@ def setup_logging(
         log_file = log_path / f"{component}.log"
         file_handler = logging.FileHandler(
             log_file,
-            mode="w",  # Overwrite mode
+            mode=file_mode,
             encoding="utf-8",
         )
         file_handler.setLevel(log_level)
@@ -103,7 +105,7 @@ def setup_logging(
         error_log_file = log_path / f"{component}.error.log"
         error_handler = logging.FileHandler(
             error_log_file,
-            mode="w",  # Overwrite mode
+            mode="a",  # Append mode to preserve error logs
             encoding="utf-8",
         )
         error_handler.setLevel(logging.ERROR)

@@ -73,22 +73,21 @@ class IntelligentMemoryStrategy:
         # Phase 1: Filtering
         with time_phase(exec_id, strategy_id, "filtering"):
             filtered_candidates = self._filter_messages(candidate_messages, ignore_person)
-            print(f"[Memory] After filtering: {len(filtered_candidates)} messages (from {len(candidate_messages)} original)")
 
         # Phase 2: Deduplication
         with time_phase(exec_id, strategy_id, "deduplication"):
             unique_messages, frequencies = self._deduplicate_messages(filtered_candidates)
-            print(f"[Memory] After deduplication: {len(unique_messages)} unique messages")
 
         # Phase 3: Scoring
         with time_phase(exec_id, strategy_id, "scoring"):
             scored_messages = self._score_and_rank_messages(
                 unique_messages, frequencies, datetime.now()
             )
-            print(f"[Memory] After scoring: {len(scored_messages)} scored messages")
 
         top_candidates = [msg for msg, score in scored_messages[: self.config.hard_cap]]
-        print(f"[Memory] Top candidates (hard_cap={self.config.hard_cap}): {len(top_candidates)} messages")
+        print(
+            f"[Memory] Top candidates (hard_cap={self.config.hard_cap}): {len(top_candidates)} messages"
+        )
 
         person_name = None
 
@@ -124,7 +123,7 @@ class IntelligentMemoryStrategy:
             person_name = str(person_id)
 
         # Phase 4: LLM Selection
-        async with atime_phase(exec_id, strategy_id, "llm_selection"):
+        async with atime_phase(exec_id, strategy_id, "memory_selection"):
             output = await self.llm_service.complete_memory_selection(
                 candidate_messages=list(top_candidates),
                 task_preview=prompt_preview,

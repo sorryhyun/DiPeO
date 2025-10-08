@@ -176,7 +176,11 @@ class MetricsObserver(EventBus):
         iteration = payload.iteration if payload.iteration is not None else 0
 
         # Use compound key to track iterations separately
-        metrics_key = f"{node_id}_iter_{iteration}" if iteration > 0 or payload.iteration is not None else node_id
+        metrics_key = (
+            f"{node_id}_iter_{iteration}"
+            if iteration > 0 or payload.iteration is not None
+            else node_id
+        )
 
         # Track this as the active key for this node
         if execution_id not in self._active_node_keys:
@@ -333,13 +337,16 @@ class MetricsObserver(EventBus):
         # to enable nested timing display in the CLI
         for node_id, phase_timings in timing_data.items():
             # Filter out metadata entries (end with "_metadata")
-            # The hierarchical phase names themselves contain all needed info
+            # Preserve count entries (end with "__count") for display purposes
             timings = {
                 phase: dur_ms
                 for phase, dur_ms in phase_timings.items()
                 if not phase.endswith("_metadata")
             }
 
+            # Apply timing data to the exact match if it exists
+            # Note: Timing collector doesn't track iterations separately, so timing data
+            # represents the accumulated/last iteration for this node
             if node_id in metrics.node_metrics:
                 metrics.node_metrics[node_id].module_timings = timings
             else:
