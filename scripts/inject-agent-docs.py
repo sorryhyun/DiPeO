@@ -117,7 +117,7 @@ def main():
         output = {
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
-                "additionalContext": updated_input,
+                "updatedInput": updated_input,
             }
         }
 

@@ -11,7 +11,7 @@ This directory contains detailed development guides for DiPeO's specialized Clau
 
 ### [Frontend Development](frontend-development.md)
 **Agent**: `dipeo-frontend-dev`
-**Domain**: React components, visual diagram editor (ReactFlow), GraphQL integration
+**Domain**: React components, visual diagram editor (XYFlow), GraphQL integration
 **Key Areas**: `/apps/web/src/`, TypeScript/React, GraphQL hooks
 
 ### [TypeScript Model Design](typescript-model-design.md)

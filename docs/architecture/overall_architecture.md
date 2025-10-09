@@ -70,7 +70,7 @@ dipeo metrics --latest --breakdown
 
 | Layer                        | Purpose                                      | Key tech                                                                                                            |
 | ---------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Front-end**<br>`apps/web`  | Drag-and-drop diagram editor, run monitor    | *React 19*, Vite, @xyflow/react, Apollo Client + `graphql-ws`, TRPC, Zustand, TanStack Query, React-Hook-Form, TailwindCSS |
+| **Front-end**<br>`apps/web`  | Drag-and-drop diagram editor, run monitor    | *React 19*, Vite, @xyflow/react, Apollo Client + `graphql-ws`, TRPC (utilities only), Zustand, TanStack Query, TailwindCSS |
 | **Backend**<br>`apps/server` | Exposes GraphQL API, orchestrates runs, CLI  | *Python 3.13*, FastAPI, Strawberry GraphQL, GraphQL subscriptions, Hypercorn, Pydantic v2, CLI tools               |
 | **Core library**<br>`dipeo/` | Domain models, execution engine, memory      | Event-driven architecture, async runtime, Pydantic, DI service registry                                             |
 
@@ -180,13 +180,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         # Post-processing hook (logging, metrics, etc.)
 ```
 
-### Auto-Registration
-
-Handlers are automatically discovered and registered at startup:
-- `@register_handler` decorator marks handler classes
-- `auto_register.py` scans the handlers directory
-- No manual registration needed - just add new handler files
-- Supports both single-file handlers and handler packages
 
 ### Handler Execution Flow
 
@@ -300,7 +293,7 @@ Execution performance is controlled through `/dipeo/config/execution.py`:
 
 The system uses a fully event-driven architecture for execution and monitoring:
 
-* **Unified EventBus Protocol** – Consolidates DomainEventBus, EventEmitter, EventConsumer, and MessageBus into a single interface
+* **Unified EventBus Protocol** – Consolidates DomainEventBus, EventEmitter, EventConsumer, and MessageBus into a single interface (implemented by InMemoryEventBus)
 * **CacheFirstStateStore** – Cache-first state persistence with Phase 4 optimizations, implements protocol directly (no adapter layer)
 * **GraphQL Subscriptions** – Real-time updates to UI (replaced SSE)
 * **No Global Locks** – Per-execution isolation enables true parallel execution

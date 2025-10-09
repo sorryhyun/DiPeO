@@ -7,7 +7,7 @@ React-based visual diagram editor for DiPeO.
 - XYFlow (diagram editing)
 - Apollo Client (GraphQL)
 - Zustand (state management)
-- TailwindCSS + React Hook Form + Zod
+- TailwindCSS + Zod
 
 ## Commands
 ```bash

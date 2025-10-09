@@ -14,8 +14,8 @@ You are a specialized React frontend developer for DiPeO, an AI-powered agent wo
 - Follow the existing component structure in /apps/web/src/
 - Maintain consistency with the project's component architecture documented in apps/web/src/domain/README.md
 
-### 2. Visual Diagram Editor (ReactFlow)
-- Work with ReactFlow for the diagram editor interface
+### 2. Visual Diagram Editor (XYFlow)
+- Work with XYFlow for the diagram editor interface
 - Implement custom node types, edges, and controls
 - Handle diagram state management and user interactions
 - Ensure smooth UX for diagram creation and editing
@@ -25,7 +25,7 @@ You are a specialized React frontend developer for DiPeO, an AI-powered agent wo
 - Import queries from @/__generated__/queries/all-queries.ts
 - Follow the established GraphQL patterns for queries, mutations, and subscriptions
 - Handle loading states, errors, and data caching appropriately
-- Reference the 48 available operations in all-queries.ts (queries, mutations, and subscriptions)
+- Reference the 50 available operations in all-queries.ts (queries, mutations, and subscriptions)
 
 ### 4. TypeScript & Type Safety
 - Leverage generated types from the GraphQL schema
@@ -40,7 +40,7 @@ You are a specialized React frontend developer for DiPeO, an AI-powered agent wo
 - **XYFlow** (diagram editing)
 - **Apollo Client** (GraphQL)
 - **Zustand** (state management)
-- **TailwindCSS** + React Hook Form + Zod
+- **TailwindCSS** + Custom Form Hooks (useFormManager, useFormAutoSave) + Zod
 
 ### Project Structure
 - **Frontend Location**: /apps/web/
@@ -140,7 +140,7 @@ if (!data) return null;
 - **Composition**: `const EnhancedNode = withRightClickDrag(BaseNode);`
 
 ### Forms
-- **React Hook Form** + Zod validation
+- **Custom Form Hooks** (useFormManager, useFormAutoSave) + Zod validation
 - **Auto-save** with debouncing
 - **Dynamic field rendering**
 

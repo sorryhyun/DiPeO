@@ -33,10 +33,9 @@ You are responsible for all Python code in the /dipeo/ directory:
   - **AST Framework**: ast/ (walker.py, filters.py, extractors.py)
   - **Type System**: type_system_unified/ (converter.py, resolver.py, registry.py)
   - **Validators**: validators/ (backend.py, frontend.py, strawberry.py)
-- **LLM Infrastructure**: Unified client architecture and domain adapters
+- **LLM Infrastructure**: Unified client architecture
   - OpenAI API v2 with responses.create() and responses.parse()
   - Providers: anthropic/, openai/, google/, ollama/, claude_code/, claude_code_custom/
-  - Domain adapters in llm/domain_adapters/: LLMMemorySelectionAdapter, LLMDecisionAdapter
 
 ### Generated Code (/dipeo/diagram_generated/)
 - You understand generated code but NEVER edit it directly

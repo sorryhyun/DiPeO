@@ -107,19 +107,6 @@ Organized by storage type:
 - All providers use unified clients directly (no adapter/client separation)
 - Each provider has a single `unified_client.py` file
 
-**Domain Adapters** (`llm/domain_adapters/`):
-- **LLMMemorySelectionAdapter**: Implements MemorySelectionPort using LLM
-  - Creates selector facets for intelligent memory selection
-  - Filters out selector facet messages from candidates
-  - Preserves system messages automatically
-  - Supports natural language criteria for selection
-  - Features: Message deduplication, scoring, ranking
-- **LLMDecisionAdapter**: Binary decision making using LLM
-  - Creates decision facets for unbiased evaluation
-  - Parses YES/NO responses with keyword detection
-  - Supports memory profiles for context control
-  - Used by condition nodes for AI-powered flow control
-
 **Provider Unified Clients** (`llm/providers/`):
 - **OpenAI** (`UnifiedOpenAIClient`): Uses new `responses.create()` and `responses.parse()` APIs
   - `input` parameter instead of `messages`
@@ -183,6 +170,93 @@ except Exception as e:
     raise StorageError(f"Operation failed: {e}")
 ```
 
+## OpenAI API v2 Migration
+
+DiPeO uses the new OpenAI API v2 patterns for LLM interactions:
+
+### Key Changes from v1
+- **Response Creation**: `responses.create()` instead of `chat.completions.create()`
+- **Response Parsing**: `responses.parse()` for structured output
+- **Input Parameter**: `input` instead of `messages`
+- **Token Limits**: `max_output_tokens` instead of `max_tokens`
+- **Structured Output**: `text_format` parameter with Pydantic models
+- **Temperature**: Not supported in v2 API
+
+### Example Usage
+```python
+from openai import OpenAI
+
+client = OpenAI(api_key=api_key)
+
+# Create response
+response = client.responses.create(
+    model="gpt-5-nano-2025-08-07",
+    input="Your prompt here",
+    max_output_tokens=1000
+)
+
+# Parse structured output
+response = client.responses.parse(
+    model="gpt-5-nano-2025-08-07",
+    input="Your prompt here",
+    text_format=YourPydanticModel
+)
+
+# Access response text
+text = response.output[0].content[0].text
+```
+
+## Service Mixin Usage
+
+DiPeO services use optional mixins for cross-cutting concerns. Mixins provide reusable functionality without monolithic inheritance:
+
+### Available Mixins
+- **LoggingMixin**: Structured logging with decorators
+- **ValidationMixin**: Field and type validation
+- **ConfigurationMixin**: Configuration management
+- **CachingMixin**: In-memory caching with TTL
+- **InitializationMixin**: Initialization tracking
+
+### Using Mixins in Custom Services
+```python
+from dipeo.application.mixins import LoggingMixin, ValidationMixin, CachingMixin
+
+class CustomService(LoggingMixin, ValidationMixin, CachingMixin):
+    """Service with logging, validation, and caching capabilities."""
+
+    def __init__(self, config: dict):
+        # Initialize mixins
+        LoggingMixin.__init__(self)
+        ValidationMixin.__init__(self)
+        CachingMixin.__init__(self, ttl=300)
+
+        self.config = config
+
+    async def process_data(self, data: dict) -> dict:
+        # Use logging from LoggingMixin
+        self.log_info("Processing data", extra={"data_size": len(data)})
+
+        # Use validation from ValidationMixin
+        if not self.validate_field(data, "required_field", str):
+            raise ValueError("Invalid data")
+
+        # Use caching from CachingMixin
+        cache_key = f"processed_{data['id']}"
+        if cached := self.get_cached(cache_key):
+            return cached
+
+        result = await self._do_processing(data)
+        self.set_cached(cache_key, result)
+        return result
+```
+
+### Mixin Composition Best Practices
+1. **Order Matters**: List mixins left-to-right based on method resolution order
+2. **Initialize Explicitly**: Call each mixin's `__init__()` in your service's `__init__()`
+3. **Avoid Conflicts**: Don't mix multiple mixins with the same method names
+4. **Use Selectively**: Only include mixins you actually need
+5. **Document Usage**: Note which mixins a service uses in docstrings
+
 ## Best Practices
 
 1. **Use Ports**: Import from `dipeo.domain.ports`, not concrete adapters
@@ -190,6 +264,7 @@ except Exception as e:
 3. **Async I/O**: All I/O operations should be async
 4. **Centralize Config**: Use `get_settings()` for all configuration
 5. **Log Operations**: Debug-level for normal ops, error for failures
+6. **Compose with Mixins**: Use mixins for cross-cutting concerns instead of inheritance
 
 ## Adding New Infrastructure
 
