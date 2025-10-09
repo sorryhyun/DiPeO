@@ -321,7 +321,7 @@ export class Converters {
       id: this.toNodeId(node.id),
       type: this.stringToNodeType(node.type),
       position: node.position,
-      data: node.data || {}
+      data: (node.data || {}) as any
     };
   }
 
@@ -434,8 +434,8 @@ export class Converters {
       started_at: execution.started_at || new Date().toISOString(),
       ended_at: execution.ended_at || null,
       node_states: nodeStates,
-      node_outputs: execution.node_outputs || {},
-      variables: execution.variables || {},
+      node_outputs: (execution.node_outputs || {}) as any,
+      variables: (execution.variables || {}) as any,
       llm_usage: execution.llm_usage as LLMUsage,
       error: execution.error || null,
       exec_counts: {},
@@ -450,7 +450,7 @@ export class Converters {
     return {
       type: (update as any).type as EventType,  // type field comes from subscription query
       execution_id: this.toExecutionId(update.execution_id),
-      data: update.data,
+      data: (update.data ?? null) as any,
       timestamp: update.timestamp ?? undefined
     };
   }

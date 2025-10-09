@@ -70,8 +70,8 @@ export class ExecutionConverter {
       started_at: graphqlExecution.started_at || new Date().toISOString(),
       ended_at: graphqlExecution.ended_at,
       node_states: nodeStates,
-      node_outputs: graphqlExecution.node_outputs || {},
-      variables: graphqlExecution.variables || {},
+      node_outputs: (graphqlExecution.node_outputs || {}) as any,
+      variables: (graphqlExecution.variables || {}) as any,
       llm_usage: graphqlExecution.llm_usage as LLMUsage,
       error: graphqlExecution.error,
       exec_counts: {},
@@ -86,7 +86,7 @@ export class ExecutionConverter {
     return {
       type: (update as any).type as EventType || EventType.EXECUTION_LOG,
       execution_id: executionId(update.execution_id),
-      data: update.data,
+      data: (update.data ?? null) as any,
       timestamp: update.timestamp ?? undefined
     };
   }

@@ -69,24 +69,24 @@ export function useExecutionLogStream(executionIdParam: ReturnType<typeof execut
       }
       // Also handle individual log events (for backward compatibility)
       else if (update.type === 'EXECUTION_LOG' && update.data) {
-        const logData = update.data;
+        const logData = update.data as any;
         if (typeof logData === 'object' && logData !== null) {
           // Debug log to understand the structure
           console.log('Individual log data structure:', logData);
 
           // Try different possible message field names
-          const message = logData.message || logData.msg || logData.text || logData.content ||
+          const message = String(logData.message || logData.msg || logData.text || logData.content ||
                          (typeof logData.args === 'string' ? logData.args :
                           Array.isArray(logData.args) ? logData.args.join(' ') : '') ||
-                         JSON.stringify(logData);
+                         JSON.stringify(logData));
 
           const newLog: LogEntry = {
-            level: logData.level || logData.levelname || 'INFO',
+            level: String(logData.level || logData.levelname || 'INFO'),
             message: message,
             timestamp: logData.extra_fields?.timestamp ? new Date(logData.extra_fields.timestamp * 1000).toISOString() :
-                     logData.timestamp || logData.time || new Date().toISOString(),
-            logger: logData.logger_name || logData.logger || logData.name || '',
-            node_id: logData.node_id,
+                     String(logData.timestamp || logData.time || new Date().toISOString()),
+            logger: String(logData.logger_name || logData.logger || logData.name || ''),
+            node_id: logData.node_id as string | undefined,
           };
           setLogs(prev => [...prev, newLog]);
         }
