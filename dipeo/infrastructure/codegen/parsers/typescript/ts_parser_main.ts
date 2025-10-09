@@ -27,6 +27,19 @@ function parseTypeScript(
   includeJSDoc: boolean = false,
   mode: 'module' | 'script' = 'module'
 ): ParseResult {
+  return parseTypeScriptWithGlobalEnums(source, extractPatterns, includeJSDoc, mode, [])
+}
+
+/**
+ * Parsing function with support for global enum context (for batch processing)
+ */
+function parseTypeScriptWithGlobalEnums(
+  source: string,
+  extractPatterns: string[],
+  includeJSDoc: boolean = false,
+  mode: 'module' | 'script' = 'module',
+  globalEnums: any[] = []
+): ParseResult {
   try {
     const project = new Project({
       useInMemoryFileSystem: true,
@@ -70,7 +83,9 @@ function parseTypeScript(
     }
 
     if (extractPatterns.includes('const') || extractPatterns.includes('constants')) {
-      result.constants = parseConstants(sourceFile, includeJSDoc)
+      // Merge local enums with global enums for cross-file enum resolution
+      const allEnums = [...globalEnums, ...result.enums]
+      result.constants = parseConstants(sourceFile, includeJSDoc, allEnums)
     }
 
     // Simple AST representation (for debugging/visualization)
@@ -98,7 +113,7 @@ function parseTypeScript(
 }
 
 /**
- * Process batch input
+ * Process batch input with two-pass enum resolution
  */
 function processBatchInput(
   input: BatchInput,
@@ -115,7 +130,34 @@ function processBatchInput(
     }
   }
 
-  // Process each source
+  // Step 1: If we need to parse constants, first collect all enums from all files
+  // This enables cross-file enum resolution
+  let globalEnums: any[] = []
+  if (options.patterns.includes('const') || options.patterns.includes('constants')) {
+    for (const [key, source] of Object.entries(input.sources)) {
+      try {
+        // Check if source is a file path or TypeScript content
+        let sourceContent: string
+        if (source.includes('\n') || source.includes('import') || source.includes('export')) {
+          sourceContent = source
+        } else if (fs.existsSync(source)) {
+          sourceContent = fs.readFileSync(source, 'utf8')
+        } else {
+          sourceContent = source
+        }
+
+        // Parse only enums in first pass
+        const enumResult = parseTypeScript(sourceContent, ['enum'], false, options.mode)
+        if (enumResult.enums && enumResult.enums.length > 0) {
+          globalEnums.push(...enumResult.enums)
+        }
+      } catch (error) {
+        // Ignore errors in enum collection phase, will be caught in main parse
+      }
+    }
+  }
+
+  // Step 2: Process each source with the global enum context
   for (const [key, source] of Object.entries(input.sources)) {
     results.metadata!.totalFiles++
 
@@ -133,11 +175,13 @@ function processBatchInput(
         sourceContent = source
       }
 
-      const parseResult = parseTypeScript(
+      // Parse with global enums available for constant resolution
+      const parseResult = parseTypeScriptWithGlobalEnums(
         sourceContent,
         options.patterns,
         options.includeJSDoc,
-        options.mode
+        options.mode,
+        globalEnums
       )
       results.results[key] = parseResult
       results.metadata!.successCount++
@@ -238,7 +282,7 @@ if (options.batchMode || options.batchInputFile) {
     process.exit(1)
   }
 
-  // Process multiple files
+  // Process multiple files with two-pass enum resolution
   if (filePaths.length > 1) {
     const startTime = Date.now()
     const results: BatchResult = {
@@ -251,10 +295,27 @@ if (options.batchMode || options.batchInputFile) {
       }
     }
 
+    // Step 1: Collect all enums if we need to parse constants
+    let globalEnums: any[] = []
+    if (options.patterns.includes('const') || options.patterns.includes('constants')) {
+      for (const filePath of filePaths) {
+        try {
+          const source = fs.readFileSync(filePath, 'utf8')
+          const enumResult = parseTypeScript(source, ['enum'], false, options.mode)
+          if (enumResult.enums && enumResult.enums.length > 0) {
+            globalEnums.push(...enumResult.enums)
+          }
+        } catch (error) {
+          // Ignore errors in enum collection phase
+        }
+      }
+    }
+
+    // Step 2: Parse all files with global enum context
     for (const filePath of filePaths) {
       try {
         const source = fs.readFileSync(filePath, 'utf8')
-        const result = parseTypeScript(source, options.patterns, options.includeJSDoc, options.mode)
+        const result = parseTypeScriptWithGlobalEnums(source, options.patterns, options.includeJSDoc, options.mode, globalEnums)
         results.results[filePath] = result
         results.metadata!.successCount++
       } catch (error) {

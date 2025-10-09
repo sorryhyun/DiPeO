@@ -18,10 +18,6 @@ export const dbConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
-    sub_type: 'DBBlockSubType.FIXED_PROMPT',
-    operation: 'DBOperation.READ',
-    serialize_json: false,
-    format: 'DataFormat.JSON',
   },
   customFields: dbFields,
   primaryDisplayField: 'operation',

@@ -140,6 +140,10 @@ class ExtractNodeSpecsStep(BaseExtractionStep):
         """
         processed = []
         for field in fields:
+            # Skip non-dict entries (e.g., unevaluated spread operators)
+            if not isinstance(field, dict):
+                continue
+
             processed_field = self._process_field(field, node_type, type_converter)
             if processed_field and processed_field.get("name"):
                 processed.append(processed_field)

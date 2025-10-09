@@ -15,7 +15,6 @@ export const endpointConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
-    save_to_file: false,
   },
   customFields: endpointFields,
   primaryDisplayField: 'save_to_file',

@@ -3,7 +3,7 @@
  */
 
 import { SourceFile } from 'ts-morph'
-import type { InterfaceInfo, PropertyInfo } from '@dipeo/models/codegen/ast-types'
+import type { InterfaceInfo, PropertyInfo } from '@dipeo/models/src/codegen/ast-types'
 import { getJSDoc } from './utils'
 
 export function parseInterfaces(sourceFile: SourceFile, includeJSDoc: boolean): InterfaceInfo[] {

@@ -7,6 +7,8 @@ nodes:
   - label: Start
     type: start
     position: {x: 50, y: 200}
+    props:
+      trigger_mode: none
 
   # Load cached AST data directly - the input already has the hyphenated node type
   - label: Load AST

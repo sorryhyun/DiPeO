@@ -3,12 +3,26 @@
  */
 
 import { SourceFile, Node } from 'ts-morph'
-import type { ConstantInfo } from '@dipeo/models/codegen/ast-types'
-import { getJSDoc, parseExpression, setConstValueMap, clearConstValueMap } from './utils'
+import type { ConstantInfo, EnumInfo } from '@dipeo/models/src/codegen/ast-types'
+import { getJSDoc, parseExpression, setConstValueMap, clearConstValueMap, setEnumValueMap, clearEnumValueMap } from './utils'
 
-export function parseConstants(sourceFile: SourceFile, includeJSDoc: boolean): ConstantInfo[] {
+export function parseConstants(sourceFile: SourceFile, includeJSDoc: boolean, enums?: EnumInfo[]): ConstantInfo[] {
   const constants: ConstantInfo[] = []
   const constMap = new Map<string, any>()
+
+  // Build enum value map if enums are provided
+  const enumMap = new Map<string, any>()
+  if (enums) {
+    for (const enumDef of enums) {
+      for (const member of enumDef.members) {
+        const key = `${enumDef.name}.${member.name}`
+        enumMap.set(key, member.value)
+      }
+    }
+  }
+
+  // Set the enum map for resolution during expression parsing
+  setEnumValueMap(enumMap)
 
   // First pass: collect all const declarations without resolving references
   const constDeclarations: Array<{
@@ -72,8 +86,9 @@ export function parseConstants(sourceFile: SourceFile, includeJSDoc: boolean): C
     })
   })
 
-  // Clear the const map after parsing
+  // Clear the maps after parsing
   clearConstValueMap()
+  clearEnumValueMap()
 
   return constants
 }

@@ -19,9 +19,6 @@ export const hookConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
-    hook_type: HookType.HOOKTYPE.SHELL,
-    timeout: 60,
-    retry_count: 0,
   },
   customFields: hookFields,
   primaryDisplayField: 'hook_type',

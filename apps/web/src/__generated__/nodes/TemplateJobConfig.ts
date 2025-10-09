@@ -18,7 +18,6 @@ export const templateJobConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
-    engine: 'TemplateEngine.JINJA2',
   },
   customFields: templateJobFields,
   primaryDisplayField: 'engine',

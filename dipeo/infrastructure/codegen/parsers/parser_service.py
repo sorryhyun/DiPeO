@@ -140,6 +140,8 @@ class ParserService(
         if not self._ts_parser:
             await self.initialize()
 
+        # Use parse_files_batch if available, which passes file paths directly
+        # to preserve import resolution context
         if hasattr(self._ts_parser, "parse_files_batch"):
             return await self._ts_parser.parse_files_batch(
                 file_paths, extract_patterns, options or {}

@@ -8,6 +8,8 @@ nodes:
   - label: Start
     type: start
     position: {x: 50, y: 100}
+    props:
+      trigger_mode: none
 
   # Parse batch input to get node type
   - label: Parse Node Type

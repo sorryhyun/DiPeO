@@ -3,7 +3,7 @@
  */
 
 import { SourceFile } from 'ts-morph'
-import type { FunctionInfo, ParameterInfo } from '@dipeo/models/codegen/ast-types'
+import type { FunctionInfo, ParameterInfo } from '@dipeo/models/src/codegen/ast-types'
 import { getJSDoc } from './utils'
 
 export function parseFunctions(sourceFile: SourceFile, includeJSDoc: boolean): FunctionInfo[] {
