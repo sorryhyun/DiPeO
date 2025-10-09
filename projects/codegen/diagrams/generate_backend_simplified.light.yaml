@@ -60,9 +60,17 @@ nodes:
     props:
       language: python
       code: |
-        # Extract node specs for batch processing
-        # The sub_diagram expects node_spec_path for each node
-        node_specs = inputs['default'].get('node_specs', [])
+        # Try different access patterns
+        if 'node_specs' in inputs:
+            node_specs = inputs['node_specs']
+            print(f"[DEBUG] Found node_specs directly in inputs")
+        elif 'default' in inputs and isinstance(inputs['default'], dict):
+            node_specs = inputs['default'].get('node_specs', [])
+            print(f"[DEBUG] Found node_specs in inputs['default']")
+        else:
+            node_specs = []
+            print(f"[DEBUG] Could not find node_specs")
+
         batch_items = []
         for spec in node_specs:
             node_type = spec.get('node_type', '')
@@ -71,7 +79,7 @@ nodes:
             batch_items.append({
                 'node_spec_path': file_name
             })
-        return {'items': batch_items}
+        result = {'items': batch_items}
 
   # Generate backend models using batch sub_diagram
   - label: Batch Generate Backend Models

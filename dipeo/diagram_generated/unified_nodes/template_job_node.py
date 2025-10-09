@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for template_job.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-09T13:41:19.655565
+Generated at: 2025-10-09T15:58:07.803989
 """
 
 from typing import *
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 from dipeo.domain.diagram.models.executable_diagram import BaseExecutableNode
 from dipeo.diagram_generated.domain_models import NodeID, Vec2
 from dipeo.diagram_generated.enums import NodeType
+
 
 from dipeo.diagram_generated.enums import *
 from dipeo.diagram_generated.integrations import *
@@ -35,17 +36,17 @@ class TemplateJobNode(BaseModel):
     type: NodeType = Field(default=NodeType.TEMPLATE_JOB, frozen=True)
 
     # Optional node-specific fields
-    
+
     template_path: Optional[str] = Field(default=None, description="Path to template file")
-    
+
     template_content: Optional[str] = Field(default=None, description="Inline template content")
-    
+
     output_path: Optional[str] = Field(default=None, description="Output file path")
-    
+
     variables: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Variables configuration")
-    
-    engine: Literal["internal", "jinja2"] = Field(default="TemplateEngine.JINJA2", description="Template engine to use")
-    
+
+    engine: Literal["internal", "jinja2"] = Field(default="jinja2", description="Template engine to use")
+
     preprocessor: Optional[str] = Field(default=None, description="Preprocessor function to apply before templating")
 
     class Config:

@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for integrated_api.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-09T13:41:18.790788
+Generated at: 2025-10-09T15:58:07.087581
 """
 
 from typing import *
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 from dipeo.domain.diagram.models.executable_diagram import BaseExecutableNode
 from dipeo.diagram_generated.domain_models import NodeID, Vec2
 from dipeo.diagram_generated.enums import NodeType
+
 
 from dipeo.diagram_generated.enums import *
 from dipeo.diagram_generated.integrations import *

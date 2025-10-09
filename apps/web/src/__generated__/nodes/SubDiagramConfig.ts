@@ -18,6 +18,7 @@ export const subDiagramConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
+    batch_input_key: 'items',
   },
   customFields: subDiagramFields,
   primaryDisplayField: 'diagram_name',

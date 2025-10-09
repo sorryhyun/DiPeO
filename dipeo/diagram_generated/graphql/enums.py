@@ -2,7 +2,7 @@
 Generated Strawberry GraphQL enum definitions for DiPeO.
 Avoid editing THIS FILE DIRECTLY.
 
-Generated at: 2025-10-09T14:13:38.863554
+Generated at: 2025-10-09T15:58:04.745152
 """
 
 from enum import Enum
@@ -58,6 +58,33 @@ class FieldGroupGraphQL(Enum):
     TIMESTAMPS = "timestamps"
     RELATIONSHIPS = "relationships"
     CONFIGURATION = "configuration"
+
+
+@strawberry.enum
+class GraphQLScalarGraphQL(Enum):
+    """GraphQL enum for GraphQLScalar"""
+    ID = "ID"
+    STRING = "String"
+    INT = "Int"
+    FLOAT = "Float"
+    BOOLEAN = "Boolean"
+    JSON = "JSON"
+    DATE_TIME = "DateTime"
+    UPLOAD = "Upload"
+
+
+@strawberry.enum
+class DiPeOBrandedScalarGraphQL(Enum):
+    """GraphQL enum for DiPeOBrandedScalar"""
+    DIAGRAM_ID = "DiagramID"
+    NODE_ID = "NodeID"
+    ARROW_ID = "ArrowID"
+    HANDLE_ID = "HandleID"
+    PERSON_ID = "PersonID"
+    API_KEY_ID = "ApiKeyID"
+    EXECUTION_ID = "ExecutionID"
+    TASK_ID = "TaskID"
+    HOOK_ID = "HookID"
 
 
 @strawberry.enum
@@ -426,6 +453,8 @@ __all__ = [
     "QueryEntityGraphQL",
     "FieldPresetGraphQL",
     "FieldGroupGraphQL",
+    "GraphQLScalarGraphQL",
+    "DiPeOBrandedScalarGraphQL",
     "DataTypeGraphQL",
     "ContentTypeGraphQL",
     "HandleDirectionGraphQL",
@@ -589,6 +618,70 @@ def convert_fieldgroup_from_graphql(graphql_enum):
         FieldGroupGraphQL.TIMESTAMPS: FieldGroup.TIMESTAMPS,
         FieldGroupGraphQL.RELATIONSHIPS: FieldGroup.RELATIONSHIPS,
         FieldGroupGraphQL.CONFIGURATION: FieldGroup.CONFIGURATION,
+    }
+    return mapping.get(graphql_enum)
+
+
+def convert_graphqlscalar_to_graphql(python_enum):
+    """Convert Python GraphQLScalar enum to GraphQL enum."""
+    from ..enums import GraphQLScalar
+    mapping = {
+        GraphQLScalar.ID: GraphQLScalarGraphQL.ID,
+        GraphQLScalar.STRING: GraphQLScalarGraphQL.STRING,
+        GraphQLScalar.INT: GraphQLScalarGraphQL.INT,
+        GraphQLScalar.FLOAT: GraphQLScalarGraphQL.FLOAT,
+        GraphQLScalar.BOOLEAN: GraphQLScalarGraphQL.BOOLEAN,
+        GraphQLScalar.JSON: GraphQLScalarGraphQL.JSON,
+        GraphQLScalar.DATE_TIME: GraphQLScalarGraphQL.DATE_TIME,
+        GraphQLScalar.UPLOAD: GraphQLScalarGraphQL.UPLOAD,
+    }
+    return mapping.get(python_enum)
+
+def convert_graphqlscalar_from_graphql(graphql_enum):
+    """Convert GraphQL GraphQLScalar enum to Python enum."""
+    from ..enums import GraphQLScalar
+    mapping = {
+        GraphQLScalarGraphQL.ID: GraphQLScalar.ID,
+        GraphQLScalarGraphQL.STRING: GraphQLScalar.STRING,
+        GraphQLScalarGraphQL.INT: GraphQLScalar.INT,
+        GraphQLScalarGraphQL.FLOAT: GraphQLScalar.FLOAT,
+        GraphQLScalarGraphQL.BOOLEAN: GraphQLScalar.BOOLEAN,
+        GraphQLScalarGraphQL.JSON: GraphQLScalar.JSON,
+        GraphQLScalarGraphQL.DATE_TIME: GraphQLScalar.DATE_TIME,
+        GraphQLScalarGraphQL.UPLOAD: GraphQLScalar.UPLOAD,
+    }
+    return mapping.get(graphql_enum)
+
+
+def convert_dipeobrandedscalar_to_graphql(python_enum):
+    """Convert Python DiPeOBrandedScalar enum to GraphQL enum."""
+    from ..enums import DiPeOBrandedScalar
+    mapping = {
+        DiPeOBrandedScalar.DIAGRAM_ID: DiPeOBrandedScalarGraphQL.DIAGRAM_ID,
+        DiPeOBrandedScalar.NODE_ID: DiPeOBrandedScalarGraphQL.NODE_ID,
+        DiPeOBrandedScalar.ARROW_ID: DiPeOBrandedScalarGraphQL.ARROW_ID,
+        DiPeOBrandedScalar.HANDLE_ID: DiPeOBrandedScalarGraphQL.HANDLE_ID,
+        DiPeOBrandedScalar.PERSON_ID: DiPeOBrandedScalarGraphQL.PERSON_ID,
+        DiPeOBrandedScalar.API_KEY_ID: DiPeOBrandedScalarGraphQL.API_KEY_ID,
+        DiPeOBrandedScalar.EXECUTION_ID: DiPeOBrandedScalarGraphQL.EXECUTION_ID,
+        DiPeOBrandedScalar.TASK_ID: DiPeOBrandedScalarGraphQL.TASK_ID,
+        DiPeOBrandedScalar.HOOK_ID: DiPeOBrandedScalarGraphQL.HOOK_ID,
+    }
+    return mapping.get(python_enum)
+
+def convert_dipeobrandedscalar_from_graphql(graphql_enum):
+    """Convert GraphQL DiPeOBrandedScalar enum to Python enum."""
+    from ..enums import DiPeOBrandedScalar
+    mapping = {
+        DiPeOBrandedScalarGraphQL.DIAGRAM_ID: DiPeOBrandedScalar.DIAGRAM_ID,
+        DiPeOBrandedScalarGraphQL.NODE_ID: DiPeOBrandedScalar.NODE_ID,
+        DiPeOBrandedScalarGraphQL.ARROW_ID: DiPeOBrandedScalar.ARROW_ID,
+        DiPeOBrandedScalarGraphQL.HANDLE_ID: DiPeOBrandedScalar.HANDLE_ID,
+        DiPeOBrandedScalarGraphQL.PERSON_ID: DiPeOBrandedScalar.PERSON_ID,
+        DiPeOBrandedScalarGraphQL.API_KEY_ID: DiPeOBrandedScalar.API_KEY_ID,
+        DiPeOBrandedScalarGraphQL.EXECUTION_ID: DiPeOBrandedScalar.EXECUTION_ID,
+        DiPeOBrandedScalarGraphQL.TASK_ID: DiPeOBrandedScalar.TASK_ID,
+        DiPeOBrandedScalarGraphQL.HOOK_ID: DiPeOBrandedScalar.HOOK_ID,
     }
     return mapping.get(graphql_enum)
 

@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for user_response.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-09T13:41:19.656313
+Generated at: 2025-10-09T15:58:07.806877
 """
 
 from typing import *
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 from dipeo.domain.diagram.models.executable_diagram import BaseExecutableNode
 from dipeo.diagram_generated.domain_models import NodeID, Vec2
 from dipeo.diagram_generated.enums import NodeType
+
 
 from dipeo.diagram_generated.enums import *
 from dipeo.diagram_generated.integrations import *
@@ -36,8 +37,6 @@ class UserResponseNode(BaseModel):
     type: NodeType = Field(default=NodeType.USER_RESPONSE, frozen=True)
 
     # Optional node-specific fields
-    
-    timeout: int = Field(default=60, description="Response timeout in seconds")
 
     class Config:
         # Make the instance immutable after creation
@@ -63,7 +62,6 @@ class UserResponseNode(BaseModel):
 
         # Add node-specific fields using original names
         data["prompt"] = self.prompt
-        data["timeout"] = self.timeout
 
         return data
 

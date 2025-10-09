@@ -18,6 +18,9 @@ export const dbConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
+    sub_type: 'fixed_prompt',
+    operation: 'read',
+    format: 'json',
   },
   customFields: dbFields,
   primaryDisplayField: 'operation',

@@ -19,6 +19,10 @@ export const diffPatchConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
+    format: 'unified',
+    apply_mode: 'normal',
+    strip_level: 1,
+    fuzz_factor: 2,
   },
   customFields: diffPatchFields,
   primaryDisplayField: 'target_path',

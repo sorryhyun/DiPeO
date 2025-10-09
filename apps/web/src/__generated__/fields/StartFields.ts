@@ -9,9 +9,9 @@ export const startFields: UnifiedFieldDefinition[] = [
     required: false,
     description: '"How this start node is triggered"',
     options: [
-      { value: '"HookTriggerMode.NONE"', label: '"None - Simple start point"' },
-      { value: '"HookTriggerMode.MANUAL"', label: '"Manual - Triggered manually with data"' },
-      { value: '"HookTriggerMode.HOOK"', label: '"Hook - Triggered by external events"' },
+      { value: '"none"', label: '"None - Simple start point"' },
+      { value: '"manual"', label: '"Manual - Triggered manually with data"' },
+      { value: '"hook"', label: '"Hook - Triggered by external events"' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };

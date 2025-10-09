@@ -15,7 +15,7 @@ export const startConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
-    trigger_mode: HookTriggerMode.HOOKTRIGGERMODE.NONE,
+    trigger_mode: HookTriggerMode.NONE,
     custom_data: {},
     output_data_structure: {},
   },

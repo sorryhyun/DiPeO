@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces using simplified type resolver.
 
-Generated at: 2025-10-09T14:13:38.863554
+Generated at: 2025-10-09T15:58:04.745152
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ from ..domain_models import (
     CliSessionResult,
     ConstantInfo,
     ConversationMetadata,
+    DefaultValueConfig,
     DiagramMetadata,
     DiffPatchInput,
     DomainApiKey,
@@ -227,6 +228,15 @@ class ConversationMetadataType:
     started_at: str
     total_tokens: float
     message_count: float
+
+
+@strawberry.type
+class DefaultValueConfigType:
+    """DefaultValueConfig domain type"""
+    tsValue: DefaultValue
+    pyValue: Optional[str] = None
+    gqlValue: Optional[JSONScalar] = None
+    description: Optional[str] = None
 
 
 @strawberry.type

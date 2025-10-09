@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for endpoint.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-09T13:41:18.788355
+Generated at: 2025-10-09T15:58:07.086270
 """
 
 from typing import *
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 from dipeo.domain.diagram.models.executable_diagram import BaseExecutableNode
 from dipeo.diagram_generated.domain_models import NodeID, Vec2
 from dipeo.diagram_generated.enums import NodeType
+
 
 from dipeo.diagram_generated.enums import *
 from dipeo.diagram_generated.integrations import *
@@ -35,9 +36,9 @@ class EndpointNode(BaseModel):
     type: NodeType = Field(default=NodeType.ENDPOINT, frozen=True)
 
     # Optional node-specific fields
-    
+
     save_to_file: bool = Field(default=False, description="Save results to file")
-    
+
     file_name: Optional[str] = Field(default=None, description="Output filename")
 
     class Config:

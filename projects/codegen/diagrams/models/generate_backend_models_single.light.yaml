@@ -8,8 +8,6 @@ nodes:
   - label: Start
     type: start
     position: {x: 50, y: 100}
-    props:
-      trigger_mode: none
 
   # Parse batch input to get node type
   - label: Parse Node Type
@@ -18,9 +16,8 @@ nodes:
     props:
       language: python
       code: |
-        # node_type is like "api-job", "person-job", etc.
-        # Extract just the string value for template substitution
-        result = default['default']['node_spec_path']
+        result = inputs['default']['default']['node_spec_path']
+
 
   # Load cached AST data for this node spec
   - label: Load Cached AST

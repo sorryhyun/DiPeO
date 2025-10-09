@@ -1,7 +1,7 @@
 """
 Compatibility shim for generated_nodes.py
 Re-exports from individual files for backward compatibility.
-Generated at: 2025-10-09T14:13:40.860143
+Generated at: 2025-10-09T15:58:08.061981
 """
 
 # Re-export all node classes from individual files
@@ -77,15 +77,13 @@ def create_executable_node(
             
             url=data.get('url', ''),
             
-            method=data.get('method', 'HttpMethod.GET'),
+            method=data.get('method', 'GET'),
             
             headers=data.get('headers'),
             
             params=data.get('params'),
             
             body=data.get('body'),
-            
-            timeout=data.get('timeout'),
             
             auth_type=data.get('auth_type'),
             
@@ -100,16 +98,12 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            
-            language=data.get('language', 'SupportedLanguage.PYTHON'),
-            
-            file_path=data.get('filePath', data.get('file_path', '')),
+            file_path=data.get('file_path', ''),
+            language=data.get('language', 'python'),
             
             code=data.get('code'),
             
             function_name=data.get('functionName', data.get('function_name', '')),
-            
-            timeout=data.get('timeout'),
             
         )
     
@@ -125,8 +119,6 @@ def create_executable_node(
             
             expression=data.get('expression', data.get('condition', '')),
             
-            node_indices=data.get('node_indices'),
-            
             person=data.get('person'),
             
             judge_by=data.get('judge_by'),
@@ -138,8 +130,6 @@ def create_executable_node(
             at_most=data.get('at_most'),
             
             expose_index_as=data.get('expose_index_as'),
-            
-            skippable=data.get('skippable', False),
             
         )
     
@@ -155,9 +145,9 @@ def create_executable_node(
             
             collection=data.get('collection'),
             
-            sub_type=data.get('sub_type', 'DBBlockSubType.FIXED_PROMPT'),
+            sub_type=data.get('sub_type', 'fixed_prompt'),
             
-            operation=data.get('operation', 'DBOperation.READ'),
+            operation=data.get('operation', 'read'),
             
             query=data.get('query'),
             
@@ -167,9 +157,7 @@ def create_executable_node(
             
             data=data.get('data'),
             
-            serialize_json=data.get('serialize_json', False),
-            
-            format=data.get('format', 'DataFormat.JSON'),
+            format=data.get('format', 'json'),
             
         )
     
@@ -185,13 +173,9 @@ def create_executable_node(
             
             diff=data.get('diff'),
             
-            format=data.get('format', 'DiffFormat.UNIFIED'),
+            format=data.get('format', 'unified'),
             
-            apply_mode=data.get('apply_mode', 'PatchMode.NORMAL'),
-            
-            backup=data.get('backup', True),
-            
-            validate_patch=data.get('validate_patch', True),
+            apply_mode=data.get('apply_mode', 'normal'),
             
             backup_dir=data.get('backup_dir'),
             
@@ -200,10 +184,6 @@ def create_executable_node(
             fuzz_factor=data.get('fuzz_factor', 2),
             
             reject_file=data.get('reject_file'),
-            
-            ignore_whitespace=data.get('ignore_whitespace', False),
-            
-            create_missing=data.get('create_missing', False),
             
         )
     
@@ -214,8 +194,6 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            
-            save_to_file=data.get('save_to_file', False),
             
             file_name=data.get('file_name'),
             
@@ -229,11 +207,9 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             
-            hook_type=data.get('hook_type', 'HookType.SHELL'),
+            hook_type=data.get('hook_type', 'shell'),
             
             command=data.get('command'),
-            
-            url=data.get('url'),
             
             timeout=data.get('timeout', 60),
             
@@ -255,7 +231,7 @@ def create_executable_node(
             
             resource_id=data.get('resource_id'),
             
-            config=data.get('config', {}),
+            config=data.get('config'),
             
             timeout=data.get('timeout', 30),
             
@@ -279,10 +255,6 @@ def create_executable_node(
             
             output_format=data.get('output_format'),
             
-            cache_enabled=data.get('cache_enabled'),
-            
-            validate_output=data.get('validate_output'),
-            
         )
     
     elif node_type == NodeType.JSON_SCHEMA_VALIDATOR:
@@ -293,15 +265,9 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             
-            schema_path=data.get('schema_path'),
-            
             json_schema=data.get('json_schema'),
             
             data_path=data.get('data_path'),
-            
-            strict_mode=data.get('strict_mode', False),
-            
-            error_on_extra=data.get('error_on_extra', False),
             
         )
     
@@ -315,7 +281,7 @@ def create_executable_node(
             
             person=data.get('person'),
             
-            first_only_prompt=data.get('first_only_prompt', ''),
+            first_only_prompt=data.get('first_only_prompt'),
             
             first_prompt_file=data.get('first_prompt_file'),
             
@@ -359,7 +325,7 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             
-            trigger_mode=data.get('trigger_mode', 'HookTriggerMode.NONE'),
+            trigger_mode=data.get('trigger_mode', 'none'),
             
             custom_data=data.get('custom_data', {}),
             
@@ -388,13 +354,7 @@ def create_executable_node(
             output_mapping=data.get('output_mapping'),
             
             timeout=data.get('timeout'),
-            
-            wait_for_completion=data.get('wait_for_completion', True),
-            
-            isolate_conversation=data.get('isolate_conversation', False),
-            
             ignore_if_sub=data.get('ignore_if_sub', False),
-            
             diagram_format=data.get('diagram_format'),
             
             batch=data.get('batch', False),
@@ -412,19 +372,19 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            
+
             template_path=data.get('template_path'),
-            
+
             template_content=data.get('template_content'),
-            
+
             output_path=data.get('output_path'),
-            
+
             variables=data.get('variables'),
-            
-            engine=data.get('engine', 'TemplateEngine.JINJA2'),
-            
+
+            engine=data.get('engine', 'jinja2'),
+
             preprocessor=data.get('preprocessor'),
-            
+
         )
     
     elif node_type == NodeType.TYPESCRIPT_AST:
@@ -434,25 +394,21 @@ def create_executable_node(
             label=label,
             flipped=flipped,
             metadata=metadata,
-            
+
             source=data.get('source'),
-            
-            extract_patterns=data.get('extract_patterns', ['TypeScriptExtractPattern.INTERFACE', 'TypeScriptExtractPattern.TYPE', 'TypeScriptExtractPattern.ENUM']),
-            
+
+            extract_patterns=data.get('extract_patterns', ['interface', 'type', 'enum']),
+
+            parse_mode=data.get('parse_mode', 'module'),
+
             include_jsdoc=data.get('include_jsdoc', False),
-            
-            parse_mode=data.get('parse_mode', 'TypeScriptParseMode.MODULE'),
-            
-            transform_enums=data.get('transform_enums', False),
-            
-            flatten_output=data.get('flatten_output', False),
-            
-            output_format=data.get('output_format', 'TypeScriptOutputFormat.STANDARD'),
-            
+
+            output_format=data.get('output_format', 'standard'),
+
             batch=data.get('batch', False),
-            
+
             batch_input_key=data.get('batch_input_key', 'sources'),
-            
+
         )
     
     elif node_type == NodeType.USER_RESPONSE:
@@ -464,8 +420,6 @@ def create_executable_node(
             metadata=metadata,
             
             prompt=data.get('prompt', ''),
-            
-            timeout=data.get('timeout', 60),
             
         )
     

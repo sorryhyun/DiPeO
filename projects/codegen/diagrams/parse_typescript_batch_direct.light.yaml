@@ -8,8 +8,6 @@ nodes:
   - label: Start
     type: start
     position: {x: 50, y: 200}
-    props:
-      trigger_mode: none
 
   # Gather all TypeScript model files
   - label: Gather TypeScript Files

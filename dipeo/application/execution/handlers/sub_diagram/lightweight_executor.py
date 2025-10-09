@@ -37,7 +37,9 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         self._parallel_manager: ParallelExecutionManager | None = None
         self._fail_fast = os.getenv("DIPEO_FAIL_FAST", "false").lower() == "true"
 
-    def set_services(self, prepare_use_case, diagram_service, service_registry=None, event_bus=None):
+    def set_services(
+        self, prepare_use_case, diagram_service, service_registry=None, event_bus=None
+    ):
         super().set_services(
             prepare_use_case=prepare_use_case,
             diagram_service=diagram_service,
@@ -270,6 +272,7 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
                 "is_lightweight": True,
                 "parent_node_id": str(request.node.id),
                 "parent_metadata": request.metadata,
+                "parent_execution_id": request.execution_id,
             },
             container=request.parent_container,
             interactive_handler=None,

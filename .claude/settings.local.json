@@ -41,7 +41,8 @@
       "SlashCommand(/dipeotodos)",
       "Read(//home/soryhyun/.claude/**)",
       "Bash(DIPEO_BASE_DIR=/home/soryhyun/DiPeO dipeo run projects/codegen/diagrams/parse_typescript_batch_direct --light --debug --timeout=20)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npx tsx:*)"
     ],
     "deny": [],
     "ask": []

@@ -52,6 +52,7 @@ class EventPipeline:
         event_bus: EventBus,
         state_tracker: Optional["StateTracker"] = None,
         state_manager: Optional["StateManager"] = None,
+        parent_execution_id: Optional[str] = None,
     ):
         """Initialize the event pipeline."""
         self.execution_id = execution_id
@@ -59,6 +60,7 @@ class EventPipeline:
         self.event_bus = event_bus
         self.state_tracker = state_tracker
         self.state_manager = state_manager
+        self.parent_execution_id = parent_execution_id
         self._event_count = 0
         self._start_time = time.time()
         self._sequence_counter = 0
@@ -190,6 +192,17 @@ class EventPipeline:
             variables=variables or {},
             initiated_by=initiated_by,
         )
+        # Set parent_execution_id in scope if this is a child execution
+        if self.parent_execution_id:
+            event = DomainEvent(
+                type=event.type,
+                scope=EventScope(
+                    execution_id=self.execution_id,
+                    parent_execution_id=self.parent_execution_id,
+                ),
+                payload=event.payload,
+                meta=event.meta,
+            )
         self._publish(event)
 
     async def _emit_execution_completed(
@@ -209,9 +222,22 @@ class EventPipeline:
             node_count=total_steps,
         )
 
+        meta = event.meta or {}
         if execution_path:
-            meta = event.meta or {}
             meta["execution_path"] = execution_path
+
+        # Set parent_execution_id in scope if this is a child execution
+        if self.parent_execution_id:
+            event = DomainEvent(
+                type=event.type,
+                scope=EventScope(
+                    execution_id=self.execution_id,
+                    parent_execution_id=self.parent_execution_id,
+                ),
+                payload=event.payload,
+                meta=meta,
+            )
+        elif execution_path:
             event = DomainEvent(
                 type=event.type,
                 scope=event.scope,

@@ -52,6 +52,10 @@ def normalize_fields(fields: list[dict[str, Any]]) -> list[dict[str, Any]]:
             # Skip non-dict, non-string fields
             continue
 
+        # Skip fields without a 'name' key (malformed)
+        if "name" not in field:
+            continue
+
         normalized_field = dict(field)
 
         if "defaultValue" in normalized_field:

@@ -61,7 +61,7 @@ nodes:
       code: |
         # Extract node configs for batch processing
         # Just pass the node_spec_path for the sub_diagram to load AST
-        node_configs = inputs['default'].get('node_configs', [])
+        node_configs = inputs.get('node_configs', [])
         batch_items = []
         for config in node_configs:
             node_type = config.get('node_type', '')
@@ -72,7 +72,7 @@ nodes:
             batch_items.append({
                 'node_spec_path': file_name
             })
-        return {'items': batch_items}
+        result = {'items': batch_items}
 
   # Generate frontend components using batch sub_diagram
   - label: Batch Generate Frontend

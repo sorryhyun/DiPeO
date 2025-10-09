@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for json_schema_validator.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-09T13:41:19.054695
+Generated at: 2025-10-09T15:58:07.384015
 """
 
 from typing import *
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 from dipeo.domain.diagram.models.executable_diagram import BaseExecutableNode
 from dipeo.diagram_generated.domain_models import NodeID, Vec2
 from dipeo.diagram_generated.enums import NodeType
+
 
 from dipeo.diagram_generated.enums import *
 from dipeo.diagram_generated.integrations import *
@@ -36,15 +37,9 @@ class JsonSchemaValidatorNode(BaseModel):
 
     # Optional node-specific fields
     
-    schema_path: Optional[str] = Field(default=None, description="Path to JSON schema file")
-    
     json_schema: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Inline JSON schema")
     
     data_path: Optional[str] = Field(default=None, description="Data Path configuration")
-    
-    strict_mode: bool = Field(default=False, description="Strict Mode configuration")
-    
-    error_on_extra: bool = Field(default=False, description="Error On Extra configuration")
 
     class Config:
         # Make the instance immutable after creation
@@ -69,11 +64,8 @@ class JsonSchemaValidatorNode(BaseModel):
             data["metadata"] = self.metadata
 
         # Add node-specific fields using original names
-        data["schema_path"] = self.schema_path
         data["json_schema"] = self.json_schema
         data["data_path"] = self.data_path
-        data["strict_mode"] = self.strict_mode
-        data["error_on_extra"] = self.error_on_extra
 
         return data
 

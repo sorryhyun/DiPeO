@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for start.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-09T13:41:19.653772
+Generated at: 2025-10-09T15:58:07.802141
 """
 
 from typing import *
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 from dipeo.domain.diagram.models.executable_diagram import BaseExecutableNode
 from dipeo.diagram_generated.domain_models import NodeID, Vec2
 from dipeo.diagram_generated.enums import NodeType
+
 
 from dipeo.diagram_generated.enums import *
 from dipeo.diagram_generated.integrations import *
@@ -36,7 +37,7 @@ class StartNode(BaseModel):
 
     # Optional node-specific fields
     
-    trigger_mode: HookTriggerMode = Field(default="HookTriggerMode.NONE", description="How this start node is triggered")
+    trigger_mode: HookTriggerMode = Field(default="none", description="How this start node is triggered")
     
     custom_data: Any = Field(default={}, description="Custom data to pass when manually triggered")
     

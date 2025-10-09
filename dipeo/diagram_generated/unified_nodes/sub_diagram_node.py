@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for sub_diagram.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-09T13:41:19.654693
+Generated at: 2025-10-09T15:58:07.803048
 """
 
 from typing import *
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 from dipeo.domain.diagram.models.executable_diagram import BaseExecutableNode
 from dipeo.diagram_generated.domain_models import NodeID, Vec2
 from dipeo.diagram_generated.enums import NodeType
+
 
 from dipeo.diagram_generated.enums import *
 from dipeo.diagram_generated.integrations import *
@@ -45,13 +46,8 @@ class SubDiagramNode(BaseModel):
     output_mapping: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Map sub-diagram outputs to node outputs")
     
     timeout: Optional[int] = Field(default=None, description="Execution timeout in seconds")
-    
-    wait_for_completion: bool = Field(default=True, description="Whether to wait for sub-diagram completion")
-    
-    isolate_conversation: bool = Field(default=False, description="Create isolated conversation context for sub-diagram")
-    
-    ignore_if_sub: bool = Field(default=False, description="Skip execution if this diagram is being run as a sub-diagram")
-    
+    ignore_if_sub: bool = Field(default=False, alias="ignoreIfSub", description="Skip execution if this diagram is being run as a sub-diagram")
+
     diagram_format: Optional[DiagramFormat] = Field(default=None, description="Format of the diagram file (yaml, json, or light)")
     
     batch: bool = Field(default=False, description="Execute sub-diagram in batch mode for multiple inputs")
@@ -88,13 +84,11 @@ class SubDiagramNode(BaseModel):
         data["input_mapping"] = self.input_mapping
         data["output_mapping"] = self.output_mapping
         data["timeout"] = self.timeout
-        data["wait_for_completion"] = self.wait_for_completion
-        data["isolate_conversation"] = self.isolate_conversation
-        data["ignore_if_sub"] = self.ignore_if_sub
         data["diagram_format"] = self.diagram_format
         data["batch"] = self.batch
         data["batch_input_key"] = self.batch_input_key
         data["batch_parallel"] = self.batch_parallel
+        data["ignoreIfSub"] = getattr(self, "ignore_if_sub")
 
         return data
 

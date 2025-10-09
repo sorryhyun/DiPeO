@@ -141,6 +141,8 @@ from .enums import (
     QueryEntity,
     FieldPreset,
     FieldGroup,
+    GraphQLScalar,
+    DiPeOBrandedScalar,
 )
 
 __all__ = [
@@ -185,6 +187,8 @@ __all__ = [
     "QueryEntity",
     "FieldPreset",
     "FieldGroup",
+    "GraphQLScalar",
+    "DiPeOBrandedScalar",
     "CliSessionID",
     "NodeID",
     "ArrowID",

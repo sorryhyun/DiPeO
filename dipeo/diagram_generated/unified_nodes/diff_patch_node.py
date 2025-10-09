@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for diff_patch.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-09T13:41:18.787651
+Generated at: 2025-10-09T15:58:07.085620
 """
 
 from typing import *
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 from dipeo.domain.diagram.models.executable_diagram import BaseExecutableNode
 from dipeo.diagram_generated.domain_models import NodeID, Vec2
 from dipeo.diagram_generated.enums import NodeType
+
 
 from dipeo.diagram_generated.enums import *
 from dipeo.diagram_generated.integrations import *
@@ -38,13 +39,9 @@ class DiffPatchNode(BaseModel):
 
     # Optional node-specific fields
     
-    format: Literal["unified", "git", "context", "ed", "normal"] = Field(default="DiffFormat.UNIFIED", description="Diff format type")
+    format: Literal["unified", "git", "context", "ed", "normal"] = Field(default="unified", description="Diff format type")
     
-    apply_mode: Literal["normal", "force", "dry_run", "reverse"] = Field(default="PatchMode.NORMAL", description="How to apply the patch")
-    
-    backup: bool = Field(default=True, description="Create backup before patching")
-    
-    validate_patch: bool = Field(default=True, description="Validate patch before applying")
+    apply_mode: Literal["normal", "force", "dry_run", "reverse"] = Field(default="normal", description="How to apply the patch")
     
     backup_dir: Optional[str] = Field(default=None, description="Directory for backup files")
     
@@ -53,10 +50,6 @@ class DiffPatchNode(BaseModel):
     fuzz_factor: float = Field(default=2, description="Number of lines that can be ignored when matching context")
     
     reject_file: Optional[str] = Field(default=None, description="Path to save rejected hunks")
-    
-    ignore_whitespace: bool = Field(default=False, description="Ignore whitespace changes when matching")
-    
-    create_missing: bool = Field(default=False, description="Create target file if it doesn't exist")
 
     class Config:
         # Make the instance immutable after creation
@@ -85,14 +78,10 @@ class DiffPatchNode(BaseModel):
         data["diff"] = self.diff
         data["format"] = self.format
         data["apply_mode"] = self.apply_mode
-        data["backup"] = self.backup
-        data["validate_patch"] = self.validate_patch
         data["backup_dir"] = self.backup_dir
         data["strip_level"] = self.strip_level
         data["fuzz_factor"] = self.fuzz_factor
         data["reject_file"] = self.reject_file
-        data["ignore_whitespace"] = self.ignore_whitespace
-        data["create_missing"] = self.create_missing
 
         return data
 

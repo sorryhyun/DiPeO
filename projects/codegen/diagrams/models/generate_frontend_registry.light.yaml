@@ -7,8 +7,6 @@ nodes:
   - label: Start
     type: start
     position: {x: 50, y: 200}
-    props:
-      trigger_mode: none
 
   # NEW: Discover node spec files dynamically using glob patterns
   - label: Discover Node Specs

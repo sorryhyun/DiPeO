@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for hook.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-09T13:41:18.789001
+Generated at: 2025-10-09T15:58:07.086924
 """
 
 from typing import *
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 from dipeo.domain.diagram.models.executable_diagram import BaseExecutableNode
 from dipeo.diagram_generated.domain_models import NodeID, Vec2
 from dipeo.diagram_generated.enums import NodeType
+
 
 from dipeo.diagram_generated.enums import *
 from dipeo.diagram_generated.integrations import *
@@ -38,8 +39,6 @@ class HookNode(BaseModel):
     # Optional node-specific fields
     
     command: Optional[str] = Field(default=None, description="Shell command to run (for shell hooks)")
-    
-    url: Optional[str] = Field(default=None, description="Webhook URL (for HTTP hooks)")
     
     timeout: int = Field(default=60, description="Execution timeout in seconds")
     
@@ -70,7 +69,6 @@ class HookNode(BaseModel):
         # Add node-specific fields using original names
         data["hook_type"] = self.hook_type
         data["command"] = self.command
-        data["url"] = self.url
         data["timeout"] = self.timeout
         data["retry_count"] = self.retry_count
 

@@ -13,6 +13,10 @@ from dipeo.diagram_generated.enums import NodeType
 {% if nodeType == 'person_job' %}
 from dipeo.diagram_generated.domain_models import DomainPerson, PersonLLMConfig, ToolConfig
 {% endif %}
+{%- set needs_person_id = fields | selectattr('type', 'equalto', 'PersonID') | list | length > 0 %}
+{% if needs_person_id %}
+from dipeo.diagram_generated.domain_models import PersonID
+{% endif %}
 from dipeo.diagram_generated.enums import *
 from dipeo.diagram_generated.integrations import *
 

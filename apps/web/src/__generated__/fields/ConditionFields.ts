@@ -9,10 +9,10 @@ export const conditionFields: UnifiedFieldDefinition[] = [
     required: false,
     description: '"Type of condition to evaluate"',
     options: [
-      { value: '"ConditionType.DETECT_MAX_ITERATIONS"', label: '"Detect Max Iterations"' },
-      { value: '"ConditionType.CHECK_NODES_EXECUTED"', label: '"Check Nodes Executed"' },
-      { value: '"ConditionType.CUSTOM"', label: '"Custom Expression"' },
-      { value: '"ConditionType.LLM_DECISION"', label: '"LLM Decision"' },
+      { value: '"detect_max_iterations"', label: '"Detect Max Iterations"' },
+      { value: '"check_nodes_executed"', label: '"Check Nodes Executed"' },
+      { value: '"custom"', label: '"Custom Expression"' },
+      { value: '"llm_decision"', label: '"LLM Decision"' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };
@@ -26,17 +26,7 @@ export const conditionFields: UnifiedFieldDefinition[] = [
     placeholder: '"e.g., inputs.value > 10"',
     description: '"Boolean expression to evaluate"',
     rows: 3,
-  },
-  {
-    name: 'node_indices',
-    type: 'textarea',
-    label: '"Node indices"',
-    required: false,
-    placeholder: '"Select nodes to monitor"',
-    description: '"Node indices for detect_max_iteration condition"',
-    validate: (value: unknown) => {
-      return { isValid: true };
-    },
+    adjustable: true,
   },
   {
     name: 'person',
@@ -54,6 +44,7 @@ export const conditionFields: UnifiedFieldDefinition[] = [
     placeholder: '"Enter the prompt for LLM to judge (should result in YES/NO)"',
     description: '"Prompt for LLM to make a judgment"',
     rows: 5,
+    adjustable: true,
   },
   {
     name: 'judge_by_file',
@@ -86,12 +77,5 @@ export const conditionFields: UnifiedFieldDefinition[] = [
     required: false,
     placeholder: '"e.g., current_index, loop_counter"',
     description: '"Variable name to expose the condition node\'s execution count (0-based index) to downstream nodes"',
-  },
-  {
-    name: 'skippable',
-    type: 'checkbox',
-    label: '"Skippable"',
-    required: false,
-    description: '"When true, downstream nodes can execute even if this condition hasn\'t been evaluated yet"',
   },
 ];

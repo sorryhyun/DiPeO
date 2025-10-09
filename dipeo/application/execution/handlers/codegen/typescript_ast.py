@@ -147,7 +147,6 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                     sources=sources,
                     extract_patterns=node.extract_patterns or ["interface", "type", "enum"],
                     options={
-                        "includeJSDoc": node.include_jsdoc or False,
                         "parseMode": node.parse_mode or "module",
                     },
                 )
@@ -176,7 +175,6 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                     source=source,
                     extract_patterns=node.extract_patterns or ["interface", "type", "enum"],
                     options={
-                        "includeJSDoc": node.include_jsdoc or False,
                         "parseMode": node.parse_mode or "module",
                     },
                 )

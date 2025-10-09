@@ -10,6 +10,53 @@ export const dbFields: UnifiedFieldDefinition[] = [
     description: '"File path or array of file paths"',
   },
   {
+    name: 'collection',
+    type: 'text',
+    label: '"Collection"',
+    required: false,
+    description: '"Database collection name"',
+  },
+  {
+    name: 'sub_type',
+    type: 'text',
+    label: '"Sub type"',
+    required: true,
+    description: '"Database operation type"',
+    options: [
+      { value: '"fixed_prompt"', label: '"Fixed Prompt"' },
+      { value: '"file"', label: '"File"' },
+      { value: '"code"', label: '"Code"' },
+      { value: '"api_tool"', label: '"API Tool"' },
+    ],
+    validate: (value: unknown) => {
+      return { isValid: true };
+    },
+  },
+  {
+    name: 'operation',
+    type: 'text',
+    label: '"Operation"',
+    required: true,
+    description: '"Operation configuration"',
+    options: [
+      { value: '"prompt"', label: '"Prompt"' },
+      { value: '"read"', label: '"Read"' },
+      { value: '"write"', label: '"Write"' },
+      { value: '"append"', label: '"Append"' },
+      { value: '"update"', label: '"Update"' },
+    ],
+    validate: (value: unknown) => {
+      return { isValid: true };
+    },
+  },
+  {
+    name: 'query',
+    type: 'text',
+    label: '"Query"',
+    required: false,
+    description: '"Query configuration"',
+  },
+  {
     name: 'keys',
     type: 'password',
     label: '"Keys"',
@@ -24,5 +71,29 @@ export const dbFields: UnifiedFieldDefinition[] = [
     required: false,
     placeholder: '"e.g., 1:120 or 5,10:20"',
     description: '"Line selection or ranges to read (e.g., 1:120 or [\'10:20\'])"',
+  },
+  {
+    name: 'data',
+    type: 'textarea',
+    label: '"Data"',
+    required: false,
+    description: '"Data configuration"',
+  },
+  {
+    name: 'format',
+    type: 'text',
+    label: '"Format"',
+    required: false,
+    description: '"Data format (json, yaml, csv, text, etc.)"',
+    options: [
+      { value: '"json"', label: '"JSON"' },
+      { value: '"yaml"', label: '"YAML"' },
+      { value: '"csv"', label: '"CSV"' },
+      { value: '"text"', label: '"Text"' },
+      { value: '"xml"', label: '"XML"' },
+    ],
+    validate: (value: unknown) => {
+      return { isValid: true };
+    },
   },
 ];

@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for person_job.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-09T13:41:19.652708
+Generated at: 2025-10-09T15:58:07.801207
 """
 
 from typing import *
@@ -12,6 +12,9 @@ from dipeo.diagram_generated.domain_models import NodeID, Vec2
 from dipeo.diagram_generated.enums import NodeType
 
 from dipeo.diagram_generated.domain_models import DomainPerson, PersonLLMConfig, ToolConfig
+
+
+from dipeo.diagram_generated.domain_models import PersonID
 
 from dipeo.diagram_generated.enums import *
 from dipeo.diagram_generated.integrations import *
@@ -39,13 +42,13 @@ class PersonJobNode(BaseModel):
 
     # Optional node-specific fields
     
-    person: Optional[str] = Field(default=None, description="AI person to use")
+    person: Optional[PersonID] = Field(default=None, description="AI person to use for this task")
     
-    first_only_prompt: str = Field(default="", description="Prompt used only on first execution")
+    first_only_prompt: Optional[str] = Field(default=None, description="Prompt used only on first execution")
     
-    first_prompt_file: Optional[str] = Field(default=None, description="External prompt file for first iteration only")
+    first_prompt_file: Optional[str] = Field(default=None, description="Path to prompt file in /files/prompts/")
     
-    default_prompt: Optional[str] = Field(default=None, description="Default prompt template")
+    default_prompt: Optional[str] = Field(default=None, description="Prompt template")
     
     prompt_file: Optional[str] = Field(default=None, description="Path to prompt file in /files/prompts/")
     

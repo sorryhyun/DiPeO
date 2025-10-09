@@ -18,6 +18,7 @@ export const diffPatchFields: UnifiedFieldDefinition[] = [
     placeholder: '"--- a/file.txt\n+++ b/file.txt\n@@ -1,3 +1,3 @@\n line1\n-old line\n+new line\n line3"',
     description: '"Unified diff content to apply"',
     rows: 15,
+    adjustable: true,
   },
   {
     name: 'format',
@@ -26,11 +27,11 @@ export const diffPatchFields: UnifiedFieldDefinition[] = [
     required: false,
     description: '"Diff format type"',
     options: [
-      { value: '"DiffFormat.UNIFIED"', label: '"Unified"' },
-      { value: '"DiffFormat.GIT"', label: '"Git"' },
-      { value: '"DiffFormat.CONTEXT"', label: '"Context"' },
-      { value: '"DiffFormat.ED"', label: '"Ed Script"' },
-      { value: '"DiffFormat.NORMAL"', label: '"Normal"' },
+      { value: '"unified"', label: '"Unified"' },
+      { value: '"git"', label: '"Git"' },
+      { value: '"context"', label: '"Context"' },
+      { value: '"ed"', label: '"Ed Script"' },
+      { value: '"normal"', label: '"Normal"' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };
@@ -43,28 +44,14 @@ export const diffPatchFields: UnifiedFieldDefinition[] = [
     required: false,
     description: '"How to apply the patch"',
     options: [
-      { value: '"PatchMode.NORMAL"', label: '"Normal"' },
-      { value: '"PatchMode.FORCE"', label: '"Force"' },
-      { value: '"PatchMode.DRY_RUN"', label: '"Dry Run"' },
-      { value: '"PatchMode.REVERSE"', label: '"Reverse"' },
+      { value: '"normal"', label: '"Normal"' },
+      { value: '"force"', label: '"Force"' },
+      { value: '"dry_run"', label: '"Dry Run"' },
+      { value: '"reverse"', label: '"Reverse"' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };
     },
-  },
-  {
-    name: 'backup',
-    type: 'checkbox',
-    label: '"Backup"',
-    required: false,
-    description: '"Create backup before patching"',
-  },
-  {
-    name: 'validate_patch',
-    type: 'text',
-    label: '"Validate patch"',
-    required: false,
-    description: '"Validate patch before applying"',
   },
   {
     name: 'backup_dir',
@@ -117,19 +104,5 @@ export const diffPatchFields: UnifiedFieldDefinition[] = [
     required: false,
     placeholder: '"/tmp/patch.reject"',
     description: '"Path to save rejected hunks"',
-  },
-  {
-    name: 'ignore_whitespace',
-    type: 'checkbox',
-    label: '"Ignore whitespace"',
-    required: false,
-    description: '"Ignore whitespace changes when matching"',
-  },
-  {
-    name: 'create_missing',
-    type: 'checkbox',
-    label: '"Create missing"',
-    required: false,
-    description: '"Create target file if it doesn\'t exist"',
   },
 ];

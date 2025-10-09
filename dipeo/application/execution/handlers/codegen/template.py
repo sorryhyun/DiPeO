@@ -195,9 +195,23 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         if node.template_content:
             template_content = node.template_content
         else:
-            processed_template_path = (
-                await template_service.render_string(node.template_path, template_vars)
-            ).strip()
+            # Check if template_path is actually a string
+            if not isinstance(node.template_path, str):
+                logger.error(
+                    f"[TEMPLATE ERROR] template_path is not a string: {type(node.template_path)} - {node.template_path}"
+                )
+                raise TypeError(f"template_path must be a string, got {type(node.template_path)}")
+
+            try:
+                processed_template_path = (
+                    await template_service.render_string(node.template_path, template_vars)
+                ).strip()
+            except Exception as e:
+                logger.error(f"[TEMPLATE ERROR] Failed to process template_path for node {node.id}")
+                logger.error(f"[TEMPLATE ERROR] template_path: {node.template_path}")
+                logger.error(f"[TEMPLATE ERROR] template_path type: {type(node.template_path)}")
+                logger.error(f"[TEMPLATE ERROR] Error: {e}")
+                raise
 
             template_path = Path(processed_template_path)
 

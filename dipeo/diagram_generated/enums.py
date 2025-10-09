@@ -1,7 +1,7 @@
 """
 Generated enum definitions for DiPeO.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-09T14:13:40.860143
+Generated at: 2025-10-09T15:58:08.061981
 """
 
 from enum import Enum
@@ -620,6 +620,50 @@ class FieldGroup(str, Enum):
     
 
 
+class GraphQLScalar(str, Enum):
+    """"""
+    
+    ID = "ID"
+    
+    STRING = "String"
+    
+    INT = "Int"
+    
+    FLOAT = "Float"
+    
+    BOOLEAN = "Boolean"
+    
+    JSON = "JSON"
+    
+    DATE_TIME = "DateTime"
+    
+    UPLOAD = "Upload"
+    
+
+
+class DiPeOBrandedScalar(str, Enum):
+    """"""
+    
+    DIAGRAM_ID = "DiagramID"
+    
+    NODE_ID = "NodeID"
+    
+    ARROW_ID = "ArrowID"
+    
+    HANDLE_ID = "HandleID"
+    
+    PERSON_ID = "PersonID"
+    
+    API_KEY_ID = "ApiKeyID"
+    
+    EXECUTION_ID = "ExecutionID"
+    
+    TASK_ID = "TaskID"
+    
+    HOOK_ID = "HookID"
+    
+
+
 
 # Export all enums
 __all__ = [
@@ -705,5 +749,9 @@ __all__ = [
     "FieldPreset",
     
     "FieldGroup",
+    
+    "GraphQLScalar",
+    
+    "DiPeOBrandedScalar",
     
 ]

@@ -52,6 +52,11 @@ class MetricsObserver(EventBus):
         self._max_completed_metrics = 10
         # Track active metrics key for each node_id in each execution
         self._active_node_keys: dict[str, dict[str, str]] = {}
+        # Track parent-child execution relationships
+        self._parent_child_map: dict[str, str] = {}  # child_id -> parent_id
+        self._child_metrics: dict[
+            str, list[DataclassExecutionMetrics]
+        ] = {}  # parent_id -> list of child metrics
 
         self._analyzer = MetricsAnalyzer(event_bus=event_bus, analysis_threshold_ms=1000)
 
@@ -156,10 +161,16 @@ class MetricsObserver(EventBus):
     async def _handle_execution_started(self, event: DomainEvent) -> None:
         """Handle execution start event."""
         execution_id = event.scope.execution_id
+        parent_execution_id = event.scope.parent_execution_id
+
         self._metrics_buffer[execution_id] = DataclassExecutionMetrics(
             execution_id=execution_id,
             start_time=event.occurred_at.timestamp(),
         )
+
+        # Track parent-child relationship
+        if parent_execution_id:
+            self._parent_child_map[execution_id] = parent_execution_id
 
     async def _handle_node_started(self, event: DomainEvent) -> None:
         """Handle node start event."""
@@ -257,6 +268,29 @@ class MetricsObserver(EventBus):
         payload = cast(NodeErrorPayload, event.payload)
         node_metrics.error = payload.error_message
 
+    def _aggregate_child_metrics(
+        self,
+        parent_metrics: DataclassExecutionMetrics,
+        child_metrics_list: list[DataclassExecutionMetrics],
+    ) -> None:
+        """Aggregate child execution metrics into parent metrics.
+
+        This method merges all child metrics into the parent, prefixing node IDs
+        with the child execution ID to avoid conflicts.
+        """
+        for child_metrics in child_metrics_list:
+            child_exec_id = child_metrics.execution_id
+            # Merge node metrics from child into parent, prefixing with child execution ID
+            for node_id, node_metric in child_metrics.node_metrics.items():
+                # Create a prefixed key to avoid conflicts: child_exec_id/node_id
+                prefixed_node_id = f"{child_exec_id}/{node_id}"
+                parent_metrics.node_metrics[prefixed_node_id] = node_metric
+
+        logger.debug(
+            f"Aggregated {sum(len(cm.node_metrics) for cm in child_metrics_list)} "
+            f"node metrics from {len(child_metrics_list)} child executions into parent"
+        )
+
     def _convert_to_pydantic_metrics(
         self, dataclass_metrics: DataclassExecutionMetrics
     ) -> PydanticExecutionMetrics:
@@ -317,12 +351,16 @@ class MetricsObserver(EventBus):
     async def _handle_execution_completed(self, event: DomainEvent) -> None:
         """Handle execution completion event."""
         execution_id = event.scope.execution_id
-        logger.info(f"[MetricsObserver] Handling EXECUTION_COMPLETED for {execution_id}")
+        parent_execution_id = self._parent_child_map.get(execution_id)
+
+        # Only log INFO for parent executions to reduce verbosity
+        if not parent_execution_id:
+            logger.info(f"[MetricsObserver] Handling EXECUTION_COMPLETED for {execution_id}")
+
         metrics = self._metrics_buffer.get(execution_id)
         if not metrics:
             logger.warning(f"[MetricsObserver] No metrics found in buffer for {execution_id}")
             return
-        logger.debug(f"[MetricsObserver] Found metrics in buffer for {execution_id}")
 
         metrics.end_time = event.occurred_at.timestamp()
         metrics.total_duration_ms = (metrics.end_time - metrics.start_time) * 1000
@@ -359,6 +397,34 @@ class MetricsObserver(EventBus):
                     duration_ms=sum(timings.values()) if timings else 0,
                     module_timings=timings,
                 )
+
+        # Handle hierarchical metrics for child executions
+        if parent_execution_id:
+            # This is a child execution - store metrics for parent aggregation
+            if parent_execution_id not in self._child_metrics:
+                self._child_metrics[parent_execution_id] = []
+            self._child_metrics[parent_execution_id].append(metrics)
+
+            # Clean up child tracking
+            del self._metrics_buffer[execution_id]
+            if execution_id in self._active_node_keys:
+                del self._active_node_keys[execution_id]
+            if execution_id in self._parent_child_map:
+                del self._parent_child_map[execution_id]
+            self._analyzer.clear_node_dependencies(execution_id)
+
+            # Skip persistence for child executions
+            return
+
+        # This is a parent execution - aggregate child metrics if any
+        if execution_id in self._child_metrics:
+            child_metrics_list = self._child_metrics[execution_id]
+            logger.debug(
+                f"Aggregating {len(child_metrics_list)} child metrics into parent {execution_id}"
+            )
+            self._aggregate_child_metrics(metrics, child_metrics_list)
+            # Clean up child metrics after aggregation
+            del self._child_metrics[execution_id]
 
         # Persist metrics to database if state_store is available
         if self.state_store:
@@ -434,6 +500,13 @@ class MetricsObserver(EventBus):
                     logger.warning(f"Cleaning up stale metrics for execution {exec_id}")
                     del self._metrics_buffer[exec_id]
                     self._analyzer.clear_node_dependencies(exec_id)
+                    # Clean up parent-child tracking
+                    if exec_id in self._active_node_keys:
+                        del self._active_node_keys[exec_id]
+                    if exec_id in self._parent_child_map:
+                        del self._parent_child_map[exec_id]
+                    if exec_id in self._child_metrics:
+                        del self._child_metrics[exec_id]
 
             except asyncio.CancelledError:
                 break
