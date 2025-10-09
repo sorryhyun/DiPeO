@@ -3,6 +3,14 @@ import type { UnifiedFieldDefinition } from '@/infrastructure/config/unifiedConf
 
 export const templateJobFields: UnifiedFieldDefinition[] = [
   {
+    name: 'template_path',
+    type: 'text',
+    label: '"Template path"',
+    required: false,
+    placeholder: '"/path/to/file"',
+    description: '"Path to template file"',
+  },
+  {
     name: 'template_content',
     type: 'textarea',
     label: '"Template content"',
@@ -11,6 +19,14 @@ export const templateJobFields: UnifiedFieldDefinition[] = [
     description: '"Inline template content"',
     rows: 10,
     adjustable: true,
+  },
+  {
+    name: 'output_path',
+    type: 'text',
+    label: '"Output path"',
+    required: false,
+    placeholder: '"/path/to/file"',
+    description: '"Output file path"',
   },
   {
     name: 'variables',

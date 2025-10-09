@@ -27,6 +27,20 @@ export const hookFields: UnifiedFieldDefinition[] = [
     description: '"Shell command to run (for shell hooks)"',
   },
   {
+    name: 'url',
+    type: 'url',
+    label: '"Url"',
+    required: false,
+    placeholder: '"https://api.example.com/webhook"',
+    description: '"Webhook URL (for HTTP hooks)"',
+    validate: (value: unknown) => {
+      if (typeof value === 'string' && !new RegExp('^https?://.+').test(value)) {
+        return { isValid: false, error: 'Invalid format' };
+      }
+      return { isValid: true };
+    },
+  },
+  {
     name: 'timeout',
     type: 'text',
     label: '"Timeout"',

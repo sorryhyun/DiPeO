@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for condition.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-09T15:58:07.084245
+Generated at: 2025-10-09T17:34:05.815162
 """
 
 from typing import *
@@ -43,6 +43,8 @@ class ConditionNode(BaseModel):
     
     expression: Optional[str] = Field(default=None, description="Boolean expression to evaluate")
     
+    node_indices: Optional[List[Any]] = Field(default_factory=list, description="Node indices for detect_max_iteration condition")
+    
     person: Optional[PersonID] = Field(default=None, description="AI agent to use for decision making")
     
     judge_by: Optional[str] = Field(default=None, description="Prompt for LLM to make a judgment")
@@ -54,6 +56,8 @@ class ConditionNode(BaseModel):
     at_most: Optional[float] = Field(default=None, description="Maximum messages to keep in memory")
     
     expose_index_as: Optional[str] = Field(default=None, description="Variable name to expose the condition node's execution count (0-based index) to downstream nodes")
+    
+    skippable: bool = Field(default=False, description="When true, downstream nodes can execute even if this condition hasn't been evaluated yet")
 
     class Config:
         # Make the instance immutable after creation
@@ -80,12 +84,14 @@ class ConditionNode(BaseModel):
         # Add node-specific fields using original names
         data["condition_type"] = self.condition_type
         data["expression"] = self.expression
+        data["node_indices"] = self.node_indices
         data["person"] = self.person
         data["judge_by"] = self.judge_by
         data["judge_by_file"] = self.judge_by_file
         data["memorize_to"] = self.memorize_to
         data["at_most"] = self.at_most
         data["expose_index_as"] = self.expose_index_as
+        data["skippable"] = self.skippable
 
         return data
 

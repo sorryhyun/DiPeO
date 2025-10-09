@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-10-09T15:58:04.745152
+Generated at: 2025-10-09T17:34:03.674273
 """
 
 import strawberry
@@ -58,6 +58,10 @@ class ApiJobDataType:
     
     
     
+    timeout: Optional[int] = None  # Request timeout in seconds
+    
+    
+    
     # Enum field: Authentication type (Values: none, bearer, basic, api_key)
     auth_type: Optional[str] = None
     
@@ -106,6 +110,12 @@ class ApiJobDataType:
         field_values["body"] = field_value
         
         
+        field_value = getattr(node, "timeout", None)
+        
+        # Direct assignment for other types
+        field_values["timeout"] = field_value
+        
+        
         field_value = getattr(node, "auth_type", None)
         
         # Direct assignment for other types
@@ -149,11 +159,19 @@ class CodeJobDataType:
     
     
     
+    file_path: Optional[str] = None  # Path to code file
+    
+    
+    
     code: Optional[str] = None  # Inline code to execute (alternative to file_path)
     
     
     
     function_name: Optional[str] = None  # Function to execute
+    
+    
+    
+    timeout: Optional[int] = None  # Operation timeout in seconds
     
     
 
@@ -172,6 +190,12 @@ class CodeJobDataType:
         field_values["language"] = field_value
         
         
+        field_value = getattr(node, "file_path", None)
+        
+        # Direct assignment for other types
+        field_values["file_path"] = field_value
+        
+        
         field_value = getattr(node, "code", None)
         
         # Direct assignment for other types
@@ -182,6 +206,12 @@ class CodeJobDataType:
         
         # Direct assignment for other types
         field_values["function_name"] = field_value
+        
+        
+        field_value = getattr(node, "timeout", None)
+        
+        # Direct assignment for other types
+        field_values["timeout"] = field_value
         
         
 
@@ -219,6 +249,10 @@ class ConditionDataType:
     
     
     
+    node_indices: Optional[List[JSONScalar]] = None  # Node indices for detect_max_iteration condition
+    
+    
+    
     person: Optional[str] = None  # AI agent to use for decision making
     
     
@@ -242,6 +276,10 @@ class ConditionDataType:
     expose_index_as: Optional[str] = None  # Variable name to expose the condition node's execution count (0-based index) to downstream nodes
     
     
+    
+    skippable: Optional[bool] = None  # When true, downstream nodes can execute even if this condition hasn't been evaluated yet
+    
+    
 
     @classmethod
     def from_pydantic(cls, node: ConditionNode) -> "ConditionDataType":
@@ -262,6 +300,12 @@ class ConditionDataType:
         
         # Direct assignment for other types
         field_values["expression"] = field_value
+        
+        
+        field_value = getattr(node, "node_indices", None)
+        
+        # Direct assignment for other types
+        field_values["node_indices"] = field_value
         
         
         field_value = getattr(node, "person", None)
@@ -298,6 +342,12 @@ class ConditionDataType:
         
         # Direct assignment for other types
         field_values["expose_index_as"] = field_value
+        
+        
+        field_value = getattr(node, "skippable", None)
+        
+        # Direct assignment for other types
+        field_values["skippable"] = field_value
         
         
 
@@ -357,6 +407,10 @@ class DbDataType:
     
     
     data: Optional[JSONScalar] = None  # Data configuration
+    
+    
+    
+    serialize_json: Optional[bool] = None  # Serialize structured data to JSON string (for backward compatibility)
     
     
     
@@ -422,6 +476,12 @@ class DbDataType:
         field_values["data"] = field_value
         
         
+        field_value = getattr(node, "serialize_json", None)
+        
+        # Direct assignment for other types
+        field_values["serialize_json"] = field_value
+        
+        
         field_value = getattr(node, "format", None)
         
         # Direct assignment for other types
@@ -472,6 +532,14 @@ class DiffPatchDataType:
     
     
     
+    backup: Optional[bool] = None  # Create backup before patching
+    
+    
+    
+    validate_patch: Optional[bool] = None  # Validate patch before applying
+    
+    
+    
     backup_dir: Optional[str] = None  # Directory for backup files
     
     
@@ -485,6 +553,14 @@ class DiffPatchDataType:
     
     
     reject_file: Optional[str] = None  # Path to save rejected hunks
+    
+    
+    
+    ignore_whitespace: Optional[bool] = None  # Ignore whitespace changes when matching
+    
+    
+    
+    create_missing: Optional[bool] = None  # Create target file if it doesn't exist
     
     
 
@@ -521,6 +597,18 @@ class DiffPatchDataType:
         field_values["apply_mode"] = field_value
         
         
+        field_value = getattr(node, "backup", None)
+        
+        # Direct assignment for other types
+        field_values["backup"] = field_value
+        
+        
+        field_value = getattr(node, "validate_patch", None)
+        
+        # Direct assignment for other types
+        field_values["validate_patch"] = field_value
+        
+        
         field_value = getattr(node, "backup_dir", None)
         
         # Direct assignment for other types
@@ -543,6 +631,18 @@ class DiffPatchDataType:
         
         # Direct assignment for other types
         field_values["reject_file"] = field_value
+        
+        
+        field_value = getattr(node, "ignore_whitespace", None)
+        
+        # Direct assignment for other types
+        field_values["ignore_whitespace"] = field_value
+        
+        
+        field_value = getattr(node, "create_missing", None)
+        
+        # Direct assignment for other types
+        field_values["create_missing"] = field_value
         
         
 
@@ -571,6 +671,10 @@ class EndpointDataType:
     # Node-specific fields from specification
     
     
+    save_to_file: Optional[bool] = None  # Save results to file
+    
+    
+    
     file_name: Optional[str] = None  # Output filename
     
     
@@ -583,6 +687,12 @@ class EndpointDataType:
 
         # Get node-specific fields with type conversion
         field_values = {}
+        
+        field_value = getattr(node, "save_to_file", None)
+        
+        # Direct assignment for other types
+        field_values["save_to_file"] = field_value
+        
         
         field_value = getattr(node, "file_name", None)
         
@@ -625,6 +735,10 @@ class HookDataType:
     
     
     
+    url: Optional[str] = None  # Webhook URL (for HTTP hooks)
+    
+    
+    
     timeout: Optional[int] = None  # Execution timeout in seconds
     
     
@@ -652,6 +766,12 @@ class HookDataType:
         
         # Direct assignment for other types
         field_values["command"] = field_value
+        
+        
+        field_value = getattr(node, "url", None)
+        
+        # Direct assignment for other types
+        field_values["url"] = field_value
         
         
         field_value = getattr(node, "timeout", None)
@@ -805,6 +925,14 @@ class IrBuilderDataType:
     output_format: Optional[str] = None
     
     
+    
+    cache_enabled: Optional[bool] = None  # Enable IR caching
+    
+    
+    
+    validate_output: Optional[bool] = None  # Validate IR structure before output
+    
+    
 
     @classmethod
     def from_pydantic(cls, node: IrBuilderNode) -> "IrBuilderDataType":
@@ -839,6 +967,18 @@ class IrBuilderDataType:
         field_values["output_format"] = field_value
         
         
+        field_value = getattr(node, "cache_enabled", None)
+        
+        # Direct assignment for other types
+        field_values["cache_enabled"] = field_value
+        
+        
+        field_value = getattr(node, "validate_output", None)
+        
+        # Direct assignment for other types
+        field_values["validate_output"] = field_value
+        
+        
 
         return cls(
             id=node.id,
@@ -865,11 +1005,23 @@ class JsonSchemaValidatorDataType:
     # Node-specific fields from specification
     
     
+    schema_path: Optional[str] = None  # Path to JSON schema file
+    
+    
+    
     json_schema: Optional[JSONScalar] = None  # Inline JSON schema
     
     
     
     data_path: Optional[str] = None  # Data Path configuration
+    
+    
+    
+    strict_mode: Optional[bool] = None  # Strict Mode configuration
+    
+    
+    
+    error_on_extra: Optional[bool] = None  # Error On Extra configuration
     
     
 
@@ -882,6 +1034,12 @@ class JsonSchemaValidatorDataType:
         # Get node-specific fields with type conversion
         field_values = {}
         
+        field_value = getattr(node, "schema_path", None)
+        
+        # Direct assignment for other types
+        field_values["schema_path"] = field_value
+        
+        
         field_value = getattr(node, "json_schema", None)
         
         # Convert dict/object fields to JSONScalar
@@ -892,6 +1050,18 @@ class JsonSchemaValidatorDataType:
         
         # Direct assignment for other types
         field_values["data_path"] = field_value
+        
+        
+        field_value = getattr(node, "strict_mode", None)
+        
+        # Direct assignment for other types
+        field_values["strict_mode"] = field_value
+        
+        
+        field_value = getattr(node, "error_on_extra", None)
+        
+        # Direct assignment for other types
+        field_values["error_on_extra"] = field_value
         
         
 
@@ -1241,12 +1411,32 @@ class SubDiagramDataType:
     
     
     
+    wait_for_completion: Optional[bool] = None  # Whether to wait for sub-diagram completion
+    
+    
+    
+    isolate_conversation: Optional[bool] = None  # Create isolated conversation context for sub-diagram
+    
+    
+    
+    ignore_if_sub: Optional[bool] = None  # Skip execution if this diagram is being run as a sub-diagram
+    
+    
+    
     # Enum field: Format of the diagram file (yaml, json, or light) (Values: yaml, json, light)
     diagram_format: Optional[str] = None
     
     
     
+    batch: Optional[bool] = None  # Execute sub-diagram in batch mode for multiple inputs
+    
+    
+    
     batch_input_key: Optional[str] = None  # Key in inputs containing the array of items for batch processing
+    
+    
+    
+    batch_parallel: Optional[bool] = None  # Execute batch items in parallel
     
     
 
@@ -1289,16 +1479,46 @@ class SubDiagramDataType:
         field_values["timeout"] = field_value
         
         
+        field_value = getattr(node, "wait_for_completion", None)
+        
+        # Direct assignment for other types
+        field_values["wait_for_completion"] = field_value
+        
+        
+        field_value = getattr(node, "isolate_conversation", None)
+        
+        # Direct assignment for other types
+        field_values["isolate_conversation"] = field_value
+        
+        
+        field_value = getattr(node, "ignore_if_sub", None)
+        
+        # Direct assignment for other types
+        field_values["ignore_if_sub"] = field_value
+        
+        
         field_value = getattr(node, "diagram_format", None)
         
         # Direct assignment for other types
         field_values["diagram_format"] = field_value
         
         
+        field_value = getattr(node, "batch", None)
+        
+        # Direct assignment for other types
+        field_values["batch"] = field_value
+        
+        
         field_value = getattr(node, "batch_input_key", None)
         
         # Direct assignment for other types
         field_values["batch_input_key"] = field_value
+        
+        
+        field_value = getattr(node, "batch_parallel", None)
+        
+        # Direct assignment for other types
+        field_values["batch_parallel"] = field_value
         
         
 
@@ -1327,7 +1547,15 @@ class TemplateJobDataType:
     # Node-specific fields from specification
     
     
+    template_path: Optional[str] = None  # Path to template file
+    
+    
+    
     template_content: Optional[str] = None  # Inline template content
+    
+    
+    
+    output_path: Optional[str] = None  # Output file path
     
     
     
@@ -1353,10 +1581,22 @@ class TemplateJobDataType:
         # Get node-specific fields with type conversion
         field_values = {}
         
+        field_value = getattr(node, "template_path", None)
+        
+        # Direct assignment for other types
+        field_values["template_path"] = field_value
+        
+        
         field_value = getattr(node, "template_content", None)
         
         # Direct assignment for other types
         field_values["template_content"] = field_value
+        
+        
+        field_value = getattr(node, "output_path", None)
+        
+        # Direct assignment for other types
+        field_values["output_path"] = field_value
         
         
         field_value = getattr(node, "variables", None)
@@ -1412,13 +1652,29 @@ class TypescriptAstDataType:
     
     
     
+    include_jsdoc: Optional[bool] = None  # Include JSDoc comments in the extracted data
+    
+    
+    
     # Enum field: TypeScript parsing mode (Values: module, script)
     parse_mode: Optional[str] = None
     
     
     
+    transform_enums: Optional[bool] = None  # Transform enum definitions to a simpler format
+    
+    
+    
+    flatten_output: Optional[bool] = None  # Flatten the output structure for easier consumption
+    
+    
+    
     # Enum field: Output format for the parsed data (Values: standard, for_codegen, for_analysis)
     output_format: Optional[str] = None
+    
+    
+    
+    batch: Optional[bool] = None  # Enable batch processing mode
     
     
     
@@ -1447,16 +1703,40 @@ class TypescriptAstDataType:
         field_values["extract_patterns"] = field_value
         
         
+        field_value = getattr(node, "include_jsdoc", None)
+        
+        # Direct assignment for other types
+        field_values["include_jsdoc"] = field_value
+        
+        
         field_value = getattr(node, "parse_mode", None)
         
         # Direct assignment for other types
         field_values["parse_mode"] = field_value
         
         
+        field_value = getattr(node, "transform_enums", None)
+        
+        # Direct assignment for other types
+        field_values["transform_enums"] = field_value
+        
+        
+        field_value = getattr(node, "flatten_output", None)
+        
+        # Direct assignment for other types
+        field_values["flatten_output"] = field_value
+        
+        
         field_value = getattr(node, "output_format", None)
         
         # Direct assignment for other types
         field_values["output_format"] = field_value
+        
+        
+        field_value = getattr(node, "batch", None)
+        
+        # Direct assignment for other types
+        field_values["batch"] = field_value
         
         
         field_value = getattr(node, "batch_input_key", None)
@@ -1494,6 +1774,10 @@ class UserResponseDataType:
     prompt: str  # Question to ask the user
     
     
+    
+    timeout: Optional[int] = None  # Response timeout in seconds
+    
+    
 
     @classmethod
     def from_pydantic(cls, node: UserResponseNode) -> "UserResponseDataType":
@@ -1508,6 +1792,12 @@ class UserResponseDataType:
         
         # Direct assignment for other types
         field_values["prompt"] = field_value
+        
+        
+        field_value = getattr(node, "timeout", None)
+        
+        # Direct assignment for other types
+        field_values["timeout"] = field_value
         
         
 

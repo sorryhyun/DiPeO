@@ -22,6 +22,13 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
     },
   },
   {
+    name: 'include_jsdoc',
+    type: 'checkbox',
+    label: '"Include jsdoc"',
+    required: false,
+    description: '"Include JSDoc comments in the extracted data"',
+  },
+  {
     name: 'parse_mode',
     type: 'text',
     label: '"Parse mode"',
@@ -34,6 +41,20 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
     validate: (value: unknown) => {
       return { isValid: true };
     },
+  },
+  {
+    name: 'transform_enums',
+    type: 'checkbox',
+    label: '"Transform enums"',
+    required: false,
+    description: '"Transform enum definitions to a simpler format"',
+  },
+  {
+    name: 'flatten_output',
+    type: 'checkbox',
+    label: '"Flatten output"',
+    required: false,
+    description: '"Flatten the output structure for easier consumption"',
   },
   {
     name: 'output_format',
@@ -49,6 +70,13 @@ export const typescriptAstFields: UnifiedFieldDefinition[] = [
     validate: (value: unknown) => {
       return { isValid: true };
     },
+  },
+  {
+    name: 'batch',
+    type: 'checkbox',
+    label: '"Batch"',
+    required: false,
+    description: '"Enable batch processing mode"',
   },
   {
     name: 'batch_input_key',

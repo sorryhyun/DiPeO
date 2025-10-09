@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for hook.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-09T15:58:07.086924
+Generated at: 2025-10-09T17:34:05.817725
 """
 
 from typing import *
@@ -40,6 +40,8 @@ class HookNode(BaseModel):
     
     command: Optional[str] = Field(default=None, description="Shell command to run (for shell hooks)")
     
+    url: Optional[str] = Field(default=None, description="Webhook URL (for HTTP hooks)")
+    
     timeout: int = Field(default=60, description="Execution timeout in seconds")
     
     retry_count: float = Field(default=0, description="Number of retries on failure")
@@ -69,6 +71,7 @@ class HookNode(BaseModel):
         # Add node-specific fields using original names
         data["hook_type"] = self.hook_type
         data["command"] = self.command
+        data["url"] = self.url
         data["timeout"] = self.timeout
         data["retry_count"] = self.retry_count
 

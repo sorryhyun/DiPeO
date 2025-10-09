@@ -34,7 +34,7 @@ export type Scalars = {
   /** Branded scalar type for ArrowID */
   ArrowID: { input: ArrowID; output: ArrowID; }
   /** Date with time (isoformat) */
-  DateTime: { input: any; output: any; }
+  DateTime: { input: string; output: string; }
   /** Branded scalar type for DiagramID */
   DiagramID: { input: DiagramID; output: DiagramID; }
   /** Branded scalar type for ExecutionID */
@@ -44,7 +44,7 @@ export type Scalars = {
   /** Branded scalar type for HookID */
   HookID: { input: any; output: any; }
   /** The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf). */
-  JSON: { input: any; output: any; }
+  JSON: { input: Record<string, unknown>; output: Record<string, unknown>; }
   /** Branded scalar type for NodeID */
   NodeID: { input: NodeID; output: NodeID; }
   /** Branded scalar type for PersonID */
@@ -831,7 +831,7 @@ export type GetApiKeysQueryVariables = Exact<{
 }>;
 
 
-export type GetApiKeysQuery = { __typename?: 'Query', getApiKeys: any };
+export type GetApiKeysQuery = { __typename?: 'Query', getApiKeys: Record<string, unknown> };
 
 export type GetApiKeyQueryVariables = Exact<{
   api_key_id: Scalars['String']['input'];
@@ -846,7 +846,7 @@ export type GetAvailableModelsQueryVariables = Exact<{
 }>;
 
 
-export type GetAvailableModelsQuery = { __typename?: 'Query', getAvailableModels: any };
+export type GetAvailableModelsQuery = { __typename?: 'Query', getAvailableModels: Record<string, unknown> };
 
 export type ListConversationsQueryVariables = Exact<{
   person_id?: InputMaybe<Scalars['String']['input']>;
@@ -859,14 +859,14 @@ export type ListConversationsQueryVariables = Exact<{
 }>;
 
 
-export type ListConversationsQuery = { __typename?: 'Query', listConversations: Array<any> };
+export type ListConversationsQuery = { __typename?: 'Query', listConversations: Array<Record<string, unknown>> };
 
 export type GetDiagramQueryVariables = Exact<{
   diagram_id: Scalars['String']['input'];
 }>;
 
 
-export type GetDiagramQuery = { __typename?: 'Query', getDiagram: { __typename?: 'DomainDiagramType', nodes: Array<{ __typename?: 'DomainNodeType', id: string, type: NodeType, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } }>, handles: Array<{ __typename?: 'DomainHandleType', id: string, node_id: string, label: HandleLabel, direction: HandleDirection, data_type: DataType, position?: string | null }>, arrows: Array<{ __typename?: 'DomainArrowType', id: string, source: string, target: string, content_type?: ContentType | null, label?: string | null, data?: any | null }>, persons: Array<{ __typename?: 'DomainPersonType', id: string, label: string, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id: string, system_prompt?: string | null } }>, metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, version: string, created: string, modified: string, author?: string | null, tags?: Array<string> | null } | null } };
+export type GetDiagramQuery = { __typename?: 'Query', getDiagram: { __typename?: 'DomainDiagramType', nodes: Array<{ __typename?: 'DomainNodeType', id: string, type: NodeType, data: Record<string, unknown>, position: { __typename?: 'Vec2Type', x: number, y: number } }>, handles: Array<{ __typename?: 'DomainHandleType', id: string, node_id: string, label: HandleLabel, direction: HandleDirection, data_type: DataType, position?: string | null }>, arrows: Array<{ __typename?: 'DomainArrowType', id: string, source: string, target: string, content_type?: ContentType | null, label?: string | null, data?: Record<string, unknown> | null }>, persons: Array<{ __typename?: 'DomainPersonType', id: string, label: string, type: string, llm_config: { __typename?: 'PersonLLMConfigType', service: LLMService, model: string, api_key_id: string, system_prompt?: string | null } }>, metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null, description?: string | null, version: string, created: string, modified: string, author?: string | null, tags?: Array<string> | null } | null } };
 
 export type ListDiagramsQueryVariables = Exact<{
   filter?: InputMaybe<DiagramFilterInput>;
@@ -882,7 +882,7 @@ export type GetExecutionQueryVariables = Exact<{
 }>;
 
 
-export type GetExecutionQuery = { __typename?: 'Query', getExecution?: { __typename?: 'ExecutionStateType', id: string, status: Status, diagram_id?: string | null, started_at?: string | null, ended_at?: string | null, error?: string | null, node_states: any, node_outputs: any, variables?: any | null, metrics?: any | null, llm_usage?: { __typename?: 'LLMUsageType', input: number, output: number, cached?: number | null, total?: number | null } | null } | null };
+export type GetExecutionQuery = { __typename?: 'Query', getExecution?: { __typename?: 'ExecutionStateType', id: string, status: Status, diagram_id?: string | null, started_at?: string | null, ended_at?: string | null, error?: string | null, node_states: Record<string, unknown>, node_outputs: Record<string, unknown>, variables?: Record<string, unknown> | null, metrics?: Record<string, unknown> | null, llm_usage?: { __typename?: 'LLMUsageType', input: number, output: number, cached?: number | null, total?: number | null } | null } | null };
 
 export type ListExecutionsQueryVariables = Exact<{
   filter?: InputMaybe<ExecutionFilterInput>;
@@ -896,7 +896,7 @@ export type ListExecutionsQuery = { __typename?: 'Query', listExecutions: Array<
 export type GetSupportedFormatsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetSupportedFormatsQuery = { __typename?: 'Query', getSupportedFormats: any };
+export type GetSupportedFormatsQuery = { __typename?: 'Query', getSupportedFormats: Record<string, unknown> };
 
 export type GetPersonQueryVariables = Exact<{
   person_id: Scalars['String']['input'];
@@ -915,14 +915,14 @@ export type ListPersonsQuery = { __typename?: 'Query', listPersons: Array<{ __ty
 export type ListPromptFilesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type ListPromptFilesQuery = { __typename?: 'Query', listPromptFiles: Array<any> };
+export type ListPromptFilesQuery = { __typename?: 'Query', listPromptFiles: Array<Record<string, unknown>> };
 
 export type GetPromptFileQueryVariables = Exact<{
   filename: Scalars['String']['input'];
 }>;
 
 
-export type GetPromptFileQuery = { __typename?: 'Query', getPromptFile: any };
+export type GetPromptFileQuery = { __typename?: 'Query', getPromptFile: Record<string, unknown> };
 
 export type ListProvidersQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -941,7 +941,7 @@ export type GetProviderOperationsQueryVariables = Exact<{
 }>;
 
 
-export type GetProviderOperationsQuery = { __typename?: 'Query', getProviderOperations: any };
+export type GetProviderOperationsQuery = { __typename?: 'Query', getProviderOperations: Record<string, unknown> };
 
 export type GetOperationSchemaQueryVariables = Exact<{
   provider: Scalars['String']['input'];
@@ -949,41 +949,41 @@ export type GetOperationSchemaQueryVariables = Exact<{
 }>;
 
 
-export type GetOperationSchemaQuery = { __typename?: 'Query', getOperationSchema?: { __typename?: 'OperationSchemaType', operation: string, method: string, path: string, description?: string | null, request_body?: any | null, query_params?: any | null, response?: any | null } | null };
+export type GetOperationSchemaQuery = { __typename?: 'Query', getOperationSchema?: { __typename?: 'OperationSchemaType', operation: string, method: string, path: string, description?: string | null, request_body?: Record<string, unknown> | null, query_params?: Record<string, unknown> | null, response?: Record<string, unknown> | null } | null };
 
 export type GetProviderStatisticsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetProviderStatisticsQuery = { __typename?: 'Query', getProviderStatistics: { __typename?: 'ProviderStatisticsType', total_providers: number, total_operations: number, provider_types: any, providers: any } };
+export type GetProviderStatisticsQuery = { __typename?: 'Query', getProviderStatistics: { __typename?: 'ProviderStatisticsType', total_providers: number, total_operations: number, provider_types: Record<string, unknown>, providers: Record<string, unknown> } };
 
 export type GetSystemInfoQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetSystemInfoQuery = { __typename?: 'Query', getSystemInfo: any };
+export type GetSystemInfoQuery = { __typename?: 'Query', getSystemInfo: Record<string, unknown> };
 
 export type GetExecutionCapabilitiesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetExecutionCapabilitiesQuery = { __typename?: 'Query', getExecutionCapabilities: any };
+export type GetExecutionCapabilitiesQuery = { __typename?: 'Query', getExecutionCapabilities: Record<string, unknown> };
 
 export type HealthCheckQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type HealthCheckQuery = { __typename?: 'Query', healthCheck: any };
+export type HealthCheckQuery = { __typename?: 'Query', healthCheck: Record<string, unknown> };
 
 export type GetExecutionOrderQueryVariables = Exact<{
   execution_id: Scalars['String']['input'];
 }>;
 
 
-export type GetExecutionOrderQuery = { __typename?: 'Query', getExecutionOrder: any };
+export type GetExecutionOrderQuery = { __typename?: 'Query', getExecutionOrder: Record<string, unknown> };
 
 export type GetExecutionMetricsQueryVariables = Exact<{
   execution_id: Scalars['String']['input'];
 }>;
 
 
-export type GetExecutionMetricsQuery = { __typename?: 'Query', getExecutionMetrics: any };
+export type GetExecutionMetricsQuery = { __typename?: 'Query', getExecutionMetrics: Record<string, unknown> };
 
 export type GetExecutionHistoryQueryVariables = Exact<{
   diagram_id?: InputMaybe<Scalars['String']['input']>;
@@ -992,12 +992,12 @@ export type GetExecutionHistoryQueryVariables = Exact<{
 }>;
 
 
-export type GetExecutionHistoryQuery = { __typename?: 'Query', getExecutionHistory: any };
+export type GetExecutionHistoryQuery = { __typename?: 'Query', getExecutionHistory: Record<string, unknown> };
 
 export type GetActiveCliSessionQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetActiveCliSessionQuery = { __typename?: 'Query', getActiveCliSession: any };
+export type GetActiveCliSessionQuery = { __typename?: 'Query', getActiveCliSession: Record<string, unknown> };
 
 export type CreateApiKeyMutationVariables = Exact<{
   input: CreateApiKeyInput;
@@ -1082,7 +1082,7 @@ export type UploadFileMutationVariables = Exact<{
 }>;
 
 
-export type UploadFileMutation = { __typename?: 'Mutation', uploadFile: any };
+export type UploadFileMutation = { __typename?: 'Mutation', uploadFile: Record<string, unknown> };
 
 export type UploadDiagramMutationVariables = Exact<{
   file: Scalars['Upload']['input'];
@@ -1090,7 +1090,7 @@ export type UploadDiagramMutationVariables = Exact<{
 }>;
 
 
-export type UploadDiagramMutation = { __typename?: 'Mutation', uploadDiagram: any };
+export type UploadDiagramMutation = { __typename?: 'Mutation', uploadDiagram: Record<string, unknown> };
 
 export type ValidateDiagramMutationVariables = Exact<{
   content: Scalars['String']['input'];
@@ -1098,7 +1098,7 @@ export type ValidateDiagramMutationVariables = Exact<{
 }>;
 
 
-export type ValidateDiagramMutation = { __typename?: 'Mutation', validateDiagram: any };
+export type ValidateDiagramMutation = { __typename?: 'Mutation', validateDiagram: Record<string, unknown> };
 
 export type ConvertDiagramFormatMutationVariables = Exact<{
   content: Scalars['String']['input'];
@@ -1115,7 +1115,7 @@ export type CreateNodeMutationVariables = Exact<{
 }>;
 
 
-export type CreateNodeMutation = { __typename?: 'Mutation', createNode: { __typename?: 'NodeResult', success: boolean, message?: string | null, error?: string | null, node?: { __typename?: 'DomainNodeType', id: string, type: NodeType, data: any, position: { __typename?: 'Vec2Type', x: number, y: number } } | null } };
+export type CreateNodeMutation = { __typename?: 'Mutation', createNode: { __typename?: 'NodeResult', success: boolean, message?: string | null, error?: string | null, node?: { __typename?: 'DomainNodeType', id: string, type: NodeType, data: Record<string, unknown>, position: { __typename?: 'Vec2Type', x: number, y: number } } | null } };
 
 export type UpdateNodeMutationVariables = Exact<{
   diagram_id: Scalars['String']['input'];
@@ -1161,28 +1161,28 @@ export type ExecuteIntegrationMutationVariables = Exact<{
 }>;
 
 
-export type ExecuteIntegrationMutation = { __typename?: 'Mutation', executeIntegration: any };
+export type ExecuteIntegrationMutation = { __typename?: 'Mutation', executeIntegration: Record<string, unknown> };
 
 export type TestIntegrationMutationVariables = Exact<{
   input: TestIntegrationInput;
 }>;
 
 
-export type TestIntegrationMutation = { __typename?: 'Mutation', testIntegration: { __typename?: 'IntegrationTestResultType', success: boolean, provider: string, operation: string, status_code?: number | null, response_time_ms?: number | null, error?: string | null, response_preview?: any | null } };
+export type TestIntegrationMutation = { __typename?: 'Mutation', testIntegration: { __typename?: 'IntegrationTestResultType', success: boolean, provider: string, operation: string, status_code?: number | null, response_time_ms?: number | null, error?: string | null, response_preview?: Record<string, unknown> | null } };
 
 export type ReloadProviderMutationVariables = Exact<{
   name: Scalars['String']['input'];
 }>;
 
 
-export type ReloadProviderMutation = { __typename?: 'Mutation', reloadProvider: any };
+export type ReloadProviderMutation = { __typename?: 'Mutation', reloadProvider: Record<string, unknown> };
 
 export type ExecutionUpdatesSubscriptionVariables = Exact<{
   execution_id: Scalars['String']['input'];
 }>;
 
 
-export type ExecutionUpdatesSubscription = { __typename?: 'Subscription', executionUpdates: { __typename?: 'ExecutionUpdateType', execution_id: string, type: EventType, data?: any | null, timestamp?: string | null } };
+export type ExecutionUpdatesSubscription = { __typename?: 'Subscription', executionUpdates: { __typename?: 'ExecutionUpdateType', execution_id: string, type: EventType, data?: Record<string, unknown> | null, timestamp?: string | null } };
 
 
 export const GetApiKeysDocument = gql`

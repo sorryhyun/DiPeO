@@ -21,6 +21,7 @@ export const conditionConfig: UnifiedNodeConfig = {
   defaults: {
     condition_type: 'custom',
     memorize_to: 'GOLDFISH',
+    skippable: false,
   },
   customFields: conditionFields,
   primaryDisplayField: 'condition_type',

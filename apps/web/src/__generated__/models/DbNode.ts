@@ -1,5 +1,6 @@
 // Auto-generated TypeScript model for db node
 import { z } from 'zod';
+import { PersonID } from '@dipeo/models';
 import { DBBlockSubType } from '@dipeo/models';
 
 export interface DbNodeData {
@@ -11,6 +12,7 @@ export interface DbNodeData {
   keys?: any | undefined;
   lines?: any | undefined;
   data?: Record<string, any> | undefined;
+  serialize_json?: boolean | undefined;
   format?: string | undefined;
 }
 
@@ -24,5 +26,6 @@ export const DbNodeDataSchema = z.object({
   keys: z.any().optional().describe("Single key or list of dot-separated keys to target within the JSON payload"),
   lines: z.any().optional().describe("Line selection or ranges to read (e.g., 1:120 or ['10:20'])"),
   data: z.record(z.any()).optional().describe("Data configuration"),
+  serialize_json: z.boolean().optional().describe("Serialize structured data to JSON string (for backward compatibility)"),
   format: z.any().optional().describe("Data format (json, yaml, csv, text, etc.)"),
 });

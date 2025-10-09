@@ -20,6 +20,7 @@ export const dbConfig: UnifiedNodeConfig = {
   defaults: {
     sub_type: 'fixed_prompt',
     operation: 'read',
+    serialize_json: false,
     format: 'json',
   },
   customFields: dbFields,

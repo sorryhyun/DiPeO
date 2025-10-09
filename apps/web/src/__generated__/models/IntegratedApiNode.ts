@@ -1,5 +1,6 @@
 // Auto-generated TypeScript model for integrated_api node
 import { z } from 'zod';
+import { PersonID } from '@dipeo/models';
 
 export interface IntegratedApiNodeData {
   provider: string;

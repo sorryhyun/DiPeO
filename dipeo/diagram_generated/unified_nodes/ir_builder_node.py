@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for ir_builder.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-09T15:58:07.088253
+Generated at: 2025-10-09T17:34:05.819220
 """
 
 from typing import *
@@ -37,15 +37,15 @@ class IrBuilderNode(BaseModel):
     type: NodeType = Field(default=NodeType.IR_BUILDER, frozen=True)
 
     # Optional node-specific fields
-
+    
     source_type: Optional[Literal["ast", "schema", "config", "auto"]] = Field(default=None, description="Type of source data")
-
+    
     config_path: Optional[str] = Field(default=None, description="Path to configuration directory")
-
+    
     output_format: Optional[Literal["json", "yaml", "python"]] = Field(default=None, description="Output format for IR")
-
+    
     cache_enabled: bool = Field(default=False, description="Enable IR caching")
-
+    
     validate_output: bool = Field(default=False, description="Validate IR structure before output")
 
     class Config:

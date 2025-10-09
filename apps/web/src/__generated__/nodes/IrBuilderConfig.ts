@@ -18,6 +18,8 @@ export const irBuilderConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
+    cache_enabled: false,
+    validate_output: false,
   },
   customFields: irBuilderFields,
   primaryDisplayField: 'builder_type',

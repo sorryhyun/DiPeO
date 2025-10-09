@@ -21,8 +21,12 @@ export const diffPatchConfig: UnifiedNodeConfig = {
   defaults: {
     format: 'unified',
     apply_mode: 'normal',
+    backup: true,
+    validate_patch: true,
     strip_level: 1,
     fuzz_factor: 2,
+    ignore_whitespace: false,
+    create_missing: false,
   },
   customFields: diffPatchFields,
   primaryDisplayField: 'target_path',

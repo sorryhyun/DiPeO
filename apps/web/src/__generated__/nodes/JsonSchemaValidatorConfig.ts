@@ -18,6 +18,8 @@ export const jsonSchemaValidatorConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
+    strict_mode: false,
+    error_on_extra: false,
   },
   customFields: jsonSchemaValidatorFields,
   primaryDisplayField: 'schema_path',

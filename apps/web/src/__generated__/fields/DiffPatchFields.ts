@@ -54,6 +54,20 @@ export const diffPatchFields: UnifiedFieldDefinition[] = [
     },
   },
   {
+    name: 'backup',
+    type: 'checkbox',
+    label: '"Backup"',
+    required: false,
+    description: '"Create backup before patching"',
+  },
+  {
+    name: 'validate_patch',
+    type: 'text',
+    label: '"Validate patch"',
+    required: false,
+    description: '"Validate patch before applying"',
+  },
+  {
     name: 'backup_dir',
     type: 'text',
     label: '"Backup dir"',
@@ -104,5 +118,19 @@ export const diffPatchFields: UnifiedFieldDefinition[] = [
     required: false,
     placeholder: '"/tmp/patch.reject"',
     description: '"Path to save rejected hunks"',
+  },
+  {
+    name: 'ignore_whitespace',
+    type: 'checkbox',
+    label: '"Ignore whitespace"',
+    required: false,
+    description: '"Ignore whitespace changes when matching"',
+  },
+  {
+    name: 'create_missing',
+    type: 'checkbox',
+    label: '"Create missing"',
+    required: false,
+    description: '"Create target file if it doesn\'t exist"',
   },
 ];

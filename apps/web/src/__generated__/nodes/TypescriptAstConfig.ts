@@ -20,8 +20,12 @@ export const typescriptAstConfig: UnifiedNodeConfig = {
   },
   defaults: {
     extract_patterns: ["interface", "type", "enum"],
+    include_jsdoc: false,
     parse_mode: 'module',
+    transform_enums: false,
+    flatten_output: false,
     output_format: 'standard',
+    batch: false,
     batch_input_key: 'sources',
   },
   customFields: typescriptAstFields,

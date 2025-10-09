@@ -57,4 +57,18 @@ export const irBuilderFields: UnifiedFieldDefinition[] = [
       return { isValid: true };
     },
   },
+  {
+    name: 'cache_enabled',
+    type: 'checkbox',
+    label: '"Cache enabled"',
+    required: false,
+    description: '"Enable IR caching"',
+  },
+  {
+    name: 'validate_output',
+    type: 'text',
+    label: '"Validate output"',
+    required: false,
+    description: '"Validate IR structure before output"',
+  },
 ];

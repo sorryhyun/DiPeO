@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for api_job.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-09T15:58:07.082848
+Generated at: 2025-10-09T17:34:05.813792
 """
 
 from typing import *
@@ -45,6 +45,8 @@ class ApiJobNode(BaseModel):
     
     body: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Request body")
     
+    timeout: Optional[int] = Field(default=None, description="Request timeout in seconds")
+    
     auth_type: Optional[Literal["none", "bearer", "basic", "api_key"]] = Field(default=None, description="Authentication type")
     
     auth_config: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Authentication configuration")
@@ -77,6 +79,7 @@ class ApiJobNode(BaseModel):
         data["headers"] = self.headers
         data["params"] = self.params
         data["body"] = self.body
+        data["timeout"] = self.timeout
         data["auth_type"] = self.auth_type
         data["auth_config"] = self.auth_config
 

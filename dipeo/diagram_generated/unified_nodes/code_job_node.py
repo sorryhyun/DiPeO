@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for code_job.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-09T15:58:07.083558
+Generated at: 2025-10-09T17:34:05.814485
 """
 
 from typing import *
@@ -37,13 +37,13 @@ class CodeJobNode(BaseModel):
     type: NodeType = Field(default=NodeType.CODE_JOB, frozen=True)
 
     # Optional node-specific fields
-
+    
     file_path: Optional[str] = Field(default=None, description="Path to code file")
-
+    
     code: Optional[str] = Field(default=None, description="Inline code to execute (alternative to file_path)")
-
+    
     function_name: Optional[str] = Field(default=None, description="Function to execute")
-
+    
     timeout: Optional[int] = Field(default=None, description="Operation timeout in seconds")
 
     class Config:

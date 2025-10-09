@@ -2,7 +2,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-10-09T15:58:04.745152
+Generated at: 2025-10-09T17:34:03.674273
 """
 
 import strawberry
@@ -64,6 +64,10 @@ class CreateApiJobInput:
     
     
     
+    timeout: Optional[int] = None  # Request timeout in seconds
+    
+    
+    
     # Enum field: Authentication type
     auth_type: Optional[str] = None  # Values: ['none', 'bearer', 'basic', 'api_key']
     
@@ -103,6 +107,10 @@ class UpdateApiJobInput:
     
     
     
+    timeout: Optional[int] = None  # Request timeout in seconds
+    
+    
+    
     # Enum field: Authentication type
     auth_type: Optional[str] = None  # Values: ['none', 'bearer', 'basic', 'api_key']
     
@@ -128,11 +136,19 @@ class CreateCodeJobInput:
     
     
     
+    file_path: Optional[str] = None  # Path to code file
+    
+    
+    
     code: Optional[str] = None  # Inline code to execute (alternative to file_path)
     
     
     
     function_name: Optional[str] = None  # Function to execute
+    
+    
+    
+    timeout: Optional[int] = None  # Operation timeout in seconds
     
     
 
@@ -150,11 +166,19 @@ class UpdateCodeJobInput:
     
     
     
+    file_path: Optional[str] = None  # Path to code file
+    
+    
+    
     code: Optional[str] = None  # Inline code to execute (alternative to file_path)
     
     
     
     function_name: Optional[str] = None  # Function to execute
+    
+    
+    
+    timeout: Optional[int] = None  # Operation timeout in seconds
     
     
 
@@ -178,6 +202,10 @@ class CreateConditionInput:
     
     
     
+    node_indices: Optional[str] = None  # Node indices for detect_max_iteration condition
+    
+    
+    
     person: Optional[str] = None  # AI agent to use for decision making
     
     
@@ -199,6 +227,10 @@ class CreateConditionInput:
     
     
     expose_index_as: Optional[str] = None  # Variable name to expose the condition node's execution count (0-based index) to downstream nodes
+    
+    
+    
+    skippable: Optional[bool] = None  # When true, downstream nodes can execute even if this condition hasn't been evaluated yet
     
     
 
@@ -220,6 +252,10 @@ class UpdateConditionInput:
     
     
     
+    node_indices: Optional[str] = None  # Node indices for detect_max_iteration condition
+    
+    
+    
     person: Optional[str] = None  # AI agent to use for decision making
     
     
@@ -241,6 +277,10 @@ class UpdateConditionInput:
     
     
     expose_index_as: Optional[str] = None  # Variable name to expose the condition node's execution count (0-based index) to downstream nodes
+    
+    
+    
+    skippable: Optional[bool] = None  # When true, downstream nodes can execute even if this condition hasn't been evaluated yet
     
     
 
@@ -286,6 +326,10 @@ class CreateDbInput:
     
     
     data: Optional[strawberry.scalars.JSON] = None  # Data configuration
+    
+    
+    
+    serialize_json: Optional[bool] = None  # Serialize structured data to JSON string (for backward compatibility)
     
     
     
@@ -337,6 +381,10 @@ class UpdateDbInput:
     
     
     
+    serialize_json: Optional[bool] = None  # Serialize structured data to JSON string (for backward compatibility)
+    
+    
+    
     # Enum field: Data format (json, yaml, csv, text, etc.)
     format: Optional[str] = None  # Values: ['json', 'yaml', 'csv', 'text', 'xml']
     
@@ -371,6 +419,14 @@ class CreateDiffPatchInput:
     
     
     
+    backup: Optional[bool] = None  # Create backup before patching
+    
+    
+    
+    validate_patch: Optional[bool] = None  # Validate patch before applying
+    
+    
+    
     backup_dir: Optional[str] = None  # Directory for backup files
     
     
@@ -384,6 +440,14 @@ class CreateDiffPatchInput:
     
     
     reject_file: Optional[str] = None  # Path to save rejected hunks
+    
+    
+    
+    ignore_whitespace: Optional[bool] = None  # Ignore whitespace changes when matching
+    
+    
+    
+    create_missing: Optional[bool] = None  # Create target file if it doesn't exist
     
     
 
@@ -414,6 +478,14 @@ class UpdateDiffPatchInput:
     
     
     
+    backup: Optional[bool] = None  # Create backup before patching
+    
+    
+    
+    validate_patch: Optional[bool] = None  # Validate patch before applying
+    
+    
+    
     backup_dir: Optional[str] = None  # Directory for backup files
     
     
@@ -429,6 +501,14 @@ class UpdateDiffPatchInput:
     reject_file: Optional[str] = None  # Path to save rejected hunks
     
     
+    
+    ignore_whitespace: Optional[bool] = None  # Ignore whitespace changes when matching
+    
+    
+    
+    create_missing: Optional[bool] = None  # Create target file if it doesn't exist
+    
+    
 
 
 @strawberry.input
@@ -439,6 +519,10 @@ class CreateEndpointInput:
     label: Optional[str] = None
 
     # Node-specific fields from specification
+    
+    
+    save_to_file: Optional[bool] = None  # Save results to file
+    
     
     
     file_name: Optional[str] = None  # Output filename
@@ -452,6 +536,10 @@ class UpdateEndpointInput:
     label: Optional[str] = None
 
     # Node-specific fields from specification (all optional for updates)
+    
+    
+    save_to_file: Optional[bool] = None  # Save results to file
+    
     
     
     file_name: Optional[str] = None  # Output filename
@@ -478,6 +566,10 @@ class CreateHookInput:
     
     
     
+    url: Optional[str] = None  # Webhook URL (for HTTP hooks)
+    
+    
+    
     timeout: Optional[int] = None  # Execution timeout in seconds
     
     
@@ -501,6 +593,10 @@ class UpdateHookInput:
     
     
     command: Optional[str] = None  # Shell command to run (for shell hooks)
+    
+    
+    
+    url: Optional[str] = None  # Webhook URL (for HTTP hooks)
     
     
     
@@ -609,6 +705,14 @@ class CreateIrBuilderInput:
     output_format: Optional[str] = None  # Values: ['json', 'yaml', 'python']
     
     
+    
+    cache_enabled: Optional[bool] = None  # Enable IR caching
+    
+    
+    
+    validate_output: Optional[bool] = None  # Validate IR structure before output
+    
+    
 
 @strawberry.input
 class UpdateIrBuilderInput:
@@ -637,6 +741,14 @@ class UpdateIrBuilderInput:
     output_format: Optional[str] = None  # Values: ['json', 'yaml', 'python']
     
     
+    
+    cache_enabled: Optional[bool] = None  # Enable IR caching
+    
+    
+    
+    validate_output: Optional[bool] = None  # Validate IR structure before output
+    
+    
 
 
 @strawberry.input
@@ -649,11 +761,23 @@ class CreateJsonSchemaValidatorInput:
     # Node-specific fields from specification
     
     
+    schema_path: Optional[str] = None  # Path to JSON schema file
+    
+    
+    
     json_schema: Optional[strawberry.scalars.JSON] = None  # Inline JSON schema
     
     
     
     data_path: Optional[str] = None  # Data Path configuration
+    
+    
+    
+    strict_mode: Optional[bool] = None  # Strict Mode configuration
+    
+    
+    
+    error_on_extra: Optional[bool] = None  # Error On Extra configuration
     
     
 
@@ -666,11 +790,23 @@ class UpdateJsonSchemaValidatorInput:
     # Node-specific fields from specification (all optional for updates)
     
     
+    schema_path: Optional[str] = None  # Path to JSON schema file
+    
+    
+    
     json_schema: Optional[strawberry.scalars.JSON] = None  # Inline JSON schema
     
     
     
     data_path: Optional[str] = None  # Data Path configuration
+    
+    
+    
+    strict_mode: Optional[bool] = None  # Strict Mode configuration
+    
+    
+    
+    error_on_extra: Optional[bool] = None  # Error On Extra configuration
     
     
 
@@ -931,12 +1067,32 @@ class CreateSubDiagramInput:
     
     
     
+    wait_for_completion: Optional[bool] = None  # Whether to wait for sub-diagram completion
+    
+    
+    
+    isolate_conversation: Optional[bool] = None  # Create isolated conversation context for sub-diagram
+    
+    
+    
+    ignore_if_sub: Optional[bool] = None  # Skip execution if this diagram is being run as a sub-diagram
+    
+    
+    
     # Enum field: Format of the diagram file (yaml, json, or light)
     diagram_format: Optional[str] = None  # Values: ['yaml', 'json', 'light']
     
     
     
+    batch: Optional[bool] = None  # Execute sub-diagram in batch mode for multiple inputs
+    
+    
+    
     batch_input_key: Optional[str] = None  # Key in inputs containing the array of items for batch processing
+    
+    
+    
+    batch_parallel: Optional[bool] = None  # Execute batch items in parallel
     
     
 
@@ -969,12 +1125,32 @@ class UpdateSubDiagramInput:
     
     
     
+    wait_for_completion: Optional[bool] = None  # Whether to wait for sub-diagram completion
+    
+    
+    
+    isolate_conversation: Optional[bool] = None  # Create isolated conversation context for sub-diagram
+    
+    
+    
+    ignore_if_sub: Optional[bool] = None  # Skip execution if this diagram is being run as a sub-diagram
+    
+    
+    
     # Enum field: Format of the diagram file (yaml, json, or light)
     diagram_format: Optional[str] = None  # Values: ['yaml', 'json', 'light']
     
     
     
+    batch: Optional[bool] = None  # Execute sub-diagram in batch mode for multiple inputs
+    
+    
+    
     batch_input_key: Optional[str] = None  # Key in inputs containing the array of items for batch processing
+    
+    
+    
+    batch_parallel: Optional[bool] = None  # Execute batch items in parallel
     
     
 
@@ -989,7 +1165,15 @@ class CreateTemplateJobInput:
     # Node-specific fields from specification
     
     
+    template_path: Optional[str] = None  # Path to template file
+    
+    
+    
     template_content: Optional[str] = None  # Inline template content
+    
+    
+    
+    output_path: Optional[str] = None  # Output file path
     
     
     
@@ -1015,7 +1199,15 @@ class UpdateTemplateJobInput:
     # Node-specific fields from specification (all optional for updates)
     
     
+    template_path: Optional[str] = None  # Path to template file
+    
+    
+    
     template_content: Optional[str] = None  # Inline template content
+    
+    
+    
+    output_path: Optional[str] = None  # Output file path
     
     
     
@@ -1052,13 +1244,29 @@ class CreateTypescriptAstInput:
     
     
     
+    include_jsdoc: Optional[bool] = None  # Include JSDoc comments in the extracted data
+    
+    
+    
     # Enum field: TypeScript parsing mode
     parse_mode: Optional[str] = None  # Values: ['module', 'script']
     
     
     
+    transform_enums: Optional[bool] = None  # Transform enum definitions to a simpler format
+    
+    
+    
+    flatten_output: Optional[bool] = None  # Flatten the output structure for easier consumption
+    
+    
+    
     # Enum field: Output format for the parsed data
     output_format: Optional[str] = None  # Values: ['standard', 'for_codegen', 'for_analysis']
+    
+    
+    
+    batch: Optional[bool] = None  # Enable batch processing mode
     
     
     
@@ -1084,13 +1292,29 @@ class UpdateTypescriptAstInput:
     
     
     
+    include_jsdoc: Optional[bool] = None  # Include JSDoc comments in the extracted data
+    
+    
+    
     # Enum field: TypeScript parsing mode
     parse_mode: Optional[str] = None  # Values: ['module', 'script']
     
     
     
+    transform_enums: Optional[bool] = None  # Transform enum definitions to a simpler format
+    
+    
+    
+    flatten_output: Optional[bool] = None  # Flatten the output structure for easier consumption
+    
+    
+    
     # Enum field: Output format for the parsed data
     output_format: Optional[str] = None  # Values: ['standard', 'for_codegen', 'for_analysis']
+    
+    
+    
+    batch: Optional[bool] = None  # Enable batch processing mode
     
     
     
@@ -1112,6 +1336,10 @@ class CreateUserResponseInput:
     prompt: str  # Question to ask the user
     
     
+    
+    timeout: Optional[int] = None  # Response timeout in seconds
+    
+    
 
 @strawberry.input
 class UpdateUserResponseInput:
@@ -1123,6 +1351,10 @@ class UpdateUserResponseInput:
     
     
     prompt: Optional[str] = None  # Question to ask the user
+    
+    
+    
+    timeout: Optional[int] = None  # Response timeout in seconds
     
     
 

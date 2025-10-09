@@ -80,6 +80,13 @@ export const dbFields: UnifiedFieldDefinition[] = [
     description: '"Data configuration"',
   },
   {
+    name: 'serialize_json',
+    type: 'checkbox',
+    label: '"Serialize json"',
+    required: false,
+    description: '"Serialize structured data to JSON string (for backward compatibility)"',
+  },
+  {
     name: 'format',
     type: 'text',
     label: '"Format"',

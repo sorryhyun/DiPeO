@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for typescript_ast.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-09T15:58:07.804938
+Generated at: 2025-10-09T17:34:06.368885
 """
 
 from typing import *
@@ -41,15 +41,19 @@ class TypescriptAstNode(BaseModel):
     
     extract_patterns: Optional[List[Any]] = Field(default_factory=list, description="Patterns to extract from the AST")
     
+    include_jsdoc: bool = Field(default=False, description="Include JSDoc comments in the extracted data")
+    
     parse_mode: Literal["module", "script"] = Field(default="module", description="TypeScript parsing mode")
-
-    include_jsdoc: bool = Field(default=False, description="Include JSDoc comments in parsing")
-
+    
+    transform_enums: bool = Field(default=False, description="Transform enum definitions to a simpler format")
+    
+    flatten_output: bool = Field(default=False, description="Flatten the output structure for easier consumption")
+    
     output_format: Literal["standard", "for_codegen", "for_analysis"] = Field(default="standard", description="Output format for the parsed data")
-
-    batch: bool = Field(default=False, description="Enable batch processing mode", alias="batch")
-
-    batch_input_key: str = Field(default="sources", description="Key to extract batch items from input", alias="batchInputKey")
+    
+    batch: bool = Field(default=False, description="Enable batch processing mode")
+    
+    batch_input_key: str = Field(default="sources", description="Key to extract batch items from input")
 
     class Config:
         # Make the instance immutable after creation
@@ -76,8 +80,10 @@ class TypescriptAstNode(BaseModel):
         # Add node-specific fields using original names
         data["source"] = self.source
         data["extract_patterns"] = self.extract_patterns
-        data["parse_mode"] = self.parse_mode
         data["include_jsdoc"] = self.include_jsdoc
+        data["parse_mode"] = self.parse_mode
+        data["transform_enums"] = self.transform_enums
+        data["flatten_output"] = self.flatten_output
         data["output_format"] = self.output_format
         data["batch"] = self.batch
         data["batch_input_key"] = self.batch_input_key

@@ -111,8 +111,10 @@ input DiagramFilterInput {
 
 enum DiagramFormatGraphQL {
   NATIVE
-  LIGHT
+  YAML
+  JSON
   READABLE
+  LIGHT
 }
 
 """Branded scalar type for DiagramID"""

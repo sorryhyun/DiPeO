@@ -1,7 +1,7 @@
 """
 Generated enum definitions for DiPeO.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-09T15:58:08.061981
+Generated at: 2025-10-09T17:34:06.659592
 """
 
 from enum import Enum
@@ -74,9 +74,13 @@ class HandleLabel(str, Enum):
 class DiagramFormat(str, Enum):
     """"""
     
+    NATIVE = "native"
+    
     YAML = "yaml"
     
     JSON = "json"
+    
+    READABLE = "readable"
     
     LIGHT = "light"
     

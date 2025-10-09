@@ -1,5 +1,6 @@
 // Auto-generated TypeScript model for start node
 import { z } from 'zod';
+import { PersonID } from '@dipeo/models';
 import { HookTriggerMode } from '@dipeo/models';
 
 export interface StartNodeData {

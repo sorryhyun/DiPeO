@@ -1,8 +1,12 @@
 // Auto-generated TypeScript model for {{ node_type }} node
 import { z } from 'zod';
+import { PersonID } from '@dipeo/models';
+
 {%- set enum_imports = fields | get_enum_imports %}
-{%- if enum_imports %}
-import { {{ enum_imports | join(', ') }} } from '@dipeo/models';
+{%- set branded_imports = fields | get_branded_type_imports %}
+{%- if enum_imports or branded_imports %}
+{%- set all_imports = (enum_imports + branded_imports) | unique | sort %}
+import { {{ all_imports | join(', ') }} } from '@dipeo/models';
 {%- endif %}
 {%- if fields | selectattr("type", "equalto", "select") | list %}
 import { createOptionsSchema } from '@/core/utils/schema';

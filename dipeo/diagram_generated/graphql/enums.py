@@ -2,7 +2,7 @@
 Generated Strawberry GraphQL enum definitions for DiPeO.
 Avoid editing THIS FILE DIRECTLY.
 
-Generated at: 2025-10-09T15:58:04.745152
+Generated at: 2025-10-09T17:34:03.674273
 """
 
 from enum import Enum
@@ -132,8 +132,10 @@ class HandleLabelGraphQL(Enum):
 @strawberry.enum
 class DiagramFormatGraphQL(Enum):
     """GraphQL enum for DiagramFormat"""
+    NATIVE = "native"
     YAML = "yaml"
     JSON = "json"
+    READABLE = "readable"
     LIGHT = "light"
 
 
@@ -794,8 +796,10 @@ def convert_diagramformat_to_graphql(python_enum):
     """Convert Python DiagramFormat enum to GraphQL enum."""
     from ..enums import DiagramFormat
     mapping = {
+        DiagramFormat.NATIVE: DiagramFormatGraphQL.NATIVE,
         DiagramFormat.YAML: DiagramFormatGraphQL.YAML,
         DiagramFormat.JSON: DiagramFormatGraphQL.JSON,
+        DiagramFormat.READABLE: DiagramFormatGraphQL.READABLE,
         DiagramFormat.LIGHT: DiagramFormatGraphQL.LIGHT,
     }
     return mapping.get(python_enum)
@@ -804,8 +808,10 @@ def convert_diagramformat_from_graphql(graphql_enum):
     """Convert GraphQL DiagramFormat enum to Python enum."""
     from ..enums import DiagramFormat
     mapping = {
+        DiagramFormatGraphQL.NATIVE: DiagramFormat.NATIVE,
         DiagramFormatGraphQL.YAML: DiagramFormat.YAML,
         DiagramFormatGraphQL.JSON: DiagramFormat.JSON,
+        DiagramFormatGraphQL.READABLE: DiagramFormat.READABLE,
         DiagramFormatGraphQL.LIGHT: DiagramFormat.LIGHT,
     }
     return mapping.get(graphql_enum)

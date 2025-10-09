@@ -50,6 +50,27 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
     },
   },
   {
+    name: 'wait_for_completion',
+    type: 'checkbox',
+    label: '"Wait for completion"',
+    required: false,
+    description: '"Whether to wait for sub-diagram completion"',
+  },
+  {
+    name: 'isolate_conversation',
+    type: 'checkbox',
+    label: '"Isolate conversation"',
+    required: false,
+    description: '"Create isolated conversation context for sub-diagram"',
+  },
+  {
+    name: 'ignore_if_sub',
+    type: 'checkbox',
+    label: '"Ignore if sub"',
+    required: false,
+    description: '"Skip execution if this diagram is being run as a sub-diagram"',
+  },
+  {
     name: 'diagram_format',
     type: 'text',
     label: '"Diagram format"',
@@ -65,11 +86,25 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
     },
   },
   {
+    name: 'batch',
+    type: 'checkbox',
+    label: '"Batch"',
+    required: false,
+    description: '"Execute sub-diagram in batch mode for multiple inputs"',
+  },
+  {
     name: 'batch_input_key',
     type: 'password',
     label: '"Batch input key"',
     required: false,
     placeholder: '"items"',
     description: '"Key in inputs containing the array of items for batch processing"',
+  },
+  {
+    name: 'batch_parallel',
+    type: 'checkbox',
+    label: '"Batch parallel"',
+    required: false,
+    description: '"Execute batch items in parallel"',
   },
 ];

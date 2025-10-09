@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for user_response.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-09T15:58:07.806877
+Generated at: 2025-10-09T17:34:06.378146
 """
 
 from typing import *
@@ -37,6 +37,8 @@ class UserResponseNode(BaseModel):
     type: NodeType = Field(default=NodeType.USER_RESPONSE, frozen=True)
 
     # Optional node-specific fields
+    
+    timeout: int = Field(default=60, description="Response timeout in seconds")
 
     class Config:
         # Make the instance immutable after creation
@@ -62,6 +64,7 @@ class UserResponseNode(BaseModel):
 
         # Add node-specific fields using original names
         data["prompt"] = self.prompt
+        data["timeout"] = self.timeout
 
         return data
 

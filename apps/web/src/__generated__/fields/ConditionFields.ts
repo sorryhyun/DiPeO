@@ -29,6 +29,17 @@ export const conditionFields: UnifiedFieldDefinition[] = [
     adjustable: true,
   },
   {
+    name: 'node_indices',
+    type: 'textarea',
+    label: '"Node indices"',
+    required: false,
+    placeholder: '"Select nodes to monitor"',
+    description: '"Node indices for detect_max_iteration condition"',
+    validate: (value: unknown) => {
+      return { isValid: true };
+    },
+  },
+  {
     name: 'person',
     type: 'text',
     label: '"Person"',
@@ -77,5 +88,12 @@ export const conditionFields: UnifiedFieldDefinition[] = [
     required: false,
     placeholder: '"e.g., current_index, loop_counter"',
     description: '"Variable name to expose the condition node\'s execution count (0-based index) to downstream nodes"',
+  },
+  {
+    name: 'skippable',
+    type: 'checkbox',
+    label: '"Skippable"',
+    required: false,
+    description: '"When true, downstream nodes can execute even if this condition hasn\'t been evaluated yet"',
   },
 ];
