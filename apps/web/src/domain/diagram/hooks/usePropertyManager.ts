@@ -55,17 +55,14 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
   const { updatePerson } = personOps;
   const isMonitorMode = readOnly;
 
-  // Track entity ID changes and initial data
   const entityIdRef = useRef(entityId);
   const initialDataRef = useRef(initialData);
   const hasEntityChanged = entityId !== entityIdRef.current;
 
-  // Deep compare initial data to prevent unnecessary resets
   const hasInitialDataChanged = useMemo(() => {
     return JSON.stringify(initialData) !== JSON.stringify(initialDataRef.current);
   }, [initialData]);
 
-  // Convert validation rules to field validators
   const validators = useMemo(() => {
     const fieldValidators: Record<string, FieldValidator> = {};
 
@@ -82,7 +79,6 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
     return fieldValidators;
   }, [validationRules]);
 
-  // Auto-save handler
   const handleAutoSave = useCallback(async (data: T) => {
     if (isMonitorMode) return;
 
@@ -90,15 +86,12 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
       if (onSave) {
         await onSave(data);
       } else {
-        // Store update logic
         if (entityType === 'node') {
-          // Transform memory_profile to memory_settings for person_job nodes
           const nodeData = data as Record<string, unknown>;
           if (nodeData.type === 'person_job' && 'memory_profile' in nodeData) {
             const transformedData = { ...nodeData };
             const memoryProfile = nodeData.memory_profile as string;
 
-            // Map memory profile to memory settings
             switch (memoryProfile) {
               case 'FULL':
                 transformedData.memory_settings = {
@@ -129,7 +122,6 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
                 };
                 break;
               case 'CUSTOM':
-                // Keep existing memory_settings or use defaults
                 if (!transformedData.memory_settings) {
                   transformedData.memory_settings = {
                     view: 'all_involved',
@@ -140,9 +132,6 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
                 break;
             }
 
-            // Don't remove memory_profile - it's a UI field that needs to be preserved
-            // The domain model will ignore it, but we need it for the UI
-
             updateNode(nodeId(entityId), { data: transformedData as JsonDict });
           } else {
             updateNode(nodeId(entityId), { data: nodeData as JsonDict });
@@ -151,13 +140,11 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
           const { content_type, label, ...restData } = data as any;
           const updates: any = { data: restData };
           if (content_type !== undefined) {
-            // Keep content_type as lowercase for backend compatibility
             updates.content_type = content_type;
           }
           if (label !== undefined) updates.label = label;
           updateArrow(arrowId(entityId), updates);
         } else {
-          // Person entity flattening logic
           const unflattenedData: any = {};
           const llmConfig: any = {};
 
@@ -186,14 +173,12 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
     }
   }, [entityId, entityType, isMonitorMode, onSave, updateNode, updateArrow, updatePerson, onError]);
 
-  // Auto-save configuration
   const autoSaveConfig: FormAutoSaveConfig | undefined = autoSave ? {
     enabled: autoSave && !isMonitorMode,
     delay: autoSaveDelay,
     onSave: handleAutoSave
   } : undefined;
 
-  // Process panel fields
   const fields = useMemo(() => {
     if (!panelConfig) return [];
 
@@ -226,10 +211,8 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
     return allFields;
   }, [panelConfig]);
 
-  // Store a ref to current form data for async field options
   const formDataRef = useRef<T>(initialData);
 
-  // Extract async fields configuration with stable references
   const asyncFieldsConfig = useMemo(() => {
     const config: Record<string, AsyncFieldOptions> = {};
 
@@ -240,7 +223,6 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
           : [];
 
         config[field.name] = {
-          // Use a more specific query key to avoid conflicts
           queryKey: ['field-options', entityType, entityId, field.name],
           queryFn: async () => {
             const optionsFn = field.options as (formData?: T) => Promise<Array<{ value: string; label: string }>>;
@@ -255,7 +237,6 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
     return config;
   }, [fields, entityType, entityId]);
 
-  // Form configuration
   const formConfig: FormConfig<T> = {
     initialValues: initialData,
     validators,
@@ -264,7 +245,6 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
     enableReinitialize: true
   };
 
-  // Use the form manager
   const form = useFormManager({
     config: formConfig,
     autoSave: autoSaveConfig,
@@ -272,24 +252,20 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
     onSubmit: onSave
   });
 
-  // Keep formDataRef updated
   useEffect(() => {
     formDataRef.current = form.formState.data;
   }, [form.formState.data]);
 
-  // Handle entity changes
   useEffect(() => {
     if (hasEntityChanged) {
       entityIdRef.current = entityId;
       initialDataRef.current = initialData;
       form.operations.reset(initialData);
     } else if (hasInitialDataChanged && hasEntityChanged === false) {
-      // Only update the ref, don't reset the form for data changes on the same entity
       initialDataRef.current = initialData;
     }
   }, [entityId, hasEntityChanged, hasInitialDataChanged, form.operations, initialData]);
 
-  // Process fields with their async options
   const processedFields = useMemo(() => {
     return fields.map(field => {
       const processed: ProcessedField<T> = { field };
@@ -311,7 +287,6 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
     });
   }, [fields, form.asyncFields.queries]);
 
-  // Handle form submission
   const save = useCallback(async () => {
     try {
       await form.handlers.handleSubmit();
@@ -326,7 +301,6 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
   }, [form.handlers, onError]);
 
   return {
-    // Form data
     formData: form.formState.data,
     isDirty: form.computed.isDirty,
     errors: Object.fromEntries(
@@ -340,14 +314,11 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
     hasErrors: form.computed.hasErrors,
     isReadOnly: isMonitorMode,
 
-    // Actions
     updateField: <K extends keyof T>(field: K, value: T[K]) => {
-      // Update ref immediately for async field dependencies
       formDataRef.current = { ...formDataRef.current, [field]: value };
       form.operations.updateField({ field: String(field), value });
     },
     updateFormData: (updates: Partial<T>) => {
-      // Update ref immediately for async field dependencies
       formDataRef.current = { ...formDataRef.current, ...updates };
       form.operations.updateFields(updates);
     },
@@ -355,7 +326,6 @@ export const usePropertyManager = <T extends Record<string, unknown> = Record<st
     reset: form.operations.reset,
     validateForm: form.operations.validateForm,
 
-    // Panel schema
     processedFields,
     fields,
   };

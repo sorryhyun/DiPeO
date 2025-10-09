@@ -11,8 +11,8 @@ class PayloadProcessor:
     """Processes tool result payloads for node creation decisions."""
 
     def extract_tool_result_payload(
-        self, tool_use_result: Optional[dict[str, Any] | list[Any] | str]
-    ) -> Optional[dict[str, Any]]:
+        self, tool_use_result: dict[str, Any] | list[Any] | str | None
+    ) -> dict[str, Any] | None:
         """Select the most useful tool result payload for diff generation.
 
         Args:
@@ -64,7 +64,7 @@ class PayloadProcessor:
 
     def extract_file_content(
         self, payload: dict[str, Any], key_priority: list[str] | None = None
-    ) -> Optional[str]:
+    ) -> str | None:
         """Extract file content from a payload.
 
         Args:
@@ -98,7 +98,7 @@ class PayloadProcessor:
 
         return None
 
-    def extract_error_info(self, payload: dict[str, Any]) -> tuple[bool, Optional[str]]:
+    def extract_error_info(self, payload: dict[str, Any]) -> tuple[bool, str | None]:
         """Extract error information from a payload.
 
         Args:
@@ -127,7 +127,7 @@ class PayloadProcessor:
 
         return False, None
 
-    def extract_file_path(self, payload: dict[str, Any]) -> Optional[str]:
+    def extract_file_path(self, payload: dict[str, Any]) -> str | None:
         """Extract file path from a payload.
 
         Args:
@@ -150,7 +150,7 @@ class PayloadProcessor:
 
         return None
 
-    def extract_operation_type(self, payload: dict[str, Any]) -> Optional[str]:
+    def extract_operation_type(self, payload: dict[str, Any]) -> str | None:
         """Determine the operation type from a payload.
 
         Args:

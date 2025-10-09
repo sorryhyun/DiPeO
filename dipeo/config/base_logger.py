@@ -29,7 +29,7 @@ class DiPeOLogger:
 
     def __init__(self):
         """Initialize the logger for the current class."""
-        self._logger: Optional[logging.Logger] = None
+        self._logger: logging.Logger | None = None
 
     @property
     def logger(self) -> logging.Logger:
@@ -40,7 +40,7 @@ class DiPeOLogger:
         - For modules: use __name__ directly
         """
         if self._logger is None:
-            if hasattr(self, '__class__'):
+            if hasattr(self, "__class__"):
                 # For class instances, use module.ClassName pattern
                 logger_name = f"{self.__class__.__module__}.{self.__class__.__name__}"
             else:
@@ -52,7 +52,7 @@ class DiPeOLogger:
         return self._logger
 
     @classmethod
-    def get_logger(cls, name: Optional[str] = None) -> logging.Logger:
+    def get_logger(cls, name: str | None = None) -> logging.Logger:
         """Get a logger with the specified name.
 
         Args:
@@ -68,11 +68,12 @@ class DiPeOLogger:
         if name is None:
             # Try to get the caller's module name
             import inspect
+
             frame = inspect.currentframe()
             if frame and frame.f_back:
-                name = frame.f_back.f_globals.get('__name__', 'dipeo')
+                name = frame.f_back.f_globals.get("__name__", "dipeo")
             else:
-                name = 'dipeo'
+                name = "dipeo"
 
         return logging.getLogger(name)
 

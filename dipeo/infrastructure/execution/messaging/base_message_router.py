@@ -6,8 +6,6 @@ between the in-memory and Redis-backed routers.
 
 import asyncio
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import time
 from abc import abstractmethod
 from collections import deque
@@ -16,6 +14,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from dipeo.config import get_settings
+from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.events import EventType
 from dipeo.domain.events.contracts import DomainEvent
 from dipeo.domain.events.unified_ports import EventBus as MessageRouterPort
@@ -24,12 +23,14 @@ from dipeo.infrastructure.events.serialize import event_to_json_payload
 
 logger = get_module_logger(__name__)
 
+
 @dataclass
 class ConnectionHealth:
     last_successful_send: float
     failed_attempts: int = 0
     total_messages: int = 0
     avg_latency: float = 0.0
+
 
 class BaseMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
     """Base message router with shared functionality.
@@ -383,17 +384,31 @@ class BaseMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
                     if event.type == EventType.NODE_COMPLETED
                     else "FAILED"
                 )
+                # Start with full payload data and add UI-specific fields
+                ui_data = payload.get("data", {}) if isinstance(payload.get("data"), dict) else {}
+                ui_data.update({
+                    "node_id": event.scope.node_id,
+                    "status": node_status,
+                    "timestamp": event.occurred_at.isoformat(),
+                })
+
                 ui_payload = {
                     "type": event.type.value,
                     "event_type": event.type.value,
                     "execution_id": str(event.scope.execution_id),
-                    "data": {
-                        "node_id": event.scope.node_id,
-                        "status": node_status,
-                        "timestamp": event.occurred_at.isoformat(),
-                    },
+                    "data": ui_data,
+                    "meta": payload.get("metadata", {}),  # Include metadata (person_id, model, etc.)
                     "timestamp": event.occurred_at.isoformat(),
                 }
+
+                # Debug logging for NODE_COMPLETED
+                if event.type == EventType.NODE_COMPLETED:
+                    logger.debug(
+                        f"[MessageRouter] Broadcasting NODE_COMPLETED - "
+                        f"data keys: {list(ui_data.keys())}, "
+                        f"has token_usage: {'token_usage' in ui_data}"
+                    )
+
                 await self.broadcast_to_execution(str(event.scope.execution_id), ui_payload)
 
         else:

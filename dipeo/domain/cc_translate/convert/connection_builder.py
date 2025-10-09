@@ -56,7 +56,7 @@ class ConnectionBuilder(BaseConnectionBuilder):
             self.add_connection(previous_node, current_nodes[0])
 
     def create_connection(
-        self, source_id: str, target_id: str, props: Optional[dict[str, Any]] = None
+        self, source_id: str, target_id: str, props: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Create a connection between two nodes implementing abstract base.
 

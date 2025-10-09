@@ -1,38 +1,39 @@
 import { recordHistory, updateMap, updateEntity } from './entityHelpers';
 import { DomainArrow, DomainNode, DomainPerson } from '@/infrastructure/types';
 import {ArrowID, NodeID, PersonID} from '@dipeo/models';
+import type { UnifiedStore } from '../types';
 
 type EntityType = 'nodes' | 'arrows' | 'persons';
 type EntityId = NodeID | ArrowID | PersonID;
 type Entity = DomainNode | DomainArrow | DomainPerson;
 
 interface CrudActions<T extends Entity, ID extends EntityId> {
-  add: (state: any, entity: T) => ID;
-  update: (state: any, id: ID, updates: Partial<T>) => void;
-  delete: (state: any, id: ID) => void;
+  add: (state: UnifiedStore, entity: T) => ID;
+  update: (state: UnifiedStore, id: ID, updates: Partial<T>) => void;
+  delete: (state: UnifiedStore, id: ID) => void;
 }
 
 function getEntityMap<T extends Entity, ID extends EntityId>(
-  state: any,
+  state: UnifiedStore,
   entityType: EntityType
 ): Map<ID, T> {
   return state[entityType] as Map<ID, T>;
 }
 
 function setEntityMap<T extends Entity, ID extends EntityId>(
-  state: any,
+  state: UnifiedStore,
   entityType: EntityType,
   map: Map<ID, T>
 ): void {
-  state[entityType] = map;
+  (state[entityType] as Map<ID, T>) = map;
 }
 
 export function createCrudActions<T extends Entity, ID extends EntityId>(
   entityType: EntityType,
   options?: {
-    onAdd?: (state: any, entity: T) => void;
-    onUpdate?: (state: any, id: ID, entity: T) => void;
-    onDelete?: (state: any, id: ID) => void;
+    onAdd?: (state: UnifiedStore, entity: T) => void;
+    onUpdate?: (state: UnifiedStore, id: ID, entity: T) => void;
+    onDelete?: (state: UnifiedStore, id: ID) => void;
   }
 ): CrudActions<T, ID> {
   return {
@@ -43,7 +44,9 @@ export function createCrudActions<T extends Entity, ID extends EntityId>(
       state.dataVersion += 1;
 
       options?.onAdd?.(state, entity);
-      recordHistory(state);
+      // Use type assertion to avoid type instantiation depth errors
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      recordHistory(state as any);
 
       return entity.id as ID;
     },
@@ -61,7 +64,9 @@ export function createCrudActions<T extends Entity, ID extends EntityId>(
           options?.onUpdate?.(state, id, entity as T);
         }
 
-        recordHistory(state);
+        // Use type assertion to avoid type instantiation depth errors
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        recordHistory(state as any);
       }
     },
 
@@ -78,7 +83,9 @@ export function createCrudActions<T extends Entity, ID extends EntityId>(
         state.selectedType = null;
       }
 
-      recordHistory(state);
+      // Use type assertion to avoid type instantiation depth errors
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      recordHistory(state as any);
     }
   };
 }

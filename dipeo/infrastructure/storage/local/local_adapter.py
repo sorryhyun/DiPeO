@@ -3,8 +3,6 @@
 import hashlib
 import io
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import shutil
 from collections.abc import AsyncIterator
 from datetime import datetime
@@ -13,11 +11,13 @@ from typing import BinaryIO
 
 import aiofiles
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.base import StorageError
 from dipeo.domain.base.mixins import InitializationMixin, LoggingMixin
 from dipeo.domain.base.storage_port import BlobStorePort, FileInfo, FileSystemPort
 
 logger = get_module_logger(__name__)
+
 
 class LocalBlobAdapter(LoggingMixin, InitializationMixin, BlobStorePort):
     """Local filesystem implementation of BlobStorePort with versioning support."""
@@ -152,6 +152,7 @@ class LocalBlobAdapter(LoggingMixin, InitializationMixin, BlobStorePort):
 
         object_path = self._get_object_path(key)
         return f"file://{object_path.absolute()}"
+
 
 class LocalFileSystemAdapter(LoggingMixin, InitializationMixin, FileSystemPort):
     """Local filesystem implementation of FileSystemPort."""

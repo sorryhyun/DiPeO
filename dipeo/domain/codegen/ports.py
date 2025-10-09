@@ -10,7 +10,7 @@ from .ir_builder_port import IRData
 class IRCachePort(Protocol):
     """Port for IR caching infrastructure."""
 
-    async def get(self, key: str) -> Optional[IRData]:
+    async def get(self, key: str) -> IRData | None:
         """Retrieve cached IR data by key.
 
         Args:
@@ -21,7 +21,7 @@ class IRCachePort(Protocol):
         """
         ...
 
-    async def set(self, key: str, data: IRData, ttl: Optional[int] = None) -> None:
+    async def set(self, key: str, data: IRData, ttl: int | None = None) -> None:
         """Store IR data in cache.
 
         Args:
@@ -59,7 +59,7 @@ class IRBuilderRegistryPort(Protocol):
         """
         ...
 
-    def get_builder(self, name: str) -> Optional[Any]:
+    def get_builder(self, name: str) -> Any | None:
         """Get a registered IR builder.
 
         Args:
@@ -94,7 +94,7 @@ class TemplateRendererPort(Protocol):
     """Port for template rendering infrastructure."""
 
     async def render(
-        self, template_name: str, context: dict[str, Any], template_string: Optional[str] = None
+        self, template_name: str, context: dict[str, Any], template_string: str | None = None
     ) -> str:
         """Render a template with the given context.
 

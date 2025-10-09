@@ -112,7 +112,7 @@ def test_imports():
 
 def run_test_diagram():
     """Run test diagram with staged imports."""
-    cmd = "dipeo run examples/simple_diagrams/test_cc --light --debug --simple --timeout=25"
+    cmd = "dipeo run examples/simple_diagrams/test_cc --light --simple --timeout=25"
 
     print("Running test diagram with staged code...")
     print(f"Command: {cmd}")

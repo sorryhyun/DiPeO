@@ -22,7 +22,6 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
     type: 'textarea',
     label: '"Input mapping"',
     required: false,
-    placeholder: '"{ \"targetVar\": \"sourceInput\" }"',
     description: '"Map node inputs to sub-diagram variables"',
   },
   {
@@ -30,7 +29,6 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
     type: 'textarea',
     label: '"Output mapping"',
     required: false,
-    placeholder: '"{ \"outputKey\": \"nodeId.field\" }"',
     description: '"Map sub-diagram outputs to node outputs"',
   },
   {
@@ -66,9 +64,9 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
     description: '"Create isolated conversation context for sub-diagram"',
   },
   {
-    name: 'ignoreIfSub',
+    name: 'ignore_if_sub',
     type: 'checkbox',
-    label: '"Ignoreifsub"',
+    label: '"Ignore if sub"',
     required: false,
     description: '"Skip execution if this diagram is being run as a sub-diagram"',
   },

@@ -2,17 +2,17 @@
 
 import asyncio
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import os
 from collections import deque
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 logger = get_module_logger(__name__)
+
 
 @dataclass
 class SubDiagramTask:
@@ -27,6 +27,7 @@ class SubDiagramTask:
     result: Envelope | None = None
     error: Exception | None = None
 
+
 class ParallelExecutionManager:
     """Manages parallel execution of sub-diagrams with configurable limits and queuing."""
 
@@ -39,25 +40,12 @@ class ParallelExecutionManager:
         """
         self.max_parallel = max_parallel or int(os.getenv("DIPEO_MAX_PARALLEL_SUBDIAGRAMS", "10"))
 
-        # Queue for tasks waiting to execute
         self.pending_queue: deque[SubDiagramTask] = deque()
-
-        # Currently executing tasks
         self.executing_tasks: dict[str, SubDiagramTask] = {}
-
-        # Completed tasks
         self.completed_tasks: list[SubDiagramTask] = []
-
-        # Failed tasks
         self.failed_tasks: list[SubDiagramTask] = []
-
-        # Execution semaphore
         self.semaphore = asyncio.Semaphore(self.max_parallel)
-
-        # Track if queue warning has been logged
-        self.queue_warning_logged = False
-
-        # Lock for thread-safe operations
+        self.queue_warning_logged = False  # Track if queue warning has been logged
         self.lock = asyncio.Lock()
 
         logger.info(f"Initialized ParallelExecutionManager with max_parallel={self.max_parallel}")
@@ -83,12 +71,9 @@ class ParallelExecutionManager:
         )
 
         async with self.lock:
-            # Check if we're at capacity
             if len(self.executing_tasks) >= self.max_parallel:
-                # Add to queue
                 self.pending_queue.append(task)
 
-                # Log warning if this is the first queued task
                 if not self.queue_warning_logged:
                     logger.warning(
                         f"Parallel execution limit ({self.max_parallel}) reached. "
@@ -102,21 +87,16 @@ class ParallelExecutionManager:
                         f"Queue size: {len(self.pending_queue)}"
                     )
             else:
-                # Execute immediately
                 await self._start_task(task)
 
         return task
 
     async def _start_task(self, task: SubDiagramTask) -> None:
-        """Start executing a task."""
         task.started_at = datetime.now(UTC)
         self.executing_tasks[task.node_id] = task
-
-        # Start execution in background
         task.task_handle = asyncio.create_task(self._execute_task(task))
 
     async def _execute_task(self, task: SubDiagramTask) -> None:
-        """Execute a task with semaphore control."""
         try:
             async with self.semaphore:
                 logger.debug(
@@ -124,7 +104,6 @@ class ParallelExecutionManager:
                     f"(node: {task.node_id})"
                 )
 
-                # Execute the sub-diagram
                 result = await task.executor_func()
 
                 task.result = result
@@ -148,17 +127,14 @@ class ParallelExecutionManager:
 
         finally:
             async with self.lock:
-                # Remove from executing
                 if task.node_id in self.executing_tasks:
                     del self.executing_tasks[task.node_id]
 
-                # Add to appropriate completed list
                 if task.error:
                     self.failed_tasks.append(task)
                 else:
                     self.completed_tasks.append(task)
 
-                # Process next queued task if any
                 if self.pending_queue:
                     next_task = self.pending_queue.popleft()
                     logger.info(
@@ -177,16 +153,13 @@ class ParallelExecutionManager:
         Returns:
             The task result envelope, or None if not found
         """
-        # Check if already completed
         for task in self.completed_tasks:
             if task.node_id == node_id:
                 return task.result
 
-        # Check if failed
         for task in self.failed_tasks:
             if task.node_id == node_id:
                 if task.error:
-                    # Return error envelope
                     return EnvelopeFactory.create(
                         body={"error": str(task.error)},
                         produced_by=node_id,
@@ -195,20 +168,16 @@ class ParallelExecutionManager:
                     )
                 return None
 
-        # Wait for completion
         while True:
             async with self.lock:
-                # Check if in queue
                 for task in self.pending_queue:
                     if task.node_id == node_id:
                         logger.debug(f"Task {node_id} is still queued")
                         break
 
-                # Check if executing
                 if node_id in self.executing_tasks:
                     logger.debug(f"Task {node_id} is executing")
 
-                # Check completed again
                 for task in self.completed_tasks:
                     if task.node_id == node_id:
                         return task.result
@@ -224,7 +193,6 @@ class ParallelExecutionManager:
                             )
                         return None
 
-            # Wait a bit before checking again
             await asyncio.sleep(0.1)
 
     async def wait_all(self) -> dict[str, Any]:
@@ -233,14 +201,12 @@ class ParallelExecutionManager:
         Returns:
             Dictionary mapping node_id to result envelope
         """
-        # Wait for all tasks to complete
         while True:
             async with self.lock:
                 if not self.pending_queue and not self.executing_tasks:
                     break
             await asyncio.sleep(0.1)
 
-        # Collect all results
         results = {}
 
         for task in self.completed_tasks:
@@ -282,7 +248,6 @@ class ParallelExecutionManager:
                 for task in self.failed_tasks
             ]
 
-        # Calculate timing statistics
         if self.completed_tasks or self.failed_tasks:
             all_tasks = self.completed_tasks + self.failed_tasks
             durations = [

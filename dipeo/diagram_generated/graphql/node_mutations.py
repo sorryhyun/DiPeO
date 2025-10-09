@@ -2,7 +2,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-10-03T21:25:07.527785
+Generated at: 2025-10-09T17:34:03.674273
 """
 
 import strawberry
@@ -136,19 +136,19 @@ class CreateCodeJobInput:
     
     
     
-    filePath: Optional[str] = None  # Path to code file
+    file_path: Optional[str] = None  # Path to code file
     
     
     
-    code: Optional[str] = None  # Inline code to execute (alternative to filePath)
+    code: Optional[str] = None  # Inline code to execute (alternative to file_path)
     
     
     
-    functionName: Optional[str] = None  # Function to execute
+    function_name: Optional[str] = None  # Function to execute
     
     
     
-    timeout: Optional[int] = None  # Execution timeout in seconds
+    timeout: Optional[int] = None  # Operation timeout in seconds
     
     
 
@@ -166,19 +166,19 @@ class UpdateCodeJobInput:
     
     
     
-    filePath: Optional[str] = None  # Path to code file
+    file_path: Optional[str] = None  # Path to code file
     
     
     
-    code: Optional[str] = None  # Inline code to execute (alternative to filePath)
+    code: Optional[str] = None  # Inline code to execute (alternative to file_path)
     
     
     
-    functionName: Optional[str] = None  # Function to execute
+    function_name: Optional[str] = None  # Function to execute
     
     
     
-    timeout: Optional[int] = None  # Execution timeout in seconds
+    timeout: Optional[int] = None  # Operation timeout in seconds
     
     
 
@@ -333,7 +333,8 @@ class CreateDbInput:
     
     
     
-    format: Optional[str] = None  # Data format (json, yaml, csv, text, etc.)
+    # Enum field: Data format (json, yaml, csv, text, etc.)
+    format: Optional[str] = None  # Values: ['json', 'yaml', 'csv', 'text', 'xml']
     
     
 
@@ -384,7 +385,8 @@ class UpdateDbInput:
     
     
     
-    format: Optional[str] = None  # Data format (json, yaml, csv, text, etc.)
+    # Enum field: Data format (json, yaml, csv, text, etc.)
+    format: Optional[str] = None  # Values: ['json', 'yaml', 'csv', 'text', 'xml']
     
     
 
@@ -819,7 +821,7 @@ class CreatePersonJobInput:
     # Node-specific fields from specification
     
     
-    person: Optional[str] = None  # AI person to use
+    person: Optional[str] = None  # AI person to use for this task
     
     
     
@@ -827,11 +829,11 @@ class CreatePersonJobInput:
     
     
     
-    first_prompt_file: Optional[str] = None  # External prompt file for first iteration only
+    first_prompt_file: Optional[str] = None  # Path to prompt file in /files/prompts/
     
     
     
-    default_prompt: Optional[str] = None  # Default prompt template
+    default_prompt: Optional[str] = None  # Prompt template
     
     
     
@@ -900,7 +902,7 @@ class UpdatePersonJobInput:
     # Node-specific fields from specification (all optional for updates)
     
     
-    person: Optional[str] = None  # AI person to use
+    person: Optional[str] = None  # AI person to use for this task
     
     
     
@@ -908,11 +910,11 @@ class UpdatePersonJobInput:
     
     
     
-    first_prompt_file: Optional[str] = None  # External prompt file for first iteration only
+    first_prompt_file: Optional[str] = None  # Path to prompt file in /files/prompts/
     
     
     
-    default_prompt: Optional[str] = None  # Default prompt template
+    default_prompt: Optional[str] = None  # Prompt template
     
     
     
@@ -1073,7 +1075,7 @@ class CreateSubDiagramInput:
     
     
     
-    ignoreIfSub: Optional[bool] = None  # Skip execution if this diagram is being run as a sub-diagram
+    ignore_if_sub: Optional[bool] = None  # Skip execution if this diagram is being run as a sub-diagram
     
     
     
@@ -1131,7 +1133,7 @@ class UpdateSubDiagramInput:
     
     
     
-    ignoreIfSub: Optional[bool] = None  # Skip execution if this diagram is being run as a sub-diagram
+    ignore_if_sub: Optional[bool] = None  # Skip execution if this diagram is being run as a sub-diagram
     
     
     
@@ -1238,29 +1240,29 @@ class CreateTypescriptAstInput:
     
     
     # Enum field: Patterns to extract from the AST
-    extractPatterns: Optional[str] = None  # Values: ['interface', 'type', 'enum', 'class', 'function', 'const', 'export']
+    extract_patterns: Optional[str] = None  # Values: ['interface', 'type', 'enum', 'class', 'function', 'const', 'export']
     
     
     
-    includeJSDoc: Optional[bool] = None  # Include JSDoc comments in the extracted data
+    include_jsdoc: Optional[bool] = None  # Include JSDoc comments in the extracted data
     
     
     
     # Enum field: TypeScript parsing mode
-    parseMode: Optional[str] = None  # Values: ['module', 'script']
+    parse_mode: Optional[str] = None  # Values: ['module', 'script']
     
     
     
-    transformEnums: Optional[bool] = None  # Transform enum definitions to a simpler format
+    transform_enums: Optional[bool] = None  # Transform enum definitions to a simpler format
     
     
     
-    flattenOutput: Optional[bool] = None  # Flatten the output structure for easier consumption
+    flatten_output: Optional[bool] = None  # Flatten the output structure for easier consumption
     
     
     
     # Enum field: Output format for the parsed data
-    outputFormat: Optional[str] = None  # Values: ['standard', 'for_codegen', 'for_analysis']
+    output_format: Optional[str] = None  # Values: ['standard', 'for_codegen', 'for_analysis']
     
     
     
@@ -1268,7 +1270,7 @@ class CreateTypescriptAstInput:
     
     
     
-    batchInputKey: Optional[str] = None  # Key to extract batch items from input
+    batch_input_key: Optional[str] = None  # Key to extract batch items from input
     
     
 
@@ -1286,29 +1288,29 @@ class UpdateTypescriptAstInput:
     
     
     # Enum field: Patterns to extract from the AST
-    extractPatterns: Optional[str] = None  # Values: ['interface', 'type', 'enum', 'class', 'function', 'const', 'export']
+    extract_patterns: Optional[str] = None  # Values: ['interface', 'type', 'enum', 'class', 'function', 'const', 'export']
     
     
     
-    includeJSDoc: Optional[bool] = None  # Include JSDoc comments in the extracted data
+    include_jsdoc: Optional[bool] = None  # Include JSDoc comments in the extracted data
     
     
     
     # Enum field: TypeScript parsing mode
-    parseMode: Optional[str] = None  # Values: ['module', 'script']
+    parse_mode: Optional[str] = None  # Values: ['module', 'script']
     
     
     
-    transformEnums: Optional[bool] = None  # Transform enum definitions to a simpler format
+    transform_enums: Optional[bool] = None  # Transform enum definitions to a simpler format
     
     
     
-    flattenOutput: Optional[bool] = None  # Flatten the output structure for easier consumption
+    flatten_output: Optional[bool] = None  # Flatten the output structure for easier consumption
     
     
     
     # Enum field: Output format for the parsed data
-    outputFormat: Optional[str] = None  # Values: ['standard', 'for_codegen', 'for_analysis']
+    output_format: Optional[str] = None  # Values: ['standard', 'for_codegen', 'for_analysis']
     
     
     
@@ -1316,7 +1318,7 @@ class UpdateTypescriptAstInput:
     
     
     
-    batchInputKey: Optional[str] = None  # Key to extract batch items from input
+    batch_input_key: Optional[str] = None  # Key to extract batch items from input
     
     
 
@@ -2149,6 +2151,108 @@ class NodeMutations:
         service = registry.resolve(PERSON_REPOSITORY)
         result = await service.handle_mutation("DeletePerson", variables)
 
+        
+
+        return result
+
+
+    @strawberry.mutation
+    async def execute_integration(
+        self,
+        info: Info,
+        
+        
+        input: ExecuteIntegrationInput
+        
+        
+    ) -> Any:  # Return type will be determined by the resolver
+        """ExecuteIntegration - Provider mutation"""
+        registry: ServiceRegistry = info.context["registry"]
+
+        # Build variables dict
+        variables = {
+            
+            
+            "input": input
+            
+            
+        }
+
+        # Determine service and execute mutation based on type
+        mutation_lower = "ExecuteIntegration".lower()
+
+        
+        # Default to DIAGRAM_PORT
+        service = registry.resolve(DIAGRAM_PORT)
+        result = await service.handle_mutation("ExecuteIntegration", variables)
+        
+
+        return result
+
+
+    @strawberry.mutation
+    async def test_integration(
+        self,
+        info: Info,
+        
+        
+        input: TestIntegrationInput
+        
+        
+    ) -> Any:  # Return type will be determined by the resolver
+        """TestIntegration - Provider mutation"""
+        registry: ServiceRegistry = info.context["registry"]
+
+        # Build variables dict
+        variables = {
+            
+            
+            "input": input
+            
+            
+        }
+
+        # Determine service and execute mutation based on type
+        mutation_lower = "TestIntegration".lower()
+
+        
+        # Default to DIAGRAM_PORT
+        service = registry.resolve(DIAGRAM_PORT)
+        result = await service.handle_mutation("TestIntegration", variables)
+        
+
+        return result
+
+
+    @strawberry.mutation
+    async def reload_provider(
+        self,
+        info: Info,
+        
+        
+        name: str
+        
+        
+    ) -> Any:  # Return type will be determined by the resolver
+        """ReloadProvider - Provider mutation"""
+        registry: ServiceRegistry = info.context["registry"]
+
+        # Build variables dict
+        variables = {
+            
+            
+            "name": name
+            
+            
+        }
+
+        # Determine service and execute mutation based on type
+        mutation_lower = "ReloadProvider".lower()
+
+        
+        # Default to DIAGRAM_PORT
+        service = registry.resolve(DIAGRAM_PORT)
+        result = await service.handle_mutation("ReloadProvider", variables)
         
 
         return result

@@ -3,8 +3,6 @@
 from typing import Optional
 
 from dipeo.domain.codegen.ir_builder_port import IRBuilderPort
-
-# Import new builders from the builders package
 from dipeo.infrastructure.codegen.ir_builders.builders import (
     BackendBuilder as BackendIRBuilder,
 )
@@ -26,7 +24,7 @@ class IRBuilderRegistry:
     }
 
     @classmethod
-    def get_builder(cls, builder_type: str, config_path: Optional[str] = None) -> IRBuilderPort:
+    def get_builder(cls, builder_type: str, config_path: str | None = None) -> IRBuilderPort:
         """Get IR builder instance by type.
 
         Args:
@@ -44,13 +42,9 @@ class IRBuilderRegistry:
             available = ", ".join(cls._builders.keys())
             raise ValueError(f"Unknown builder type: {builder_type}. Available: {available}")
 
-        # All new builders use consistent signatures - optional config_path string
-        # BackendBuilder(), FrontendBuilder(config_path=None), StrawberryBuilder(config_path=None)
         if builder_type == "backend":
-            # BackendBuilder doesn't use config_path
             return builder_class()
         else:
-            # Frontend and Strawberry builders take optional config_path
             return builder_class(config_path)
 
     @classmethod

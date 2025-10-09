@@ -31,54 +31,44 @@ def create_adapter(
     """
     provider = normalize_service_name(provider)
 
-    # Create config for all providers
     config = AdapterConfig(
-        provider_type=ProviderType.OPENAI,  # Will be overridden below
+        provider_type=ProviderType.OPENAI,
         model=model_name,
         api_key=api_key,
         base_url=base_url,
     )
 
-    # Return unified clients for all providers
     if provider == LLMServiceName.ANTHROPIC.value:
-        # Use unified Anthropic client directly
         from ..providers.anthropic.unified_client import UnifiedAnthropicClient
 
         config.provider_type = ProviderType.ANTHROPIC
         return UnifiedAnthropicClient(config)
 
     if provider == LLMServiceName.OPENAI.value:
-        # Use unified OpenAI client directly
         from ..providers.openai.unified_client import UnifiedOpenAIClient
 
         config.provider_type = ProviderType.OPENAI
         return UnifiedOpenAIClient(config)
 
     if provider == LLMServiceName.CLAUDE_CODE.value:
-        # Use unified Claude Code client directly
         from ..providers.claude_code.unified_client import UnifiedClaudeCodeClient
 
-        config.provider_type = ProviderType.ANTHROPIC  # Claude Code uses Anthropic provider type
+        config.provider_type = ProviderType.ANTHROPIC
         return UnifiedClaudeCodeClient(config)
 
     if provider == LLMServiceName.CLAUDE_CODE_CUSTOM.value:
-        # Use unified Claude Code Custom client with full system prompt override
         from ..providers.claude_code_custom.unified_client import UnifiedClaudeCodeCustomClient
 
-        config.provider_type = (
-            ProviderType.ANTHROPIC
-        )  # Claude Code Custom uses Anthropic provider type
+        config.provider_type = ProviderType.ANTHROPIC
         return UnifiedClaudeCodeCustomClient(config)
 
     if provider in [LLMServiceName.GOOGLE.value, LLMServiceName.GEMINI.value]:
-        # Use unified Google client directly
         from ..providers.google.unified_client import UnifiedGoogleClient
 
         config.provider_type = ProviderType.GOOGLE
         return UnifiedGoogleClient(config)
 
     if provider == LLMServiceName.OLLAMA.value:
-        # Use unified Ollama client directly
         from ..providers.ollama.unified_client import UnifiedOllamaClient
 
         config.provider_type = ProviderType.OLLAMA

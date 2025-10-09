@@ -1,7 +1,7 @@
 """
 Generated enum definitions for DiPeO.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-03T21:25:10.031278
+Generated at: 2025-10-09T17:34:06.659592
 """
 
 from enum import Enum
@@ -76,9 +76,13 @@ class DiagramFormat(str, Enum):
     
     NATIVE = "native"
     
-    LIGHT = "light"
+    YAML = "yaml"
+    
+    JSON = "json"
     
     READABLE = "readable"
+    
+    LIGHT = "light"
     
 
 
@@ -274,6 +278,21 @@ class DBBlockSubType(str, Enum):
     
 
 
+class DBOperation(str, Enum):
+    """"""
+    
+    PROMPT = "prompt"
+    
+    READ = "read"
+    
+    WRITE = "write"
+    
+    APPEND = "append"
+    
+    UPDATE = "update"
+    
+
+
 class SupportedLanguage(str, Enum):
     """"""
     
@@ -290,15 +309,15 @@ class SupportedLanguage(str, Enum):
 class HttpMethod(str, Enum):
     """"""
     
-    GET = "get"
+    GET = "GET"
     
-    POST = "post"
+    POST = "POST"
     
-    PUT = "put"
+    PUT = "PUT"
     
-    DELETE = "delete"
+    DELETE = "DELETE"
     
-    PATCH = "patch"
+    PATCH = "PATCH"
     
 
 
@@ -307,7 +326,7 @@ class HookType(str, Enum):
     
     SHELL = "shell"
     
-    WEBHOOK = "webhook"
+    HTTP = "http"
     
     PYTHON = "python"
     
@@ -345,6 +364,125 @@ class TemplateEngine(str, Enum):
     INTERNAL = "internal"
     
     JINJA2 = "jinja2"
+    
+
+
+class IRBuilderTargetType(str, Enum):
+    """"""
+    
+    BACKEND = "backend"
+    
+    FRONTEND = "frontend"
+    
+    STRAWBERRY = "strawberry"
+    
+    CUSTOM = "custom"
+    
+
+
+class IRBuilderSourceType(str, Enum):
+    """"""
+    
+    AST = "ast"
+    
+    SCHEMA = "schema"
+    
+    CONFIG = "config"
+    
+    AUTO = "auto"
+    
+
+
+class IRBuilderOutputFormat(str, Enum):
+    """"""
+    
+    JSON = "json"
+    
+    YAML = "yaml"
+    
+    PYTHON = "python"
+    
+
+
+class TypeScriptExtractPattern(str, Enum):
+    """"""
+    
+    INTERFACE = "interface"
+    
+    TYPE = "type"
+    
+    ENUM = "enum"
+    
+    CLASS = "class"
+    
+    FUNCTION = "function"
+    
+    CONST = "const"
+    
+    EXPORT = "export"
+    
+
+
+class TypeScriptParseMode(str, Enum):
+    """"""
+    
+    MODULE = "module"
+    
+    SCRIPT = "script"
+    
+
+
+class TypeScriptOutputFormat(str, Enum):
+    """"""
+    
+    STANDARD = "standard"
+    
+    FOR_CODEGEN = "for_codegen"
+    
+    FOR_ANALYSIS = "for_analysis"
+    
+
+
+class DiffFormat(str, Enum):
+    """"""
+    
+    UNIFIED = "unified"
+    
+    GIT = "git"
+    
+    CONTEXT = "context"
+    
+    ED = "ed"
+    
+    NORMAL = "normal"
+    
+
+
+class PatchMode(str, Enum):
+    """"""
+    
+    NORMAL = "normal"
+    
+    FORCE = "force"
+    
+    DRY_RUN = "dry_run"
+    
+    REVERSE = "reverse"
+    
+
+
+class DataFormat(str, Enum):
+    """"""
+    
+    JSON = "json"
+    
+    YAML = "yaml"
+    
+    CSV = "csv"
+    
+    TEXT = "text"
+    
+    XML = "xml"
     
 
 
@@ -486,6 +624,50 @@ class FieldGroup(str, Enum):
     
 
 
+class GraphQLScalar(str, Enum):
+    """"""
+    
+    ID = "ID"
+    
+    STRING = "String"
+    
+    INT = "Int"
+    
+    FLOAT = "Float"
+    
+    BOOLEAN = "Boolean"
+    
+    JSON = "JSON"
+    
+    DATE_TIME = "DateTime"
+    
+    UPLOAD = "Upload"
+    
+
+
+class DiPeOBrandedScalar(str, Enum):
+    """"""
+    
+    DIAGRAM_ID = "DiagramID"
+    
+    NODE_ID = "NodeID"
+    
+    ARROW_ID = "ArrowID"
+    
+    HANDLE_ID = "HandleID"
+    
+    PERSON_ID = "PersonID"
+    
+    API_KEY_ID = "ApiKeyID"
+    
+    EXECUTION_ID = "ExecutionID"
+    
+    TASK_ID = "TaskID"
+    
+    HOOK_ID = "HookID"
+    
+
+
 
 # Export all enums
 __all__ = [
@@ -524,6 +706,8 @@ __all__ = [
     
     "DBBlockSubType",
     
+    "DBOperation",
+    
     "SupportedLanguage",
     
     "HttpMethod",
@@ -535,6 +719,24 @@ __all__ = [
     "ConditionType",
     
     "TemplateEngine",
+    
+    "IRBuilderTargetType",
+    
+    "IRBuilderSourceType",
+    
+    "IRBuilderOutputFormat",
+    
+    "TypeScriptExtractPattern",
+    
+    "TypeScriptParseMode",
+    
+    "TypeScriptOutputFormat",
+    
+    "DiffFormat",
+    
+    "PatchMode",
+    
+    "DataFormat",
     
     "NodeType",
     
@@ -551,5 +753,9 @@ __all__ = [
     "FieldPreset",
     
     "FieldGroup",
+    
+    "GraphQLScalar",
+    
+    "DiPeOBrandedScalar",
     
 ]

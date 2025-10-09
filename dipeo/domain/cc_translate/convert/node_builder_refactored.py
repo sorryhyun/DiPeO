@@ -17,12 +17,10 @@ class NodeBuilder:
 
     def __init__(self):
         """Initialize the refactored node builder."""
-        # Create shared components
         self.person_registry = PersonRegistry()
         self.position_manager = PositionManager()
         self.payload_processor = PayloadProcessor()
 
-        # Create the factory with shared components
         self.factory = ToolNodeFactory(
             person_registry=self.person_registry,
             position_manager=self.position_manager,
@@ -40,9 +38,9 @@ class NodeBuilder:
         self.diff_generator = DiffGenerator()
 
     def reset(self):
+        """Reset the node builder state."""
         from .utils import TextProcessor
 
-        """Reset the node builder state."""
         self.factory.reset()
         self.node_counter = 0
         self.persons = {}
@@ -77,7 +75,7 @@ class NodeBuilder:
         """
         return self.factory.create_start_node(session_id, initial_prompt)
 
-    def create_user_node(self, content: str) -> Optional[dict[str, Any]]:
+    def create_user_node(self, content: str) -> dict[str, Any] | None:
         """Create a node for user input that Claude Code will respond to.
 
         Args:
@@ -89,8 +87,8 @@ class NodeBuilder:
         return self.factory.create_user_node(content)
 
     def create_assistant_node(
-        self, content: str, system_messages: Optional[list[str]] = None
-    ) -> Optional[dict[str, Any]]:
+        self, content: str, system_messages: list[str] | None = None
+    ) -> dict[str, Any] | None:
         """Handle AI assistant response.
 
         Args:
@@ -106,8 +104,8 @@ class NodeBuilder:
         self,
         tool_name: str,
         tool_input: dict[str, Any],
-        tool_use_result: Optional[dict[str, Any]] = None,
-    ) -> Optional[dict[str, Any]]:
+        tool_use_result: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """Create appropriate node based on tool name.
 
         Args:
@@ -118,9 +116,7 @@ class NodeBuilder:
         Returns:
             The created node or None if not applicable
         """
-        # Track the tool being used (for compatibility)
         self.text_processor.set_last_tool(tool_name)
-
         return self.factory.create_tool_node(tool_name, tool_input, tool_use_result)
 
     # Compatibility methods for direct access
@@ -129,24 +125,23 @@ class NodeBuilder:
         return self.factory.create_tool_node("Read", tool_input)
 
     def create_write_node(
-        self, tool_input: dict[str, Any], tool_use_result: Optional[dict[str, Any]] = None
+        self, tool_input: dict[str, Any], tool_use_result: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         """Create a DB node for file write operation."""
         return self.factory.create_tool_node("Write", tool_input, tool_use_result)
 
     def create_edit_node(
-        self, tool_name: str, tool_input: dict[str, Any], original_content: Optional[str] = None
+        self, tool_name: str, tool_input: dict[str, Any], original_content: str | None = None
     ) -> dict[str, Any]:
         """Create a diff_patch node for file edit operation."""
-        # For compatibility with original interface
         return self.factory.create_tool_node(tool_name, tool_input)
 
     def create_edit_node_with_result(
         self,
         tool_name: str,
         tool_input: dict[str, Any],
-        tool_use_result: Optional[dict[str, Any]] = None,
-    ) -> Optional[dict[str, Any]]:
+        tool_use_result: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """Create a diff_patch node using tool_use_result for better diff generation."""
         return self.factory.create_tool_node(tool_name, tool_input, tool_use_result)
 
@@ -185,7 +180,6 @@ class NodeBuilder:
         self.persons = self.factory.get_persons()
         return self.persons
 
-    # Property for backward compatibility
     @property
     def nodes(self) -> list[dict[str, Any]]:
         """Property for backward compatibility with direct nodes access."""

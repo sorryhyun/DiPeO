@@ -18,6 +18,7 @@ export const diffPatchFields: UnifiedFieldDefinition[] = [
     placeholder: '"--- a/file.txt\n+++ b/file.txt\n@@ -1,3 +1,3 @@\n line1\n-old line\n+new line\n line3"',
     description: '"Unified diff content to apply"',
     rows: 15,
+    adjustable: true,
   },
   {
     name: 'format',

@@ -2,15 +2,15 @@
 
 import asyncio
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.infrastructure.integrations.drivers.integrated_api.providers.base_provider import (
     BaseApiProvider,
 )
 
 logger = get_module_logger(__name__)
+
 
 class MCPTool:
     """Represents an MCP tool with its metadata and execution logic."""
@@ -52,6 +52,7 @@ class MCPTool:
         }
         expected_python_type = type_map.get(expected_type, str)
         return isinstance(value, expected_python_type)
+
 
 class MCPProvider(BaseApiProvider):
     """Provider for executing MCP (Model Context Protocol) tools.

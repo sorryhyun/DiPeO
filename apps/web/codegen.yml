@@ -21,6 +21,8 @@ generates:
         ApiKeyID: "@dipeo/models#ApiKeyID"
         ExecutionID: "@dipeo/models#ExecutionID"
         DiagramID: "@dipeo/models#DiagramID"
+        DateTime: string
+        JSON: Record<string, unknown>
       # Import enums from @dipeo/models
       enumsAsTypes: false
       enumValues:

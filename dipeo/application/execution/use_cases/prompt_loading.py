@@ -1,15 +1,15 @@
 """Use case for loading prompts from files or inline content."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import os
 from pathlib import Path
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.config.paths import BASE_DIR
 
 logger = get_module_logger(__name__)
+
 
 class PromptLoadingUseCase:
     """Centralized use case for loading prompts from various sources.

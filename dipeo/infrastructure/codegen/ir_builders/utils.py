@@ -11,7 +11,6 @@ import yaml
 
 from dipeo.infrastructure.codegen.ir_builders.type_system_unified import UnifiedTypeConverter
 
-
 # ============================================================================
 # CASE CONVERSION UTILITIES
 # ============================================================================
@@ -72,7 +71,7 @@ pascal_to_camel = camel_case
 
 
 def extract_constants_from_ast(
-    ast_data: dict[str, Any], pattern: Optional[str] = None
+    ast_data: dict[str, Any], pattern: str | None = None
 ) -> list[dict[str, Any]]:
     """Extract constants from TypeScript AST data.
 
@@ -92,7 +91,7 @@ def extract_constants_from_ast(
 
 
 def extract_interfaces_from_ast(
-    ast_data: dict[str, Any], suffix: Optional[str] = None
+    ast_data: dict[str, Any], suffix: str | None = None
 ) -> list[dict[str, Any]]:
     """Extract interfaces from TypeScript AST data.
 
@@ -182,7 +181,7 @@ def extract_branded_scalars_from_ast(ast_data: dict[str, Any]) -> list[dict[str,
 
 
 def process_field_definition(
-    field: dict[str, Any], type_converter: Optional[UnifiedTypeConverter] = None
+    field: dict[str, Any], type_converter: UnifiedTypeConverter | None = None
 ) -> dict[str, Any]:
     """Process a field definition from TypeScript AST.
 

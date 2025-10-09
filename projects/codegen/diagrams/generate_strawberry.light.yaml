@@ -8,6 +8,7 @@ nodes:
     type: start
     position: {x: 50, y: 400}
     props:
+      trigger_mode: none
       custom_data:
         message: Starting unified strawberry generation
 

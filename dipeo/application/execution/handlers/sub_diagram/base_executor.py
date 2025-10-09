@@ -1,29 +1,28 @@
 """Base executor for sub-diagram execution with common functionality."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import uuid
 from typing import TYPE_CHECKING, Any
+
+from dipeo.config.base_logger import get_module_logger
 
 if TYPE_CHECKING:
     from dipeo.diagram_generated.unified_nodes.sub_diagram_node import SubDiagramNode
 
 logger = get_module_logger(__name__)
 
+
 class BaseSubDiagramExecutor:
     """Base class for sub-diagram executors with common functionality."""
 
     def __init__(self):
-        """Initialize base executor."""
-        # Services that may be used by subclasses
         self._state_store = None
         self._message_router = None
         self._diagram_service = None
         self._prepare_use_case = None
-        # Use case for diagram loading (will be resolved from registry)
-        self._load_diagram_use_case = None
+        self._load_diagram_use_case = None  # Resolved from registry when available
         self._service_registry = None
+        self._event_bus = None
 
     def set_services(self, **kwargs):
         """Set services for the executor to use.
@@ -35,8 +34,8 @@ class BaseSubDiagramExecutor:
         self._diagram_service = kwargs.get("diagram_service")
         self._prepare_use_case = kwargs.get("prepare_use_case")
         self._service_registry = kwargs.get("service_registry")
+        self._event_bus = kwargs.get("event_bus")
 
-        # Resolve LoadDiagramUseCase from registry if available
         if self._service_registry and not self._load_diagram_use_case:
             from dipeo.application.registry.keys import LOAD_DIAGRAM_USE_CASE
 
@@ -55,7 +54,6 @@ class BaseSubDiagramExecutor:
             The constructed file path for the diagram
         """
         if not self._load_diagram_use_case:
-            # Fallback to simple path construction if use case not available
             format_map = {
                 "light": ".light.yaml",
                 "native": ".native.json",
@@ -64,7 +62,6 @@ class BaseSubDiagramExecutor:
             format_suffix = format_map.get(node.diagram_format or "light", ".light.yaml")
             return f"examples/{node.diagram_name}{format_suffix}"
 
-        # Use LoadDiagramUseCase's construct_diagram_path method
         return self._load_diagram_use_case.construct_diagram_path(
             node.diagram_name, node.diagram_format
         )
@@ -83,17 +80,13 @@ class BaseSubDiagramExecutor:
         Returns:
             The processed output value
         """
-        # First check for endpoint outputs
         endpoint_outputs = self._find_endpoint_outputs(execution_results)
 
         if endpoint_outputs:
-            # If there's exactly one endpoint, return its value
             if len(endpoint_outputs) == 1:
                 return next(iter(endpoint_outputs.values()))
-            # Otherwise return all endpoint outputs
             return endpoint_outputs
 
-        # Fall back to last output
         if execution_results:
             last_key = max(execution_results.keys())
             return execution_results.get(last_key)
@@ -127,7 +120,6 @@ class BaseSubDiagramExecutor:
         if not self._load_diagram_use_case:
             raise ValueError("LoadDiagramUseCase not available")
 
-        # Only pass diagram_data if it's not None and not empty
         diagram_data = node.diagram_data if node.diagram_data and node.diagram_data != {} else None
 
         return await self._load_diagram_use_case.load_diagram(

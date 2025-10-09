@@ -5,6 +5,8 @@ Auto-generated from TypeScript interfaces using simplified type resolver.
 Generated at: {{ generated_at }}
 """
 
+from __future__ import annotations
+
 import strawberry
 from typing import Optional, Dict, Any, List, Union, Literal
 from strawberry.scalars import JSON as JSONScalar
@@ -13,11 +15,8 @@ from dipeo.domain.type_defs import JsonValue, JsonDict
 
 # Import the Pydantic domain models
 from ..domain_models import (
-{%- for type in types %}
-    {{ type['name'] }},
-{%- endfor %}
     PersonID, PersonLLMConfig, DiagramID, ToolResult,
-    ExecutionState, NodeState,
+    ExecutionState, NodeState, ParseResult, LLMUsage
 )
 
 # Import required enums for GraphQL type resolution

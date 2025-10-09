@@ -1,10 +1,9 @@
 """Evaluator for checking if specific nodes have been executed."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.unified_nodes.condition_node import ConditionNode
 from dipeo.domain.execution.execution_context import ExecutionContext
 
@@ -12,6 +11,7 @@ from .base import BaseConditionEvaluator, EvaluationResult
 from .expression_evaluator import ConditionEvaluator as EvaluationService
 
 logger = get_module_logger(__name__)
+
 
 class NodesExecutedEvaluator(BaseConditionEvaluator):
     """Evaluates whether specific nodes have been executed."""
@@ -22,7 +22,6 @@ class NodesExecutedEvaluator(BaseConditionEvaluator):
     async def evaluate(
         self, node: ConditionNode, context: ExecutionContext, inputs: dict[str, Any]
     ) -> EvaluationResult:
-        """Check if target nodes have been executed."""
         target_nodes = node.node_indices or []
 
         if not target_nodes:
@@ -32,18 +31,14 @@ class NodesExecutedEvaluator(BaseConditionEvaluator):
                 output_data=inputs if inputs else {},
             )
 
-        # Build node_outputs dict from context
         node_outputs = self.extract_node_outputs(context)
 
-        # Check if nodes have been executed
         result = self._evaluation_service.check_nodes_executed(
             target_node_ids=target_nodes, node_outputs=node_outputs
         )
 
-        # Pass through inputs directly without wrapping
         output_data = inputs if inputs else {}
 
-        # Include exposed loop index in output data
         if (
             hasattr(node, "expose_index_as")
             and node.expose_index_as

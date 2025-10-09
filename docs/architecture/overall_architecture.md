@@ -16,17 +16,67 @@ DiPeO is an open-source platform that lets developers **design, run and monitor 
 
 ---
 
-## 2. High-level architecture
+## 2. Applications Overview
+
+DiPeO consists of three main applications that work together to provide a complete visual workflow platform:
+
+### Server (Backend API) - `apps/server`
+
+FastAPI server providing GraphQL and REST endpoints for diagram execution.
+
+**Architecture**:
+- **API Layer** (`src/dipeo_server/api/`): FastAPI/GraphQL adapters
+- **Infrastructure** (`src/dipeo_server/infra/`): State management, caching
+- **Container** (`app_context.py`): Dependency injection configuration
+- **Entry Point**: `main.py` - FastAPI + Strawberry GraphQL server
+
+**Key Features**:
+- **GraphQL API**: Strawberry-based with subscriptions at `/graphql`
+- **SSE Streaming**: Real-time updates via `/sse/executions/{id}`
+- **State Management**: SQLite persistence + in-memory cache
+- **Multi-worker**: Hypercorn support with `WORKERS=4 python main.py`
+
+**Environment Variables**:
+- `PORT`: Server port (default: 8000)
+- `WORKERS`: Worker processes (default: 4)
+- `STATE_STORE_PATH`: SQLite database path
+- `LOG_LEVEL`: INFO/DEBUG
+
+### Web (Frontend) - `apps/web`
+
+React-based visual diagram editor. See @docs/agents/frontend-development.md for detailed technical reference.
+
+**Tech Stack**: React 19, XYFlow, Apollo Client, Zustand, TailwindCSS
+**Port**: 3000 (development)
+
+### CLI - `apps/server/src/dipeo_server/cli/`
+
+Command-line tool integrated into the server package.
+
+**Key Components**:
+- **Server Manager**: Automatic backend lifecycle management
+- **Display System**: Rich terminal UI with GraphQL subscriptions
+- **Commands**: run, ask, claude_code (dipeocc), integrations, convert, metrics
+
+**Usage**:
+```bash
+dipeo run examples/simple_diagrams/simple_iter --light --debug --timeout=40
+dipeo metrics --latest --breakdown
+```
+
+---
+
+## 3. High-level architecture
 
 | Layer                        | Purpose                                      | Key tech                                                                                                            |
 | ---------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Front-end**<br>`apps/web`  | Drag-and-drop diagram editor, run monitor    | *React 19*, Vite, @xyflow/react, Apollo Client + `graphql-ws`, TRPC, Zustand, TanStack Query, React-Hook-Form, TailwindCSS |
+| **Front-end**<br>`apps/web`  | Drag-and-drop diagram editor, run monitor    | *React 19*, Vite, @xyflow/react, Apollo Client + `graphql-ws`, TRPC (utilities only), Zustand, TanStack Query, TailwindCSS |
 | **Backend**<br>`apps/server` | Exposes GraphQL API, orchestrates runs, CLI  | *Python 3.13*, FastAPI, Strawberry GraphQL, GraphQL subscriptions, Hypercorn, Pydantic v2, CLI tools               |
 | **Core library**<br>`dipeo/` | Domain models, execution engine, memory      | Event-driven architecture, async runtime, Pydantic, DI service registry                                             |
 
 ---
 
-## 3. Dependency-injection containers
+## 4. Dependency-injection containers
 
 ```text
 Top-level Container
@@ -57,7 +107,7 @@ All three share a single **ServiceRegistry**, making service resolution explicit
 
 ---
 
-## 4. Code-generation pipeline
+## 5. Code-generation pipeline
 
 1. **Define** nodes in TypeScript specs (`*.spec.ts`).
 2. **Generate** → staged Pydantic models, JSON schemas & node handlers (`/dipeo/diagram_generated_staged/`).
@@ -69,7 +119,7 @@ All three share a single **ServiceRegistry**, making service resolution explicit
 
 ---
 
-## 5. Memory & conversation model
+## 6. Memory & conversation model
 
 * Every message goes into a **global, immutable conversation log**.
 * Each *person* (LLM instance) views that log through **filters** such as `ALL_INVOLVED`, `SENT_BY_ME`, `CONVERSATION_PAIRS`, `ALL_MESSAGES`, combined with sliding-window limits.
@@ -81,7 +131,7 @@ All three share a single **ServiceRegistry**, making service resolution explicit
 
 ---
 
-## 6. Node Handler System
+## 7. Node Handler System
 
 DiPeO uses a type-safe, handler-based architecture for executing different node types:
 
@@ -130,13 +180,6 @@ class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
         # Post-processing hook (logging, metrics, etc.)
 ```
 
-### Auto-Registration
-
-Handlers are automatically discovered and registered at startup:
-- `@register_handler` decorator marks handler classes
-- `auto_register.py` scans the handlers directory
-- No manual registration needed - just add new handler files
-- Supports both single-file handlers and handler packages
 
 ### Handler Execution Flow
 
@@ -154,8 +197,8 @@ Envelopes are typed data containers that flow between nodes:
 - **Structure**: `{body, content_type, produced_by, trace_id, metadata}`
 - **Content Types**: `raw_text`, `object` (JSON), `conversation_state`, `error`
 - **Purpose**: Type-safe data passing with provenance tracking
-- **Factory**: `EnvelopeFactory.create()` with auto-detection (deprecates `.text()`, `.json()`, `.error()` methods)
-- **Migration Complete**: All NodeOutput references migrated to Envelope pattern (`SerializedNodeOutput` is now an alias for `SerializedEnvelope`)
+- **Factory**: `EnvelopeFactory.create()` with auto-detection
+- **Unified Pattern**: All node outputs use the Envelope pattern (`SerializedNodeOutput` is an alias for `SerializedEnvelope`)
 
 ### Key Handler Examples
 
@@ -173,7 +216,7 @@ Handlers follow clean architecture principles:
 - **Application layer** orchestrates between domain and infrastructure
 - Handlers never directly call external services - always through injected dependencies
 
-## 7. Execution flow (simplified)
+## 8. Execution flow (simplified)
 
 ```mermaid
 sequenceDiagram
@@ -198,7 +241,7 @@ sequenceDiagram
 
 ---
 
-## 8. Tech-stack cheat-sheet
+## 9. Tech-stack cheat-sheet
 
 | Area             | Tools / libs                                                                                                               |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -213,7 +256,7 @@ sequenceDiagram
 
 ---
 
-## 9. Running & deploying
+## 10. Running & deploying
 
 ### Local development
 
@@ -237,13 +280,20 @@ make dev-all
 
 For standalone Windows installations, use PyInstaller to create `.exe` files from the server and web components. The installer (NSIS) bundles these executables for distribution.
 
+### Execution Configuration
+
+Execution performance is controlled through `/dipeo/config/execution.py`:
+- `ENGINE_MAX_CONCURRENT` - Maximum concurrent node executions (default: 20)
+- `BATCH_MAX_CONCURRENT` - Maximum concurrent batch executions (default: 10)
+- `SUB_DIAGRAM_MAX_CONCURRENT` - Maximum concurrent sub-diagram executions (default: 10)
+
 ---
 
-## 10. Event-Driven Architecture
+## 11. Event-Driven Architecture
 
 The system uses a fully event-driven architecture for execution and monitoring:
 
-* **Unified EventBus Protocol** – Consolidates DomainEventBus, EventEmitter, EventConsumer, and MessageBus into a single interface
+* **Unified EventBus Protocol** – Consolidates DomainEventBus, EventEmitter, EventConsumer, and MessageBus into a single interface (implemented by InMemoryEventBus)
 * **CacheFirstStateStore** – Cache-first state persistence with Phase 4 optimizations, implements protocol directly (no adapter layer)
 * **GraphQL Subscriptions** – Real-time updates to UI (replaced SSE)
 * **No Global Locks** – Per-execution isolation enables true parallel execution
@@ -257,48 +307,45 @@ This architecture enables:
 - Asynchronous state persistence
 - Simplified service registration with unified protocols
 
+### Performance Optimizations
+
+- **Template Caching**: PromptBuilder caches rendered templates with 1000 entry limit for 90%+ hit rates
+- **Edge Map Pre-fetching**: Scheduler pre-fetches incoming edges to eliminate N+1 query patterns
+- **Async I/O**: All file operations use async patterns (aiofiles) for non-blocking execution
+- **Configurable Concurrency**: Adjustable parallelism via `ENGINE_MAX_CONCURRENT` setting
+
 ---
 
 ## 11. GraphQL Layer Architecture
 
 ### GraphQL Architecture
 
-The GraphQL layer provides a production-ready architecture:
+The GraphQL layer provides a production-ready architecture with 50 operations (25 queries, 24 mutations, 1 subscription):
 
-- **45 operations** with full GraphQL query strings as constants (23 queries, 21 mutations, 1 subscription)
-- **Type-safe operation classes** with proper TypedDict for variables and automatic Strawberry input conversion
-- **Well-structured resolver implementations** following consistent patterns with ServiceRegistry dependency injection
-- **Clean 3-tier architecture** separating generated code, application logic, and execution layer
-- **Comprehensive type safety** throughout the entire stack
-
-### Architecture Overview
-
-The GraphQL layer uses a clean 3-tier architecture:
-
+**3-Tier Architecture**:
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Generated Layer                         │
-│  /dipeo/diagram_generated/graphql/ (Automated from TypeScript) │
+│ Generated Layer: operations.py, inputs, results, types          │
+│ /dipeo/diagram_generated/graphql/ (TypeScript → Python)         │
 ├─────────────────────────────────────────────────────────────────┤
-│                      Application Layer                         │
-│  /dipeo/application/graphql/ (Manual Business Logic)           │
+│ Application Layer: Direct service access resolvers              │
+│ /dipeo/application/graphql/ (schema/, resolvers/)               │
 ├─────────────────────────────────────────────────────────────────┤
-│                      Execution Layer                           │
-│  OperationExecutor (Runtime mapping and validation)            │
+│ Execution Layer: OperationExecutor with auto-discovery          │
+│ Convention-based mapping, validation, module caching            │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Key Components
+**Key Features**:
+- **Direct Service Access**: Resolvers use ServiceRegistry directly (no class wrappers)
+- **Auto-discovery**: Convention-based resolver mapping (CamelCase → snake_case)
+- **Type Safety**: TypedDict validation and result type checking
+- **Performance**: Module caching, pre-compiled queries (353-line executor)
+- **Single Pattern**: Consistent `async def resolver(registry, **kwargs)` signature
 
-- **Generated Layer**: `/dipeo/diagram_generated/graphql/operations.py` - All 45 operations with complete GraphQL query strings and typed operation classes
-- **Application Layer**: `/dipeo/application/graphql/` - Resolver implementations following consistent patterns with ServiceRegistry integration
-- **Execution Layer**: `OperationExecutor` - Type-safe mapping between operations and resolvers with validation
-
-### Integration Benefits
-
-- **Event System**: GraphQL subscriptions use the unified EventBus for real-time updates
-- **Envelope System**: All resolvers work with DiPeO's standardized Envelope data flow
-- **Service Registry**: Clean dependency injection throughout all GraphQL resolvers
-- **Type Safety**: Full TypeScript-to-Python type safety across the entire stack
+**Integration**:
+- EventBus for GraphQL subscriptions
+- Envelope pattern for resolver outputs
+- ServiceRegistry for dependency injection
 
 For detailed documentation, see [GraphQL Layer Architecture](graphql-layer.md).

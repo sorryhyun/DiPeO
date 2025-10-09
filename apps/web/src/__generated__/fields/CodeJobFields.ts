@@ -19,9 +19,9 @@ export const codeJobFields: UnifiedFieldDefinition[] = [
     },
   },
   {
-    name: 'filePath',
+    name: 'file_path',
     type: 'text',
-    label: '"Filepath"',
+    label: '"File path"',
     required: false,
     placeholder: '"/path/to/file"',
     description: '"Path to code file"',
@@ -31,14 +31,14 @@ export const codeJobFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: '"Code"',
     required: false,
-    description: '"Inline code to execute (alternative to filePath)"',
+    description: '"Inline code to execute (alternative to file_path)"',
     rows: 10,
     adjustable: true,
   },
   {
-    name: 'functionName',
+    name: 'function_name',
     type: 'text',
-    label: '"Functionname"',
+    label: '"Function name"',
     required: false,
     description: '"Function to execute"',
   },
@@ -47,8 +47,17 @@ export const codeJobFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: '"Timeout"',
     required: false,
-    description: '"Execution timeout in seconds"',
+    description: '"Operation timeout in seconds"',
     min: 0,
     max: 3600,
+    validate: (value: unknown) => {
+      if (typeof value === 'number' && value < 0) {
+        return { isValid: false, error: 'Value must be at least 0' };
+      }
+      if (typeof value === 'number' && value > 3600) {
+        return { isValid: false, error: 'Value must be at most 3600' };
+      }
+      return { isValid: true };
+    },
   },
 ];

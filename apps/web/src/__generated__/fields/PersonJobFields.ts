@@ -7,7 +7,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: '"Person"',
     required: false,
-    description: '"AI person to use"',
+    description: '"AI person to use for this task"',
   },
   {
     name: 'first_only_prompt',
@@ -26,8 +26,8 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     type: 'text',
     label: '"First prompt file"',
     required: false,
-    placeholder: '"example_first.txt"',
-    description: '"External prompt file for first iteration only"',
+    placeholder: '"example.txt"',
+    description: '"Path to prompt file in /files/prompts/"',
     column: 2,
   },
   {
@@ -36,7 +36,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     label: '"Default prompt"',
     required: false,
     placeholder: '"Enter prompt template..."',
-    description: '"Default prompt template"',
+    description: '"Prompt template"',
     rows: 10,
     column: 2,
     adjustable: true,
@@ -58,6 +58,12 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     required: true,
     description: '"Maximum execution iterations"',
     min: 1,
+    validate: (value: unknown) => {
+      if (typeof value === 'number' && value < 1) {
+        return { isValid: false, error: 'Value must be at least 1' };
+      }
+      return { isValid: true };
+    },
   },
   {
     name: 'memorize_to',
@@ -117,7 +123,6 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     placeholder: '"{\"type\": \"object\", \"properties\": {...}}"',
     description: '"JSON schema or response format for structured outputs"',
     rows: 6,
-    column: 2,
     adjustable: true,
   },
   {
@@ -136,7 +141,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     required: false,
     description: '"Pre-resolved prompt content from compile-time"',
     rows: 4,
-    column: 2,
+    adjustable: true,
   },
   {
     name: 'resolved_first_prompt',
@@ -145,7 +150,7 @@ export const personJobFields: UnifiedFieldDefinition[] = [
     required: false,
     description: '"Pre-resolved first prompt content from compile-time"',
     rows: 4,
-    column: 2,
+    adjustable: true,
   },
   {
     name: 'batch',

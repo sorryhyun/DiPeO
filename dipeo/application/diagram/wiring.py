@@ -1,8 +1,6 @@
 """Wiring module for diagram bounded context."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -14,18 +12,19 @@ from dipeo.application.registry.keys import (
     COMPILE_DIAGRAM_USE_CASE,
     DIAGRAM_COMPILER,
     DIAGRAM_PORT,
-    DIAGRAM_RESOLVER,
     DIAGRAM_SERIALIZER,
     LOAD_DIAGRAM_USE_CASE,
     SERIALIZE_DIAGRAM_USE_CASE,
     TRANSFORMATION_ENGINE,
     VALIDATE_DIAGRAM_USE_CASE,
 )
+from dipeo.config.base_logger import get_module_logger
 
 if TYPE_CHECKING:
     pass
 
 logger = get_module_logger(__name__)
+
 
 def wire_diagram(registry: ServiceRegistry) -> None:
     """Wire diagram bounded context services and use cases.
@@ -36,14 +35,13 @@ def wire_diagram(registry: ServiceRegistry) -> None:
     - Compile-time resolver
     - Runtime resolver
     - Transformation engine
-    - GraphQL resolvers
     """
     wire_diagram_compiler(registry)
     wire_diagram_serializer(registry)
     wire_resolution_services(registry)
     wire_diagram_port(registry)
     wire_diagram_use_cases(registry)
-    wire_diagram_resolvers(registry)
+
 
 def wire_diagram_use_cases(registry: ServiceRegistry) -> None:
     """Wire diagram-specific use cases.
@@ -87,14 +85,6 @@ def wire_diagram_use_cases(registry: ServiceRegistry) -> None:
 
     registry.register(LOAD_DIAGRAM_USE_CASE, create_load_diagram)
 
-def wire_diagram_resolvers(registry: ServiceRegistry) -> None:
-    """Wire GraphQL resolvers for diagram context."""
-    from dipeo.application.graphql.resolvers.diagram import DiagramResolver
-
-    def create_diagram_resolver() -> DiagramResolver:
-        return DiagramResolver(registry)
-
-    registry.register(DIAGRAM_RESOLVER, create_diagram_resolver)
 
 def wire_diagram_compiler(registry: ServiceRegistry) -> None:
     """Wire diagram compiler.
@@ -121,6 +111,7 @@ def wire_diagram_compiler(registry: ServiceRegistry) -> None:
 
     registry.register(DIAGRAM_COMPILER, compiler)
 
+
 def wire_diagram_serializer(registry: ServiceRegistry) -> None:
     """Wire diagram serializer.
 
@@ -140,6 +131,7 @@ def wire_diagram_serializer(registry: ServiceRegistry) -> None:
 
     registry.register(DIAGRAM_SERIALIZER, serializer)
 
+
 def wire_resolution_services(registry: ServiceRegistry) -> None:
     """Wire input resolution services.
 
@@ -150,6 +142,7 @@ def wire_resolution_services(registry: ServiceRegistry) -> None:
 
     transform_engine = StandardTransformationEngine()
     registry.register(TRANSFORMATION_ENGINE, transform_engine)
+
 
 def wire_diagram_port(registry: ServiceRegistry) -> None:
     """Wire the unified diagram port.
@@ -190,9 +183,11 @@ def wire_diagram_port(registry: ServiceRegistry) -> None:
 
     registry.register(DIAGRAM_PORT, diagram_service)
 
+
 def wire_diagram_services(registry: ServiceRegistry) -> None:
     """Wire all diagram-related services (backward compatibility)."""
     wire_diagram(registry)
+
 
 def is_diagram_v2_enabled():
     """Check if diagram V2 is enabled (always True)."""

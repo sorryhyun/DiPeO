@@ -8,6 +8,7 @@ nodes:
     type: start
     position: {x: 50, y: 400}
     props:
+      trigger_mode: none
       custom_data:
         message: Starting simplified frontend code generation
 
@@ -58,11 +59,10 @@ nodes:
     props:
       language: python
       code: |
-        # Extract node configs for batch processing
-        # Just pass the node_spec_path for the sub_diagram to load AST
-        node_configs = inputs['default'].get('node_configs', [])
+
         batch_items = []
-        for config in node_configs:
+        for config in node_configs['node_configs']:
+
             node_type = config.get('node_type', '')
             # Convert snake_case to kebab-case for file names
             file_name = node_type.replace('_', '-')
@@ -71,7 +71,7 @@ nodes:
             batch_items.append({
                 'node_spec_path': file_name
             })
-        return {'items': batch_items}
+        result = {'items': batch_items}
 
   # Generate frontend components using batch sub_diagram
   - label: Batch Generate Frontend
@@ -163,7 +163,7 @@ connections:
   - {from: Build Frontend IR, to: Save Frontend IR, content_type: object}
 
   # Prepare batch data from IR
-  - {from: Build Frontend IR, to: Prepare Batch Data, content_type: object}
+  - {from: Build Frontend IR, to: Prepare Batch Data, content_type: object, label: node_configs}
 
   # Batch processing for components
   - {from: Prepare Batch Data, to: Batch Generate Frontend, content_type: object}

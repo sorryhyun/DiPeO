@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from dipeo.domain.codegen.ir_builder_port import IRData
+
 from .base import BaseValidator, ValidationResult
 
 

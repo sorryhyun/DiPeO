@@ -77,7 +77,7 @@ class SessionAdapter:
 
         return self._domain_session
 
-    def _convert_event(self, infra_event) -> Optional[DomainEvent]:
+    def _convert_event(self, infra_event) -> DomainEvent | None:
         """Convert infrastructure event to domain event.
 
         Args:
@@ -265,12 +265,12 @@ class SessionAdapter:
         return self.to_domain_session().metadata
 
     @property
-    def start_time(self) -> Optional[datetime]:
+    def start_time(self) -> datetime | None:
         """Get session start time."""
         return self.to_domain_session().metadata.start_time
 
     @property
-    def end_time(self) -> Optional[datetime]:
+    def end_time(self) -> datetime | None:
         """Get session end time."""
         return self.to_domain_session().metadata.end_time
 

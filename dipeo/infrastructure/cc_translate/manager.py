@@ -46,7 +46,7 @@ class ClaudeCodeManager:
     including discovery, conversion to DiPeO diagrams, and session monitoring.
     """
 
-    def __init__(self, session_dir: Optional[Path] = None):
+    def __init__(self, session_dir: Path | None = None):
         """Initialize the ClaudeCodeManager.
 
         Args:
@@ -64,7 +64,6 @@ class ClaudeCodeManager:
         Returns:
             Path to the session directory
         """
-        # Check common locations
         default_locations = [
             Path.home() / ".claude" / "projects",
             Path.home() / ".claude" / "sessions",
@@ -163,7 +162,7 @@ class ClaudeCodeManager:
     def convert_session(
         self,
         session_id: str,
-        output_dir: Optional[str] = None,
+        output_dir: str | None = None,
         format_type: str = "light",
     ) -> bool:
         """Convert a Claude Code session to a DiPeO diagram.
@@ -295,7 +294,7 @@ class ClaudeCodeManager:
     async def watch_sessions(
         self,
         interval: int = 30,
-        output_dir: Optional[str] = None,
+        output_dir: str | None = None,
         format_type: str = "light",
     ) -> bool:
         """Watch for new sessions and automatically convert them.

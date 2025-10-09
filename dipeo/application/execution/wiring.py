@@ -1,8 +1,6 @@
 """Wiring module for execution bounded context."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from typing import TYPE_CHECKING
 
 from dipeo.application.registry.enhanced_service_registry import (
@@ -16,11 +14,13 @@ from dipeo.application.registry.keys import (
     PERSON_REPOSITORY,
     PREPARE_DIAGRAM_USE_CASE,
 )
+from dipeo.config.base_logger import get_module_logger
 
 if TYPE_CHECKING:
     pass
 
 logger = get_module_logger(__name__)
+
 
 def wire_execution(registry: ServiceRegistry) -> None:
     """Wire execution bounded context services and use cases.

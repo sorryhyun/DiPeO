@@ -215,7 +215,7 @@ class GenerateZodSchemasStep(BuildStep):
                 zod_type = f"{zod_type}.max({validation['maxLength']})"
             if "pattern" in validation:
                 pattern = validation["pattern"].replace("\\", "\\\\").replace('"', '\\"')
-                zod_type = f'{zod_type}.regex(/{pattern}/)'
+                zod_type = f"{zod_type}.regex(/{pattern}/)"
             if "format" in validation:
                 fmt = validation["format"]
                 if fmt == "email":
@@ -231,7 +231,7 @@ class GenerateZodSchemasStep(BuildStep):
                 zod_type = f"{zod_type}.min({validation['min']})"
             if "max" in validation:
                 zod_type = f"{zod_type}.max({validation['max']})"
-            if "integer" in validation and validation["integer"]:
+            if validation.get("integer"):
                 zod_type = f"{zod_type}.int()"
 
         # Array validation
@@ -270,7 +270,7 @@ class GenerateZodSchemasStep(BuildStep):
                 for v in values:
                     if isinstance(v, str):
                         literals.append(f'z.literal("{v}")')
-                    elif isinstance(v, (int, float)):
+                    elif isinstance(v, int | float):
                         literals.append(f"z.literal({v})")
                     elif isinstance(v, bool):
                         literals.append(f"z.literal({str(v).lower()})")

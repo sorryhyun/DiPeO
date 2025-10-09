@@ -20,41 +20,13 @@ class CodeExecutor(Protocol):
     async def execute_file(
         self, file_path: Path, inputs: dict[str, Any], timeout: int, function_name: str = "main"
     ) -> Any:
-        """Execute code from a file.
-
-        Args:
-            file_path: Path to the code file
-            inputs: Input data to pass to the code
-            timeout: Execution timeout in seconds
-            function_name: Function to call (language-specific)
-
-        Returns:
-            Execution result
-
-        Raises:
-            TimeoutError: If execution exceeds timeout
-            Exception: For other execution errors
-        """
+        """Execute code from a file with timeout and input handling."""
         ...
 
     async def execute_inline(
         self, code: str, inputs: dict[str, Any], timeout: int, function_name: str = "main"
     ) -> Any:
-        """Execute inline code.
-
-        Args:
-            code: Source code to execute
-            inputs: Input data to pass to the code
-            timeout: Execution timeout in seconds
-            function_name: Function to call (if applicable)
-
-        Returns:
-            Execution result
-
-        Raises:
-            TimeoutError: If execution exceeds timeout
-            Exception: For other execution errors
-        """
+        """Execute inline code string with timeout and input handling."""
         ...
 
 
@@ -83,12 +55,10 @@ class BaseCodeExecutor(ABC):
     async def execute_file(
         self, file_path: Path, inputs: dict[str, Any], timeout: int, function_name: str = "main"
     ) -> Any:
-        """Execute code from a file."""
         pass
 
     @abstractmethod
     async def execute_inline(
         self, code: str, inputs: dict[str, Any], timeout: int, function_name: str = "main"
     ) -> Any:
-        """Execute inline code."""
         pass

@@ -3,6 +3,7 @@ import { TopBar, Sidebar } from '../components/common/layout';
 import { useCanvasState, useCanvasOperations } from '../../domain/diagram/contexts';
 import { useUIState } from '../../infrastructure/store/hooks';
 import { useMonitorBoardMode } from '../components/monitor-board/useMonitorBoardMode';
+import { ErrorBoundary } from '../components/common/ErrorBoundary';
 
 const LazyDiagramCanvas = React.lazy(() => import('../components/diagram/DiagramCanvas'));
 const LazyExecutionView = React.lazy(() => import('../components/execution/ExecutionView'));
@@ -49,13 +50,15 @@ export function MainLayout({ children }: MainLayoutProps) {
                 <LazyExecutionView />
               </Suspense>
             ) : activeCanvas === 'main' ? (
-              <Suspense fallback={
-                <div className="h-full diagram-canvas flex items-center justify-center">
-                  <div className="text-text-secondary animate-pulse">Loading diagram canvas...</div>
-                </div>
-              }>
-                <LazyDiagramCanvas />
-              </Suspense>
+              <ErrorBoundary>
+                <Suspense fallback={
+                  <div className="h-full diagram-canvas flex items-center justify-center">
+                    <div className="text-text-secondary animate-pulse">Loading diagram canvas...</div>
+                  </div>
+                }>
+                  <LazyDiagramCanvas />
+                </Suspense>
+              </ErrorBoundary>
             ) : (
               <Suspense fallback={
                 <div className="h-full bg-black flex items-center justify-center">

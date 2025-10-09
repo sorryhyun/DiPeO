@@ -17,18 +17,11 @@ from dipeo.infrastructure.logging_config import setup_logging
 
 def setup_bundled_paths():
     """Set up paths for the bundled application if running as PyInstaller bundle."""
-    # When frozen, PyInstaller sets this attribute
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-        # Running as a bundled executable
         bundle_dir = Path(sys._MEIPASS)
-
-        # Set up environment variable for bundled mode
         os.environ["DIPEO_BUNDLED"] = "1"
-
-        # Ensure the data directories exist relative to the executable
         exe_dir = Path(sys.executable).parent
 
-        # Create necessary directories
         files_dir = exe_dir / "files"
         files_dir.mkdir(exist_ok=True)
 
@@ -41,31 +34,22 @@ def setup_bundled_paths():
         ]:
             (files_dir / subdir).mkdir(exist_ok=True)
 
-        # Create .data directory for database
         data_dir = exe_dir / ".data"
         data_dir.mkdir(exist_ok=True)
-
-        # Set the BASE_DIR for the application
         os.environ["DIPEO_BASE_DIR"] = str(exe_dir)
 
-        # Debug logging
         print(f"[BUNDLED] Executable directory: {exe_dir}")
         print(f"[BUNDLED] DIPEO_BASE_DIR set to: {os.environ['DIPEO_BASE_DIR']}")
         print(f"[BUNDLED] Expected database path: {exe_dir / '.data' / 'dipeo_state.db'}")
 
-        # Add the bundled packages to Python path
         sys.path.insert(0, str(bundle_dir))
-
-        # Change to the executable directory
         os.chdir(exe_dir)
         print(f"[BUNDLED] Changed working directory to: {Path.cwd()}")
 
 
-# Set up bundled paths BEFORE any imports that might use them
 setup_bundled_paths()
 load_dotenv()
 
-# Suppress non-critical warnings
 warnings.filterwarnings("ignore", message="_type_definition is deprecated", category=UserWarning)
 warnings.filterwarnings(
     "ignore",
@@ -75,7 +59,6 @@ warnings.filterwarnings(
 warnings.filterwarnings("ignore", message="Pydantic serializer warnings", category=UserWarning)
 warnings.filterwarnings("ignore", message="Field name.*shadows an attribute", category=UserWarning)
 
-# Setup logging with file output to .logs/
 log_level = os.environ.get("LOG_LEVEL", "INFO")
 logger = setup_logging(
     component="server",
@@ -140,7 +123,6 @@ def start():
 
     config = Config()
     config.bind = [f"0.0.0.0:{int(os.environ.get('PORT', '8000'))}"]
-
     config.workers = int(os.environ.get("WORKERS", "4"))
 
     redis_url = os.environ.get("DIPEO_REDIS_URL") or os.environ.get("REDIS_URL")
@@ -151,13 +133,9 @@ def start():
         )
 
     config.graceful_timeout = 30.0
-
-    # Configure logging
-    config.accesslog = None  # Disable access logs
-    config.errorlog = "-"  # Log errors to stdout
-
+    config.accesslog = None
+    config.errorlog = "-"
     config.keep_alive_timeout = 75.0
-
     config.h2_max_concurrent_streams = 100
 
     if os.environ.get("RELOAD", "false").lower() == "true":

@@ -3,6 +3,7 @@
 import asyncio
 import contextlib
 import json
+import os
 import sys
 import uuid
 from pathlib import Path
@@ -11,12 +12,12 @@ from typing import Any, Optional
 from dipeo.application.bootstrap import Container
 from dipeo.application.execution import ExecuteDiagramUseCase
 from dipeo.application.registry.keys import DIAGRAM_PORT, MESSAGE_ROUTER, STATE_STORE
-from dipeo.config import BASE_DIR
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.domain_models import ExecutionID
-from dipeo.diagram_generated.enums import DiagramFormat, Status
-from dipeo.diagram_generated.graphql.inputs import ExecuteDiagramInput
-from dipeo.infrastructure.diagram.adapters import UnifiedSerializerAdapter
+from dipeo.diagram_generated.enums import Status
+from dipeo_server.cli.diagram_loader import DiagramLoader
+from dipeo_server.cli.display import DisplayManager
+from dipeo_server.cli.session_manager import SessionManager
 
 logger = get_module_logger(__name__)
 
@@ -28,14 +29,17 @@ class CLIRunner:
         """Initialize CLI runner with dependency container."""
         self.container = container
         self.registry = container.registry
+        self.diagram_loader = DiagramLoader()
+        self.display = DisplayManager()
+        self.session_manager = SessionManager()
 
     async def run_diagram(
         self,
         diagram: str,
         debug: bool = False,
         timeout: int = 300,
-        format_type: Optional[str] = None,
-        input_variables: Optional[dict[str, Any]] = None,
+        format_type: str | None = None,
+        input_variables: dict[str, Any] | None = None,
         use_unified: bool = True,
         simple: bool = False,
     ) -> bool:
@@ -48,27 +52,12 @@ class CLIRunner:
             if integrated_service and hasattr(integrated_service, "initialize"):
                 await integrated_service.initialize()
 
-            # Load diagram
-            domain_diagram = None
-            diagram_data, diagram_path = await self._load_diagram(diagram, format_type)
-
-            # Convert to domain diagram
-            serializer = UnifiedSerializerAdapter()
-            await serializer.initialize()
-
-            format_hint = format_type or "native"
-            if format_hint in ["light", "readable"]:
-                import yaml
-
-                content = yaml.dump(diagram_data, default_flow_style=False, sort_keys=False)
-                domain_diagram = serializer.deserialize_from_storage(
-                    content, format_hint, diagram_path
-                )
-            else:
-                json_content = json.dumps(diagram_data)
-                domain_diagram = serializer.deserialize_from_storage(
-                    json_content, "native", diagram_path
-                )
+            # Load and deserialize diagram
+            (
+                domain_diagram,
+                diagram_data,
+                diagram_path,
+            ) = await self.diagram_loader.load_and_deserialize(diagram, format_type)
 
             if not domain_diagram:
                 raise ValueError("Failed to load diagram")
@@ -94,7 +83,6 @@ class CLIRunner:
             # Convert domain_diagram to native format for frontend
             native_data = None
             if domain_diagram:
-                # Convert to native format (already in array form from domain_diagram)
                 native_data = {
                     "nodes": [node.model_dump() for node in domain_diagram.nodes],
                     "arrows": [arrow.model_dump() for arrow in domain_diagram.arrows],
@@ -102,11 +90,35 @@ class CLIRunner:
                     "persons": [person.model_dump() for person in (domain_diagram.persons or [])],
                 }
 
+            # Create and subscribe MetricsObserver if debug or timing enabled
+            metrics_observer = None
+            if debug or os.getenv("DIPEO_TIMING_ENABLED") == "true":
+                from dipeo.application.execution.observers import MetricsObserver
+                from dipeo.application.registry.keys import EVENT_BUS
+                from dipeo.domain.events import EventType
+
+                event_bus = self.registry.resolve(EVENT_BUS)
+                metrics_observer = MetricsObserver(event_bus=event_bus, state_store=state_store)
+
+                # Subscribe to metrics events
+                metrics_events = [
+                    EventType.EXECUTION_STARTED,
+                    EventType.NODE_STARTED,
+                    EventType.NODE_COMPLETED,
+                    EventType.NODE_ERROR,
+                    EventType.EXECUTION_COMPLETED,
+                ]
+                await event_bus.subscribe(metrics_events, metrics_observer)
+
+                # Start the metrics observer
+                await metrics_observer.start()
+                logger.debug("MetricsObserver started for CLI execution")
+
             # Register CLI session for monitor mode support
-            await self._register_cli_session(
+            await self.session_manager.register_cli_session(
                 execution_id=str(execution_id),
                 diagram_name=diagram,
-                diagram_format="native",  # Always send native format to frontend
+                diagram_format="native",
                 diagram_data=native_data or diagram_data,
             )
 
@@ -122,29 +134,22 @@ class CLIRunner:
                     execution_id=str(execution_id),
                 ):
                     last_update = update
-                    # Process updates
                     if not simple:
                         print(".", end="", flush=True)
 
-                # Check if execution completed naturally
                 if last_update and last_update.get("type") == "execution_complete":
                     success = True
-                    # Give async event handlers time to persist state
                     await asyncio.sleep(0.1)
 
-                # Get final result from state store
                 result = await state_store.get_execution(str(execution_id))
 
-                # Only check persisted status if execution didn't complete naturally
-                # This handles edge cases with nested sub-diagrams that have endpoint nodes
                 if not success and result:
                     success = result.status == Status.COMPLETED
 
-                # Display results
                 if not simple:
-                    await self._display_rich_results(result, success)
+                    await self.display.display_rich_results(result, success)
                 else:
-                    await self._display_simple_results(result, success)
+                    await self.display.display_simple_results(result, success)
 
             # Run execution
             task = asyncio.create_task(run_execution())
@@ -156,7 +161,6 @@ class CLIRunner:
                 with contextlib.suppress(asyncio.CancelledError):
                     await task
 
-                # Try to mark execution as failed in state store
                 try:
                     from dipeo.domain.events import execution_error
 
@@ -166,7 +170,6 @@ class CLIRunner:
                             f"Execution {execution_id} still RUNNING after timeout. "
                             f"Executed nodes: {result.executed_nodes}"
                         )
-                        # Emit EXECUTION_ERROR event to update state
                         event = execution_error(
                             execution_id=str(execution_id),
                             error_message=f"Execution timed out after {timeout} seconds",
@@ -175,7 +178,6 @@ class CLIRunner:
                 except Exception as update_err:
                     logger.error(f"Failed to update execution state after timeout: {update_err}")
 
-                # Cleanup container resources (especially Claude Code sessions)
                 try:
                     await self.container.shutdown()
                     logger.info("Container shutdown complete after timeout")
@@ -185,13 +187,16 @@ class CLIRunner:
                 if not simple:
                     print(f"\n❌ Execution timed out after {timeout} seconds")
 
-                # Unregister CLI session
-                await self._unregister_cli_session(str(execution_id))
+                await self.session_manager.unregister_cli_session(str(execution_id))
 
                 return False
             finally:
-                # Always unregister CLI session when execution completes
-                await self._unregister_cli_session(str(execution_id))
+                # Stop metrics observer if it was created
+                if metrics_observer:
+                    await metrics_observer.stop()
+                    logger.debug("MetricsObserver stopped")
+
+                await self.session_manager.unregister_cli_session(str(execution_id))
 
             return success
 
@@ -211,28 +216,29 @@ class CLIRunner:
         timeout: int = 90,
         run_timeout: int = 300,
     ) -> bool:
-        """Generate a diagram from natural language."""
+        """Generate a diagram from natural language using the dipeodipeo diagram."""
         try:
-            from dipeo.application.ai.dipeodipeo import DiPeOAIGenerator
-
-            generator = DiPeOAIGenerator()
-            result = await generator.generate_diagram_from_request(
-                request=request,
+            print("🤖 Generating diagram using DiPeO AI parallel generator...")
+            success = await self.run_diagram(
+                "projects/dipeodipeo/parallel_generator",
+                format_type="light",
+                input_variables={"workflow_description": request},
+                debug=debug,
                 timeout=timeout,
+                simple=True,
             )
 
-            if result and result.diagram_path:
-                print(f"✅ Generated diagram: {result.diagram_path}")
+            if not success:
+                print("❌ Diagram generation failed")
+                return False
 
-                if and_run:
-                    print("🚀 Running generated diagram...")
-                    return await self.run_diagram(
-                        str(result.diagram_path),
-                        debug=debug,
-                        timeout=run_timeout,
-                    )
+            print("✅ Diagram generated successfully")
 
-            return bool(result and result.success)
+            if and_run:
+                print("⚠️  Auto-run not yet implemented for dipeodipeo generator")
+                return False
+
+            return True
 
         except Exception as e:
             logger.error(f"Diagram generation failed: {e}")
@@ -246,117 +252,185 @@ class CLIRunner:
         self,
         input_path: str,
         output_path: str,
-        from_format: Optional[str] = None,
-        to_format: Optional[str] = None,
+        from_format: str | None = None,
+        to_format: str | None = None,
     ) -> bool:
         """Convert between diagram formats."""
         try:
-            from dipeo.application.diagrams.converters import DiagramConverter
+            from dipeo.application.diagram.use_cases.serialize_diagram import (
+                SerializeDiagramUseCase,
+            )
 
-            converter = DiagramConverter()
-
-            # Load input diagram
             input_file = Path(input_path)
             if not input_file.exists():
                 print(f"❌ Input file not found: {input_path}")
                 return False
 
-            # Detect formats if not specified
             if not from_format:
-                from_format = self._detect_format(input_path)
+                from_format = self.diagram_loader.detect_format(input_path)
             if not to_format:
-                to_format = self._detect_format(output_path)
+                to_format = self.diagram_loader.detect_format(output_path)
 
-            # Convert
-            result = converter.convert(
-                input_path,
-                output_path,
-                DiagramFormat(from_format),
-                DiagramFormat(to_format),
-            )
+            with open(input_path, encoding="utf-8") as f:
+                content = f.read()
 
-            if result:
-                print(f"✅ Converted {input_path} to {output_path}")
-                return True
-            else:
-                print("❌ Conversion failed")
-                return False
+            await self.diagram_loader.initialize()
+            use_case = SerializeDiagramUseCase(self.diagram_loader.serializer)
+
+            converted_content = use_case.convert_format(content, to_format, from_format)
+
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(converted_content)
+
+            print(f"✅ Converted {input_path} to {output_path}")
+            return True
 
         except Exception as e:
             logger.error(f"Diagram conversion failed: {e}")
             return False
 
+    def _is_main_execution(self, execution_id: str) -> bool:
+        """Check if execution ID is a main execution (not lightweight or sub-diagram).
+
+        Filters out:
+        - Lightweight executions (starting with "lightweight_")
+        - Sub-diagram executions (containing "_sub_")
+        """
+        exec_id_str = str(execution_id)
+        return not (exec_id_str.startswith("lightweight_") or "_sub_" in exec_id_str)
+
     async def show_metrics(
         self,
-        execution_id: Optional[str] = None,
-        diagram_id: Optional[str] = None,
+        execution_id: str | None = None,
+        latest: bool = False,
+        diagram_id: str | None = None,
+        breakdown: bool = False,
         bottlenecks_only: bool = False,
         optimizations_only: bool = False,
         output_json: bool = False,
     ) -> bool:
-        """Display execution metrics."""
+        """Display execution metrics from database (no server required)."""
         try:
-            from dipeo.application.execution.observers import MetricsObserver
-            from dipeo.application.registry.keys import ServiceKey
+            state_store = self.registry.resolve(STATE_STORE)
 
-            # Get metrics observer
-            metrics_observer_key = ServiceKey[MetricsObserver]("metrics_observer")
-            if not self.registry.has(metrics_observer_key):
+            # Find the target execution
+            target_execution_id = None
+            if execution_id:
+                target_execution_id = execution_id
+            elif latest or diagram_id:
+                # Fetch more executions to filter out lightweight/sub-diagram ones
+                executions = await state_store.list_executions(diagram_id=diagram_id, limit=50)
+                # Filter to main executions only
+                main_executions = [e for e in executions if self._is_main_execution(e.id)]
+                if main_executions:
+                    target_execution_id = main_executions[0].id
+                else:
+                    if diagram_id:
+                        print(f"No main executions found for diagram: {diagram_id}")
+                    else:
+                        print("No main executions found")
+                    return False
+            else:
+                # Fetch more executions to filter out lightweight/sub-diagram ones
+                executions = await state_store.list_executions(limit=50)
+                # Filter to main executions only
+                main_executions = [e for e in executions if self._is_main_execution(e.id)]
+                if main_executions:
+                    target_execution_id = main_executions[0].id
+                else:
+                    print("No main executions found")
+                    return False
+
+            # Get execution state from database
+            execution_state = await state_store.get_execution(str(target_execution_id))
+            if not execution_state:
+                print(f"❌ Execution {target_execution_id} not found")
+                return False
+
+            # Check if metrics are available
+            if not execution_state.metrics:
+                print(f"❌ No metrics available for execution {target_execution_id}")
                 print(
-                    "❌ Metrics observer not available. Ensure server was started with metrics enabled."
+                    "   Metrics are only available for executions run with --timing or --debug flags"
                 )
                 return False
 
-            metrics_observer = self.registry.resolve(metrics_observer_key)
-            state_store = self.registry.resolve(STATE_STORE)
+            # Convert Pydantic metrics to summary dict format
+            metrics_data = execution_state.metrics
+            total_token_usage = {"input": 0, "output": 0, "total": 0}
 
-            # Determine which execution to get metrics for
-            target_execution_id = None
+            node_breakdown = []
+            for node_id, node_metrics in metrics_data.node_metrics.items():
+                # Accumulate token usage (llm_usage is a Pydantic model, not a dict)
+                if node_metrics.llm_usage:
+                    total_token_usage["input"] += node_metrics.llm_usage.input or 0
+                    total_token_usage["output"] += node_metrics.llm_usage.output or 0
+                    total_token_usage["total"] += node_metrics.llm_usage.total or 0
 
-            if execution_id:
-                target_execution_id = execution_id
-            elif diagram_id:
-                # Get latest execution for diagram
-                executions = await state_store.list_executions(diagram_id=diagram_id, limit=1)
-                if executions:
-                    target_execution_id = executions[0].id
-                else:
-                    print(f"No executions found for diagram: {diagram_id}")
-                    return False
-            else:
-                # Get the most recent execution
-                executions = await state_store.list_executions(limit=1)
-                if executions:
-                    target_execution_id = executions[0].id
-                else:
-                    print("No executions found")
-                    return False
+                # Convert llm_usage Pydantic model to dict
+                token_usage_dict = {"input": 0, "output": 0, "total": 0}
+                if node_metrics.llm_usage:
+                    token_usage_dict = {
+                        "input": node_metrics.llm_usage.input or 0,
+                        "output": node_metrics.llm_usage.output or 0,
+                        "total": node_metrics.llm_usage.total or 0,
+                    }
 
-            # Get metrics from the observer
-            metrics = metrics_observer.get_metrics_summary(str(target_execution_id))
+                node_breakdown.append(
+                    {
+                        "node_id": node_id,
+                        "node_type": node_metrics.node_type,
+                        "duration_ms": node_metrics.duration_ms,
+                        "token_usage": token_usage_dict,
+                        "error": node_metrics.error,
+                        "module_timings": node_metrics.module_timings or {},
+                    }
+                )
 
-            if not metrics:
-                print("No metrics available")
-                return False
+            bottlenecks = []
+            if metrics_data.bottlenecks:
+                for bottleneck in metrics_data.bottlenecks[:5]:
+                    bottlenecks.append(
+                        {
+                            "node_id": bottleneck.node_id,
+                            "node_type": bottleneck.node_type,
+                            "duration_ms": bottleneck.duration_ms,
+                        }
+                    )
 
-            # Display metrics
+            metrics_summary = {
+                "execution_id": str(metrics_data.execution_id),
+                "total_duration_ms": metrics_data.total_duration_ms,
+                "node_count": len(metrics_data.node_metrics),
+                "total_token_usage": total_token_usage,
+                "bottlenecks": bottlenecks,
+                "critical_path_length": len(metrics_data.critical_path)
+                if metrics_data.critical_path
+                else 0,
+                "parallelizable_groups": len(metrics_data.parallelizable_groups)
+                if metrics_data.parallelizable_groups
+                else 0,
+                "node_breakdown": node_breakdown,
+            }
+
             if output_json:
-                print(json.dumps(metrics, indent=2, default=str))
+                print(json.dumps(metrics_summary, indent=2, default=str))
             else:
-                await self._display_metrics(metrics, bottlenecks_only, optimizations_only)
+                await self.display.display_metrics(
+                    metrics_summary, breakdown, bottlenecks_only, optimizations_only
+                )
 
             return True
 
         except Exception as e:
-            logger.error(f"Failed to display metrics: {e}")
+            logger.error(f"Failed to display metrics: {e}", exc_info=True)
             return False
 
     async def show_stats(self, diagram_path: str) -> bool:
         """Show diagram statistics."""
         try:
-            diagram_data, _ = await self._load_diagram(diagram_path, None)
+            diagram_data, _ = await self.diagram_loader.load_diagram(diagram_path, None)
 
-            # Calculate stats
             node_count = len(diagram_data.get("nodes", []))
             edge_count = len(diagram_data.get("edges", []))
 
@@ -364,7 +438,6 @@ class CLIRunner:
             print(f"  Nodes: {node_count}")
             print(f"  Edges: {edge_count}")
 
-            # Show node types
             node_types = {}
             for node in diagram_data.get("nodes", []):
                 node_type = node.get("type", "unknown")
@@ -439,7 +512,6 @@ class CLIRunner:
 
             from dipeo.infrastructure.cc_translate import ClaudeCodeManager
 
-            # Resolve project directory if specified
             session_dir = None
             if project := kwargs.get("project"):
                 session_dir = Path.home() / ".claude" / "projects" / project
@@ -502,212 +574,3 @@ class CLIRunner:
         except Exception as e:
             logger.error(f"Claude Code management failed: {e}")
             return False
-
-    # Helper methods
-    async def _is_server_available(self) -> bool:
-        """Quick check if server is available."""
-        try:
-            import httpx
-
-            async with httpx.AsyncClient(timeout=0.5) as client:
-                await client.get("http://localhost:8000/health")
-                return True
-        except Exception:
-            return False
-
-    async def _register_cli_session(
-        self,
-        execution_id: str,
-        diagram_name: str,
-        diagram_format: str,
-        diagram_data: Optional[dict[str, Any]] = None,
-    ) -> None:
-        """Register a CLI session via GraphQL mutation to the running server."""
-        try:
-            import httpx
-
-            from dipeo.diagram_generated.graphql.inputs import RegisterCliSessionInput
-            from dipeo.diagram_generated.graphql.operations import RegisterCliSessionOperation
-
-            # Build input using generated types (use uppercase string for GraphQL enum)
-            input_data = RegisterCliSessionInput(
-                execution_id=execution_id,
-                diagram_name=diagram_name,
-                diagram_format=diagram_format.upper(),
-                diagram_data=diagram_data,
-            )
-
-            # Use generated operation to get query and variables
-            variables = RegisterCliSessionOperation.get_variables_dict(input=input_data)
-            query = RegisterCliSessionOperation.get_query()
-
-            # Retry logic for server availability (useful when server just started)
-            max_retries = 5
-            retry_delay = 0.5  # Start with 500ms
-
-            for attempt in range(max_retries):
-                try:
-                    async with httpx.AsyncClient(timeout=5.0) as client:
-                        response = await client.post(
-                            "http://localhost:8000/graphql",
-                            json={"query": query, "variables": variables},
-                        )
-                        result = response.json()
-
-                        if result.get("data", {}).get("registerCliSession", {}).get("success"):
-                            logger.info(f"Registered CLI session for execution {execution_id}")
-                            return
-                        else:
-                            error = (
-                                result.get("data", {}).get("registerCliSession", {}).get("error")
-                            )
-                            logger.warning(f"Failed to register CLI session: {error}")
-                            return
-
-                except (httpx.ConnectError, httpx.TimeoutException) as e:
-                    if attempt < max_retries - 1:
-                        logger.debug(
-                            f"Server not ready (attempt {attempt + 1}/{max_retries}), retrying..."
-                        )
-                        await asyncio.sleep(retry_delay)
-                        retry_delay = min(retry_delay * 1.5, 2.0)  # Exponential backoff up to 2s
-                    else:
-                        logger.debug(f"Could not connect to server after {max_retries} attempts")
-                        return
-
-        except Exception as e:
-            logger.debug(f"Could not register CLI session: {e}")
-
-    async def _unregister_cli_session(self, execution_id: str) -> None:
-        """Unregister a CLI session via GraphQL mutation to the running server."""
-        try:
-            # Quick check if server is available
-            if not await self._is_server_available():
-                return
-
-            import httpx
-
-            from dipeo.diagram_generated.graphql.inputs import UnregisterCliSessionInput
-            from dipeo.diagram_generated.graphql.operations import UnregisterCliSessionOperation
-
-            # Build input using generated types
-            input_data = UnregisterCliSessionInput(execution_id=execution_id)
-
-            # Use generated operation to get query and variables
-            variables = UnregisterCliSessionOperation.get_variables_dict(input=input_data)
-            query = UnregisterCliSessionOperation.get_query()
-
-            # Single attempt since we already checked server availability
-            async with httpx.AsyncClient(timeout=2.0) as client:
-                response = await client.post(
-                    "http://localhost:8000/graphql",
-                    json={"query": query, "variables": variables},
-                )
-                result = response.json()
-
-                if result.get("data", {}).get("unregisterCliSession", {}).get("success"):
-                    logger.debug(f"Unregistered CLI session for execution {execution_id}")
-                else:
-                    error = result.get("data", {}).get("unregisterCliSession", {}).get("error")
-                    logger.debug(f"Could not unregister CLI session: {error}")
-
-        except Exception as e:
-            logger.debug(f"Could not unregister CLI session: {e}")
-
-    async def _load_diagram(
-        self, diagram: str, format_type: Optional[str]
-    ) -> tuple[dict[str, Any], str]:
-        """Load diagram from file.
-
-        Returns:
-            Tuple of (diagram_data, diagram_path)
-        """
-        from dipeo.application.diagrams.loaders import DiagramLoader
-
-        loader = DiagramLoader()
-        diagram_path = loader.resolve_diagram_path(diagram, format_type)
-        diagram_data = loader.load_diagram(diagram_path)
-        return diagram_data, diagram_path
-
-    def _detect_format(self, file_path: str) -> str:
-        """Detect diagram format from file extension."""
-        path = Path(file_path)
-        if path.suffix in [".yml", ".yaml"]:
-            # Check if it's light format by looking for specific markers
-            with open(path) as f:
-                content = f.read()
-                if "nodes:" in content and "edges:" in content:
-                    return "light"
-                else:
-                    return "readable"
-        elif path.suffix == ".json":
-            return "native"
-        else:
-            return "native"  # Default
-
-    async def _display_rich_results(self, result: Any, success: bool = False) -> None:
-        """Display results using rich formatting."""
-        try:
-            from rich.console import Console
-            from rich.panel import Panel
-            from rich.table import Table
-
-            console = Console()
-
-            if success or (result and result.status == Status.COMPLETED):
-                console.print(Panel.fit("✅ Execution Successful", style="green bold"))
-            else:
-                console.print(Panel.fit("❌ Execution Failed", style="red bold"))
-
-            # Display outputs
-            if hasattr(result, "node_outputs") and result.node_outputs:
-                table = Table(title="Outputs")
-                table.add_column("Node", style="cyan")
-                table.add_column("Output", style="white")
-
-                for node_id, output in result.node_outputs.items():
-                    table.add_row(node_id, str(output)[:100])
-
-                console.print(table)
-
-        except ImportError:
-            # Fallback to simple display if rich is not available
-            await self._display_simple_results(result)
-
-    async def _display_simple_results(self, result: Any, success: bool = False) -> None:
-        """Display results using simple text formatting."""
-        if success or (result and result.status == Status.COMPLETED):
-            print("✅ Execution Successful")
-        else:
-            print("❌ Execution Failed")
-
-        if hasattr(result, "node_outputs") and result.node_outputs:
-            print("\nOutputs:")
-            for node_id, output in result.node_outputs.items():
-                print(f"  {node_id}: {str(output)[:100]}")
-
-    async def _display_metrics(
-        self,
-        metrics: dict[str, Any],
-        bottlenecks_only: bool,
-        optimizations_only: bool,
-    ) -> None:
-        """Display metrics in human-readable format."""
-        print("\n📊 Execution Metrics")
-        print(f"  Execution ID: {metrics.get('execution_id')}")
-        print(f"  Total Duration: {metrics.get('total_duration_ms', 0):.2f}ms")
-        print(f"  Nodes Executed: {metrics.get('nodes_executed', 0)}")
-
-        if bottlenecks_only or not optimizations_only:
-            bottlenecks = metrics.get("bottlenecks", [])
-            if bottlenecks:
-                print("\n⚠️ Bottlenecks:")
-                for bottleneck in bottlenecks:
-                    print(f"  - {bottleneck}")
-
-        if optimizations_only or not bottlenecks_only:
-            optimizations = metrics.get("optimization_suggestions", [])
-            if optimizations:
-                print("\n💡 Optimization Suggestions:")
-                for suggestion in optimizations:
-                    print(f"  - {suggestion}")

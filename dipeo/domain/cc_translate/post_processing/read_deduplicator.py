@@ -18,7 +18,7 @@ class ReadNodeDeduplicator(BaseDiagramProcessor):
     - Updates connections to route through the kept node
     """
 
-    def __init__(self, config: Optional[ReadDeduplicatorConfig] = None):
+    def __init__(self, config: ReadDeduplicatorConfig | None = None):
         """Initialize with configuration."""
         self.dedup_config = config or ReadDeduplicatorConfig()
         # Pass a dict to the base class, but keep our typed config separate

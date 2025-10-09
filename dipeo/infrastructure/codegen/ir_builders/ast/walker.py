@@ -22,12 +22,11 @@ Example:
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from typing import Any, Optional
 
 
-class ASTVisitor(ABC):
-    """Abstract base class for AST visitors.
+class ASTVisitor:
+    """Base class for AST visitors.
 
     Subclasses should override visit methods for node types they want to process.
     Each visit method receives:
@@ -56,9 +55,7 @@ class ASTVisitor(ABC):
         """
         return True
 
-    def post_visit(
-        self, node_type: str, node: dict[str, Any], file_path: str, result: Any
-    ) -> None:
+    def post_visit(self, node_type: str, node: dict[str, Any], file_path: str, result: Any) -> None:
         """Called after visiting a node.
 
         Args:
@@ -72,7 +69,7 @@ class ASTVisitor(ABC):
     # Visit methods for each node type
     def visit_interface(
         self, node: dict[str, Any], file_path: str, context: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Visit an interface node.
 
         Args:
@@ -87,7 +84,7 @@ class ASTVisitor(ABC):
 
     def visit_enum(
         self, node: dict[str, Any], file_path: str, context: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Visit an enum node.
 
         Args:
@@ -102,7 +99,7 @@ class ASTVisitor(ABC):
 
     def visit_type_alias(
         self, node: dict[str, Any], file_path: str, context: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Visit a type alias node.
 
         Args:
@@ -117,7 +114,7 @@ class ASTVisitor(ABC):
 
     def visit_constant(
         self, node: dict[str, Any], file_path: str, context: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Visit a constant node.
 
         Args:
@@ -132,7 +129,7 @@ class ASTVisitor(ABC):
 
     def visit_branded_scalar(
         self, node: dict[str, Any], file_path: str, context: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Visit a branded scalar node.
 
         Args:
@@ -147,7 +144,7 @@ class ASTVisitor(ABC):
 
     def visit_type(
         self, node: dict[str, Any], file_path: str, context: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Visit a generic type node.
 
         Args:
@@ -176,9 +173,7 @@ class ASTWalker:
         walker.walk(MyVisitor())
     """
 
-    def __init__(
-        self, ast_data: dict[str, Any], file_filter: Optional[callable] = None
-    ):
+    def __init__(self, ast_data: dict[str, Any], file_filter: callable | None = None):
         """Initialize walker with AST data.
 
         Args:
@@ -205,9 +200,7 @@ class ASTWalker:
             # Visit each node type
             self._visit_nodes(visitor, file_data, file_path, "interfaces", "visit_interface")
             self._visit_nodes(visitor, file_data, file_path, "enums", "visit_enum")
-            self._visit_nodes(
-                visitor, file_data, file_path, "typeAliases", "visit_type_alias"
-            )
+            self._visit_nodes(visitor, file_data, file_path, "typeAliases", "visit_type_alias")
             self._visit_nodes(visitor, file_data, file_path, "constants", "visit_constant")
             self._visit_nodes(
                 visitor, file_data, file_path, "brandedScalars", "visit_branded_scalar"
@@ -260,7 +253,7 @@ class CollectorVisitor(ASTVisitor):
         print(collector.collected['enum'])        # All enums
     """
 
-    def __init__(self, collect_types: Optional[list[str]] = None):
+    def __init__(self, collect_types: list[str] | None = None):
         """Initialize collector.
 
         Args:

@@ -8,16 +8,6 @@ nodes:
     type: start
     position: {x: 50, y: 200}
 
-  # Load cached AST data directly - the input already has the hyphenated node type
-  - label: Load AST
-    type: db
-    position: {x: 200, y: 200}
-    props:
-      operation: read
-      sub_type: file
-      file: "temp/nodes/{default.node_spec_path}.spec.ts.json"  # Use node_spec_path directly
-      format: json
-
   # Prepare inputs for extractor
   - label: Prepare Extractor Inputs
     type: code_job
@@ -25,35 +15,65 @@ nodes:
     props:
       language: python
       code: |
-        # Get AST data and node type
-        ast_data = inputs.get('ast_data')
-        node_type_hyphenated = inputs.get('default').get('default').get('node_spec_path')
+        # Get node_spec_path from input (handles both direct and nested defaults)
+        def get_node_spec_path(data):
+            if isinstance(data, dict):
+                if 'node_spec_path' in data:
+                    return data['node_spec_path']
+                if 'default' in data:
+                    return get_node_spec_path(data['default'])
+            return None
 
-        if not ast_data:
-            raise ValueError(f"No AST data found for node type: {node_type_hyphenated}")
+        node_type_hyphenated = get_node_spec_path(inputs)
+        if not node_type_hyphenated:
+            raise ValueError(f"node_spec_path not found in inputs: {inputs}")
 
-        if isinstance(ast_data, str):
-            raise ValueError(f"AST data is a string instead of dict: {ast_data[:100]}...")
-
+        # Keep hyphenated format for file path, convert to underscore for node_type
+        node_type = node_type_hyphenated.replace('-', '_')
         result = {
-            'ast_data': ast_data,
-            'node_type': node_type_hyphenated
+            'node_type': node_type,
+            'file_name': node_type_hyphenated  # For file path interpolation
         }
-        return result
 
-  # Extract all frontend data in one step
-  - label: Extract Frontend Data
+  # Load cached AST data directly using hyphenated filename
+  - label: Load AST
+    type: db
+    position: {x: 200, y: 200}
+    props:
+      operation: read
+      sub_type: file
+      file: "temp/nodes/{file_name}.spec.ts.json"
+      format: json
+
+  # Merge node_type with AST data
+  - label: Merge Inputs
     type: code_job
     position: {x: 550, y: 200}
     props:
       language: python
-      filePath: dipeo/infrastructure/codegen/generators/node_extractor.py
-      functionName: main
+      code: |
+        # Combine node_type from prepared inputs with ast_data from Load AST
+        node_type = inputs.get('node_info', {}).get('node_type', '')
+        ast_data = inputs.get('ast_data', {})
+
+        result = {
+            'node_type': node_type,
+            'ast_data': ast_data
+        }
+
+  # Extract all frontend data in one step
+  - label: Extract Frontend Data
+    type: code_job
+    position: {x: 700, y: 200}
+    props:
+      language: python
+      file_path: dipeo/infrastructure/codegen/generators/node_extractor.py
+      function_name: main
 
   # Generate all three file using template_job
   - label: Generate TypeScript Model
     type: template_job
-    position: {x: 700, y: 100}
+    position: {x: 850, y: 100}
     props:
       engine: jinja2
       template_path: projects/codegen/templates/frontend/typescript_model.j2
@@ -61,7 +81,7 @@ nodes:
 
   - label: Generate Node Config
     type: template_job
-    position: {x: 700, y: 200}
+    position: {x: 850, y: 200}
     props:
       engine: jinja2
       template_path: projects/codegen/templates/frontend/node_config.j2
@@ -69,7 +89,7 @@ nodes:
 
   - label: Generate Field Config
     type: template_job
-    position: {x: 700, y: 300}
+    position: {x: 850, y: 300}
     props:
       engine: jinja2
       template_path: projects/codegen/templates/frontend/field_config.j2
@@ -77,20 +97,21 @@ nodes:
 
   - label: End
     type: endpoint
-    position: {x: 900, y: 200}
+    position: {x: 1050, y: 200}
     props:
       save_to_file: false
 
 connections:
   # Start to Load AST - passes the input directly without wrapping
-  - {from: Start, to: Load AST}
-
-  # Pass AST data and original input to prepare
-  - {from: Load AST, to: Prepare Extractor Inputs, content_type: object, label: ast_data}
   - {from: Start, to: Prepare Extractor Inputs, content_type: object}
+  - {from: Prepare Extractor Inputs, content_type: object, to: Load AST}
+
+  # Merge node_type and AST data
+  - {from: Prepare Extractor Inputs, to: Merge Inputs, content_type: object, label: node_info}
+  - {from: Load AST, to: Merge Inputs, content_type: object, label: ast_data}
 
   # Extract all data
-  - {from: Prepare Extractor Inputs, to: Extract Frontend Data, content_type: object}
+  - {from: Merge Inputs, to: Extract Frontend Data, content_type: object}
 
   # Pass extracted data directly to template jobs (no label = auto unwrap)
   - {from: Extract Frontend Data, to: Generate TypeScript Model, content_type: object}

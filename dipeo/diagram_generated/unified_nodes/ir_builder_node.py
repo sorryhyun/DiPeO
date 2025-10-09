@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for ir_builder.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-03T21:25:09.381484
+Generated at: 2025-10-09T17:34:05.819220
 """
 
 from typing import *
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 from dipeo.domain.diagram.models.executable_diagram import BaseExecutableNode
 from dipeo.diagram_generated.domain_models import NodeID, Vec2
 from dipeo.diagram_generated.enums import NodeType
+
 
 from dipeo.diagram_generated.enums import *
 from dipeo.diagram_generated.integrations import *
@@ -43,9 +44,9 @@ class IrBuilderNode(BaseModel):
     
     output_format: Optional[Literal["json", "yaml", "python"]] = Field(default=None, description="Output format for IR")
     
-    cache_enabled: Optional[bool] = Field(default=None, description="Enable IR caching")
+    cache_enabled: bool = Field(default=False, description="Enable IR caching")
     
-    validate_output: Optional[bool] = Field(default=None, description="Validate IR structure before output")
+    validate_output: bool = Field(default=False, description="Validate IR structure before output")
 
     class Config:
         # Make the instance immutable after creation

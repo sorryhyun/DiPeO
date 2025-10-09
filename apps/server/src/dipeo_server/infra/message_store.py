@@ -60,9 +60,7 @@ class MessageStore:
     async def get_message(self, message_id: str) -> dict[str, Any] | None:
         async with (
             aiosqlite.connect(self.db_path) as db,
-            db.execute(
-                "SELECT content FROM messages WHERE id = ?", (message_id,)
-            ) as cursor,
+            db.execute("SELECT content FROM messages WHERE id = ?", (message_id,)) as cursor,
         ):
             row = await cursor.fetchone()
             return json.loads(row[0]) if row else None

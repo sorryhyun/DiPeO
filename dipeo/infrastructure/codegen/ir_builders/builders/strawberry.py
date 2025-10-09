@@ -3,19 +3,18 @@
 from __future__ import annotations
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from pathlib import Path
 from typing import Any, Optional
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.codegen.ir_builder_port import IRData, IRMetadata
 from dipeo.infrastructure.codegen.ir_builders.core.base import BaseIRBuilder
+from dipeo.infrastructure.codegen.ir_builders.core.base_steps import (
+    BaseAssemblerStep,
+    BaseTransformStep,
+)
 from dipeo.infrastructure.codegen.ir_builders.core.context import BuildContext
 from dipeo.infrastructure.codegen.ir_builders.core.steps import BuildStep, StepResult, StepType
-from dipeo.infrastructure.codegen.ir_builders.core.base_steps import (
-    BaseTransformStep,
-    BaseAssemblerStep,
-)
 from dipeo.infrastructure.codegen.ir_builders.modules.domain_models import (
     ExtractDomainModelsStep,
     ExtractEnumsStep,
@@ -31,14 +30,14 @@ from dipeo.infrastructure.codegen.ir_builders.modules.strawberry_assembly import
     BuildDomainIRStep,
     BuildOperationsIRStep,
 )
-from dipeo.domain.codegen.ir_builder_port import IRData, IRMetadata
 
 logger = get_module_logger(__name__)
+
 
 class LoadStrawberryConfigStep(BuildStep):
     """Load Strawberry configuration from disk or use defaults."""
 
-    def __init__(self, config_root: Optional[Path] = None):
+    def __init__(self, config_root: Path | None = None):
         super().__init__(
             name="load_strawberry_config",
             step_type=StepType.EXTRACT,
@@ -94,6 +93,7 @@ class LoadStrawberryConfigStep(BuildStep):
                 metadata={"message": f"Config loading failed: {e}"},
             )
 
+
 class ExtractGraphQLTypesStep(BuildStep):
     """Extract GraphQL-specific types from AST."""
 
@@ -147,6 +147,7 @@ class ExtractGraphQLTypesStep(BuildStep):
                 metadata={"message": f"GraphQL type extraction failed: {e}"},
             )
 
+
 class TransformStrawberryTypesStep(BaseTransformStep):
     """Transform types for Strawberry GraphQL.
 
@@ -192,7 +193,7 @@ class TransformStrawberryTypesStep(BaseTransformStep):
             "extracted_input_types": graphql_types.get("input_types", []) if graphql_types else [],
         }
 
-    def validate_input(self, input_data: Any) -> Optional[str]:
+    def validate_input(self, input_data: Any) -> str | None:
         """Validate that required dependency data is present.
 
         Args:
@@ -249,9 +250,7 @@ class TransformStrawberryTypesStep(BaseTransformStep):
             "result_types": result_types,
         }
 
-    def get_transform_metadata(
-        self, input_data: Any, transformed_data: Any
-    ) -> dict[str, Any]:
+    def get_transform_metadata(self, input_data: Any, transformed_data: Any) -> dict[str, Any]:
         """Generate metadata for transformation result.
 
         Args:
@@ -267,6 +266,7 @@ class TransformStrawberryTypesStep(BaseTransformStep):
             "input_type_count": len(transformed_data.get("input_types", [])),
             "result_type_count": len(transformed_data.get("result_types", [])),
         }
+
 
 class StrawberryAssemblerStep(BaseAssemblerStep):
     """Assemble final Strawberry IR data from pipeline results.
@@ -312,9 +312,7 @@ class StrawberryAssemblerStep(BaseAssemblerStep):
         logger.warning(f"Required dependency '{dep_name}' missing in {self.name}, using None")
         return None
 
-    def assemble_ir(
-        self, dependency_data: dict[str, Any], context: BuildContext
-    ) -> dict[str, Any]:
+    def assemble_ir(self, dependency_data: dict[str, Any], context: BuildContext) -> dict[str, Any]:
         """Assemble Strawberry IR from dependency data.
 
         Args:
@@ -339,9 +337,7 @@ class StrawberryAssemblerStep(BaseAssemblerStep):
 
         # Get transformed types
         input_types_list = transformed_types.get("input_types", []) if transformed_types else []
-        result_types_list = (
-            transformed_types.get("result_types", []) if transformed_types else []
-        )
+        result_types_list = transformed_types.get("result_types", []) if transformed_types else []
 
         # Merge operation strings into operations
         enriched_operations = self._merge_operation_strings(
@@ -430,6 +426,7 @@ class StrawberryAssemblerStep(BaseAssemblerStep):
             enriched_operations.append(enriched_operation)
 
         return enriched_operations
+
 
 class StrawberryValidatorStep(BuildStep):
     """Validate Strawberry IR data."""
@@ -529,6 +526,7 @@ class StrawberryValidatorStep(BuildStep):
                 metadata={"message": f"Validation failed: {e}"},
             )
 
+
 class StrawberryBuilder(BaseIRBuilder):
     """Strawberry (GraphQL) IR builder using step-based pipeline.
 
@@ -540,7 +538,7 @@ class StrawberryBuilder(BaseIRBuilder):
     - GraphQL-specific assembly and validation
     """
 
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(self, config_path: str | None = None):
         """Initialize Strawberry builder.
 
         Args:

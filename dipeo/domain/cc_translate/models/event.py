@@ -34,8 +34,8 @@ class ToolInfo:
     input_params: dict[str, Any] = field(default_factory=dict)
     results: list[dict[str, Any]] = field(default_factory=list)
     status: str = "pending"  # pending, success, failed
-    error_message: Optional[str] = None
-    execution_time_ms: Optional[int] = None
+    error_message: str | None = None
+    execution_time_ms: int | None = None
 
     def validate(self) -> list[str]:
         """Validate tool information."""
@@ -57,7 +57,7 @@ class ToolInfo:
 class EventContent:
     """Content of an event."""
 
-    text: Optional[str] = None
+    text: str | None = None
     data: dict[str, Any] = field(default_factory=dict)
     attachments: list[dict[str, Any]] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -84,11 +84,11 @@ class DomainEvent:
     type: EventType
     timestamp: datetime
     content: EventContent = field(default_factory=EventContent)
-    parent_uuid: Optional[str] = None
-    role: Optional[EventRole] = None
-    tool_info: Optional[ToolInfo] = None
+    parent_uuid: str | None = None
+    role: EventRole | None = None
+    tool_info: ToolInfo | None = None
     is_meta: bool = False
-    user_type: Optional[str] = None  # external/internal
+    user_type: str | None = None  # external/internal
     tags: list[str] = field(default_factory=list)
     context: dict[str, Any] = field(default_factory=dict)
 
@@ -127,7 +127,7 @@ class DomainEvent:
         """Check if event contains tool usage."""
         return self.tool_info is not None
 
-    def get_tool_name(self) -> Optional[str]:
+    def get_tool_name(self) -> str | None:
         """Get tool name if applicable."""
         return self.tool_info.name if self.tool_info else None
 

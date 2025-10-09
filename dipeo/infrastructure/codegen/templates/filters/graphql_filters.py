@@ -78,11 +78,17 @@ class GraphQLFilters:
             "Node": "DomainNodeType",
             "File": "FileTypeType",
             "CliSession": "CliSessionType",
+            "Provider": "ProviderType",
+            "ProviderStatistics": "ProviderStatisticsType",
+            "OperationSchema": "OperationSchemaType",
+            "Operation": "OperationType",
         }
 
         # Queries that can return None (nullable)
         NULLABLE_QUERIES = {
             "GetExecution",  # Execution might not exist yet
+            "GetProvider",  # Provider might not exist
+            "GetOperationSchema",  # Schema might not be available
         }
 
         if operation_type == "query":
@@ -108,6 +114,8 @@ class GraphQLFilters:
                 return "list[DomainDiagramType]"
             elif operation_name == "GetRecentFiles":
                 return "list[FileTypeType]"
+            elif operation_name == "GetProviderOperations":
+                return "list[OperationType]"
             elif operation_name == "GetActiveCliSession":
                 return "Optional[JSON]"
 
@@ -155,6 +163,10 @@ class GraphQLFilters:
         # Format conversion
         if operation_name == "ConvertDiagramFormat":
             return "FormatConversionResult"
+
+        # Integration operations
+        if operation_name == "TestIntegration":
+            return "IntegrationTestResultType"
 
         # CLI session operations
         if operation_name in ["RegisterCliSession", "UnregisterCliSession"]:

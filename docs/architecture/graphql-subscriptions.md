@@ -10,9 +10,9 @@ DiPeO uses GraphQL subscriptions exclusively for real-time updates. GraphQL subs
    - Handles all execution lifecycle events (start, complete, fail, logs, etc.)
    - Includes node status updates, interactive prompts, and execution logs
    - Used by frontend monitoring, logging, and interactive components
-   - Currently the only generated subscription from TypeScript definitions
+   - Generated from TypeScript query definitions
 
-**Note**: While the infrastructure supports multiple subscription types, only `execution_updates` is currently generated from the TypeScript query definitions. Additional subscriptions can be added by updating the query definitions and regenerating the code.
+**Note**: The infrastructure supports multiple subscription types. Additional subscriptions can be added by updating the query definitions and regenerating the code.
 
 ## Architecture
 
@@ -26,7 +26,7 @@ DiPeO uses GraphQL subscriptions exclusively for real-time updates. GraphQL subs
 
 2. **Event System** (`/dipeo/diagram_generated/enums.py`)
    - EventType enum defines all available event types
-   - Events are emitted through the AsyncEventBus
+   - Events are emitted through the EventBus (implemented by InMemoryEventBus)
    - Events include: `EXECUTION_STARTED`, `NODE_COMPLETED`, `NODE_STATUS_CHANGED`, `EXECUTION_LOG`, etc.
 
 3. **Message Router** (`/dipeo/infrastructure/adapters/messaging/message_router.py`)
@@ -187,10 +187,10 @@ export function useYourNewSubscription(executionIdParam: ReturnType<typeof execu
 
 ### Step 5: Emit Events
 
-Emit events using the AsyncEventBus:
+Emit events using the EventBus:
 ```python
 # In any handler or service
-from dipeo.core.events import AsyncEventBus, Event
+from dipeo.infrastructure.events.adapters.legacy import AsyncEventBus, Event
 
 event_bus = AsyncEventBus.get_instance()
 await event_bus.emit(Event(
@@ -212,8 +212,8 @@ The ExecutionUpdates subscription demonstrates the complete implementation patte
 2. **GraphQL Subscription**: `execution_updates` in `/dipeo/application/graphql/schema/subscriptions.py`
 3. **Frontend Query Definition**: Defined in `/dipeo/models/src/frontend/query-definitions/executions.ts`
 4. **Generated Query**: Created in `/apps/web/src/__generated__/queries/all-queries.ts`
-5. **React Hook**: `useExecutionLogStream` uses `useExecutionUpdatesSubscription` 
-6. **Event Emission**: AsyncEventBus emits events that MessageRouter distributes
+5. **React Hook**: `useExecutionLogStream` uses `useExecutionUpdatesSubscription`
+6. **Event Emission**: EventBus (InMemoryEventBus) emits events that MessageRouter distributes
 
 ## Best Practices
 
@@ -303,7 +303,7 @@ For production deployments with multiple workers:
 - Configuration: Set `REDIS_URL` environment variable for multi-worker support
 
 ### Event System Integration
-- Events are emitted via `AsyncEventBus` 
+- Events are emitted via EventBus protocol (InMemoryEventBus implementation)
 - `MessageRouter` subscribes to events and distributes to GraphQL connections
 - Event batching improves performance for high-frequency updates
 - Bounded queues prevent memory issues with backpressure handling

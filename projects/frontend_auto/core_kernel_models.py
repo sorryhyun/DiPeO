@@ -150,10 +150,7 @@ Make all exports strongly typed. Config should be the source of truth for app se
 
 
 if __name__ == "__main__":
-    # Rebuild models to ensure proper schema generation
     CoreFile.model_rebuild()
     CoreKernelResponse.model_rebuild()
-
-    # Print example for reference
     print("Example Core Kernel Response:")
     print(EXAMPLE_RESPONSE.model_dump_json(indent=2))

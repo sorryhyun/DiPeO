@@ -11,7 +11,6 @@ from .base import BaseCodeExecutor
 
 
 class TypeScriptExecutor(BaseCodeExecutor):
-    """Executor for TypeScript code."""
 
     async def execute_file(
         self, file_path: Path, inputs: dict[str, Any], timeout: int, function_name: str = "main"

@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for db.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-03T21:25:09.378501
+Generated at: 2025-10-09T17:34:05.815798
 """
 
 from typing import *
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 from dipeo.domain.diagram.models.executable_diagram import BaseExecutableNode
 from dipeo.diagram_generated.domain_models import NodeID, Vec2
 from dipeo.diagram_generated.enums import NodeType
+
 
 from dipeo.diagram_generated.enums import *
 from dipeo.diagram_generated.integrations import *
@@ -26,7 +27,7 @@ class DbNode(BaseModel):
 
     # Required node-specific fields
     sub_type: DBBlockSubType = Field(description="Database operation type")
-    operation: str = Field(description="Operation configuration")
+    operation: Literal["prompt", "read", "write", "append", "update"] = Field(description="Operation configuration")
 
     # Optional base fields
     label: str = Field(default="", description="Node label for display")
@@ -52,7 +53,7 @@ class DbNode(BaseModel):
     
     serialize_json: bool = Field(default=False, description="Serialize structured data to JSON string (for backward compatibility)")
     
-    format: str = Field(default="json", description="Data format (json, yaml, csv, text, etc.)")
+    format: Literal["json", "yaml", "csv", "text", "xml"] = Field(default="json", description="Data format (json, yaml, csv, text, etc.)")
 
     class Config:
         # Make the instance immutable after creation

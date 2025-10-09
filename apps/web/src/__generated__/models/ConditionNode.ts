@@ -1,11 +1,12 @@
 // Auto-generated TypeScript model for condition node
 import { z } from 'zod';
+import { PersonID } from '@dipeo/models';
 
 export interface ConditionNodeData {
   condition_type?: string | undefined;
   expression?: string | undefined;
   node_indices?: any[] | undefined;
-  person?: string | undefined;
+  person?: PersonID | undefined;
   judge_by?: string | undefined;
   judge_by_file?: string | undefined;
   memorize_to?: string | undefined;
@@ -19,7 +20,7 @@ export const ConditionNodeDataSchema = z.object({
   condition_type: z.any().optional().describe("Type of condition to evaluate"),
   expression: z.string().optional().describe("Boolean expression to evaluate"),
   node_indices: z.any().optional().describe("Node indices for detect_max_iteration condition"),
-  person: z.string().optional().describe("AI agent to use for decision making"),
+  person: z.any().optional().describe("AI agent to use for decision making"),
   judge_by: z.string().optional().describe("Prompt for LLM to make a judgment"),
   judge_by_file: z.string().optional().describe("External prompt file path"),
   memorize_to: z.string().optional().describe("Memory control strategy (e.g., GOLDFISH for fresh evaluation)"),

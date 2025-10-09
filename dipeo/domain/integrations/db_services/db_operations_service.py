@@ -1,7 +1,8 @@
 """Domain service for database operations."""
 
 import json
-from typing import Any, Iterable, Sequence
+from collections.abc import Iterable, Sequence
+from typing import Any
 
 from dipeo.domain.base.exceptions import ValidationError
 
@@ -117,7 +118,7 @@ class DBOperationsDomainService:
             end_val = self._coerce_line_endpoint(end, "end")
             return [self._validate_line_range(start_val, end_val, spec)]
 
-        if isinstance(spec, (list, set)):
+        if isinstance(spec, list | set):
             ranges: list[tuple[int | None, int | None]] = []
             for item in spec:
                 ranges.extend(self._parse_line_range(item))
@@ -140,7 +141,7 @@ class DBOperationsDomainService:
                 details={"value": spec},
             )
 
-        if isinstance(spec, (int, float)):
+        if isinstance(spec, int | float):
             start_val = self._coerce_line_endpoint(spec, "start")
             return [self._validate_line_range(start_val, start_val, spec)]
 

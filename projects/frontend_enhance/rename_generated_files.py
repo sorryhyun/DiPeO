@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Rename generated temp_section_*.tsx files to their proper names based on sections_data.json
-"""
+"""Rename generated temp_section_*.tsx files to their proper names based on sections_data.json"""
 
 import json
 import os
@@ -10,15 +8,12 @@ from pathlib import Path
 
 
 def rename_generated_files(inputs):
-    # Get base directory from environment or use current file's location
     dipeo_base = os.environ.get("DIPEO_BASE_DIR")
     if dipeo_base:
         project_dir = Path(dipeo_base) / "projects" / "frontend_enhance"
     else:
-        # Fallback to relative path from script location
         project_dir = Path(__file__).parent
 
-    # Read sections data
     sections_file = project_dir / "generated" / "sections_data.json"
     if not sections_file.exists():
         print(f"Error: {sections_file} not found")
@@ -38,10 +33,8 @@ def rename_generated_files(inputs):
             target_filename = section.get("file_to_implement", f"section_{i}.tsx")
             final_path = generated_dir / target_filename
 
-            # Create directory if needed
             final_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Rename the file
             shutil.move(str(temp_file), str(final_path))
             print(f"✓ Renamed temp_section_{i}.tsx -> {target_filename}")
             renamed_count += 1

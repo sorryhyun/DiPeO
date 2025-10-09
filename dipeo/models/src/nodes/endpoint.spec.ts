@@ -1,6 +1,7 @@
 
 import { NodeType } from '../core/enums/node-types.js';
 import { NodeSpecification } from '../node-specification.js';
+import { booleanField, textField } from '../core/field-presets.js';
 
 export const endpointSpec: NodeSpecification = {
   nodeType: NodeType.ENDPOINT,
@@ -11,31 +12,30 @@ export const endpointSpec: NodeSpecification = {
   description: "Exit point for diagram execution",
 
   fields: [
-    {
+    booleanField({
       name: "save_to_file",
-      type: "boolean",
-      required: false,
-      defaultValue: false,
       description: "Save results to file",
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    },
-    {
+      defaultValue: false
+    }),
+    textField({
       name: "file_name",
-      type: "string",
-      required: false,
-      description: "Output filename",
-      uiConfig: {
-        inputType: "text"
-      }
-    }
+      description: "Output filename"
+    })
   ],
 
   handles: {
     inputs: ["default"],
     outputs: []
   },
+
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "object",
+      required: false,
+      description: "Final output data to be saved or returned from diagram execution"
+    }
+  ],
 
   outputs: {},
 
@@ -45,5 +45,12 @@ export const endpointSpec: NodeSpecification = {
     maxRetries: 3
   },
 
-  primaryDisplayField: "save_to_file"
+  primaryDisplayField: "save_to_file",
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.endpoint",
+    className: "EndpointHandler",
+    mixins: ["LoggingMixin", "ValidationMixin"],
+    serviceKeys: ["FILE_SYSTEM", "STATE_STORE", "EVENT_BUS"]
+  }
 };

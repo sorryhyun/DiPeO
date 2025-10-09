@@ -1,15 +1,16 @@
 """High-level template service for code generation orchestration."""
 
 import logging
+from typing import Any
 
 from dipeo.config.base_logger import get_module_logger
-from typing import Any
 
 from ..adapters import TemplateEngineAdapter
 from .filter_registry import FilterRegistry
 from .macro_library import MacroDefinition, MacroLibrary
 
 logger = get_module_logger(__name__)
+
 
 class CodegenTemplateService:
     """High-level template service for code generation.

@@ -19,16 +19,12 @@ def extract_node_types_from_glob(glob_results: dict[str, Any]) -> list[str]:
     node_types = []
 
     for filepath in glob_results:
-        # Skip special keys if present
         if filepath in ['default', 'inputs', 'node_id']:
             continue
 
-        # Check if this is a spec file
         if not filepath.endswith('.spec.ts.json'):
             continue
 
-        # Extract node type from filename
-        # e.g., "temp/nodes/person-job.spec.ts.json" -> "person_job"
         from pathlib import Path
         base_filename = Path(filepath).name
         node_type = base_filename.replace('.spec.ts.json', '').replace('-', '_')
@@ -81,10 +77,8 @@ def generate_simple_registry(node_types: list[str]) -> str:
 def main(inputs: dict[str, Any]) -> dict[str, Any]:
     """Entry point for code_job node - handles glob results directly."""
 
-    # DiPeO handles 'default' automatically
     raw_results = inputs['default']
 
-    # Parse string to dict if needed (DiPeO returns Python dict strings)
     if isinstance(raw_results, str):
         glob_results = parse_dipeo_output(raw_results)
         if not glob_results:
@@ -92,13 +86,11 @@ def main(inputs: dict[str, Any]) -> dict[str, Any]:
     else:
         glob_results = raw_results if isinstance(raw_results, dict) else {}
 
-    # Extract node types directly from glob results
     node_types = extract_node_types_from_glob(glob_results)
 
     if not node_types:
         raise ValueError("No node types found in glob results")
 
-    # Generate the registry
     generated_code = generate_simple_registry(node_types)
 
     return {

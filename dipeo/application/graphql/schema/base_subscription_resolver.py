@@ -2,8 +2,6 @@
 
 import asyncio
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import time
 from collections.abc import AsyncGenerator, Callable
 from datetime import datetime
@@ -11,6 +9,7 @@ from typing import Any, Protocol, TypeVar
 
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import MESSAGE_ROUTER, STATE_STORE
+from dipeo.config.base_logger import get_module_logger
 from dipeo.config.settings import get_settings
 from dipeo.diagram_generated.domain_models import ExecutionID
 from dipeo.diagram_generated.enums import EventType
@@ -19,12 +18,14 @@ logger = get_module_logger(__name__)
 
 T = TypeVar("T")
 
+
 class EventHandler(Protocol):
     """Protocol for event handlers."""
 
     async def __call__(self, message: dict[str, Any]) -> None:
         """Handle an incoming event message."""
         ...
+
 
 class BaseSubscriptionResolver:
     """Base class for subscription resolvers with common functionality."""

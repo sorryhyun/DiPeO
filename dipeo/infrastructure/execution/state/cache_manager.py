@@ -2,17 +2,17 @@
 
 import asyncio
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from collections import defaultdict
 from collections.abc import Callable
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import ExecutionState, Status
 
 from .models import CacheEntry, CacheMetrics
 
 logger = get_module_logger(__name__)
+
 
 class CacheManager:
     """Manages cache operations, eviction, and warm cache."""

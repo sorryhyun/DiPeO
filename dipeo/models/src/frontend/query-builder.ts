@@ -4,6 +4,12 @@
 
 import { CrudOperation, QueryEntity, FieldPreset, QueryOperationType } from './query-enums';
 import { QueryField, QuerySpecification, QueryVariable } from './query-specifications';
+import {
+  validateQuerySpecification,
+  hasValidationErrors,
+  formatValidationResult,
+  ValidationResult
+} from './query-validation';
 
 /**
  * Build a standardized query name from operation and entity
@@ -117,16 +123,29 @@ export function getReturnType(operation: CrudOperation, entity: QueryEntity): st
 
 /**
  * Build a complete query specification using enums
+ *
+ * This function creates a query specification and validates it before returning.
+ * If validation fails with errors, an exception is thrown. Warnings are logged
+ * but don't prevent query generation.
+ *
+ * @param operation - The CRUD operation to perform
+ * @param entity - The entity to query
+ * @param fields - The fields to select
+ * @param customVariables - Optional custom variables (uses standard variables if not provided)
+ * @param skipValidation - Skip validation (use with caution, defaults to false)
+ * @returns Validated query specification
+ * @throws Error if validation fails with errors
  */
 export function buildQuerySpecification(
   operation: CrudOperation,
   entity: QueryEntity,
   fields: QueryField[],
-  customVariables?: QueryVariable[]
+  customVariables?: QueryVariable[],
+  skipValidation: boolean = false
 ): QuerySpecification {
   const entityName = entity.toString();
 
-  return {
+  const spec: QuerySpecification = {
     name: buildQueryName(operation, entity),
     operation: getOperationType(operation),
     entityType: entityName,
@@ -135,6 +154,26 @@ export function buildQuerySpecification(
     returnType: getReturnType(operation, entity),
     fields: fields
   };
+
+  // Validate the specification unless explicitly skipped
+  if (!skipValidation) {
+    const validationResult = validateQuerySpecification(spec);
+
+    if (hasValidationErrors(validationResult)) {
+      const formattedResult = formatValidationResult(validationResult);
+      throw new Error(`Query specification validation failed:\n${formattedResult}`);
+    }
+
+    // Log warnings if present (in a real environment, use proper logging)
+    if (validationResult.warnings.length > 0) {
+      console.warn('Query specification validation warnings:');
+      for (const warning of validationResult.warnings) {
+        console.warn(`  [${warning.field}] ${warning.message}`);
+      }
+    }
+  }
+
+  return spec;
 }
 
 /**
@@ -222,4 +261,42 @@ export function isCrudOperation(value: string): value is CrudOperation {
  */
 export function isQueryEntity(value: string): value is QueryEntity {
   return Object.values(QueryEntity).includes(value as QueryEntity);
+}
+
+/**
+ * Build and validate a query specification with explicit validation control
+ *
+ * This is an alternative to buildQuerySpecification that returns both the
+ * specification and validation result, allowing the caller to decide how
+ * to handle validation issues.
+ *
+ * @param operation - The CRUD operation to perform
+ * @param entity - The entity to query
+ * @param fields - The fields to select
+ * @param customVariables - Optional custom variables
+ * @returns Object containing the specification and validation result
+ *
+ * @example
+ * ```typescript
+ * const { spec, validation } = buildAndValidateQuery(
+ *   CrudOperation.GET,
+ *   QueryEntity.DIAGRAM,
+ *   [{ name: 'id' }, { name: 'name' }]
+ * );
+ *
+ * if (!validation.valid) {
+ *   console.error('Validation failed:', validation.errors);
+ * }
+ * ```
+ */
+export function buildAndValidateQuery(
+  operation: CrudOperation,
+  entity: QueryEntity,
+  fields: QueryField[],
+  customVariables?: QueryVariable[]
+): { spec: QuerySpecification; validation: ValidationResult } {
+  const spec = buildQuerySpecification(operation, entity, fields, customVariables, true);
+  const validation = validateQuerySpecification(spec);
+
+  return { spec, validation };
 }

@@ -9,17 +9,18 @@ nodes:
     type: start
     position: {x: 50, y: 400}
     props:
+      trigger_mode: none
       custom_data:
         message: Starting complete code generation from TypeScript sources
 
-  # Parse all TypeScript files once using direct batch parsing
-  - label: Parse All TypeScript
-    type: sub_diagram
-    position: {x: 200, y: 400}
-    props:
-      diagram_name: projects/codegen/diagrams/parse_typescript_batch_direct
-      diagram_format: light
-      passInputData: false
+#  # Parse all TypeScript files once using direct batch parsing
+#  - label: Parse All TypeScript
+#    type: sub_diagram
+#    position: {x: 200, y: 400}
+#    props:
+#      diagram_name: projects/codegen/diagrams/parse_typescript_batch_direct
+#      diagram_format: light
+#      passInputData: false
 
   # Run backend generation pipeline (without parsing)
   - label: Generate Backend
@@ -68,12 +69,12 @@ nodes:
       save_to_file: false
 connections:
   # First parse all TypeScript files
-  - {from: Start, to: Parse All TypeScript}
+#  - {from: Start, to: Parse All TypeScript}
 
   # After parsing, run backend, frontend, and Strawberry generation in parallel
-  - {from: Parse All TypeScript, to: Generate Backend}
-  - {from: Parse All TypeScript, to: Generate Frontend}
-  - {from: Parse All TypeScript, to: Generate Strawberry}
+  - {from: Start, to: Generate Backend}
+  - {from: Start, to: Generate Frontend}
+  - {from: Start, to: Generate Strawberry}
 
   # All generation pipelines converge to End
   - {from: Generate Backend, to: End}

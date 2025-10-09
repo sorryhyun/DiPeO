@@ -41,7 +41,7 @@ class ProviderCapabilities:
     supports_web_search: bool = False
     supports_image_generation: bool = False
     supports_computer_use: bool = False
-    max_context_length: int = 4096
+    max_context_length: int = 200000
     max_output_tokens: int | None = None
     supported_models: set[str] = field(default_factory=set)
     streaming_modes: set[StreamingMode] = field(default_factory=lambda: {StreamingMode.NONE})
@@ -126,33 +126,3 @@ class StreamConfig:
     chunk_size: int = 1024
     buffer_size: int = 4096
     timeout: int = 30
-
-
-class ProviderError(Exception):
-    """Base exception for provider-specific errors."""
-
-    pass
-
-
-class RateLimitError(ProviderError):
-    """Rate limit exceeded error."""
-
-    pass
-
-
-class AuthenticationError(ProviderError):
-    """Authentication failed error."""
-
-    pass
-
-
-class ModelNotFoundError(ProviderError):
-    """Model not found error."""
-
-    pass
-
-
-class TimeoutError(ProviderError):
-    """Request timeout error."""
-
-    pass

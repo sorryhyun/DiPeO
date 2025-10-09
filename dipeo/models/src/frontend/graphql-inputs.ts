@@ -176,3 +176,21 @@ export type RegisterCliSessionInput = {
 export type UnregisterCliSessionInput = {
   execution_id: Scalars['ID']['input'];
 };
+
+// Provider integration inputs
+export type ExecuteIntegrationInput = {
+  provider: Scalars['String']['input'];
+  operation: Scalars['String']['input'];
+  config: Scalars['JSON']['input'];
+  api_key_id?: InputMaybe<Scalars['ID']['input']>;
+  timeout?: InputMaybe<Scalars['Int']['input']>;
+  resource_id?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type TestIntegrationInput = {
+  provider: Scalars['String']['input'];
+  operation: Scalars['String']['input'];
+  config_preview: Scalars['JSON']['input'];
+  api_key_id?: InputMaybe<Scalars['ID']['input']>;
+  dry_run?: InputMaybe<Scalars['Boolean']['input']>;
+};

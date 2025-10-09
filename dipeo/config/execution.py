@@ -1,5 +1,8 @@
 """Execution and diagram processing configuration for DiPeO."""
 
+# Execution engine settings
+ENGINE_MAX_CONCURRENT = 20  # Maximum concurrent node executions in TypedExecutionEngine
+
 # Batch execution settings
 BATCH_MAX_CONCURRENT = 10  # Maximum concurrent executions for batch processing
 BATCH_SIZE = 100  # Maximum items to process in one batch

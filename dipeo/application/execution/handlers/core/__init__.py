@@ -12,18 +12,15 @@ from .factory import (
 
 __all__ = [
     "HandlerFactory",
-    # Factory
     "HandlerRegistry",
     "Optional",
     "Required",
     "ServiceRequirement",
     "ServiceSpec",
     "TokenHandlerMixin",
-    # Base classes
     "TypedNodeHandler",
     "create_handler_factory_provider",
     "get_global_registry",
     "register_handler",
-    # Decorators
     "requires_services",
 ]

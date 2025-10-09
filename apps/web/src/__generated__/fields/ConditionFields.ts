@@ -26,6 +26,7 @@ export const conditionFields: UnifiedFieldDefinition[] = [
     placeholder: '"e.g., inputs.value > 10"',
     description: '"Boolean expression to evaluate"',
     rows: 3,
+    adjustable: true,
   },
   {
     name: 'node_indices',
@@ -54,6 +55,7 @@ export const conditionFields: UnifiedFieldDefinition[] = [
     placeholder: '"Enter the prompt for LLM to judge (should result in YES/NO)"',
     description: '"Prompt for LLM to make a judgment"',
     rows: 5,
+    adjustable: true,
   },
   {
     name: 'judge_by_file',

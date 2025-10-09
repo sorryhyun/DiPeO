@@ -3,20 +3,27 @@ from __future__ import annotations
 import glob
 import json
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import os
 from typing import TYPE_CHECKING, Any
 
-import yaml
 from pydantic import BaseModel
 
-from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.execution.engine.request import ExecutionRequest
 from dipeo.application.execution.handlers.core.base import TypedNodeHandler
 from dipeo.application.execution.handlers.core.decorators import Optional, requires_services
 from dipeo.application.execution.handlers.core.factory import register_handler
+from dipeo.application.execution.handlers.utils import (
+    create_error_body,
+    deserialize_data,
+    extract_content_value,
+    extract_first_non_empty,
+    serialize_data,
+    validate_operation,
+    validate_required_field,
+)
 from dipeo.application.registry import DB_OPERATIONS_SERVICE
 from dipeo.application.registry.keys import TEMPLATE_PROCESSOR
+from dipeo.config.base_logger import get_module_logger
 from dipeo.config.paths import BASE_DIR
 from dipeo.diagram_generated.enums import NodeType
 from dipeo.diagram_generated.unified_nodes.db_node import DbNode
@@ -26,6 +33,7 @@ if TYPE_CHECKING:
     pass
 
 logger = get_module_logger(__name__)
+
 
 @register_handler
 @requires_services(
@@ -58,18 +66,16 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
 
         # Validate operation type
         valid_operations = ["read", "write", "append", "update"]
-        if node.operation not in valid_operations:
+        error = validate_operation(node.operation, valid_operations)
+        if error:
             return EnvelopeFactory.create(
-                body={
-                    "error": f"Invalid operation: {node.operation}. Valid operations: {', '.join(valid_operations)}",
-                    "type": "ValueError"
-                },
+                body=create_error_body(error),
                 produced_by=str(node.id),
             )
 
         if node.operation == "update" and not getattr(node, "keys", None):
             return EnvelopeFactory.create(
-                body={"error": "Update operation requires one or more keys", "type": "ValueError"},
+                body=create_error_body("Update operation requires one or more keys"),
                 produced_by=str(node.id),
             )
 
@@ -90,21 +96,22 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
 
         if lines_specified and node.operation != "read":
             return EnvelopeFactory.create(
-                body={"error": "The 'lines' option is only supported for read operations", "type": "ValueError"},
+                body=create_error_body("The 'lines' option is only supported for read operations"),
                 produced_by=str(node.id),
             )
 
         if lines_specified and getattr(node, "keys", None):
             return EnvelopeFactory.create(
-                body={"error": "Cannot combine 'lines' and 'keys' for database reads", "type": "ValueError"},
+                body=create_error_body("Cannot combine 'lines' and 'keys' for database reads"),
                 produced_by=str(node.id),
             )
 
         # Validate file paths are provided
         file_paths = node.file
-        if not file_paths:
+        error = validate_required_field(file_paths, "file paths")
+        if error:
             return EnvelopeFactory.create(
-                body={"error": "No file paths specified for database operation", "type": "ValueError"},
+                body=create_error_body(f"{error} for database operation"),
                 produced_by=str(node.id),
             )
 
@@ -112,15 +119,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
         request.set_handler_state("base_dir", str(BASE_DIR))
 
         # No early return - proceed to execute_request
-        return None
-
-    @staticmethod
-    def _first_non_empty(inputs: dict[str, Any] | None) -> Any | None:
-        if not inputs:
-            return None
-        for _k, v in inputs.items():
-            if v is not None:
-                return v
         return None
 
     @staticmethod
@@ -145,41 +143,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                 expanded_paths.append(path)
 
         return expanded_paths
-
-    @staticmethod
-    def _serialize_data(data: Any, format_type: str | None) -> str:
-        if format_type == "json":
-            return json.dumps(data, indent=2)
-        elif format_type == "yaml":
-            return yaml.dump(data, default_flow_style=False)
-        elif format_type == "text" or format_type is None:
-            return str(data)
-        else:
-            logger.warning(f"Unknown format '{format_type}', using text format")
-            return str(data)
-
-    @staticmethod
-    def _deserialize_data(content: str, format_type: str | None) -> Any:
-        if not content:
-            return content
-
-        if format_type == "json":
-            try:
-                return json.loads(content)
-            except json.JSONDecodeError as e:
-                logger.warning(f"Failed to parse JSON: {e}")
-                return content
-        elif format_type == "yaml":
-            try:
-                return yaml.safe_load(content)
-            except yaml.YAMLError as e:
-                logger.warning(f"Failed to parse YAML: {e}")
-                return content
-        elif format_type == "text" or format_type is None:
-            return content
-        else:
-            logger.warning(f"Unknown format '{format_type}', returning as text")
-            return content
 
     async def run(self, inputs: dict[str, Any], request: ExecutionRequest[DbNode]) -> Any:
         """Execute database operation."""
@@ -244,20 +207,12 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
             processed_paths = adjusted_paths
 
         if node.operation in ("write", "update"):
-            input_val = (
+            input_val = extract_content_value(
                 inputs.get("generated_code")
                 or inputs.get("content")
                 or inputs.get("value")
-                or self._first_non_empty(inputs)
+                or extract_first_non_empty(inputs)
             )
-            if isinstance(input_val, dict):
-                actual_content = (
-                    input_val.get("generated_code")
-                    or input_val.get("content")
-                    or input_val.get("value")
-                )
-                if actual_content is not None:
-                    input_val = actual_content
 
             # Only serialize for YAML format or text format
             # JSON serialization is handled by db_adapter
@@ -267,7 +222,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                 and input_val is not None
             ):
                 if isinstance(input_val, dict | list):
-                    input_val = self._serialize_data(input_val, "yaml")
+                    input_val = serialize_data(input_val, "yaml")
             elif (
                 node.operation in ("write", "update")
                 and format_type == "text"
@@ -276,7 +231,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
             ):
                 input_val = str(input_val)
         else:
-            input_val = self._first_non_empty(inputs)
+            input_val = extract_first_non_empty(inputs)
 
         try:
             keys = getattr(node, "keys", None)
@@ -303,7 +258,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
 
                         if isinstance(file_content, str):
                             if format_type and not partial_content:
-                                file_content = self._deserialize_data(file_content, format_type)
+                                file_content = deserialize_data(file_content, format_type)
                             elif serialize_json and not partial_content:
                                 try:
                                     file_content = json.loads(file_content)
@@ -358,7 +313,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                     line_ranges_meta = metadata.get("line_ranges")
 
                     if isinstance(output_value, str) and format_type and not partial_content:
-                        output_value = self._deserialize_data(output_value, format_type)
+                        output_value = deserialize_data(output_value, format_type)
                     elif (
                         isinstance(output_value, str)
                         and getattr(node, "serialize_json", False)

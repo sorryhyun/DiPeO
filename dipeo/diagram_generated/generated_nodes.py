@@ -1,7 +1,7 @@
 """
 Compatibility shim for generated_nodes.py
 Re-exports from individual files for backward compatibility.
-Generated at: 2025-10-03T21:25:10.031278
+Generated at: 2025-10-09T17:34:06.659592
 """
 
 # Re-export all node classes from individual files
@@ -103,11 +103,11 @@ def create_executable_node(
             
             language=data.get('language', 'python'),
             
-            filePath=data.get('filePath'),
+            file_path=data.get('filePath', data.get('file_path', '')),
             
             code=data.get('code'),
             
-            functionName=data.get('functionName'),
+            function_name=data.get('functionName', data.get('function_name', '')),
             
             timeout=data.get('timeout'),
             
@@ -157,7 +157,7 @@ def create_executable_node(
             
             sub_type=data.get('sub_type', 'fixed_prompt'),
             
-            operation=data.get('operation', ''),
+            operation=data.get('operation', 'read'),
             
             query=data.get('query'),
             
@@ -255,7 +255,7 @@ def create_executable_node(
             
             resource_id=data.get('resource_id'),
             
-            config=data.get('config', {}),
+            config=data.get('config'),
             
             timeout=data.get('timeout', 30),
             
@@ -279,9 +279,9 @@ def create_executable_node(
             
             output_format=data.get('output_format'),
             
-            cache_enabled=data.get('cache_enabled'),
+            cache_enabled=data.get('cache_enabled', False),
             
-            validate_output=data.get('validate_output'),
+            validate_output=data.get('validate_output', False),
             
         )
     
@@ -315,7 +315,7 @@ def create_executable_node(
             
             person=data.get('person'),
             
-            first_only_prompt=data.get('first_only_prompt', ''),
+            first_only_prompt=data.get('first_only_prompt'),
             
             first_prompt_file=data.get('first_prompt_file'),
             
@@ -393,7 +393,7 @@ def create_executable_node(
             
             isolate_conversation=data.get('isolate_conversation', False),
             
-            ignoreIfSub=data.get('ignoreIfSub', False),
+            ignore_if_sub=data.get('ignore_if_sub', False),
             
             diagram_format=data.get('diagram_format'),
             
@@ -437,21 +437,21 @@ def create_executable_node(
             
             source=data.get('source'),
             
-            extractPatterns=data.get('extractPatterns', ['interface', 'type', 'enum']),
+            extract_patterns=data.get('extract_patterns', ['interface', 'type', 'enum']),
             
-            includeJSDoc=data.get('includeJSDoc', False),
+            include_jsdoc=data.get('include_jsdoc', False),
             
-            parseMode=data.get('parseMode', 'module'),
+            parse_mode=data.get('parse_mode', 'module'),
             
-            transformEnums=data.get('transformEnums', False),
+            transform_enums=data.get('transform_enums', False),
             
-            flattenOutput=data.get('flattenOutput', False),
+            flatten_output=data.get('flatten_output', False),
             
-            outputFormat=data.get('outputFormat', 'standard'),
+            output_format=data.get('output_format', 'standard'),
             
             batch=data.get('batch', False),
             
-            batchInputKey=data.get('batchInputKey', 'sources'),
+            batch_input_key=data.get('batch_input_key', 'sources'),
             
         )
     

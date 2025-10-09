@@ -33,7 +33,7 @@ class ResolvedField:
     is_literal: bool
     is_custom_list: bool
     needs_conversion: bool
-    conversion_expr: Optional[str] = None  # Expression for from_pydantic conversion
+    conversion_expr: str | None = None  # Expression for from_pydantic conversion
 
 
 @dataclass
@@ -85,8 +85,8 @@ class UnifiedTypeResolver:
 
     def __init__(
         self,
-        config_path: Optional[Path] = None,
-        converter: Optional[UnifiedTypeConverter] = None,
+        config_path: Path | None = None,
+        converter: UnifiedTypeConverter | None = None,
     ):
         """Initialize unified type resolver.
 
@@ -105,6 +105,11 @@ class UnifiedTypeResolver:
         self.json_types = set(self.graphql_config.get("json_types", []))
         self.manual_conversion_types = set(self.graphql_config.get("manual_conversion_types", []))
         self.pydantic_decorator_types = set(self.graphql_config.get("pydantic_decorator_types", []))
+
+        # Load type_suffix_types from config
+        self.type_suffix_types = set(
+            self.graphql_config.get("strawberry_type_rules", {}).get("type_suffix_types", [])
+        )
 
         self.conversion_registry = TypeConversionRegistry()
 
@@ -153,7 +158,9 @@ class UnifiedTypeResolver:
         is_custom_list = self._is_custom_list(field_type)
 
         # Resolve Strawberry type
-        strawberry_type = self._resolve_strawberry_type(field_name, field_type, is_optional, type_name)
+        strawberry_type = self._resolve_strawberry_type(
+            field_name, field_type, is_optional, type_name
+        )
 
         # Determine default value
         default = self._get_default_value(strawberry_type, is_optional)
@@ -248,22 +255,14 @@ class UnifiedTypeResolver:
             base_type = self._resolve_strawberry_type(field_name, inner_type, False, type_name)
             is_optional = True  # Mark as optional for later processing
 
-        # Handle known complex types
-        elif field_type in [
-            "Vec2",
-            "PersonLLMConfig",
-            "DiagramMetadata",
-            "EnvelopeMeta",
-            "ExecutionMetrics",
-            "LLMUsage",
-            "ConversationMetadata",
-            "NodeState",
-            "NodeMetrics",
-        ]:
+        # Handle known complex types that need Type suffix
+        elif field_type in self.type_suffix_types:
             base_type = f"{field_type}Type"
 
         # Handle enums (these should be imported from enums module)
-        elif field_type in self.graphql_config.get("strawberry_type_rules", {}).get("enum_types", []):
+        elif field_type in self.graphql_config.get("strawberry_type_rules", {}).get(
+            "enum_types", []
+        ):
             base_type = field_type  # Keep enum name as-is
 
         # Handle Union types
@@ -337,12 +336,9 @@ class UnifiedTypeResolver:
         # Handle list of domain types
         if inner_type.startswith("Domain"):
             return f"List[{inner_type}Type]"
-        elif inner_type == "Message":
-            return "List[MessageType]"
-        elif inner_type == "ConversationMetadata":
-            return "List[ConversationMetadataType]"
-        elif inner_type == "Bottleneck":
-            return "List[BottleneckType]"
+        # Check if inner type needs Type suffix
+        elif inner_type in self.type_suffix_types:
+            return f"List[{inner_type}Type]"
         else:
             return f"List[{inner_type}]"
 
@@ -440,7 +436,9 @@ class UnifiedTypeResolver:
 
         lines.append("    )")
 
-        return ConversionMethod(type_name=type_name, method_code="\n".join(lines), needs_method=True)
+        return ConversionMethod(
+            type_name=type_name, method_code="\n".join(lines), needs_method=True
+        )
 
     def process_type(self, interface: dict[str, Any]) -> dict[str, Any]:
         """Process a complete type for template rendering.

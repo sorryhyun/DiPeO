@@ -1,7 +1,7 @@
 """
 Node factory for creating executable nodes from data.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-03T21:25:10.031278
+Generated at: 2025-10-09T17:34:06.659592
 
 """
 
@@ -89,9 +89,11 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             language=data.get('language', "python"),
-            file_path=data.get('filePath', None),
+            # File path field may have camelCase variants
+            file_path=data.get('file_path', data.get('filePath', data.get('file_path', None))),
             code=data.get('code', None),
-            function_name=data.get('functionName', None),
+            # Function name field may have camelCase variants
+            function_name=data.get('function_name', data.get('functionName', data.get('function_name', None))),
             timeout=data.get('timeout', None),
         )
 
@@ -127,7 +129,7 @@ def create_executable_node(
             collection=data.get('collection', None),
             # Sub type field may have camelCase variants
             sub_type=data.get('sub_type', data.get('subType', "fixed_prompt")),
-            operation=data.get('operation', ""),
+            operation=data.get('operation', "read"),
             # DB node special handling for backward compatibility
             query=data.get('query', None),
             keys=data.get('keys', None),
@@ -195,7 +197,7 @@ def create_executable_node(
             provider=data.get('provider', "NOTION"),
             operation=data.get('operation', ""),
             resource_id=data.get('resource_id', None),
-            config=data.get('config', {}),
+            config=data.get('config', None),
             timeout=data.get('timeout', 30),
             max_retries=data.get('max_retries', 3),
         )
@@ -211,8 +213,8 @@ def create_executable_node(
             source_type=data.get('source_type', None),
             config_path=data.get('config_path', None),
             output_format=data.get('output_format', None),
-            cache_enabled=data.get('cache_enabled', None),
-            validate_output=data.get('validate_output', None),
+            cache_enabled=data.get('cache_enabled', False),
+            validate_output=data.get('validate_output', False),
         )
 
     elif node_type == NodeType.JSON_SCHEMA_VALIDATOR:
@@ -238,7 +240,7 @@ def create_executable_node(
             metadata=metadata,
             person=data.get('person', None),
             # PersonJob backward compatibility: first_only_prompt could be 'prompt'
-            first_only_prompt=data.get('first_only_prompt', data.get('prompt', "")),
+            first_only_prompt=data.get('first_only_prompt', data.get('prompt', None)),
             first_prompt_file=data.get('first_prompt_file', None),
             default_prompt=data.get('default_prompt', None),
             prompt_file=data.get('prompt_file', None),
@@ -285,7 +287,8 @@ def create_executable_node(
             timeout=data.get('timeout', None),
             wait_for_completion=data.get('wait_for_completion', True),
             isolate_conversation=data.get('isolate_conversation', False),
-            ignore_if_sub=data.get('ignoreIfSub', False),
+            # Ignore if sub field may have camelCase variants
+            ignore_if_sub=data.get('ignoreIfSub', data.get('ignore_if_sub', False)),
             diagram_format=data.get('diagram_format', None),
             batch=data.get('batch', False),
             batch_input_key=data.get('batch_input_key', "items"),
@@ -315,14 +318,14 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             source=data.get('source', None),
-            extract_patterns=data.get('extractPatterns', ['interface', 'type', 'enum']),
-            include_js_doc=data.get('includeJSDoc', False),
-            parse_mode=data.get('parseMode', "module"),
-            transform_enums=data.get('transformEnums', False),
-            flatten_output=data.get('flattenOutput', False),
-            output_format=data.get('outputFormat', "standard"),
+            extract_patterns=data.get('extract_patterns', ['interface', 'type', 'enum']),
+            include_jsdoc=data.get('include_jsdoc', False),
+            parse_mode=data.get('parse_mode', "module"),
+            transform_enums=data.get('transform_enums', False),
+            flatten_output=data.get('flatten_output', False),
+            output_format=data.get('output_format', "standard"),
             batch=data.get('batch', False),
-            batch_input_key=data.get('batchInputKey', "sources"),
+            batch_input_key=data.get('batch_input_key', "sources"),
         )
 
     elif node_type == NodeType.USER_RESPONSE:

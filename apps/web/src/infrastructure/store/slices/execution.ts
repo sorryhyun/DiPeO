@@ -9,7 +9,7 @@ import {
   type ExecutionUpdate,
 } from '@dipeo/models';
 import { ExecutionConverter, type StoreNodeState, type StoreExecutionState } from '@/infrastructure/converters';
-import type { UnifiedStore } from '../types';
+import type { UnifiedStore, SetState, GetState, StoreApiType } from '../types';
 
 // Re-export store types from converter
 export type { StoreNodeState as NodeState, StoreExecutionState as ExecutionState } from '@/infrastructure/converters';
@@ -82,9 +82,9 @@ const updateNodeState = (state: UnifiedStore, nodeId: NodeID, nodeState: StoreNo
 };
 
 export const createExecutionSlice = (
-  set: (fn: (state: UnifiedStore) => void) => void,
-  _get: () => UnifiedStore,
-  _api: any
+  set: SetState,
+  _get: GetState,
+  _api: StoreApiType
 ): ExecutionSlice => ({
   execution: {
     id: null,

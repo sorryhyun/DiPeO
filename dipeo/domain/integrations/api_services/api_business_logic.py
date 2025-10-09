@@ -2,16 +2,16 @@
 
 import json
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.enums import HttpMethod
 from dipeo.domain.base.exceptions import ServiceError, ValidationError
 from dipeo.domain.diagram.ports import TemplateProcessorPort
 from dipeo.domain.integrations.api_value_objects import RetryPolicy, RetryStrategy
 
 logger = get_module_logger(__name__)
+
 
 class APIBusinessLogic:
     def __init__(self, template_processor: TemplateProcessorPort | None = None):

@@ -7,7 +7,6 @@ import json
 import os
 import sys
 
-# Fix encoding issues on Windows
 if sys.platform == "win32":
     import io
 
@@ -19,37 +18,49 @@ if sys.platform == "win32":
 
 async def run_cli_command(args: argparse.Namespace) -> bool:
     """Run CLI command using direct service calls."""
+    import logging
+
     from dipeo.application.bootstrap import init_resources, shutdown_resources
     from dipeo.infrastructure.logging_config import setup_logging
     from dipeo_server.app_context import create_server_container
     from dipeo_server.cli import CLIRunner, ServerManager
 
-    # Setup logging for CLI
     debug = getattr(args, "debug", False)
-    log_level = "DEBUG" if debug else os.environ.get("DIPEO_LOG_LEVEL", "INFO")
-    setup_logging(component="cli", log_level=log_level, log_to_file=True, console_output=debug)
+    timing = getattr(args, "timing", False)
 
-    # Start background server if in debug mode
+    if timing:
+        os.environ["DIPEO_TIMING_ENABLED"] = "true"
+
+    if debug or timing:
+        log_level = "DEBUG"
+    else:
+        log_level = os.environ.get("DIPEO_LOG_LEVEL", "INFO")
+
+    # Use overwrite mode for 'run' command, append for others (especially 'metrics')
+    file_mode = "w" if args.command == "run" else "a"
+
+    setup_logging(
+        component="cli",
+        log_level=log_level,
+        log_to_file=True,
+        console_output=debug or timing,
+        timing_only=timing and not debug,
+        file_mode=file_mode,
+    )
+
     server_manager = None
-    if debug and args.command == "run":
-        print("🚀 Starting background server for monitoring...")
+    if (debug or timing) and args.command == "run":
+        print("🚀 Starting background server for monitoring (async)...")
         server_manager = ServerManager()
-        server_started = await server_manager.start(timeout=10)
-        if server_started:
-            print("✅ Server ready - Monitor at http://localhost:3000/?monitor=true")
-        else:
-            print("⚠️  Failed to start background server for monitoring")
-            print("    Execution will continue, but monitoring won't be available")
+        asyncio.create_task(server_manager.start_async())
+        print("💡 Monitor will be available at http://localhost:3000/?monitor=true (starting...)")
 
-    # Create container and initialize resources
     container = await create_server_container()
     await init_resources(container)
 
     try:
-        # Create CLI runner
         cli = CLIRunner(container)
 
-        # Execute command
         if args.command == "ask":
             return await cli.ask_diagram(
                 request=args.to,
@@ -60,7 +71,6 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
             )
 
         elif args.command == "run":
-            # Determine format type
             format_type = None
             if hasattr(args, "light") and args.light:
                 format_type = "light"
@@ -69,7 +79,6 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
             elif hasattr(args, "readable") and args.readable:
                 format_type = "readable"
 
-            # Parse input data
             input_variables = None
             if hasattr(args, "inputs") and args.inputs:
                 with open(args.inputs) as f:
@@ -99,7 +108,6 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
             return await cli.show_stats(args.diagram)
 
         elif args.command == "monitor":
-            # Open browser monitor
             import webbrowser
 
             url = "http://localhost:3000/?monitor=true"
@@ -111,7 +119,9 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
         elif args.command == "metrics":
             return await cli.show_metrics(
                 execution_id=args.execution_id,
+                latest=getattr(args, "latest", False),
                 diagram_id=getattr(args, "diagram", None),
+                breakdown=getattr(args, "breakdown", False),
                 bottlenecks_only=getattr(args, "bottlenecks", False),
                 optimizations_only=getattr(args, "optimizations", False),
                 output_json=getattr(args, "json", False),
@@ -151,7 +161,6 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
             action = args.dipeocc_action
             kwargs = {}
 
-            # Add project parameter if specified
             kwargs["project"] = getattr(args, "project", None)
 
             if action == "list":
@@ -173,10 +182,8 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
             return False
 
     finally:
-        # Cleanup
         await shutdown_resources(container)
 
-        # Stop background server if it was started
         if server_manager:
             await server_manager.stop()
 
@@ -206,6 +213,7 @@ def create_parser() -> argparse.ArgumentParser:
     run_parser = subparsers.add_parser("run", help="Execute a diagram")
     run_parser.add_argument("diagram", help="Path to diagram file or diagram name")
     run_parser.add_argument("--debug", action="store_true", help="Enable debug output")
+    run_parser.add_argument("--timing", action="store_true", help="Enable timing collection + logs")
     run_parser.add_argument("--timeout", type=int, default=300, help="Execution timeout in seconds")
     run_parser.add_argument("--simple", action="store_true", help="Use simple text display")
 
@@ -247,7 +255,13 @@ def create_parser() -> argparse.ArgumentParser:
     metrics_parser = subparsers.add_parser("metrics", help="Display execution metrics")
     metrics_parser.add_argument("execution_id", nargs="?", help="Execution ID to show metrics for")
     metrics_parser.add_argument(
+        "--latest", action="store_true", help="Show latest execution metrics"
+    )
+    metrics_parser.add_argument(
         "--diagram", type=str, help="Show metrics history for specific diagram"
+    )
+    metrics_parser.add_argument(
+        "--breakdown", action="store_true", help="Show detailed phase breakdown"
     )
     metrics_parser.add_argument(
         "--bottlenecks", action="store_true", help="Show only bottleneck analysis"
@@ -369,14 +383,11 @@ def main():
     parser = create_parser()
     args = parser.parse_args()
 
-    # If no command specified or --server flag, run as server
     if not args.command or args.server:
-        # Run as server
         import uvicorn
 
         from dipeo.infrastructure.logging_config import setup_logging
 
-        # Setup logging
         log_level = os.environ.get("LOG_LEVEL", "INFO")
         logger = setup_logging(
             component="server",
@@ -386,7 +397,6 @@ def main():
             console_output=True,
         )
 
-        # Import and run server
         from apps.server.main import app
 
         uvicorn.run(
@@ -396,7 +406,6 @@ def main():
             log_level=log_level.lower(),
         )
     else:
-        # Run as CLI
         try:
             success = asyncio.run(run_cli_command(args))
             sys.exit(0 if success else 1)
@@ -413,7 +422,6 @@ def main():
 
 def dipeocc_main():
     """Direct entry point for dipeocc command."""
-    # Insert 'dipeocc' as the first argument to simulate the subcommand
     sys.argv = [sys.argv[0], "dipeocc"] + sys.argv[1:]
     main()
 

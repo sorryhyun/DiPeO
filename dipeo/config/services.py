@@ -2,13 +2,10 @@
 
 from dipeo.diagram_generated import APIServiceType, LLMService
 
-# Compatibility alias for LLMServiceName
 LLMServiceName = LLMService
 
-# Valid LLM service names (for backward compatibility)
 VALID_LLM_SERVICES: set[str] = {item for item in LLMService}
 
-# Set of APIServiceType values that are LLM services
 LLM_SERVICE_TYPES: set[APIServiceType] = {
     APIServiceType.OPENAI,
     APIServiceType.ANTHROPIC,
@@ -31,7 +28,6 @@ def normalize_service_name(service: str) -> str:
     """
     normalized = service.lower().strip().replace("_", "-")
 
-    # Service aliases mapping to LLMService values
     aliases = {
         "claude": LLMService.ANTHROPIC,
         "claude-sdk": LLMService.CLAUDE_CODE,
@@ -69,17 +65,14 @@ def api_service_type_to_llm_service(service: APIServiceType) -> LLMService:
     if not is_llm_service(service):
         raise ValueError(f'APIServiceType "{service}" is not an LLM service')
 
-    # Handle special cases
     if service == APIServiceType.GEMINI:
         return LLMService.GOOGLE
 
-    # Direct mapping for others
     return LLMService(service)
 
 
 def llm_service_to_api_service_type(service: LLMService) -> APIServiceType:
     """Convert LLMService to APIServiceType."""
-    # Direct mapping works for all LLMService values
     return APIServiceType(service)
 
 

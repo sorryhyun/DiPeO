@@ -2,8 +2,6 @@
 
 import functools
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import time
 from collections import defaultdict
 from collections.abc import Callable
@@ -11,10 +9,13 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from dipeo.config.base_logger import get_module_logger
+
 if TYPE_CHECKING:
     from dipeo.application.registry import ServiceRegistry
 
 logger = get_module_logger(__name__)
+
 
 @dataclass
 class PortMetrics:
@@ -33,6 +34,7 @@ class PortMetrics:
     @property
     def error_rate(self) -> float:
         return (self.error_count / self.call_count * 100) if self.call_count > 0 else 0.0
+
 
 class PortMetricsCollector:
     """Singleton collector for port usage metrics."""
@@ -132,7 +134,9 @@ class PortMetricsCollector:
         self._v1_calls = 0
         self._v2_calls = 0
 
+
 _collector = PortMetricsCollector()
+
 
 def track_port_call(port_name: str, is_v2: bool = False):
     """Decorator to track port method calls."""
@@ -188,12 +192,15 @@ def track_port_call(port_name: str, is_v2: bool = False):
 
     return decorator
 
+
 def get_port_metrics(port_name: str | None = None) -> dict[str, Any]:
     """Get current port usage metrics."""
     return _collector.get_metrics(port_name)
 
+
 def reset_port_metrics() -> None:
     _collector.reset()
+
 
 def add_metrics_to_port(port_instance: Any, port_name: str, is_v2: bool = False) -> Any:
     """Dynamically add metrics tracking to a port instance."""
@@ -215,6 +222,7 @@ def add_metrics_to_port(port_instance: Any, port_name: str, is_v2: bool = False)
             return attr
 
     return MetricsWrapper(port_instance)
+
 
 def wire_port_metrics(registry: "ServiceRegistry") -> None:
     """Wire port metrics collection to all registered services."""

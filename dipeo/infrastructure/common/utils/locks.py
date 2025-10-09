@@ -3,8 +3,6 @@
 import asyncio
 import hashlib
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import os
 import sys
 import time
@@ -12,6 +10,7 @@ from contextlib import asynccontextmanager, contextmanager, suppress
 from pathlib import Path
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.config.paths import BASE_DIR
 
 try:
@@ -32,6 +31,7 @@ else:
     HAS_MSVCRT = False
 
 logger = get_module_logger(__name__)
+
 
 class FileLock:
     """File-based lock for coordinating access to shared resources.
@@ -188,6 +188,7 @@ class FileLock:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.release()
 
+
 class AsyncFileLock:
     """Async version of FileLock for use with asyncio."""
 
@@ -212,6 +213,7 @@ class AsyncFileLock:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.release()
+
 
 class CacheFileLock:
     """Specialized lock for cache file operations.
@@ -308,7 +310,9 @@ class CacheFileLock:
                     await loop.run_in_executor(None, temp_file.unlink)
                 raise
 
+
 _cache_lock_manager = None
+
 
 def get_cache_lock_manager(cache_dir: Path | None = None) -> CacheFileLock:
     """Get or create global cache lock manager."""

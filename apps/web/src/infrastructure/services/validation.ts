@@ -47,14 +47,9 @@ export interface ValidationWarning {
  * Validation service for business rules
  */
 export class ValidationService {
-  /**
-   * Get node validation schema from generated schemas
-   */
   private static getNodeSchema(nodeType: NodeType): z.ZodSchema | undefined {
-    // Map NodeType enum to string key for schema lookup
     const schemaKey = nodeType.toLowerCase().replace(/_/g, '') as 'hook' | 'start' | 'condition' | 'endpoint' | 'db' | 'apijob' | 'codejob' | 'integratedapi' | 'jsonschemavalidator' | 'personjob' | 'subdiagram' | 'templatejob' | 'typescriptast' | 'userresponse';
 
-    // Check if the key is valid before calling getNodeDataSchema
     const validKeys = ['hook', 'start', 'condition', 'endpoint', 'db', 'apijob', 'codejob', 'integratedapi', 'jsonschemavalidator', 'personjob', 'subdiagram', 'templatejob', 'typescriptast', 'userresponse'] as const;
     if (validKeys.includes(schemaKey as any)) {
       return getNodeDataSchema(schemaKey);
@@ -62,18 +57,12 @@ export class ValidationService {
     return undefined;
   }
 
-  /**
-   * Validate a node
-   */
   static validateNode(node: DomainNode): ValidationResult {
     const errors: ValidationError[] = [];
     const warnings: ValidationWarning[] = [];
 
-    // Get schema for node type from generated schemas
     const schema = this.getNodeSchema(node.type);
     if (!schema) {
-      // Node type might not need validation (e.g., START node)
-      // Only error if it's truly unknown
       const knownTypes = Object.values(NodeType);
       if (!knownTypes.includes(node.type)) {
         errors.push({
@@ -85,7 +74,6 @@ export class ValidationService {
       }
     }
 
-    // Validate node data if schema exists
     if (schema) {
       try {
         schema.parse(node.data);
@@ -102,7 +90,6 @@ export class ValidationService {
       }
     }
 
-    // Additional business rule validations
     this.validateNodeBusinessRules(node, errors, warnings);
 
     return {
@@ -112,9 +99,6 @@ export class ValidationService {
     };
   }
 
-  /**
-   * Validate node business rules
-   */
   private static validateNodeBusinessRules(
     node: DomainNode,
     errors: ValidationError[],
@@ -122,7 +106,6 @@ export class ValidationService {
   ): void {
     switch (node.type) {
       case NodeType.PERSON_JOB:
-        // Warn if no person is selected
         if (!node.data.person) {
           warnings.push({
             field: 'person',
@@ -132,7 +115,6 @@ export class ValidationService {
         break;
 
       case NodeType.SUB_DIAGRAM:
-        // Check if diagram exists
         if (node.data.diagram_name &&
             typeof node.data.diagram_name === 'string' &&
             !this.diagramExists(node.data.diagram_name)) {
@@ -145,7 +127,6 @@ export class ValidationService {
         break;
 
       case NodeType.ENDPOINT:
-        // Warn about insecure URLs
         if (typeof node.data.url === 'string' && node.data.url.startsWith('http://')) {
           warnings.push({
             field: 'url',
@@ -156,9 +137,6 @@ export class ValidationService {
     }
   }
 
-  /**
-   * Validate a person configuration
-   */
   static validatePerson(person: DomainPerson): ValidationResult {
     const errors: ValidationError[] = [];
     const warnings: ValidationWarning[] = [];
@@ -186,8 +164,6 @@ export class ValidationService {
       }
     }
 
-    // Additional person-specific validations can be added here
-
     return {
       valid: errors.length === 0,
       errors,
@@ -195,14 +171,10 @@ export class ValidationService {
     };
   }
 
-  /**
-   * Validate a diagram
-   */
   static validateDiagram(diagram: DomainDiagram): ValidationResult {
     const errors: ValidationError[] = [];
     const warnings: ValidationWarning[] = [];
 
-    // Must have at least one node
     if (diagram.nodes.length === 0) {
       errors.push({
         field: 'nodes',
@@ -211,7 +183,6 @@ export class ValidationService {
       });
     }
 
-    // Must have a START node
     const hasStart = diagram.nodes.some(n => n.type === NodeType.START);
     if (!hasStart && diagram.nodes.length > 0) {
       errors.push({
@@ -221,7 +192,6 @@ export class ValidationService {
       });
     }
 
-    // Validate all nodes
     diagram.nodes.forEach(node => {
       const nodeValidation = this.validateNode(node);
       errors.push(...nodeValidation.errors.map(e => ({
@@ -234,9 +204,7 @@ export class ValidationService {
       })));
     });
 
-    // Validate arrow connections
     diagram.arrows.forEach(arrow => {
-      // Arrow source/target are HandleIDs, extract node IDs
       const sourceNodeId = arrow.source.split('_')[0] as NodeID;
       const targetNodeId = arrow.target.split('_')[0] as NodeID;
 
@@ -260,10 +228,8 @@ export class ValidationService {
       }
     });
 
-    // Check for disconnected nodes
     const connectedNodes = new Set<NodeID>();
     diagram.arrows.forEach(arrow => {
-      // Extract node IDs from handle IDs
       const sourceNodeId = arrow.source.split('_')[0] as NodeID;
       const targetNodeId = arrow.target.split('_')[0] as NodeID;
       connectedNodes.add(sourceNodeId);
@@ -286,17 +252,10 @@ export class ValidationService {
     };
   }
 
-  /**
-   * Helper to check if diagram exists (would query backend)
-   */
   private static diagramExists(name: string): boolean {
-    // This would actually query the backend
     return true;
   }
 
-  /**
-   * Validate form data against a schema
-   */
   static validateFormData<T>(
     data: unknown,
     schema: z.ZodSchema<T>,
@@ -312,9 +271,6 @@ export class ValidationService {
     }
   }
 
-  /**
-   * Get field validation messages for a specific node type and field
-   */
   static getFieldValidationMessages(
     nodeType: NodeType | string,
     fieldName: string,
@@ -322,7 +278,6 @@ export class ValidationService {
   ): string[] {
     const messages: string[] = [];
 
-    // Get the schema for this node type
     const nodeTypeEnum = typeof nodeType === 'string'
       ? nodeType.toUpperCase().replace(/-/g, '_') as NodeType
       : nodeType;
@@ -332,14 +287,11 @@ export class ValidationService {
       return messages;
     }
 
-    // Try to parse just this field
     try {
       const fieldData = { [fieldName]: value };
-      // Check if schema has partial method (z.object does)
       if ('partial' in schema && typeof schema.partial === 'function') {
         (schema as any).partial().parse(fieldData);
       } else {
-        // For non-object schemas, validate the entire structure
         schema.parse({ [fieldName]: value });
       }
     } catch (error) {
@@ -355,16 +307,12 @@ export class ValidationService {
     return messages;
   }
 
-  /**
-   * Get field errors for a node
-   */
   static getFieldErrors(
     nodeType: NodeType | string,
     data: Record<string, unknown>,
   ): Record<string, string[]> {
     const fieldErrors: Record<string, string[]> = {};
 
-    // Get the schema for this node type
     const nodeTypeEnum = typeof nodeType === 'string'
       ? nodeType.toUpperCase().replace(/-/g, '_') as NodeType
       : nodeType;
@@ -391,9 +339,6 @@ export class ValidationService {
     return fieldErrors;
   }
 
-  /**
-   * Validate a connection between two handles
-   */
   static validateConnection(
     sourceHandle: HandleID,
     targetHandle: HandleID,
@@ -402,7 +347,6 @@ export class ValidationService {
     const errors: ValidationError[] = [];
     const warnings: ValidationWarning[] = [];
 
-    // Extract node IDs from handle IDs (format: nodeId_handleLabel_direction)
     const sourceNodeId = sourceHandle.split('_')[0] as NodeID;
     const targetNodeId = targetHandle.split('_')[0] as NodeID;
 
@@ -424,9 +368,6 @@ export class ValidationService {
         code: 'TARGET_NOT_FOUND',
       });
     }
-
-    // Additional connection validation logic
-    // (e.g., checking if connection types are compatible)
 
     return {
       valid: errors.length === 0,

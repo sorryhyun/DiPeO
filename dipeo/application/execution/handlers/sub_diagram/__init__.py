@@ -8,13 +8,11 @@ This modular structure follows the pattern of condition and code_job handlers:
 """
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.execution.engine.request import ExecutionRequest
 from dipeo.application.execution.handlers.core.base import TypedNodeHandler
 from dipeo.application.execution.handlers.core.decorators import requires_services
 from dipeo.application.execution.handlers.core.factory import register_handler
@@ -24,6 +22,7 @@ from dipeo.application.registry import (
     PREPARE_DIAGRAM_USE_CASE,
     STATE_STORE,
 )
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.unified_nodes.sub_diagram_node import NodeType, SubDiagramNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
@@ -36,6 +35,7 @@ if TYPE_CHECKING:
     pass
 
 logger = get_module_logger(__name__)
+
 
 @register_handler
 @requires_services(
@@ -59,9 +59,8 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     NODE_TYPE = NodeType.SUB_DIAGRAM.value
 
     def __init__(self):
-        """Initialize executors."""
         super().__init__()
-        # Initialize executors (stateless, safe to reuse)
+        # Executors are stateless and safe to reuse across requests
         self.lightweight_executor = LightweightSubDiagramExecutor()
         self.single_executor = SingleSubDiagramExecutor()
         self.batch_executor = BatchSubDiagramExecutor()
@@ -83,20 +82,17 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         return "Execute another diagram as a node within the current diagram, supporting single and batch execution"
 
     def validate(self, request: ExecutionRequest[SubDiagramNode]) -> str | None:
-        """Validate the execution request."""
         node = request.node
 
-        # Validate that either diagram_name or diagram_data is provided
         if not node.diagram_name and not node.diagram_data:
             return "Either diagram_name or diagram_data must be specified"
 
-        # If both are provided, warn but continue (diagram_data takes precedence)
+        # diagram_data takes precedence when both are provided
         if node.diagram_name and node.diagram_data:
             logger.debug(
                 f"Both diagram_name and diagram_data provided for node {node.id}. diagram_data will be used."
             )
 
-        # Validate batch configuration
         if getattr(node, "batch", False):
             batch_input_key = getattr(node, "batch_input_key", "items")
             if not batch_input_key:
@@ -105,20 +101,23 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         return None
 
     async def pre_execute(self, request: ExecutionRequest[SubDiagramNode]) -> Envelope | None:
-        """Pre-execution hook to configure services and validate execution context."""
-        # Configure services for executors (no caching via flag to avoid statefulness)
-        # Get services from request
+        # Configure services for executors (no caching to avoid statefulness)
         state_store = request.get_optional_service(STATE_STORE)
         message_router = request.get_optional_service(MESSAGE_ROUTER)
         diagram_service = request.get_optional_service(DIAGRAM_PORT)
         prepare_use_case = request.get_optional_service(PREPARE_DIAGRAM_USE_CASE)
 
-        # Set services on executors
+        # Get event bus from registry to ensure metrics are captured for sub-diagrams
+        from dipeo.application.registry import EVENT_BUS
+
+        event_bus = request.get_optional_service(EVENT_BUS)
+
         self.single_executor.set_services(
             state_store=state_store,
             message_router=message_router,
             diagram_service=diagram_service,
             service_registry=request.services,
+            event_bus=event_bus,
         )
 
         self.batch_executor.set_services(
@@ -126,15 +125,16 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
             message_router=message_router,
             diagram_service=diagram_service,
             service_registry=request.services,
+            event_bus=event_bus,
         )
 
         self.lightweight_executor.set_services(
             prepare_use_case=prepare_use_case,
             diagram_service=diagram_service,
             service_registry=request.services,
+            event_bus=event_bus,
         )
 
-        # Return None to proceed with normal execution
         return None
 
     async def prepare_inputs(
@@ -142,13 +142,11 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     ) -> dict[str, Any]:
         """Convert envelopes to legacy inputs for executors.
 
-        Phase 5: Now consumes tokens from incoming edges when available.
+        Phase 5: Consumes tokens from incoming edges when available.
         """
-        # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
         envelope_inputs = self.get_effective_inputs(request, inputs)
 
-        # Convert envelopes to legacy inputs for executors (temporary during migration)
-        # This allows existing executors to work without modification
+        # Temporary conversion layer during migration to allow existing executors to work
         legacy_inputs = {}
         for key, envelope in envelope_inputs.items():
             if envelope.content_type == "raw_text":
@@ -164,15 +162,12 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         return legacy_inputs
 
     async def run(self, inputs: dict[str, Any], request: ExecutionRequest[SubDiagramNode]) -> Any:
-        """Route execution to appropriate executor based on configuration."""
         node = request.node
 
-        # Check ignoreIfSub flag - if true and we're already in a sub-diagram, skip execution
         if getattr(node, "ignoreIfSub", False) and request.metadata.get("is_sub_diagram", False):
             logger.info(
                 f"Skipping sub-diagram '{node.diagram_name}' (node: {node.id}) due to ignoreIfSub=true (parent: {request.metadata.get('parent_diagram', 'unknown')})"
             )
-            # Return empty result envelope
             return EnvelopeFactory.create(
                 body={
                     "skipped": True,
@@ -187,10 +182,8 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                 },
             )
 
-        # Update request inputs for executors
         request.inputs = inputs
 
-        # Route to appropriate executor
         if getattr(node, "batch", False):
             result = await self.batch_executor.execute(request)
         elif getattr(node, "use_standard_execution", False):
@@ -203,16 +196,12 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     def _build_node_output(
         self, result: Any, request: ExecutionRequest[SubDiagramNode]
     ) -> dict[str, Any]:
-        """Build multi-representation output for sub-diagram execution."""
         node = request.node
         is_batch = getattr(node, "batch", False)
 
-        # Extract primary value from result
         primary_value = result.value if hasattr(result, "value") else result
 
-        # Build representations based on execution mode
         if is_batch and isinstance(primary_value, dict):
-            # Batch mode representations
             total_items = primary_value.get("total_items", 0)
             successful = primary_value.get("successful", 0)
             failed = primary_value.get("failed", 0)
@@ -231,7 +220,6 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                 },
             }
         else:
-            # Single execution mode representations
             representations = {
                 "text": str(primary_value)
                 if not isinstance(primary_value, dict)
@@ -260,7 +248,6 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         }
 
     def _summarize_execution(self, result: dict) -> str:
-        """Create a text summary of diagram execution results."""
         if not isinstance(result, dict):
             return str(result)
 
@@ -268,11 +255,9 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         return f"Executed {node_count} nodes in sub-diagram"
 
     def _extract_outputs(self, result: Any) -> dict:
-        """Extract node outputs from execution result."""
         if not isinstance(result, dict):
             return {}
 
-        # Extract outputs with node IDs as keys
         outputs = {}
         for node_id, value in result.items():
             if hasattr(value, "body"):
@@ -283,20 +268,16 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
         return outputs
 
     def serialize_output(self, result: Any, request: ExecutionRequest[SubDiagramNode]) -> Envelope:
-        """Convert executor result to multi-representation envelope."""
         node = request.node
         trace_id = request.execution_id or ""
 
-        # Build multi-representation output
         output = self._build_node_output(result, request)
 
-        # Create envelope with auto-detection of content type
         primary = output["primary"]
         output_envelope = EnvelopeFactory.create(
             body=primary, produced_by=node.id, trace_id=trace_id, meta={}
         )
 
-        # Add metadata
         if "meta" in output:
             output_envelope = output_envelope.with_meta(**output["meta"])
 
@@ -305,13 +286,11 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     async def on_error(
         self, request: ExecutionRequest[SubDiagramNode], error: Exception
     ) -> Envelope | None:
-        """Handle errors gracefully."""
-        # For ValueError (domain validation), only log in debug mode
+        # ValueError (domain validation) is logged only in debug mode
         if isinstance(error, ValueError):
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug(f"Validation error in sub-diagram: {error}")
         else:
-            # For other errors, log them
             logger.error(f"Error executing sub-diagram: {error}")
 
         return EnvelopeFactory.create(
@@ -328,9 +307,8 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
     def post_execute(self, request: ExecutionRequest[SubDiagramNode], output: Envelope) -> Envelope:
         """Post-execution hook to log execution details and emit tokens.
 
-        Phase 5: Now emits output as tokens to trigger downstream nodes.
+        Phase 5: Emits output as tokens to trigger downstream nodes.
         """
-        # Log execution details in debug mode
         if logger.isEnabledFor(logging.DEBUG):
             is_batch = getattr(request.node, "batch", False)
             if is_batch:
@@ -338,7 +316,6 @@ class SubDiagramNodeHandler(TypedNodeHandler[SubDiagramNode]):
                 total = batch_info.get("total_items", 0)
                 successful = batch_info.get("successful", 0)
 
-        # Phase 5: Emit output as tokens to trigger downstream nodes
         self.emit_token_outputs(request, output)
 
         return output

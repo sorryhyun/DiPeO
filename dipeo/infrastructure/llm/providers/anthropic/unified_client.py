@@ -1,8 +1,6 @@
 """Unified Anthropic client that merges adapter and wrapper layers."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import os
 from collections.abc import AsyncIterator
 from typing import Any
@@ -11,6 +9,7 @@ import anthropic
 from pydantic import BaseModel
 from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.config.llm import (
     DECISION_EVALUATION_MAX_TOKENS,
     DEFAULT_TEMPERATURE,
@@ -27,6 +26,7 @@ from dipeo.infrastructure.llm.drivers.types import (
 )
 
 logger = get_module_logger(__name__)
+
 
 class UnifiedAnthropicClient:
     """Unified Anthropic client that combines adapter and wrapper functionality."""
@@ -64,7 +64,7 @@ class UnifiedAnthropicClient:
         self._capabilities = get_provider_capabilities_object(
             "anthropic",
             max_context_length=200000,  # Claude's context window
-            max_output_tokens=4096,  # Claude's default max output
+            max_output_tokens=128000,  # Claude's default max output
         )
 
     @property

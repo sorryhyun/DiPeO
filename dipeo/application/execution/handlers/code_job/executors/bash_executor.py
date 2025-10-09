@@ -12,7 +12,6 @@ from .base import BaseCodeExecutor
 
 
 class BashExecutor(BaseCodeExecutor):
-    """Executor for Bash/Shell scripts."""
 
     async def execute_file(
         self, file_path: Path, inputs: dict[str, Any], timeout: int, function_name: str = "main"
@@ -58,8 +57,10 @@ class BashExecutor(BaseCodeExecutor):
                     "Bash interpreter not found. Please install Git for Windows or WSL."
                 )
 
-            with open(file_path) as f:
-                script_content = f.read()
+            import aiofiles
+
+            async with aiofiles.open(file_path) as f:
+                script_content = await f.read()
 
             proc = await asyncio.create_subprocess_exec(
                 bash_cmd,

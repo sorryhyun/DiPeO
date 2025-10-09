@@ -2,17 +2,17 @@
 
 import asyncio
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import time
 from collections import deque
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.infrastructure.integrations.drivers.integrated_api.manifest_schema import (
     RateLimitAlgorithm,
     RateLimitConfig,
 )
 
 logger = get_module_logger(__name__)
+
 
 class RateLimiter:
     """Rate limiter implementation supporting multiple algorithms."""
@@ -102,6 +102,7 @@ class RateLimiter:
         elif hasattr(self, "_leaky_bucket"):
             self._leaky_bucket.reset()
 
+
 class TokenBucket:
     """Token bucket rate limiting algorithm.
 
@@ -154,6 +155,7 @@ class TokenBucket:
         self.tokens = self.capacity
         self.last_refill = time.monotonic()
 
+
 class SlidingWindow:
     """Sliding window rate limiting algorithm.
 
@@ -204,6 +206,7 @@ class SlidingWindow:
     def reset(self) -> None:
         """Clear all requests."""
         self.requests.clear()
+
 
 class FixedWindow:
     """Fixed window rate limiting algorithm.
@@ -259,6 +262,7 @@ class FixedWindow:
         self.window_start = time.monotonic()
         self.request_count = 0
 
+
 class LeakyBucket:
     """Leaky bucket rate limiting algorithm.
 
@@ -310,6 +314,7 @@ class LeakyBucket:
         """Reset bucket level."""
         self.level = 0
         self.last_leak = time.monotonic()
+
 
 class PerOperationRateLimiter:
     """Rate limiter that supports per-operation limits."""

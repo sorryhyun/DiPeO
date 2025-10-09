@@ -2,15 +2,16 @@
 
 import json
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field, ValidationError, create_model
 
+from dipeo.config.base_logger import get_module_logger
+
 from ..drivers.types import DecisionOutput, ExecutionPhase, MemorySelectionOutput, ProviderType
 
 logger = get_module_logger(__name__)
+
 
 class StructuredOutputHandler:
     """Handles structured output for different providers."""

@@ -5,11 +5,11 @@
 The GraphQL layer provides a production-ready, type-safe architecture for all API operations.
 
 ### Key Features
-- **45 operations** with full GraphQL query strings as constants (23 queries, 21 mutations, 1 subscription)
+- **50 operations** with full GraphQL query strings as constants (25 queries, 24 mutations, 1 subscription)
 - **Type-safe operation classes** with proper TypedDict for variables and automatic Strawberry input conversion
-- **Well-structured resolver implementations** following consistent patterns
+- **Direct service access pattern** for resolvers with ServiceRegistry dependency injection
 - **Clean separation of concerns** using a 3-tier architecture
-- **ServiceRegistry integration** for dependency injection throughout
+- **Centralized operation mapping** via OperationExecutor with runtime validation
 - **Envelope system integration** for standardized data flow
 
 ## Architecture Overview
@@ -35,7 +35,7 @@ The GraphQL layer uses a clean 3-tier architecture that separates code generatio
 This layer is completely generated from TypeScript query definitions and provides the foundation for type-safe GraphQL operations.
 
 #### Key Files
-- **`operations.py`** - All 45 operations with complete GraphQL query strings and typed operation classes
+- **`operations.py`** - All 50 operations with complete GraphQL query strings and typed operation classes
 - **`inputs.py`** - Generated Strawberry input types
 - **`results.py`** - Generated result types for consistent response formats
 - **`domain_types.py`** - Generated domain types mapping to internal models
@@ -86,32 +86,32 @@ This layer contains the business logic and resolver implementations that handle 
 ```
 /dipeo/application/graphql/
 ├── schema/
-│   ├── mutations/           # Organized by entity type
-│   │   ├── api_key.py      # API key mutations
-│   │   ├── diagram.py      # Diagram mutations
-│   │   ├── execution.py    # Execution mutations
-│   │   ├── node.py         # Node mutations
-│   │   ├── person.py       # Person mutations
-│   │   ├── cli_session.py  # CLI session mutations
-│   │   └── upload.py       # Upload mutations
-│   ├── query_resolvers.py  # Standalone query resolvers
-│   └── subscription_resolvers.py  # Subscription resolvers
-├── resolvers/              # Business logic resolvers
-│   ├── diagram.py         # DiagramResolver
-│   ├── execution.py       # ExecutionResolver
-│   └── person.py          # PersonResolver
-├── types/                 # GraphQL type definitions
-└── operation_executor.py  # Central operation mapping
+│   ├── mutations/                    # Organized by entity type
+│   │   ├── api_key.py               # API key mutations
+│   │   ├── diagram.py               # Diagram mutations
+│   │   ├── execution.py             # Execution mutations
+│   │   ├── node.py                  # Node mutations
+│   │   ├── person.py                # Person mutations
+│   │   ├── cli_session.py           # CLI session mutations
+│   │   └── upload.py                # Upload mutations
+│   ├── query_resolvers.py           # All query resolvers (771 lines)
+│   ├── subscription_resolvers.py    # Subscription resolvers
+│   └── base_subscription_resolver.py # Subscription base classes
+├── resolvers/
+│   └── provider_resolver.py         # ProviderResolver (only class-based resolver)
+├── graphql_types/                   # GraphQL type definitions
+└── operation_executor.py            # Central operation mapping (353 lines)
 ```
 
-**Note**: The Query, Mutation, and Subscription classes are now generated in `/dipeo/diagram_generated/graphql/generated_schema.py`
+**Note**: The Query, Mutation, and Subscription classes are generated in `/dipeo/diagram_generated/graphql/generated_schema.py`
 
-#### Resolver Patterns
-All resolvers follow consistent patterns with proper error handling and ServiceRegistry integration:
+#### Resolver Pattern: Direct Service Access
+
+All resolvers use a consistent direct service access pattern:
 
 ```python
 async def create_api_key(registry: ServiceRegistry, input: CreateApiKeyInput) -> ApiKeyResult:
-    """Well-structured resolver with proper service resolution and error handling."""
+    """Direct service access with proper error handling."""
     try:
         service = registry.resolve(API_KEY_SERVICE)
         result = await service.create_api_key(
@@ -120,7 +120,7 @@ async def create_api_key(registry: ServiceRegistry, input: CreateApiKeyInput) ->
             encrypted_key=input.encrypted_key
         )
         return ApiKeyResult.success_result(
-            data=result, 
+            data=result,
             message=f"API key '{input.label}' created successfully"
         )
     except Exception as e:
@@ -129,60 +129,48 @@ async def create_api_key(registry: ServiceRegistry, input: CreateApiKeyInput) ->
 ```
 
 #### Key Characteristics
-- **ServiceRegistry Integration**: All resolvers use dependency injection
+- **Direct Service Access**: Resolvers access services directly via ServiceRegistry (no class wrappers)
 - **Consistent Error Handling**: Standardized error patterns across all resolvers
-- **Clean Separation**: Business logic separated from GraphQL concerns
-- **Type Safety**: Use generated types for inputs and results
+- **Single Pattern**: All resolvers follow the same signature `async def resolver_name(registry, **kwargs)`
+- **Type Safety**: Generated types for inputs and results throughout
+- **Exception**: ProviderResolver remains class-based for stateful provider registry caching
 
 ### 3. Execution Layer (Runtime Mapping)
-**Location**: `/dipeo/application/graphql/operation_executor.py`
+**Location**: `/dipeo/application/graphql/operation_executor.py` (353 lines)
 
-This layer provides runtime mapping between operations and their resolver implementations with type-safe validation.
+This layer provides runtime mapping between operations and their resolver implementations with automatic discovery and type-safe validation.
 
-#### OperationExecutor Structure
+#### OperationExecutor Features
+
+**Auto-wiring**: Automatically discovers resolvers by convention (CamelCase operation → snake_case function)
+- `GetExecutionOperation` → `get_execution()` function
+- `CreateDiagramOperation` → `create_diagram()` function
+
+**Module Caching**: Resolver modules loaded once at initialization for performance
+
+**Validation**:
+- Variable validation against TypedDict schemas
+- Result type validation for mutations
+- Optional type handling
+
+**Execution Methods**:
 ```python
 class OperationExecutor:
-    """Type-safe execution engine mapping operations to resolvers."""
-    
-    def __init__(self, registry: ServiceRegistry):
-        self.registry = registry
-        self.operation_mapping = {
-            # Queries
-            "GetExecution": self._execute_get_execution,
-            "ListExecutions": self._execute_list_executions,
-            "GetDiagram": self._execute_get_diagram,
-            # Mutations  
-            "ExecuteDiagram": self._execute_execute_diagram,
-            "CreateNode": self._execute_create_node,
-            "UpdateNode": self._execute_update_node,
-            # Subscriptions
-            "ExecutionUpdates": self._execute_execution_updates,
-            # ... all 45 operations mapped
-        }
-    
-    async def execute_operation(self, operation_name: str, variables: dict) -> Any:
-        """Execute operation with validation and error handling."""
-        if operation_name not in self.operation_mapping:
-            raise ValueError(f"Unknown operation: {operation_name}")
-        
-        # Validate variables against operation schema
-        self._validate_variables(operation_name, variables)
-        
-        # Execute with proper error handling
-        try:
-            resolver = self.operation_mapping[operation_name]
-            result = await resolver(variables)
-            return self._validate_result(operation_name, result)
-        except Exception as e:
-            logger.error(f"Operation {operation_name} failed: {e}")
-            raise
+    async def execute(self, operation_name: str, variables: dict) -> Any:
+        """Execute queries/mutations by operation name."""
+
+    async def execute_subscription(self, operation_name: str, variables: dict) -> AsyncGenerator:
+        """Execute subscriptions by operation name."""
+
+    def list_operations(self) -> dict[str, dict]:
+        """List all registered operations with metadata."""
 ```
 
 #### Benefits
-- **Type Safety**: Variable validation against operation schemas
-- **Centralized Mapping**: Single registry for all operations
-- **Error Handling**: Consistent error handling patterns
-- **Service Injection**: ServiceRegistry available to all resolvers
+- **Convention over Configuration**: No manual mapping needed, resolvers auto-discovered
+- **Type Safety**: Variable and result validation at runtime
+- **Performance**: Module caching reduces import overhead
+- **Maintainability**: Single consistent pattern across all 50 operations
 
 ## Integration with DiPeO Systems
 
@@ -291,13 +279,11 @@ async def get_execution(registry: ServiceRegistry, id: str) -> ExecutionResult:
     return ExecutionResult.success_result(data=execution)
 ```
 
-### 4. Runtime Registration (Automated)
+### 4. Runtime Auto-Discovery
 ```python
-# /dipeo/application/graphql/operation_executor.py (Manual)
-self.operation_mapping = {
-    "GetExecution": self._execute_get_execution,
-    # ... other operations
-}
+# OperationExecutor automatically discovers get_execution() by convention:
+# GetExecutionOperation → get_execution (CamelCase → snake_case)
+# No manual registration needed - resolvers are auto-wired at initialization
 ```
 
 ## Performance and Scalability
@@ -362,43 +348,31 @@ async def test_graphql_operation_end_to_end():
     assert response["data"]["execute_diagram"]["success"] is True
 ```
 
-## Migration Benefits
+## Architecture Benefits
 
-The completed GraphQL architecture provides significant benefits over the previous implementation:
+The GraphQL architecture provides:
 
-### Before (Inline Queries)
-```python
-# Scattered query definitions
-EXECUTE_QUERY = """
-    mutation ExecuteDiagram($diagramId: ID!, $variables: JSON) {
-        execute_diagram(diagram_id: $diagramId, variables: $variables) {
-            success
-            execution_id
-        }
-    }
-"""
+### Type Safety
+- Full TypeScript-to-Python type synchronization
+- Runtime variable validation via TypedDict schemas
+- Compile-time auto-completion in IDEs
 
-# Manual variable construction with potential errors
-variables = {"diagramId": diagram_id, "variables": execution_vars}
-```
+### Maintainability
+- Single consistent resolver pattern (direct service access)
+- Auto-discovery eliminates manual operation mapping
+- Convention-based naming (CamelCase → snake_case)
+- Centralized operation definitions in TypeScript
 
-### After (Generated Operations)
-```python
-# Type-safe operation with validation
-variables = ExecuteDiagramOperation.get_variables_dict(
-    input={"diagram_id": diagram_id, "variables": execution_vars}
-)
-query = ExecuteDiagramOperation.get_query()
+### Performance
+- Module caching reduces import overhead
+- Pre-compiled GraphQL query strings
+- Efficient variable validation
 
-# Automatic input type conversion and validation
-```
-
-### Key Improvements
-1. **Type Safety**: Full TypeScript types throughout the stack
-2. **Consistency**: Single source of truth for all operations
-3. **Maintainability**: Centralized operation definitions
-4. **Developer Experience**: Auto-completion and inline documentation
-5. **Error Reduction**: Compile-time validation prevents runtime errors
+### Developer Experience
+- 50 operations fully typed and validated
+- Automatic hook generation for frontend
+- Clear error messages with type mismatches
+- Single pattern to learn (no class hierarchies)
 
 ## Developer Guide
 

@@ -1,11 +1,10 @@
 """TypeScript-only parser service."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from pathlib import Path
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.base.mixins import (
     CachingMixin,
     ConfigurationMixin,
@@ -16,6 +15,7 @@ from dipeo.domain.integrations.ports import ASTParserPort
 from dipeo.infrastructure.codegen.parsers.typescript.parser import TypeScriptParser
 
 logger = get_module_logger(__name__)
+
 
 class ParserService(
     LoggingMixin, InitializationMixin, ConfigurationMixin, CachingMixin, ASTParserPort
@@ -140,6 +140,8 @@ class ParserService(
         if not self._ts_parser:
             await self.initialize()
 
+        # Use parse_files_batch if available, which passes file paths directly
+        # to preserve import resolution context
         if hasattr(self._ts_parser, "parse_files_batch"):
             return await self._ts_parser.parse_files_batch(
                 file_paths, extract_patterns, options or {}
@@ -158,6 +160,7 @@ class ParserService(
         """
         if self._ts_parser and hasattr(self._ts_parser, "clear_cache"):
             self._ts_parser.clear_cache()
+
 
 def get_parser_service(
     project_root: Path | None = None, cache_enabled: bool = True

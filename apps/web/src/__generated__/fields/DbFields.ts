@@ -38,6 +38,13 @@ export const dbFields: UnifiedFieldDefinition[] = [
     label: '"Operation"',
     required: true,
     description: '"Operation configuration"',
+    options: [
+      { value: '"prompt"', label: '"Prompt"' },
+      { value: '"read"', label: '"Read"' },
+      { value: '"write"', label: '"Write"' },
+      { value: '"append"', label: '"Append"' },
+      { value: '"update"', label: '"Update"' },
+    ],
     validate: (value: unknown) => {
       return { isValid: true };
     },
@@ -92,5 +99,8 @@ export const dbFields: UnifiedFieldDefinition[] = [
       { value: '"text"', label: '"Text"' },
       { value: '"xml"', label: '"XML"' },
     ],
+    validate: (value: unknown) => {
+      return { isValid: true };
+    },
   },
 ];

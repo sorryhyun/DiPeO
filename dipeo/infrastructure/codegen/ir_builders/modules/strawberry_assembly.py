@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from datetime import datetime
 from typing import Any, Optional
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.codegen.ir_builder_port import IRData, IRMetadata
 from dipeo.infrastructure.codegen.ir_builders.core import (
     BuildContext,
@@ -18,16 +17,13 @@ from dipeo.infrastructure.codegen.ir_builders.core import (
 
 logger = get_module_logger(__name__)
 
+
 class BuildDomainIRStep(BuildStep):
     """Step to build domain IR data structure."""
 
     def __init__(self):
         """Initialize domain IR builder step."""
-        super().__init__(
-            name="build_domain_ir",
-            step_type=StepType.TRANSFORM,
-            required=True
-        )
+        super().__init__(name="build_domain_ir", step_type=StepType.TRANSFORM, required=True)
         self.add_dependency("extract_domain_models")
 
     def execute(self, context: BuildContext, input_data: Any) -> StepResult:
@@ -53,9 +49,7 @@ class BuildDomainIRStep(BuildStep):
         scalars = domain_data.get("scalars", [])
         graphql_inputs = domain_data.get("inputs", [])
 
-        domain_ir = self._build_domain_ir(
-            domain_types, interfaces, enums, scalars, graphql_inputs
-        )
+        domain_ir = self._build_domain_ir(domain_types, interfaces, enums, scalars, graphql_inputs)
 
         return StepResult(
             success=True,
@@ -64,7 +58,7 @@ class BuildDomainIRStep(BuildStep):
                 "type_count": len(domain_ir["types"]),
                 "interface_count": len(domain_ir["interfaces"]),
                 "enum_count": len(domain_ir["enums"]),
-            }
+            },
         )
 
     def _build_domain_ir(
@@ -108,17 +102,19 @@ class BuildDomainIRStep(BuildStep):
         return domain_data
 
     def _organize_domain_types(self, domain_types: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Organize and validate domain types.
+        """Organize and validate domain types, sorted by dependencies.
 
         Args:
             domain_types: List of domain type definitions
 
         Returns:
-            Organized list of domain types
+            Organized list of domain types sorted topologically
         """
         organized = []
         seen_names = set()
 
+        # First pass: deduplicate
+        unique_types = []
         for dtype in domain_types:
             name = dtype.get("name", "")
             if not name:
@@ -128,9 +124,83 @@ class BuildDomainIRStep(BuildStep):
                 continue
 
             seen_names.add(name)
-            organized.append(dtype)
+            unique_types.append(dtype)
 
-        return organized
+        # Second pass: topological sort by dependencies
+        sorted_types = self._topological_sort_types(unique_types)
+
+        return sorted_types
+
+    def _topological_sort_types(self, types: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Sort types topologically by their dependencies.
+
+        Args:
+            types: List of type definitions
+
+        Returns:
+            List of types sorted so dependencies come first
+        """
+        # Build dependency graph
+        type_map = {t["name"]: t for t in types}
+        dependencies = {}  # type_name -> set of types it depends on
+
+        for dtype in types:
+            name = dtype.get("name", "")
+            deps = set()
+
+            # Extract dependencies from resolved_fields
+            for field in dtype.get("resolved_fields", []):
+                field_type = field.get("strawberry_type", "")
+                # Extract type names from complex types like List[XType], Optional[XType]
+                deps.update(self._extract_type_names(field_type))
+
+            # Filter to only include types that exist in our set, excluding self-references
+            dependencies[name] = {d for d in deps if d in type_map and d != name}
+
+        # Perform topological sort using Kahn's algorithm
+        sorted_names = []
+        in_degree = {name: len(deps) for name, deps in dependencies.items()}
+        queue = [name for name, degree in in_degree.items() if degree == 0]
+
+        while queue:
+            # Sort queue for deterministic output
+            queue.sort()
+            current = queue.pop(0)
+            sorted_names.append(current)
+
+            # Reduce in-degree for dependent types
+            for name, deps in dependencies.items():
+                if current in deps:
+                    in_degree[name] -= 1
+                    if in_degree[name] == 0:
+                        queue.append(name)
+
+        # Add any remaining types (circular dependencies or isolated types)
+        remaining = [name for name in type_map.keys() if name not in sorted_names]
+        sorted_names.extend(sorted(remaining))
+
+        # Return types in sorted order
+        return [type_map[name] for name in sorted_names if name in type_map]
+
+    def _extract_type_names(self, type_str: str) -> set[str]:
+        """Extract type names from a type string (e.g., List[SessionEventType] -> {SessionEvent}).
+
+        Args:
+            type_str: Type string to extract names from
+
+        Returns:
+            Set of type names found (with 'Type' suffix stripped to match IR type names)
+        """
+        import re
+
+        # Extract all capitalized words ending with 'Type'
+        # This matches: SessionEventType, DomainNodeType, etc.
+        pattern = r'\b([A-Z][a-zA-Z0-9]*Type)\b'
+        matches = re.findall(pattern, type_str)
+
+        # Strip the 'Type' suffix to match the type names in IR
+        # E.g., 'LLMUsageType' -> 'LLMUsage'
+        return {match[:-4] if match.endswith('Type') else match for match in matches}
 
     def _organize_interfaces(self, interfaces: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Organize and filter interfaces.
@@ -161,16 +231,13 @@ class BuildDomainIRStep(BuildStep):
 
         return organized
 
+
 class BuildOperationsIRStep(BuildStep):
     """Step to build operations IR data structure."""
 
     def __init__(self):
         """Initialize operations IR builder step."""
-        super().__init__(
-            name="build_operations_ir",
-            step_type=StepType.TRANSFORM,
-            required=True
-        )
+        super().__init__(name="build_operations_ir", step_type=StepType.TRANSFORM, required=True)
         self.add_dependency("extract_graphql_operations")
 
     def execute(self, context: BuildContext, input_data: Any) -> StepResult:
@@ -204,7 +271,7 @@ class BuildOperationsIRStep(BuildStep):
                 "query_count": operations_ir["metadata"]["query_count"],
                 "mutation_count": operations_ir["metadata"]["mutation_count"],
                 "subscription_count": operations_ir["metadata"]["subscription_count"],
-            }
+            },
         )
 
     def _build_operations_ir(
@@ -259,16 +326,13 @@ class BuildOperationsIRStep(BuildStep):
 
         return operations_data
 
+
 class BuildCompleteIRStep(BuildStep):
     """Step to build complete IR data structure."""
 
     def __init__(self):
         """Initialize complete IR builder step."""
-        super().__init__(
-            name="build_complete_ir",
-            step_type=StepType.ASSEMBLE,
-            required=True
-        )
+        super().__init__(name="build_complete_ir", step_type=StepType.ASSEMBLE, required=True)
         self.add_dependency("build_operations_ir")
         self.add_dependency("build_domain_ir")
 
@@ -310,7 +374,7 @@ class BuildCompleteIRStep(BuildStep):
                 "total_operations": complete_ir.data["metadata"]["total_operations"],
                 "interface_count": complete_ir.data["metadata"]["interface_count"],
                 "enum_count": complete_ir.data["metadata"]["enum_count"],
-            }
+            },
         )
 
     def _build_complete_ir(
@@ -318,8 +382,8 @@ class BuildCompleteIRStep(BuildStep):
         operations_data: dict[str, Any],
         domain_data: dict[str, Any],
         config: dict[str, Any],
-        source_files: Optional[list[str]] = None,
-        node_specs: Optional[list[dict[str, Any]]] = None,
+        source_files: list[str] | None = None,
+        node_specs: list[dict[str, Any]] | None = None,
     ) -> IRData:
         """Build complete IR data structure.
 
@@ -388,7 +452,9 @@ class BuildCompleteIRStep(BuildStep):
         ir_data = IRData(metadata=metadata, data=strawberry_data)
         return ir_data
 
-    def _extract_imports_from_operations(self, operations_data: dict[str, Any]) -> dict[str, list[str]]:
+    def _extract_imports_from_operations(
+        self, operations_data: dict[str, Any]
+    ) -> dict[str, list[str]]:
         """Extract import types from operations data.
 
         Args:
@@ -422,4 +488,7 @@ class BuildCompleteIRStep(BuildStep):
                 elif clean_type.endswith("Input") or clean_type in ["DiagramFormatGraphQL"]:
                     domain_imports.add(clean_type)
 
-        return {"strawberry": sorted(list(strawberry_imports)), "domain": sorted(list(domain_imports))}
+        return {
+            "strawberry": sorted(list(strawberry_imports)),
+            "domain": sorted(list(domain_imports)),
+        }

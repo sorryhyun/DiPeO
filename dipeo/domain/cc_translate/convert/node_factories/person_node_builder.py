@@ -16,7 +16,7 @@ class PersonNodeBuilder(BaseNodeBuilder):
     def __init__(
         self,
         person_registry: PersonRegistry,
-        position_manager: Optional[Any] = None,
+        position_manager: Any | None = None,
     ):
         """Initialize the person node builder.
 
@@ -42,8 +42,8 @@ class PersonNodeBuilder(BaseNodeBuilder):
         self,
         tool_name: str,
         tool_input: dict[str, Any],
-        tool_result: Optional[dict[str, Any]] = None,
-    ) -> Optional[dict[str, Any]]:
+        tool_result: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """Person nodes are not created from tool events.
 
         Args:
@@ -56,7 +56,7 @@ class PersonNodeBuilder(BaseNodeBuilder):
         """
         return None
 
-    def create_user_node(self, content: str) -> Optional[dict[str, Any]]:
+    def create_user_node(self, content: str) -> dict[str, Any] | None:
         """Create a node for user input that Claude Code will respond to.
 
         Args:
@@ -87,8 +87,8 @@ class PersonNodeBuilder(BaseNodeBuilder):
         return node
 
     def create_assistant_node(
-        self, content: str, system_messages: Optional[list[str]] = None
-    ) -> Optional[dict[str, Any]]:
+        self, content: str, system_messages: list[str] | None = None
+    ) -> dict[str, Any] | None:
         """Handle AI assistant response.
 
         In the Claude Code translation model, assistant responses are outputs
@@ -114,7 +114,7 @@ class PersonNodeBuilder(BaseNodeBuilder):
         person_id: str,
         prompt: str,
         max_iterations: int = 1,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
     ) -> dict[str, Any]:
         """Create a node for a custom AI agent.
 

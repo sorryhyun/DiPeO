@@ -20,8 +20,8 @@ class SessionMetadata:
     """Metadata for a session."""
 
     session_id: str
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
     event_count: int = 0
     tool_usage_count: dict[str, int] = field(default_factory=dict)
     file_operations: dict[str, list[str]] = field(default_factory=dict)
@@ -44,7 +44,7 @@ class SessionMetadata:
 
         return errors
 
-    def get_duration(self) -> Optional[float]:
+    def get_duration(self) -> float | None:
         """Get session duration in seconds."""
         if self.start_time and self.end_time:
             return (self.end_time - self.start_time).total_seconds()
@@ -101,7 +101,7 @@ class DomainSession:
             self.metadata.event_count = len(self.events)
         return removed
 
-    def get_event_by_uuid(self, event_uuid: str) -> Optional[Any]:
+    def get_event_by_uuid(self, event_uuid: str) -> Any | None:
         """Get an event by UUID."""
         for event in self.events:
             if getattr(event, "uuid", None) == event_uuid:

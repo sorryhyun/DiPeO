@@ -23,7 +23,7 @@ class BaseIRBuilder(IRBuilderPort, ABC):
     composable pipeline of steps (extract, transform, assemble, validate).
     """
 
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(self, config_path: str | None = None):
         """Initialize base IR builder with pipeline orchestration.
 
         Args:
@@ -57,7 +57,7 @@ class BaseIRBuilder(IRBuilderPort, ABC):
         pass
 
     async def build_ir(
-        self, source_data: dict[str, Any], config: Optional[dict[str, Any]] = None
+        self, source_data: dict[str, Any], config: dict[str, Any] | None = None
     ) -> IRData:
         """Build IR data from TypeScript AST data.
 
@@ -196,7 +196,7 @@ class BaseIRBuilder(IRBuilderPort, ABC):
         """
         self.orchestrator.add_step(step)
 
-    def get_step_result(self, step_name: str) -> Optional[StepResult]:
+    def get_step_result(self, step_name: str) -> StepResult | None:
         """Get result for a specific step.
 
         Args:

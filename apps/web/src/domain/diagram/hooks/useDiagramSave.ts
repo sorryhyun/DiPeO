@@ -183,7 +183,8 @@ export function useDiagramSave({ saveToFileSystem }: UseDiagramSaveOptions) {
       });
 
       if (!convertResult.data?.convertDiagramFormat?.success) {
-        throw new Error(convertResult.data?.convertDiagramFormat?.error || 'Conversion failed');
+        const errorMsg = (convertResult.data?.convertDiagramFormat as any)?.error;
+        throw new Error(typeof errorMsg === 'string' ? errorMsg : 'Conversion failed');
       }
 
       // Get the converted content
@@ -210,7 +211,8 @@ export function useDiagramSave({ saveToFileSystem }: UseDiagramSaveOptions) {
       });
 
       if (!uploadResult.data?.uploadFile?.success) {
-        throw new Error(uploadResult.data?.uploadFile?.error || 'Upload failed');
+        const errorMsg = (uploadResult.data?.uploadFile as any)?.error;
+        throw new Error(typeof errorMsg === 'string' ? errorMsg : 'Upload failed');
       }
 
       // Show success message

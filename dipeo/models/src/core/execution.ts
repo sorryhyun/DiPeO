@@ -39,6 +39,7 @@ export interface NodeMetrics {
   llm_usage?: LLMUsage | null;
   error?: string | null;
   dependencies?: string[];
+  module_timings?: Record<string, number> | null;
 }
 
 export interface Bottleneck {

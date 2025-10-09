@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-10-03T21:25:07.527785
+Generated at: 2025-10-09T17:34:03.674273
 """
 
 import strawberry
@@ -159,19 +159,19 @@ class CodeJobDataType:
     
     
     
-    filePath: Optional[str] = None  # Path to code file
+    file_path: Optional[str] = None  # Path to code file
     
     
     
-    code: Optional[str] = None  # Inline code to execute (alternative to filePath)
+    code: Optional[str] = None  # Inline code to execute (alternative to file_path)
     
     
     
-    functionName: Optional[str] = None  # Function to execute
+    function_name: Optional[str] = None  # Function to execute
     
     
     
-    timeout: Optional[int] = None  # Execution timeout in seconds
+    timeout: Optional[int] = None  # Operation timeout in seconds
     
     
 
@@ -190,10 +190,10 @@ class CodeJobDataType:
         field_values["language"] = field_value
         
         
-        field_value = getattr(node, "filePath", None)
+        field_value = getattr(node, "file_path", None)
         
         # Direct assignment for other types
-        field_values["filePath"] = field_value
+        field_values["file_path"] = field_value
         
         
         field_value = getattr(node, "code", None)
@@ -202,10 +202,10 @@ class CodeJobDataType:
         field_values["code"] = field_value
         
         
-        field_value = getattr(node, "functionName", None)
+        field_value = getattr(node, "function_name", None)
         
         # Direct assignment for other types
-        field_values["functionName"] = field_value
+        field_values["function_name"] = field_value
         
         
         field_value = getattr(node, "timeout", None)
@@ -414,7 +414,8 @@ class DbDataType:
     
     
     
-    format: Optional[str] = None  # Data format (json, yaml, csv, text, etc.)
+    # Enum field: Data format (json, yaml, csv, text, etc.) (Values: json, yaml, csv, text, xml)
+    format: Optional[str] = None
     
     
 
@@ -1089,7 +1090,7 @@ class PersonJobDataType:
     # Node-specific fields from specification
     
     
-    person: Optional[str] = None  # AI person to use
+    person: Optional[str] = None  # AI person to use for this task
     
     
     
@@ -1097,11 +1098,11 @@ class PersonJobDataType:
     
     
     
-    first_prompt_file: Optional[str] = None  # External prompt file for first iteration only
+    first_prompt_file: Optional[str] = None  # Path to prompt file in /files/prompts/
     
     
     
-    default_prompt: Optional[str] = None  # Default prompt template
+    default_prompt: Optional[str] = None  # Prompt template
     
     
     
@@ -1418,7 +1419,7 @@ class SubDiagramDataType:
     
     
     
-    ignoreIfSub: Optional[bool] = None  # Skip execution if this diagram is being run as a sub-diagram
+    ignore_if_sub: Optional[bool] = None  # Skip execution if this diagram is being run as a sub-diagram
     
     
     
@@ -1490,10 +1491,10 @@ class SubDiagramDataType:
         field_values["isolate_conversation"] = field_value
         
         
-        field_value = getattr(node, "ignoreIfSub", None)
+        field_value = getattr(node, "ignore_if_sub", None)
         
         # Direct assignment for other types
-        field_values["ignoreIfSub"] = field_value
+        field_values["ignore_if_sub"] = field_value
         
         
         field_value = getattr(node, "diagram_format", None)
@@ -1647,29 +1648,29 @@ class TypescriptAstDataType:
     
     
     # Enum field: Patterns to extract from the AST (Values: interface, type, enum, class, function, const, export)
-    extractPatterns: Optional[str] = None
+    extract_patterns: Optional[str] = None
     
     
     
-    includeJSDoc: Optional[bool] = None  # Include JSDoc comments in the extracted data
+    include_jsdoc: Optional[bool] = None  # Include JSDoc comments in the extracted data
     
     
     
     # Enum field: TypeScript parsing mode (Values: module, script)
-    parseMode: Optional[str] = None
+    parse_mode: Optional[str] = None
     
     
     
-    transformEnums: Optional[bool] = None  # Transform enum definitions to a simpler format
+    transform_enums: Optional[bool] = None  # Transform enum definitions to a simpler format
     
     
     
-    flattenOutput: Optional[bool] = None  # Flatten the output structure for easier consumption
+    flatten_output: Optional[bool] = None  # Flatten the output structure for easier consumption
     
     
     
     # Enum field: Output format for the parsed data (Values: standard, for_codegen, for_analysis)
-    outputFormat: Optional[str] = None
+    output_format: Optional[str] = None
     
     
     
@@ -1677,7 +1678,7 @@ class TypescriptAstDataType:
     
     
     
-    batchInputKey: Optional[str] = None  # Key to extract batch items from input
+    batch_input_key: Optional[str] = None  # Key to extract batch items from input
     
     
 
@@ -1696,40 +1697,40 @@ class TypescriptAstDataType:
         field_values["source"] = field_value
         
         
-        field_value = getattr(node, "extractPatterns", None)
+        field_value = getattr(node, "extract_patterns", None)
         
         # Direct assignment for other types
-        field_values["extractPatterns"] = field_value
+        field_values["extract_patterns"] = field_value
         
         
-        field_value = getattr(node, "includeJSDoc", None)
-        
-        # Direct assignment for other types
-        field_values["includeJSDoc"] = field_value
-        
-        
-        field_value = getattr(node, "parseMode", None)
+        field_value = getattr(node, "include_jsdoc", None)
         
         # Direct assignment for other types
-        field_values["parseMode"] = field_value
+        field_values["include_jsdoc"] = field_value
         
         
-        field_value = getattr(node, "transformEnums", None)
-        
-        # Direct assignment for other types
-        field_values["transformEnums"] = field_value
-        
-        
-        field_value = getattr(node, "flattenOutput", None)
+        field_value = getattr(node, "parse_mode", None)
         
         # Direct assignment for other types
-        field_values["flattenOutput"] = field_value
+        field_values["parse_mode"] = field_value
         
         
-        field_value = getattr(node, "outputFormat", None)
+        field_value = getattr(node, "transform_enums", None)
         
         # Direct assignment for other types
-        field_values["outputFormat"] = field_value
+        field_values["transform_enums"] = field_value
+        
+        
+        field_value = getattr(node, "flatten_output", None)
+        
+        # Direct assignment for other types
+        field_values["flatten_output"] = field_value
+        
+        
+        field_value = getattr(node, "output_format", None)
+        
+        # Direct assignment for other types
+        field_values["output_format"] = field_value
         
         
         field_value = getattr(node, "batch", None)
@@ -1738,10 +1739,10 @@ class TypescriptAstDataType:
         field_values["batch"] = field_value
         
         
-        field_value = getattr(node, "batchInputKey", None)
+        field_value = getattr(node, "batch_input_key", None)
         
         # Direct assignment for other types
-        field_values["batchInputKey"] = field_value
+        field_values["batch_input_key"] = field_value
         
         
 

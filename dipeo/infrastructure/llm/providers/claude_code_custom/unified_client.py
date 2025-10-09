@@ -189,6 +189,15 @@ class UnifiedClaudeCodeCustomClient:
         # Import the DiPeO MCP server module
         from dipeo.infrastructure.mcp import dipeo_structured_output_server
 
+        # Phase-specific tool selection
+        if execution_phase == ExecutionPhase.MEMORY_SELECTION:
+            allowed_tools = ["mcp__dipeo_structured_output__select_memory_messages"]
+        elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
+            allowed_tools = ["mcp__dipeo_structured_output__make_decision"]
+        else:
+            # Fallback to all tools for unknown phases
+            allowed_tools = ["mcp__dipeo_structured_output__*"]
+
         tool_options = {
             "mcp_servers": {
                 "dipeo_structured_output": {
@@ -198,12 +207,12 @@ class UnifiedClaudeCodeCustomClient:
                     },
                 }
             },
-            "allowed_tools": ["mcp__dipeo_structured_output__*"],
+            "allowed_tools": allowed_tools,
         }
 
         logger.debug(
             f"[ClaudeCodeCustom] Created MCP server configuration for phase {execution_phase}, "
-            f"allowed tools: {tool_options.get('allowed_tools', [])}"
+            f"allowed tools: {allowed_tools}"
         )
         return tool_options
 

@@ -16,17 +16,11 @@ export interface NodeConfigOptions<T extends Record<string, unknown>> {
   category?: string;
 }
 
-/**
- * Create a node configuration with automatically generated and merged field configs
- * This ensures new domain fields automatically appear in the UI with sensible defaults
- */
 export function createNodeConfig<T extends Record<string, unknown>>(
   options: NodeConfigOptions<T>
 ): UnifiedNodeConfig<T> {
   const { nodeType, ...rest } = options;
 
-  // For now, use domain model fields synchronously
-  // TODO: Update to use async getBestFieldConfig when the app supports it
   const customFields = mergeFieldConfigs(nodeType);
 
   return {
@@ -36,16 +30,11 @@ export function createNodeConfig<T extends Record<string, unknown>>(
   };
 }
 
-/**
- * Create a node configuration with async field loading
- * Use this when you can handle async configuration
- */
 export async function createNodeConfigAsync<T extends Record<string, unknown>>(
   options: NodeConfigOptions<T>
 ): Promise<UnifiedNodeConfig<T>> {
   const { nodeType, ...rest } = options;
 
-  // Get best available fields (spec-based or domain model)
   const customFields = await getBestFieldConfig(nodeType) as UnifiedFieldDefinition<T>[];
 
   return {
@@ -55,10 +44,6 @@ export async function createNodeConfigAsync<T extends Record<string, unknown>>(
   };
 }
 
-/**
- * Create a basic node configuration without field generation
- * Use this for simple nodes that don't need field configs
- */
 export function createBasicNodeConfig<T extends Record<string, unknown>>(
   options: NodeConfigOptions<T> & {
     customFields?: UnifiedNodeConfig<T>['customFields'];

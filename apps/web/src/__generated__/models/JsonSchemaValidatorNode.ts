@@ -1,5 +1,6 @@
 // Auto-generated TypeScript model for json_schema_validator node
 import { z } from 'zod';
+import { PersonID } from '@dipeo/models';
 
 export interface JsonSchemaValidatorNodeData {
   schema_path?: string | undefined;

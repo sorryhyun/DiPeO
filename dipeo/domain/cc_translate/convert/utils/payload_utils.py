@@ -149,7 +149,7 @@ def is_full_write(payload: Any) -> TypeGuard[FullWritePayload]:
     return has_content and has_no_original
 
 
-def extract_patch_data(payload: dict[str, Any]) -> Optional[str]:
+def extract_patch_data(payload: dict[str, Any]) -> str | None:
     """Extract patch/diff data from a payload.
 
     Args:
@@ -174,7 +174,7 @@ def extract_patch_data(payload: dict[str, Any]) -> Optional[str]:
     return None
 
 
-def extract_original_content(payload: dict[str, Any]) -> Optional[str]:
+def extract_original_content(payload: dict[str, Any]) -> str | None:
     """Extract original file content from a payload.
 
     Args:
@@ -186,7 +186,7 @@ def extract_original_content(payload: dict[str, Any]) -> Optional[str]:
     return payload.get("originalFile") or payload.get("originalFileContents")
 
 
-def extract_write_content(payload: dict[str, Any]) -> Optional[str]:
+def extract_write_content(payload: dict[str, Any]) -> str | None:
     """Extract write content from a payload.
 
     Args:
@@ -248,7 +248,7 @@ def should_create_write_node(payload: Any) -> bool:
     return is_full_write(payload)
 
 
-def extract_error_message(payload: Any) -> Optional[str]:
+def extract_error_message(payload: Any) -> str | None:
     """Extract error message from a failure payload.
 
     Args:
@@ -270,7 +270,7 @@ def extract_error_message(payload: Any) -> Optional[str]:
     return None
 
 
-def validate_rich_diff_payload(payload: dict[str, Any]) -> tuple[bool, Optional[str]]:
+def validate_rich_diff_payload(payload: dict[str, Any]) -> tuple[bool, str | None]:
     """Validate that a rich diff payload has all required fields.
 
     Args:

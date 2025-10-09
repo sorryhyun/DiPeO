@@ -289,7 +289,7 @@ class BaseAssemblerStep(BuildStep):
         logger.warning(f"Dependency '{dep_name}' missing in {self.name}, using None")
         return None
 
-    def validate_dependencies(self, dependency_data: dict[str, Any]) -> Optional[str]:
+    def validate_dependencies(self, dependency_data: dict[str, Any]) -> str | None:
         """Validate dependency data before assembly.
 
         Override to add validation logic.
@@ -409,9 +409,7 @@ class BaseTransformStep(BuildStep):
         """
         pass
 
-    def extract_input_from_dependencies(
-        self, input_data: Any, context: BuildContext
-    ) -> Any:
+    def extract_input_from_dependencies(self, input_data: Any, context: BuildContext) -> Any:
         """Extract input from dependency data.
 
         Default implementation handles common pattern of dict with dependency names.
@@ -439,7 +437,7 @@ class BaseTransformStep(BuildStep):
         # Otherwise, return input as-is
         return input_data
 
-    def validate_input(self, input_data: Any) -> Optional[str]:
+    def validate_input(self, input_data: Any) -> str | None:
         """Validate input data before transformation.
 
         Override to add validation logic.

@@ -2,6 +2,7 @@ import ast
 import operator
 from typing import Any
 
+
 class ConditionEvaluator:
     def check_nodes_executed(
         self,
@@ -103,13 +104,11 @@ class ConditionEvaluator:
                     raise ValueError(f"Unsupported operator: {type(node.op).__name__}")
                 return op_func(eval_node(node.operand))
             elif isinstance(node, ast.Call):
-                # Handle function calls
                 if isinstance(node.func, ast.Name):
                     func_name = node.func.id
                     if func_name not in allowed_functions:
                         raise ValueError(f"Function '{func_name}' is not allowed")
                     func = allowed_functions[func_name]
-                    # Evaluate all arguments
                     args = [eval_node(arg) for arg in node.args]
                     # Keyword arguments are not supported for simplicity
                     if node.keywords:
@@ -213,13 +212,11 @@ class ConditionEvaluator:
                     raise ValueError(f"Unsupported operator: {type(node.op).__name__}")
                 return op_func(eval_node(node.operand))
             elif isinstance(node, ast.Call):
-                # Handle function calls
                 if isinstance(node.func, ast.Name):
                     func_name = node.func.id
                     if func_name not in allowed_functions:
                         raise ValueError(f"Function '{func_name}' is not allowed")
                     func = allowed_functions[func_name]
-                    # Evaluate all arguments
                     args = [eval_node(arg) for arg in node.args]
                     # Keyword arguments are not supported for simplicity
                     if node.keywords:

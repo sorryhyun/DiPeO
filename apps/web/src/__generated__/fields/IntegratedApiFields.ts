@@ -30,7 +30,6 @@ export const integratedApiFields: UnifiedFieldDefinition[] = [
     type: 'textarea',
     label: '"Config"',
     required: false,
-    placeholder: '"{ /* provider-specific config */ }"',
     description: '"Provider-specific configuration"',
   },
   {
@@ -40,6 +39,8 @@ export const integratedApiFields: UnifiedFieldDefinition[] = [
     required: false,
     placeholder: '"30"',
     description: '"Request timeout in seconds"',
+    min: 1,
+    max: 300,
     validate: (value: unknown) => {
       if (typeof value === 'number' && value < 1) {
         return { isValid: false, error: 'Value must be at least 1' };
@@ -57,6 +58,8 @@ export const integratedApiFields: UnifiedFieldDefinition[] = [
     required: false,
     placeholder: '"3"',
     description: '"Maximum retry attempts"',
+    min: 0,
+    max: 10,
     validate: (value: unknown) => {
       if (typeof value === 'number' && value < 0) {
         return { isValid: false, error: 'Value must be at least 0' };

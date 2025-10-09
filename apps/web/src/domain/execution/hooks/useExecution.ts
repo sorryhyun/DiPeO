@@ -81,11 +81,9 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     onUpdate
   } = options;
 
-  // Store integration
   const executionStoreSelector = React.useMemo(createCommonStoreSelector, []);
   const executionActions = useUnifiedStore(useShallow(executionStoreSelector));
 
-  // State management
   const state = useExecutionState();
   const {
     execution,
@@ -104,27 +102,20 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     updateProgress,
   } = state;
 
-  // Streaming operations (GraphQL or SSE)
-  // Use execution.executionId from state for reactivity - this ensures subscription reconnects when ID changes
   const currentExecutionId = execution.executionId;
   const streaming = useExecutionStreaming({
     executionId: currentExecutionId,
     skip: !currentExecutionId,
     onConnectionLoss: () => {
-      // Handle connection loss during execution
-      // Don't stop execution on temporary disconnections - WebSocket will auto-reconnect
       if (execution.isRunning) {
         console.log('[useExecution] WebSocket temporarily disconnected, waiting for reconnection...');
         if (showToasts) {
           toast.warning('WebSocket disconnected - attempting to reconnect...');
         }
-        // Don't call errorExecution or stopExecution here
-        // The WebSocket client will automatically reconnect
       }
     }
   });
 
-  // Process subscription updates
   useExecutionUpdates({
     state,
     executionActions,
@@ -135,12 +126,10 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     interactivePrompts: streaming.interactivePrompts,
   });
 
-  // Main Actions
   const execute = useCallback(async (diagram?: DomainDiagram, options?: ExecutionOptions) => {
     resetState();
 
     try {
-      // Prepare diagram data for execution
       const diagramData = diagram ? {
         nodes: diagram.nodes.reduce((acc: Record<string, unknown>, node) => {
           return { ...acc, [node.id]: stripTypenames(node) };
@@ -254,7 +243,6 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     }
   }, [streaming, interactivePrompt, showToasts, state]);
 
-  // UI Helpers
   const formatTimeHelper = useCallback((startTime: Date | null, endTime: Date | null): string => {
     return formatTime(startTime, endTime, formatDuration);
   }, [formatDuration]);
@@ -263,12 +251,10 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     return nodeStates[nodeIdStr];
   }, [nodeStates]);
 
-  // Update progress
   useEffect(() => {
     updateProgress(execution.totalNodes, execution.completedNodes);
   }, [execution.completedNodes, execution.totalNodes, updateProgress]);
 
-  // Compatibility properties
   const nodeRunningStates = React.useMemo(() => {
     const states: Record<string, boolean> = {};
     if (executionActions.runningNodes instanceof Set) {
@@ -279,7 +265,6 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
     return states;
   }, [executionActions.runningNodes]);
 
-  // Connect to existing execution (for monitor mode with executionId)
   const connectToExecutionWithStore = useCallback((executionIdStr: string, totalNodes?: number, preserveNodeStates: boolean = false) => {
     const nodesArray = Array.from(executionActions.nodes.values());
     connectToExecution(executionIdStr, totalNodes || nodesArray.length, preserveNodeStates);
@@ -288,35 +273,29 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
   }, [connectToExecution, executionActions, onUpdate]);
 
   return {
-    // State
     execution,
     nodeStates,
     isRunning: execution.isRunning,
-    isReconnecting: false, // GraphQL handles reconnection automatically
+    isReconnecting: false,
     progress,
     duration,
 
-    // Execution Actions
     execute,
     connectToExecution: connectToExecutionWithStore,
     abort,
 
-    // Node Actions
     pauseNode,
     resumeNode,
     skipNode,
 
-    // Interactive Prompt
     interactivePrompt,
     respondToPrompt,
 
-    // UI Helpers
     formatTime: formatTimeHelper,
     getNodeIcon,
     getNodeColor,
     getNodeExecutionState,
 
-    // Store integration
     currentRunningNode: currentRunningNodeRef.current,
     nodeRunningStates,
     runContext: runContextRef.current,

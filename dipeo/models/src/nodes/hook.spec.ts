@@ -1,6 +1,9 @@
 
 import { NodeType } from '../core/enums/node-types.js';
+import { HookType } from '../core/enums/node-specific.js';
 import { NodeSpecification } from '../node-specification.js';
+import { textField } from '../core/field-presets.js';
+import { validatedEnumField, validatedTextField, validatedNumberField } from '../core/validation-utils.js';
 
 export const hookSpec: NodeSpecification = {
   nodeType: NodeType.HOOK,
@@ -11,86 +14,58 @@ export const hookSpec: NodeSpecification = {
   description: "Executes hooks at specific points in the diagram execution",
 
   fields: [
-    {
+    validatedEnumField({
       name: "hook_type",
-      type: "enum",
-      required: true,
-      defaultValue: "shell",
       description: "Type of hook to execute",
-      validation: {
-        allowedValues: ["shell", "http", "python", "file"]
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: "shell", label: "Shell" },
-          { value: "http", label: "HTTP" },
-          { value: "python", label: "Python" },
-          { value: "file", label: "File" }
-        ]
-      }
-    },
-    {
+      options: [
+        { value: HookType.SHELL, label: "Shell" },
+        { value: HookType.HTTP, label: "HTTP" },
+        { value: HookType.PYTHON, label: "Python" },
+        { value: HookType.FILE, label: "File" }
+      ],
+      defaultValue: HookType.SHELL,
+      required: true
+    }),
+    textField({
       name: "command",
-      type: "string",
-      required: false,
       description: "Shell command to run (for shell hooks)",
-      uiConfig: {
-        inputType: "text",
-        placeholder: "Command to execute"
-      }
-    },
-    {
+      placeholder: "Command to execute"
+    }),
+    validatedTextField({
       name: "url",
-      type: "string",
-      required: false,
       description: "Webhook URL (for HTTP hooks)",
-      validation: {
-        pattern: "^https?://.+"
-      },
-      uiConfig: {
-        inputType: "text",
-        placeholder: "https://api.example.com/webhook"
-      }
-    },
-    {
+      pattern: "^https?://.+",
+      placeholder: "https://api.example.com/webhook"
+    }),
+    validatedNumberField({
       name: "timeout",
-      type: "number",
-      required: false,
-      defaultValue: 60,
       description: "Execution timeout in seconds",
-      validation: {
-        min: 1,
-        max: 300
-      },
-      uiConfig: {
-        inputType: "number",
-        min: 1,
-        max: 300
-      }
-    },
-    {
+      min: 1,
+      max: 300,
+      defaultValue: 60
+    }),
+    validatedNumberField({
       name: "retry_count",
-      type: "number",
-      required: false,
-      defaultValue: 0,
       description: "Number of retries on failure",
-      validation: {
-        min: 0,
-        max: 5
-      },
-      uiConfig: {
-        inputType: "number",
-        min: 0,
-        max: 5
-      }
-    }
+      min: 0,
+      max: 5,
+      defaultValue: 0
+    })
   ],
 
   handles: {
     inputs: ["default"],
     outputs: ["success", "error"]
   },
+
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "object",
+      required: false,
+      description: "Input data to pass to the hook execution (e.g., event payload, context data)"
+    }
+  ],
 
   outputs: {
     success: {
@@ -114,7 +89,7 @@ export const hookSpec: NodeSpecification = {
       name: "Shell Hook",
       description: "Execute a shell command",
       configuration: {
-        hook_type: "shell",
+        hook_type: HookType.SHELL,
         command: "echo 'Hook executed'",
         timeout: 30
       }
@@ -123,7 +98,7 @@ export const hookSpec: NodeSpecification = {
       name: "Webhook",
       description: "Call a webhook URL",
       configuration: {
-        hook_type: "http",
+        hook_type: HookType.HTTP,
         url: "https://api.example.com/webhook",
         timeout: 60,
         retry_count: 2
@@ -138,6 +113,6 @@ export const hookSpec: NodeSpecification = {
     className: "HookHandler",
     mixins: ["LoggingMixin", "ValidationMixin", "ConfigurationMixin"],
     serviceKeys: ["HTTP_CLIENT", "STATE_STORE", "EVENT_BUS"],
-    skipGeneration: true  // Already has custom handler
+    skipGeneration: true
   }
 };

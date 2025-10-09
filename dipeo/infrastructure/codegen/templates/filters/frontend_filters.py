@@ -301,6 +301,38 @@ class FrontendFilters:
         return sorted(list(imports))
 
     @classmethod
+    def get_branded_type_imports(cls, fields: list[dict[str, Any]]) -> list[str]:
+        """Get list of branded types that need to be imported from @dipeo/models.
+
+        Branded types are nominal types like PersonID, NodeID, etc. that are defined
+        in dipeo/models/src/core/diagram.ts.
+
+        Args:
+            fields: List of field specifications
+
+        Returns:
+            List of unique branded type names to import
+        """
+        branded_types = {
+            "PersonID",
+            "NodeID",
+            "ArrowID",
+            "HandleID",
+            "ApiKeyID",
+            "DiagramID",
+            "HookID",
+            "TaskID",
+        }
+
+        imports = set()
+        for field in fields:
+            field_type = field.get("type", "")
+            if field_type in branded_types:
+                imports.add(field_type)
+
+        return sorted(list(imports))
+
+    @classmethod
     def get_all_filters(cls) -> dict:
         """Get all filter methods as a dictionary.
 
@@ -312,4 +344,5 @@ class FrontendFilters:
             "zod_schema": cls.zod_schema,
             "escape_js": cls.escape_js,
             "get_enum_imports": cls.get_enum_imports,
+            "get_branded_type_imports": cls.get_branded_type_imports,
         }

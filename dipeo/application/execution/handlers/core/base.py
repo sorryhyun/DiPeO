@@ -1,23 +1,23 @@
 from __future__ import annotations
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar
 
 from pydantic import BaseModel
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
-    from dipeo.application.execution.execution_request import ExecutionRequest
+    from dipeo.application.execution.engine.request import ExecutionRequest
 
 logger = get_module_logger(__name__)
 
 T = TypeVar("T", bound=ExecutableNode)
 TNode = TypeVar("TNode")
+
 
 class TokenHandlerMixin:
     """Mixin for handlers to support token-based execution."""
@@ -45,6 +45,7 @@ class TokenHandlerMixin:
 
         outputs = {port: output}
         context.emit_outputs_as_tokens(node_id, outputs)
+
 
 class TypedNodeHandler[T](TokenHandlerMixin, ABC):
     """Base handler for type-safe node execution with envelope communication."""
@@ -121,7 +122,6 @@ class TypedNodeHandler[T](TokenHandlerMixin, ABC):
         elif isinstance(result, dict):
             return EnvelopeFactory.create(body=result, produced_by=node.id, trace_id=trace_id)
 
-        # Exception handling
         elif isinstance(result, Exception):
             return EnvelopeFactory.create(
                 body={"error": str(result), "type": result.__class__.__name__},

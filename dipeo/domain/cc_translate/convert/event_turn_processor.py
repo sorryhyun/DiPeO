@@ -52,7 +52,6 @@ class EventTurnProcessor:
         """
         node_labels = []
 
-        # Extract system messages from preprocessed data
         system_messages = self._extract_system_messages(preprocessed_data)
 
         # Track tool usage by UUID to handle TOOL_RESULT events
@@ -61,22 +60,19 @@ class EventTurnProcessor:
 
         for event in turn_events:
             if event.is_user_event():
-                # Skip meta events and events without content
                 if not event.is_meta:
                     user_node_label = self._create_user_node(event)
                     if user_node_label:
                         node_labels.append(user_node_label)
 
             elif event.is_assistant_event():
-                # Check if this assistant event has tool usage
                 if event.has_tool_use():
                     tool_node_labels = self._create_tool_nodes(event)
                     node_labels.extend(tool_node_labels)
 
-                    # Track this tool use by UUID for handling TOOL_RESULT events
+                    # Track tool use by UUID for handling TOOL_RESULT events
                     if event.tool_info:
                         tool_by_uuid[event.uuid] = event.tool_info.name
-                        # Track if this tool's results will be auto-appended
                         if event.tool_info.name in self.tools_with_auto_appended_results:
                             last_tool_with_auto_append = event.tool_info.name
                 else:
@@ -91,14 +87,11 @@ class EventTurnProcessor:
                             node_labels.append(assistant_node_label)
 
             elif event.type == EventType.TOOL_USE:
-                # Create the tool node
                 tool_node_labels = self._create_tool_nodes(event)
                 node_labels.extend(tool_node_labels)
 
-                # Track this tool use by UUID
                 if event.tool_info:
                     tool_by_uuid[event.uuid] = event.tool_info.name
-                    # Track if this tool's results will be auto-appended
                     if event.tool_info.name in self.tools_with_auto_appended_results:
                         last_tool_with_auto_append = event.tool_info.name
 
@@ -118,7 +111,7 @@ class EventTurnProcessor:
 
         return node_labels
 
-    def _create_user_node(self, event: DomainEvent) -> Optional[str]:
+    def _create_user_node(self, event: DomainEvent) -> str | None:
         """Create a node for user input from domain event.
 
         Args:
@@ -129,7 +122,6 @@ class EventTurnProcessor:
         """
         content = event.content.text or ""
 
-        # Skip empty content
         if not content.strip():
             return None
 
@@ -139,9 +131,7 @@ class EventTurnProcessor:
             return node["label"]
         return None
 
-    def _create_assistant_node(
-        self, event: DomainEvent, system_messages: list[str]
-    ) -> Optional[str]:
+    def _create_assistant_node(self, event: DomainEvent, system_messages: list[str]) -> str | None:
         """Handle AI assistant response from domain event - typically returns None.
 
         Args:
@@ -156,7 +146,6 @@ class EventTurnProcessor:
         if not content.strip():
             return None
 
-        # Call create_assistant_node which now returns None for pure text responses
         node = self.node_builder.create_assistant_node(content, system_messages)
         if node:
             self.node_map[event.uuid] = node["label"]
@@ -183,7 +172,6 @@ class EventTurnProcessor:
         tool_input = event.tool_info.input_params
         tool_results = event.tool_info.results if event.tool_info.results else None
 
-        # Create appropriate node for the tool
         node = self.node_builder.create_tool_node(tool_name, tool_input, tool_results)
 
         if node:
@@ -203,12 +191,10 @@ class EventTurnProcessor:
         """
         system_messages = []
 
-        # Extract from events
         for event in preprocessed_data.processed_events:
             if event.is_system_event() and event.content.text:
                 system_messages.append(event.content.text)
 
-        # Also check conversation context
         if "system_messages" in preprocessed_data.conversation_context:
             additional_messages = preprocessed_data.conversation_context["system_messages"]
             if isinstance(additional_messages, list):

@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for condition.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-03T21:25:09.377910
+Generated at: 2025-10-09T17:34:05.815162
 """
 
 from typing import *
@@ -10,6 +10,9 @@ from pydantic import BaseModel, Field, field_validator
 from dipeo.domain.diagram.models.executable_diagram import BaseExecutableNode
 from dipeo.diagram_generated.domain_models import NodeID, Vec2
 from dipeo.diagram_generated.enums import NodeType
+
+
+from dipeo.diagram_generated.domain_models import PersonID
 
 from dipeo.diagram_generated.enums import *
 from dipeo.diagram_generated.integrations import *
@@ -42,7 +45,7 @@ class ConditionNode(BaseModel):
     
     node_indices: Optional[List[Any]] = Field(default_factory=list, description="Node indices for detect_max_iteration condition")
     
-    person: Optional[str] = Field(default=None, description="AI agent to use for decision making")
+    person: Optional[PersonID] = Field(default=None, description="AI agent to use for decision making")
     
     judge_by: Optional[str] = Field(default=None, description="Prompt for LLM to make a judgment")
     

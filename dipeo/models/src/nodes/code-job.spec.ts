@@ -1,6 +1,9 @@
 
 import { NodeType } from '../core/enums/node-types.js';
+import { SupportedLanguage } from '../core/enums/node-specific.js';
 import { NodeSpecification } from '../node-specification.js';
+import { filePathField, contentField, textField, timeoutField } from '../core/field-presets.js';
+import { validatedEnumField } from '../core/validation-utils.js';
 
 export const codeJobSpec: NodeSpecification = {
   nodeType: NodeType.CODE_JOB,
@@ -11,66 +14,33 @@ export const codeJobSpec: NodeSpecification = {
   description: "Execute custom code functions",
 
   fields: [
-    {
+    validatedEnumField({
       name: "language",
-      type: "enum",
-      required: true,
-      defaultValue: "python",
       description: "Programming language",
-      validation: {
-        allowedValues: ["python", "typescript", "bash", "shell"]
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: "python", label: "Python" },
-          { value: "typescript", label: "TypeScript" },
-          { value: "bash", label: "Bash" },
-          { value: "shell", label: "Shell" }
-        ]
-      }
-    },
-    {
-      name: "filePath",
-      type: "string",
-      required: false,
-      description: "Path to code file",
-      uiConfig: {
-        inputType: "text",
-        placeholder: "/path/to/file"
-      }
-    },
-    {
+      options: [
+        { value: SupportedLanguage.PYTHON, label: "Python" },
+        { value: SupportedLanguage.TYPESCRIPT, label: "TypeScript" },
+        { value: SupportedLanguage.BASH, label: "Bash" },
+        { value: SupportedLanguage.SHELL, label: "Shell" }
+      ],
+      defaultValue: SupportedLanguage.PYTHON,
+      required: true
+    }),
+    filePathField({
+      name: "file_path",
+      description: "Path to code file"
+    }),
+    contentField({
       name: "code",
-      type: "string",
-      required: false,
-      description: "Inline code to execute (alternative to filePath)",
-      uiConfig: {
-        inputType: "code",
-        rows: 10,
-        adjustable: true
-      }
-    },
-    {
-      name: "functionName",
-      type: "string",
-      required: false,
-      description: "Function to execute",
-      uiConfig: {
-        inputType: "text"
-      }
-    },
-    {
-      name: "timeout",
-      type: "number",
-      required: false,
-      description: "Execution timeout in seconds",
-      uiConfig: {
-        inputType: "number",
-        min: 0,
-        max: 3600
-      }
-    }
+      description: "Inline code to execute (alternative to file_path)",
+      inputType: "code",
+      rows: 10
+    }),
+    textField({
+      name: "function_name",
+      description: "Function to execute"
+    }),
+    timeoutField()
   ],
 
   handles: {
@@ -89,7 +59,7 @@ export const codeJobSpec: NodeSpecification = {
       name: "code",
       contentType: "raw_text",
       required: true,
-      description: "Code to execute (overrides filePath if provided)"
+      description: "Code to execute (overrides file_path if provided)"
     }
   ],
 
@@ -106,5 +76,12 @@ export const codeJobSpec: NodeSpecification = {
     maxRetries: 3
   },
 
-  primaryDisplayField: "language"
+  primaryDisplayField: "language",
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.code_job",
+    className: "CodeJobHandler",
+    mixins: ["LoggingMixin", "ValidationMixin", "ConfigurationMixin"],
+    serviceKeys: ["FILE_SYSTEM", "STATE_STORE"]
+  }
 };

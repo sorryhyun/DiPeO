@@ -1,10 +1,13 @@
-import { create, StateCreator } from 'zustand';
+import { create, StateCreator, StoreApi } from 'zustand';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
+import { Draft } from 'immer';
 import {
   UnifiedStore,
   StoreSnapshot,
   Transaction,
+  SetState,
+  GetState,
 } from './types';
 import { sideEffectsMiddleware, registerDefaultSideEffects } from './middleware/sideEffects';
 import { DomainNode, DomainArrow, DomainPerson, DomainHandle, NodeID, ArrowID, PersonID } from '@dipeo/models';
@@ -128,7 +131,7 @@ function restoreSnapshot(state: UnifiedStore, snapshot: StoreSnapshot): void {
 function createUnifiedStore(config: Partial<StoreConfig> = {}) {
   const finalConfig = { ...defaultConfig, ...config };
 
-  const storeCreator = (set: any, get: any, api: any): UnifiedStore => {
+  const storeCreator = (set: SetState, get: GetState, api: StoreApi<UnifiedStore>): UnifiedStore => {
     // Create slice instances
     const diagramSlice = createDiagramSlice(set, get, api);
     const executionSlice = createExecutionSlice(set, get, api);
@@ -185,10 +188,12 @@ function createUnifiedStore(config: Partial<StoreConfig> = {}) {
         const currentSnapshot = createSnapshot(state);
 
         if (previousSnapshot) {
-          set((draft: any) => {
+          set((draft) => {
             draft.history.undoStack.pop();
             draft.history.redoStack.push(currentSnapshot);
-            restoreSnapshot(draft, previousSnapshot);
+            // Use type assertion to avoid type instantiation depth errors
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            restoreSnapshot(draft as any, previousSnapshot);
           });
         }
       },
@@ -201,10 +206,12 @@ function createUnifiedStore(config: Partial<StoreConfig> = {}) {
         const currentSnapshot = createSnapshot(state);
 
         if (nextSnapshot) {
-          set((draft: any) => {
+          set((draft) => {
             draft.history.redoStack.pop();
             draft.history.undoStack.push(currentSnapshot);
-            restoreSnapshot(draft, nextSnapshot);
+            // Use type assertion to avoid type instantiation depth errors
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            restoreSnapshot(draft as any, nextSnapshot);
           });
         }
       },
@@ -213,15 +220,17 @@ function createUnifiedStore(config: Partial<StoreConfig> = {}) {
       createSnapshot: () => createSnapshot(get()),
 
       restoreSnapshot: (snapshot: StoreSnapshot) => {
-        set((draft: any) => {
-          restoreSnapshot(draft, snapshot);
+        set((draft) => {
+          // Use type assertion to avoid type instantiation depth errors
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          restoreSnapshot(draft as any, snapshot);
         });
       },
 
       cleanupNodeHandles: (nodeId: NodeID) => {
-        set((draft: any) => {
+        set((draft) => {
           const handleIds = draft.handleIndex.get(nodeId) || [];
-          handleIds.forEach((handle: any) => {
+          handleIds.forEach((handle: DomainHandle) => {
             draft.handles.delete(handle.id);
           });
           draft.handleIndex.delete(nodeId);
@@ -232,7 +241,7 @@ function createUnifiedStore(config: Partial<StoreConfig> = {}) {
         const transactionId = crypto.randomUUID();
         const beforeSnapshot = createSnapshot(get());
 
-        set((draft: any) => {
+        set((draft) => {
           draft.history.currentTransaction = {
             id: transactionId,
             changes: [],
@@ -243,7 +252,7 @@ function createUnifiedStore(config: Partial<StoreConfig> = {}) {
         try {
           const result = fn();
 
-          set((draft: any) => {
+          set((draft) => {
             if (draft.history.currentTransaction?.id === transactionId) {
               draft.history.undoStack.push(beforeSnapshot);
               draft.history.currentTransaction = null;
@@ -255,8 +264,10 @@ function createUnifiedStore(config: Partial<StoreConfig> = {}) {
           return result;
         } catch (error) {
           // Rollback on error
-          set((draft: any) => {
-            restoreSnapshot(draft, beforeSnapshot);
+          set((draft) => {
+            // Use type assertion to avoid type instantiation depth errors
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            restoreSnapshot(draft as any, beforeSnapshot);
             draft.history.currentTransaction = null;
           });
           throw error;
@@ -265,7 +276,7 @@ function createUnifiedStore(config: Partial<StoreConfig> = {}) {
 
       // ===== Utility Actions =====
       clearAll: () => {
-        set((draft: any) => {
+        set((draft) => {
           // Clear nodes and arrows
           draft.nodes.clear();
           draft.arrows.clear();
@@ -286,7 +297,7 @@ function createUnifiedStore(config: Partial<StoreConfig> = {}) {
           // Clear persons
           draft.persons.clear();
           if ('dataVersion' in draft) {
-            (draft as any).dataVersion = 0;
+            draft.dataVersion = 0;
           }
 
           // Clear handles
@@ -310,17 +321,20 @@ function createUnifiedStore(config: Partial<StoreConfig> = {}) {
 
   // ===== Apply Middleware Stack =====
 
-  let store: any = storeCreator;
+  // Use explicit any type to avoid type instantiation depth errors with complex middleware chains
+  // This is a known limitation with Zustand's middleware typing when combining immer, subscribeWithSelector, and devtools
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const withImmer = immer(storeCreator as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const withSelector = subscribeWithSelector(withImmer as any);
 
-  // Apply immer for immutable updates
-  store = immer(store);
-
-  // Apply subscription support
-  store = subscribeWithSelector(store);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let store: any = withSelector;
 
   // Apply side effects middleware
   if (finalConfig.middleware?.length) {
-    store = sideEffectsMiddleware(store);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    store = sideEffectsMiddleware(store as any);
   }
 
   // Apply devtools in development
@@ -328,7 +342,7 @@ function createUnifiedStore(config: Partial<StoreConfig> = {}) {
     store = devtools(store, {
       name: 'DiPeO Store',
       serialize: {
-        replacer: (_key: string, value: any) => {
+        replacer: (_key: string, value: unknown) => {
           // Handle Map serialization for devtools
           if (value instanceof Map) {
             return {
@@ -338,7 +352,7 @@ function createUnifiedStore(config: Partial<StoreConfig> = {}) {
           }
           return value;
         },
-        reviver: (_key: string, value: any) => {
+        reviver: (_key: string, value: unknown) => {
           // Handle Map deserialization from devtools
           if (value && typeof value === 'object' && '_type' in value) {
             if (value._type === 'Map' && '_value' in value) {

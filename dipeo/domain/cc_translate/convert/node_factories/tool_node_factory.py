@@ -22,9 +22,9 @@ class ToolNodeFactory:
 
     def __init__(
         self,
-        person_registry: Optional[PersonRegistry] = None,
-        position_manager: Optional[PositionManager] = None,
-        payload_processor: Optional[PayloadProcessor] = None,
+        person_registry: PersonRegistry | None = None,
+        position_manager: PositionManager | None = None,
+        payload_processor: PayloadProcessor | None = None,
     ):
         """Initialize the tool node factory.
 
@@ -89,7 +89,7 @@ class ToolNodeFactory:
         self._all_nodes.append(node)
         return node
 
-    def create_user_node(self, content: str) -> Optional[dict[str, Any]]:
+    def create_user_node(self, content: str) -> dict[str, Any] | None:
         """Create a node for user input.
 
         Args:
@@ -104,8 +104,8 @@ class ToolNodeFactory:
         return node
 
     def create_assistant_node(
-        self, content: str, system_messages: Optional[list[str]] = None
-    ) -> Optional[dict[str, Any]]:
+        self, content: str, system_messages: list[str] | None = None
+    ) -> dict[str, Any] | None:
         """Handle AI assistant response.
 
         Args:
@@ -124,8 +124,8 @@ class ToolNodeFactory:
         self,
         tool_name: str,
         tool_input: dict[str, Any],
-        tool_use_result: Optional[dict[str, Any]] = None,
-    ) -> Optional[dict[str, Any]]:
+        tool_use_result: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """Create appropriate node based on tool name.
 
         Args:

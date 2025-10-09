@@ -3,7 +3,7 @@ import { NodeType, Status, ArrowID, NodeID, PersonID, Vec2 } from '@dipeo/models
 import type { SelectableID } from './ui';
 import type { NodeState } from './execution';
 import { createComputedGetters } from '../helpers/computedGetters';
-import type { UnifiedStore } from '../types';
+import type { UnifiedStore, SetState, GetState, StoreApiType } from '../types';
 
 export interface ComputedSlice {
   // Array versions of Maps (maintained for React components)
@@ -69,9 +69,9 @@ export interface ComputedSlice {
 }
 
 export const createComputedSlice = (
-  _set: (fn: (state: UnifiedStore) => void) => void,
-  get: () => UnifiedStore,
-  _api: any
+  _set: SetState,
+  get: GetState,
+  _api: StoreApiType
 ): ComputedSlice => ({
   // Array versions of Maps - initialized as empty arrays
   nodesArray: [],

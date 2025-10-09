@@ -3,85 +3,73 @@
 import asyncio
 import contextlib
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import time
-from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
+from dipeo.application.execution.observers.metrics_analysis import MetricsAnalyzer
+from dipeo.application.execution.observers.metrics_types import (
+    ExecutionMetrics as DataclassExecutionMetrics,
+)
+from dipeo.application.execution.observers.metrics_types import NodeMetrics as DataclassNodeMetrics
+from dipeo.config.base_logger import get_module_logger
+from dipeo.diagram_generated import (
+    Bottleneck,
+)
+from dipeo.diagram_generated import (
+    ExecutionMetrics as PydanticExecutionMetrics,
+)
+from dipeo.diagram_generated import NodeMetrics as PydanticNodeMetrics
 from dipeo.domain.events import (
     DomainEvent,
     EventBus,
-    EventScope,
     EventType,
-    ExecutionLogPayload,
     NodeCompletedPayload,
     NodeErrorPayload,
     NodeStartedPayload,
 )
+from dipeo.infrastructure.timing.collector import timing_collector
+
+if TYPE_CHECKING:
+    from dipeo.domain.execution.state.ports import ExecutionStateRepository
 
 logger = get_module_logger(__name__)
 
-@dataclass
-class NodeMetrics:
-    node_id: str
-    node_type: str
-    start_time: float
-    end_time: float | None = None
-    duration_ms: float | None = None
-    memory_usage: int | None = None
-    token_usage: dict[str, int] | None = None
-    error: str | None = None
-    dependencies: set[str] = field(default_factory=set)
-
-@dataclass
-class ExecutionMetrics:
-    execution_id: str
-    start_time: float
-    end_time: float | None = None
-    total_duration_ms: float | None = None
-    node_metrics: dict[str, NodeMetrics] = field(default_factory=dict)
-    critical_path: list[str] = field(default_factory=list)
-    parallelizable_groups: list[list[str]] = field(default_factory=list)
-    bottlenecks: list[str] = field(default_factory=list)
-
-@dataclass
-class DiagramOptimization:
-    execution_id: str
-    diagram_id: str | None
-    bottlenecks: list[dict[str, Any]]
-    parallelizable: list[list[str]]
-    suggested_changes: list[dict[str, Any]] = field(default_factory=list)
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "execution_id": self.execution_id,
-            "diagram_id": self.diagram_id,
-            "bottlenecks": self.bottlenecks,
-            "parallelizable": self.parallelizable,
-            "suggested_changes": self.suggested_changes,
-        }
 
 class MetricsObserver(EventBus):
     """Collects execution metrics for analysis and optimization suggestions."""
 
-    def __init__(self, event_bus: EventBus | None = None):
-        self._metrics_buffer: dict[str, ExecutionMetrics] = {}
-        self._node_dependencies: dict[str, dict[str, set[str]]] = {}
-        self._completed_metrics: dict[str, ExecutionMetrics] = {}
+    def __init__(
+        self,
+        event_bus: EventBus | None = None,
+        state_store: "ExecutionStateRepository | None" = None,
+    ):
+        self._metrics_buffer: dict[str, DataclassExecutionMetrics] = {}
+        self._completed_metrics: dict[str, DataclassExecutionMetrics] = {}
         self.event_bus = event_bus
-        self._analysis_threshold_ms = 1000
+        self.state_store = state_store
         self._cleanup_task: asyncio.Task | None = None
         self._running = False
         self._max_completed_metrics = 10
+        # Track active metrics key for each node_id in each execution
+        self._active_node_keys: dict[str, dict[str, str]] = {}
+        # Track parent-child execution relationships
+        self._parent_child_map: dict[str, str] = {}  # child_id -> parent_id
+        self._child_metrics: dict[
+            str, list[DataclassExecutionMetrics]
+        ] = {}  # parent_id -> list of child metrics
 
-    def get_execution_metrics(self, execution_id: str) -> ExecutionMetrics | None:
+        self._analyzer = MetricsAnalyzer(event_bus=event_bus, analysis_threshold_ms=1000)
+
+    def get_execution_metrics(self, execution_id: str) -> DataclassExecutionMetrics | None:
+        """Get metrics for a specific execution."""
         return self._metrics_buffer.get(execution_id) or self._completed_metrics.get(execution_id)
 
-    def get_all_metrics(self) -> dict[str, ExecutionMetrics]:
+    def get_all_metrics(self) -> dict[str, DataclassExecutionMetrics]:
+        """Get all active metrics."""
         return self._metrics_buffer.copy()
 
     def get_metrics_summary(self, execution_id: str) -> dict[str, Any] | None:
+        """Get a summary of metrics for an execution."""
         metrics = self._metrics_buffer.get(execution_id) or self._completed_metrics.get(
             execution_id
         )
@@ -103,6 +91,7 @@ class MetricsObserver(EventBus):
                 "duration_ms": node_metrics.duration_ms,
                 "token_usage": node_metrics.token_usage or {"input": 0, "output": 0, "total": 0},
                 "error": node_metrics.error,
+                "module_timings": node_metrics.module_timings,
             }
             node_breakdown.append(node_data)
 
@@ -130,6 +119,7 @@ class MetricsObserver(EventBus):
         }
 
     async def start(self) -> None:
+        """Start the metrics observer and cleanup loop."""
         if self._running:
             return
 
@@ -138,6 +128,7 @@ class MetricsObserver(EventBus):
         logger.debug("MetricsObserver started")
 
     async def stop(self) -> None:
+        """Stop the metrics observer and cleanup loop."""
         self._running = False
 
         if self._cleanup_task:
@@ -147,7 +138,12 @@ class MetricsObserver(EventBus):
 
         logger.info("MetricsObserver stopped")
 
+    async def handle(self, event: DomainEvent) -> None:
+        """Handle domain events (EventHandler protocol)."""
+        await self.consume(event)
+
     async def consume(self, event: DomainEvent) -> None:
+        """Process domain events related to execution metrics."""
         try:
             if event.type == EventType.EXECUTION_STARTED:
                 await self._handle_execution_started(event)
@@ -163,14 +159,21 @@ class MetricsObserver(EventBus):
             logger.error(f"Error processing event: {e}", exc_info=True)
 
     async def _handle_execution_started(self, event: DomainEvent) -> None:
+        """Handle execution start event."""
         execution_id = event.scope.execution_id
-        self._metrics_buffer[execution_id] = ExecutionMetrics(
+        parent_execution_id = event.scope.parent_execution_id
+
+        self._metrics_buffer[execution_id] = DataclassExecutionMetrics(
             execution_id=execution_id,
             start_time=event.occurred_at.timestamp(),
         )
-        self._node_dependencies[execution_id] = {}
+
+        # Track parent-child relationship
+        if parent_execution_id:
+            self._parent_child_map[execution_id] = parent_execution_id
 
     async def _handle_node_started(self, event: DomainEvent) -> None:
+        """Handle node start event."""
         execution_id = event.scope.execution_id
         metrics = self._metrics_buffer.get(execution_id)
         if not metrics:
@@ -181,28 +184,52 @@ class MetricsObserver(EventBus):
             return
 
         payload = cast(NodeStartedPayload, event.payload)
-        metrics.node_metrics[node_id] = NodeMetrics(
+        iteration = payload.iteration if payload.iteration is not None else 0
+
+        # Use compound key to track iterations separately
+        metrics_key = (
+            f"{node_id}_iter_{iteration}"
+            if iteration > 0 or payload.iteration is not None
+            else node_id
+        )
+
+        # Track this as the active key for this node
+        if execution_id not in self._active_node_keys:
+            self._active_node_keys[execution_id] = {}
+        self._active_node_keys[execution_id][node_id] = metrics_key
+
+        metrics.node_metrics[metrics_key] = DataclassNodeMetrics(
             node_id=node_id,
             node_type=payload.node_type or "unknown",
             start_time=event.occurred_at.timestamp(),
+            iteration=iteration,
         )
 
         if payload.inputs and isinstance(payload.inputs, dict):
             deps = payload.inputs.get("dependencies", [])
             if deps:
-                self._node_dependencies[execution_id][node_id] = set(deps)
+                dependencies = self._analyzer._node_dependencies.get(execution_id, {})
+                dependencies[node_id] = set(deps)
+                self._analyzer.set_node_dependencies(execution_id, dependencies)
 
     async def _handle_node_completed(self, event: DomainEvent) -> None:
+        """Handle node completion event."""
         execution_id = event.scope.execution_id
         metrics = self._metrics_buffer.get(execution_id)
         if not metrics:
             return
 
         node_id = event.scope.node_id
-        if not node_id or node_id not in metrics.node_metrics:
+        if not node_id:
             return
 
-        node_metrics = metrics.node_metrics[node_id]
+        # Get the active metrics key for this node
+        metrics_key = self._active_node_keys.get(execution_id, {}).get(node_id, node_id)
+
+        if metrics_key not in metrics.node_metrics:
+            return
+
+        node_metrics = metrics.node_metrics[metrics_key]
         node_metrics.end_time = event.occurred_at.timestamp()
 
         payload = cast(NodeCompletedPayload, event.payload)
@@ -214,36 +241,236 @@ class MetricsObserver(EventBus):
         if payload.token_usage:
             node_metrics.token_usage = payload.token_usage
             logger.debug(
-                f"[MetricsObserver] Recorded token usage for {node_id}: {payload.token_usage}"
+                f"[MetricsObserver] Recorded token usage for {metrics_key}: {payload.token_usage}"
             )
 
     async def _handle_node_failed(self, event: DomainEvent) -> None:
+        """Handle node failure event."""
         execution_id = event.scope.execution_id
         metrics = self._metrics_buffer.get(execution_id)
         if not metrics:
             return
 
         node_id = event.scope.node_id
-        if not node_id or node_id not in metrics.node_metrics:
+        if not node_id:
             return
 
-        node_metrics = metrics.node_metrics[node_id]
+        # Get the active metrics key for this node
+        metrics_key = self._active_node_keys.get(execution_id, {}).get(node_id, node_id)
+
+        if metrics_key not in metrics.node_metrics:
+            return
+
+        node_metrics = metrics.node_metrics[metrics_key]
         node_metrics.end_time = event.occurred_at.timestamp()
         node_metrics.duration_ms = (node_metrics.end_time - node_metrics.start_time) * 1000
 
         payload = cast(NodeErrorPayload, event.payload)
         node_metrics.error = payload.error_message
 
+    def _aggregate_child_metrics(
+        self,
+        parent_metrics: DataclassExecutionMetrics,
+        child_metrics_list: list[DataclassExecutionMetrics],
+    ) -> None:
+        """Aggregate child execution metrics into parent metrics.
+
+        This method merges all child metrics into the parent, prefixing node IDs
+        with the child execution ID to avoid conflicts.
+        """
+        for child_metrics in child_metrics_list:
+            child_exec_id = child_metrics.execution_id
+            # Merge node metrics from child into parent, prefixing with child execution ID
+            for node_id, node_metric in child_metrics.node_metrics.items():
+                # Create a prefixed key to avoid conflicts: child_exec_id/node_id
+                prefixed_node_id = f"{child_exec_id}/{node_id}"
+                parent_metrics.node_metrics[prefixed_node_id] = node_metric
+
+        logger.debug(
+            f"Aggregated {sum(len(cm.node_metrics) for cm in child_metrics_list)} "
+            f"node metrics from {len(child_metrics_list)} child executions into parent"
+        )
+
+    def _convert_to_pydantic_metrics(
+        self, dataclass_metrics: DataclassExecutionMetrics
+    ) -> PydanticExecutionMetrics:
+        """Convert dataclass ExecutionMetrics to Pydantic model for persistence."""
+        # Convert node metrics
+        pydantic_node_metrics = {}
+        for node_id, node_metric in dataclass_metrics.node_metrics.items():
+            pydantic_node_metrics[node_id] = PydanticNodeMetrics(
+                node_id=node_metric.node_id,
+                node_type=node_metric.node_type,
+                start_time=node_metric.start_time,
+                end_time=node_metric.end_time,
+                duration_ms=node_metric.duration_ms,
+                memory_usage=node_metric.memory_usage,
+                llm_usage=node_metric.token_usage,
+                error=node_metric.error,
+                dependencies=list(node_metric.dependencies) if node_metric.dependencies else None,
+                module_timings=node_metric.module_timings if node_metric.module_timings else None,
+            )
+
+        # Convert bottlenecks - use the analyzer's bottleneck data
+        pydantic_bottlenecks = None
+        if dataclass_metrics.bottlenecks:
+            pydantic_bottlenecks = []
+            for node_id in dataclass_metrics.bottlenecks:
+                if node_id in dataclass_metrics.node_metrics:
+                    node_metric = dataclass_metrics.node_metrics[node_id]
+                    if node_metric.duration_ms and dataclass_metrics.total_duration_ms:
+                        percentage = (
+                            node_metric.duration_ms / dataclass_metrics.total_duration_ms
+                        ) * 100
+                        pydantic_bottlenecks.append(
+                            Bottleneck(
+                                node_id=node_id,
+                                node_type=node_metric.node_type,
+                                duration_ms=node_metric.duration_ms,
+                                percentage=percentage,
+                            )
+                        )
+
+        return PydanticExecutionMetrics(
+            execution_id=dataclass_metrics.execution_id,
+            start_time=dataclass_metrics.start_time,
+            end_time=dataclass_metrics.end_time,
+            total_duration_ms=dataclass_metrics.total_duration_ms,
+            node_metrics=pydantic_node_metrics,
+            critical_path=dataclass_metrics.critical_path
+            if dataclass_metrics.critical_path
+            else None,
+            parallelizable_groups=(
+                dataclass_metrics.parallelizable_groups
+                if dataclass_metrics.parallelizable_groups
+                else None
+            ),
+            bottlenecks=pydantic_bottlenecks,
+        )
+
     async def _handle_execution_completed(self, event: DomainEvent) -> None:
+        """Handle execution completion event."""
         execution_id = event.scope.execution_id
+        parent_execution_id = self._parent_child_map.get(execution_id)
+
+        # Only log INFO for parent executions to reduce verbosity
+        if not parent_execution_id:
+            logger.info(f"[MetricsObserver] Handling EXECUTION_COMPLETED for {execution_id}")
+
         metrics = self._metrics_buffer.get(execution_id)
         if not metrics:
+            logger.warning(f"[MetricsObserver] No metrics found in buffer for {execution_id}")
             return
 
         metrics.end_time = event.occurred_at.timestamp()
         metrics.total_duration_ms = (metrics.end_time - metrics.start_time) * 1000
 
-        await self._analyze_execution(metrics, event.scope)
+        await self._analyzer.analyze_execution(metrics, event.scope)
+
+        # Retrieve timing data directly from collector (no file I/O!)
+        timing_data = timing_collector.pop(execution_id)
+
+        # Merge module timings into node metrics
+        # Hierarchical phase names (e.g., "memory_selection__api_call") are preserved
+        # to enable nested timing display in the CLI
+        for node_id, phase_timings in timing_data.items():
+            # Filter out metadata entries (end with "_metadata")
+            # Preserve count entries (end with "__count") for display purposes
+            timings = {
+                phase: dur_ms
+                for phase, dur_ms in phase_timings.items()
+                if not phase.endswith("_metadata")
+            }
+
+            # Apply timing data to the exact match if it exists
+            # Note: Timing collector doesn't track iterations separately, so timing data
+            # represents the accumulated/last iteration for this node
+            if node_id in metrics.node_metrics:
+                metrics.node_metrics[node_id].module_timings = timings
+            else:
+                # Create entry for system-level operations (scheduler, persistence, etc.)
+                metrics.node_metrics[node_id] = DataclassNodeMetrics(
+                    node_id=node_id,
+                    node_type="system",
+                    start_time=metrics.start_time,
+                    end_time=metrics.end_time,
+                    duration_ms=sum(timings.values()) if timings else 0,
+                    module_timings=timings,
+                )
+
+        # Handle hierarchical metrics for child executions
+        if parent_execution_id:
+            # This is a child execution - store metrics for parent aggregation
+            if parent_execution_id not in self._child_metrics:
+                self._child_metrics[parent_execution_id] = []
+            self._child_metrics[parent_execution_id].append(metrics)
+
+            # Clean up child tracking
+            del self._metrics_buffer[execution_id]
+            if execution_id in self._active_node_keys:
+                del self._active_node_keys[execution_id]
+            if execution_id in self._parent_child_map:
+                del self._parent_child_map[execution_id]
+            self._analyzer.clear_node_dependencies(execution_id)
+
+            # Skip persistence for child executions
+            return
+
+        # This is a parent execution - aggregate child metrics if any
+        if execution_id in self._child_metrics:
+            child_metrics_list = self._child_metrics[execution_id]
+            logger.debug(
+                f"Aggregating {len(child_metrics_list)} child metrics into parent {execution_id}"
+            )
+            self._aggregate_child_metrics(metrics, child_metrics_list)
+            # Clean up child metrics after aggregation
+            del self._child_metrics[execution_id]
+
+        # Persist metrics to database if state_store is available
+        if self.state_store:
+            try:
+                # Convert dataclass metrics to Pydantic model
+                pydantic_metrics = self._convert_to_pydantic_metrics(metrics)
+
+                # Get current execution state
+                execution_state = await self.state_store.get_execution(execution_id)
+                if execution_state:
+                    # Create updated execution state with metrics (Pydantic models are immutable)
+                    updated_state = execution_state.model_copy(update={"metrics": pydantic_metrics})
+
+                    # Save to cache first
+                    await self.state_store.save_execution(updated_state)
+
+                    # Force immediate database persistence
+                    if hasattr(self.state_store, "_persistence_manager") and hasattr(
+                        self.state_store, "_cache_manager"
+                    ):
+                        # Get the cache entry
+                        entry = await self.state_store._cache_manager.get_entry(execution_id)
+                        if entry:
+                            # Update the entry's state with metrics
+                            entry.state = updated_state
+                            entry.mark_dirty()
+                            # Immediately persist to database
+                            await self.state_store._persistence_manager.persist_entry(
+                                execution_id, entry
+                            )
+                            logger.info(
+                                f"Persisted metrics for execution {execution_id} to database (immediate)"
+                            )
+                    else:
+                        logger.warning(
+                            "State store doesn't support immediate persistence, metrics may not persist"
+                        )
+                else:
+                    logger.warning(
+                        f"Execution state not found for {execution_id}, cannot persist metrics"
+                    )
+            except Exception as e:
+                logger.error(
+                    f"Failed to persist metrics for execution {execution_id}: {e}", exc_info=True
+                )
+
         self._completed_metrics[execution_id] = metrics
 
         if len(self._completed_metrics) > self._max_completed_metrics:
@@ -251,165 +478,35 @@ class MetricsObserver(EventBus):
             del self._completed_metrics[oldest_id]
 
         del self._metrics_buffer[execution_id]
-        if execution_id in self._node_dependencies:
-            del self._node_dependencies[execution_id]
-
-    async def _analyze_execution(self, metrics: ExecutionMetrics, scope: EventScope) -> None:
-        bottlenecks = []
-        for node_id, node_metrics in metrics.node_metrics.items():
-            if node_metrics.duration_ms and node_metrics.duration_ms > self._analysis_threshold_ms:
-                bottlenecks.append(
-                    {
-                        "node_id": node_id,
-                        "node_type": node_metrics.node_type,
-                        "duration_ms": node_metrics.duration_ms,
-                    }
-                )
-
-        bottlenecks.sort(key=lambda x: x["duration_ms"], reverse=True)
-        metrics.bottlenecks = [b["node_id"] for b in bottlenecks[:5]]
-        metrics.critical_path = self._calculate_critical_path(metrics)
-        metrics.parallelizable_groups = self._find_parallelizable_nodes(metrics)
-
-        # Emit metrics event
-        if self.event_bus:
-            # Build comprehensive node breakdown
-            node_breakdown = []
-            total_token_usage = {"input": 0, "output": 0, "total": 0}
-            for node_id, node_metrics in metrics.node_metrics.items():
-                node_data = {
-                    "node_id": node_id,
-                    "node_type": node_metrics.node_type,
-                    "duration_ms": node_metrics.duration_ms,
-                    "token_usage": node_metrics.token_usage
-                    or {"input": 0, "output": 0, "total": 0},
-                    "error": node_metrics.error,
-                }
-                node_breakdown.append(node_data)
-
-                # Aggregate token usage
-                if node_metrics.token_usage:
-                    total_token_usage["input"] += node_metrics.token_usage.get("input", 0)
-                    total_token_usage["output"] += node_metrics.token_usage.get("output", 0)
-                    total_token_usage["total"] += node_metrics.token_usage.get("total", 0)
-
-            metrics_dict = {
-                "execution_id": metrics.execution_id,
-                "total_duration_ms": metrics.total_duration_ms,
-                "node_count": len(metrics.node_metrics),
-                "total_token_usage": total_token_usage,
-                "bottlenecks": bottlenecks[:5],
-                "critical_path_length": len(metrics.critical_path),
-                "parallelizable_groups": len(metrics.parallelizable_groups),
-                "node_breakdown": node_breakdown,
-            }
-
-            # Log metrics as an execution log event
-            await self.event_bus.publish(
-                DomainEvent(
-                    type=EventType.EXECUTION_LOG,
-                    scope=scope,
-                    payload=ExecutionLogPayload(
-                        level="INFO",
-                        message="Execution metrics collected",
-                        logger_name="metrics_observer",
-                        extra_fields=metrics_dict,
-                    ),
-                )
-            )
-
-            # Log optimization suggestions if there are improvements
-            if metrics.parallelizable_groups:
-                await self.event_bus.publish(
-                    DomainEvent(
-                        type=EventType.EXECUTION_LOG,
-                        scope=scope,
-                        payload=ExecutionLogPayload(
-                            level="INFO",
-                            message=f"Found {len(metrics.parallelizable_groups)} groups of nodes that could run in parallel. Could save up to {self._estimate_parallel_savings(metrics)}ms",
-                            logger_name="metrics_observer",
-                            extra_fields={
-                                "suggestion_type": "parallelize_nodes",
-                                "affected_nodes": [
-                                    n for group in metrics.parallelizable_groups for n in group
-                                ],
-                                "parallelizable_groups": metrics.parallelizable_groups,
-                            },
-                        ),
-                    )
-                )
-
-    def _calculate_critical_path(self, metrics: ExecutionMetrics) -> list[str]:
-        sorted_nodes = sorted(metrics.node_metrics.items(), key=lambda x: x[1].start_time)
-        return [node_id for node_id, _ in sorted_nodes]
-
-    def _find_parallelizable_nodes(self, metrics: ExecutionMetrics) -> list[list[str]]:
-        groups = []
-        exec_id = metrics.execution_id
-
-        if exec_id not in self._node_dependencies:
-            return groups
-
-        dependencies = self._node_dependencies[exec_id]
-        potential_group = []
-
-        for node_id in metrics.node_metrics:
-            node_deps = dependencies.get(node_id, set())
-            can_parallel = True
-
-            for other_id in potential_group:
-                other_deps = dependencies.get(other_id, set())
-                if node_id in other_deps or other_id in node_deps:
-                    can_parallel = False
-                    break
-
-            if can_parallel:
-                potential_group.append(node_id)
-            elif len(potential_group) > 1:
-                groups.append(potential_group)
-                potential_group = [node_id]
-
-        if len(potential_group) > 1:
-            groups.append(potential_group)
-
-        return groups
-
-    def _estimate_parallel_savings(self, metrics: ExecutionMetrics) -> float:
-        total_savings = 0.0
-
-        for group in metrics.parallelizable_groups:
-            durations = []
-            for node_id in group:
-                if node_id in metrics.node_metrics:
-                    duration = metrics.node_metrics[node_id].duration_ms
-                    if duration:
-                        durations.append(duration)
-
-            if durations:
-                savings = sum(durations) - max(durations)
-                total_savings += savings
-
-        return total_savings
+        # Clean up tracking dictionaries
+        if execution_id in self._active_node_keys:
+            del self._active_node_keys[execution_id]
+        self._analyzer.clear_node_dependencies(execution_id)
 
     async def _cleanup_loop(self) -> None:
         """Periodically clean up stale metrics."""
         while self._running:
             try:
-                await asyncio.sleep(300)  # Clean up every 5 minutes
+                await asyncio.sleep(300)
 
                 current_time = time.time()
                 stale_executions = []
 
                 for exec_id, metrics in self._metrics_buffer.items():
-                    # Remove metrics older than 1 hour without completion
                     if current_time - metrics.start_time > 3600:
                         stale_executions.append(exec_id)
 
                 for exec_id in stale_executions:
                     logger.warning(f"Cleaning up stale metrics for execution {exec_id}")
                     del self._metrics_buffer[exec_id]
-                    if exec_id in self._node_dependencies:
-                        del self._node_dependencies[exec_id]
+                    self._analyzer.clear_node_dependencies(exec_id)
+                    # Clean up parent-child tracking
+                    if exec_id in self._active_node_keys:
+                        del self._active_node_keys[exec_id]
+                    if exec_id in self._parent_child_map:
+                        del self._parent_child_map[exec_id]
+                    if exec_id in self._child_metrics:
+                        del self._child_metrics[exec_id]
 
             except asyncio.CancelledError:
                 break

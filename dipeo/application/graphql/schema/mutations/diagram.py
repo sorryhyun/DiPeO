@@ -1,8 +1,6 @@
 """Diagram mutations using ServiceRegistry."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from datetime import datetime
 
 import strawberry
@@ -10,6 +8,7 @@ from strawberry.scalars import JSON
 
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import DIAGRAM_PORT
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import DiagramMetadata, DomainDiagram
 from dipeo.diagram_generated.domain_models import DiagramID
 from dipeo.diagram_generated.graphql.enums import DiagramFormatGraphQL
@@ -18,6 +17,7 @@ from dipeo.diagram_generated.graphql.results import DeleteResult, DiagramResult
 from dipeo.infrastructure.diagram.adapters import UnifiedSerializerAdapter
 
 logger = get_module_logger(__name__)
+
 
 # Standalone resolver functions for use with OperationExecutor
 async def create_diagram(registry: ServiceRegistry, input: CreateDiagramInput) -> DiagramResult:
@@ -59,6 +59,7 @@ async def create_diagram(registry: ServiceRegistry, input: CreateDiagramInput) -
         logger.error(f"Failed to create diagram: {e}")
         return DiagramResult.error_result(error=f"Failed to create diagram: {e!s}")
 
+
 async def delete_diagram(registry: ServiceRegistry, diagram_id: strawberry.ID) -> DeleteResult:
     """
     Resolver for DeleteDiagram operation.
@@ -88,6 +89,7 @@ async def delete_diagram(registry: ServiceRegistry, diagram_id: strawberry.ID) -
     except Exception as e:
         logger.error(f"Failed to delete diagram {diagram_id_typed}: {e}")
         return DeleteResult.error_result(error=f"Failed to delete diagram: {e!s}")
+
 
 async def validate_diagram(
     registry: ServiceRegistry, content: str, format: DiagramFormatGraphQL

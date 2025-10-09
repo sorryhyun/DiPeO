@@ -40,7 +40,7 @@ class DiagramProcessingReport:
     connections_modified: int = 0
     connections_added: int = 0
     processing_time_ms: float = 0
-    error: Optional[str] = None
+    error: str | None = None
 
     def add_change(self, change: DiagramChange) -> None:
         """Add a change to the report and update counters."""
@@ -71,7 +71,7 @@ class DiagramProcessingReport:
 class BaseDiagramProcessor(ABC):
     """Base class for all diagram post-processing processors."""
 
-    def __init__(self, config: Optional[dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         """Initialize processor with optional configuration."""
         self.config = config or {}
         self.enabled = self.config.get("enabled", True)
@@ -192,7 +192,7 @@ class BasePostProcessor(ABC):
 
     @abstractmethod
     def process(
-        self, diagram: dict[str, Any], config: Optional[Any] = None
+        self, diagram: dict[str, Any], config: Any | None = None
     ) -> tuple[dict[str, Any], DiagramPipelineReport]:
         """
         Standard interface: process a diagram and return optimized diagram with report.

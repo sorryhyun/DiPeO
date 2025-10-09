@@ -3,7 +3,10 @@
  */
 
 import { NodeType } from '../core/enums/node-types.js';
+import { DiagramFormat } from '../core/enums/diagram.js';
 import { NodeSpecification } from '../node-specification.js';
+import { objectField, booleanField, textField } from '../core/field-presets.js';
+import { validatedEnumField, validatedNumberField } from '../core/validation-utils.js';
 
 export const subDiagramSpec: NodeSpecification = {
   nodeType: NodeType.SUB_DIAGRAM,
@@ -24,135 +27,84 @@ export const subDiagramSpec: NodeSpecification = {
         placeholder: "Select diagram..."
       }
     },
-    {
+    objectField({
       name: "diagram_data",
-      type: "object",
-      required: false,
       description: "Inline diagram data (alternative to diagram_name)",
-      uiConfig: {
-        inputType: "code",
-        collapsible: true
-      }
-    },
-    {
+      required: false,
+      collapsible: true
+    }),
+    objectField({
       name: "input_mapping",
-      type: "object",
-      required: false,
       description: "Map node inputs to sub-diagram variables",
-      uiConfig: {
-        inputType: "code",
-        placeholder: "{ \"targetVar\": \"sourceInput\" }"
-      }
-    },
-    {
+      required: false
+    }),
+    objectField({
       name: "output_mapping",
-      type: "object",
-      required: false,
       description: "Map sub-diagram outputs to node outputs",
-      uiConfig: {
-        inputType: "code",
-        placeholder: "{ \"outputKey\": \"nodeId.field\" }"
-      }
-    },
-    {
+      required: false
+    }),
+    validatedNumberField({
       name: "timeout",
-      type: "number",
-      required: false,
       description: "Execution timeout in seconds",
-      validation: {
-        min: 1,
-        max: 3600
-      },
-      uiConfig: {
-        inputType: "number",
-        min: 1,
-        max: 3600
-      }
-    },
-    {
+      min: 1,
+      max: 3600
+    }),
+    booleanField({
       name: "wait_for_completion",
-      type: "boolean",
-      required: false,
-      defaultValue: true,
       description: "Whether to wait for sub-diagram completion",
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    },
-    {
+      defaultValue: true
+    }),
+    booleanField({
       name: "isolate_conversation",
-      type: "boolean",
-      required: false,
-      defaultValue: false,
       description: "Create isolated conversation context for sub-diagram",
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    },
-    {
-      name: "ignoreIfSub",
-      type: "boolean",
-      required: false,
-      defaultValue: false,
+      defaultValue: false
+    }),
+    booleanField({
+      name: "ignore_if_sub",
       description: "Skip execution if this diagram is being run as a sub-diagram",
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    },
-    {
+      defaultValue: false
+    }),
+    validatedEnumField({
       name: "diagram_format",
-      type: "enum",
-      required: false,
       description: "Format of the diagram file (yaml, json, or light)",
-      validation: {
-        allowedValues: ["yaml", "json", "light"]
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { label: "YAML", value: "yaml" },
-          { label: "JSON", value: "json" },
-          { label: "Light", value: "light" }
-        ]
-      }
-    },
-    {
+      options: [
+        { label: "YAML", value: DiagramFormat.YAML },
+        { label: "JSON", value: DiagramFormat.JSON },
+        { label: "Light", value: DiagramFormat.LIGHT }
+      ],
+      required: false
+    }),
+    booleanField({
       name: "batch",
-      type: "boolean",
-      required: false,
-      defaultValue: false,
       description: "Execute sub-diagram in batch mode for multiple inputs",
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    },
-    {
+      defaultValue: false
+    }),
+    textField({
       name: "batch_input_key",
-      type: "string",
-      required: false,
-      defaultValue: "items",
       description: "Key in inputs containing the array of items for batch processing",
-      uiConfig: {
-        inputType: "text",
-        placeholder: "items"
-      }
-    },
-    {
+      defaultValue: "items",
+      placeholder: "items"
+    }),
+    booleanField({
       name: "batch_parallel",
-      type: "boolean",
-      required: false,
-      defaultValue: true,
       description: "Execute batch items in parallel",
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    }
+      defaultValue: true
+    })
   ],
 
   handles: {
     inputs: ["default"],
     outputs: ["default"]
   },
+
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "object",
+      required: false,
+      description: "Input data to pass to the sub-diagram (mapped via input_mapping configuration)"
+    }
+  ],
 
   outputs: {
     default: {
@@ -199,5 +151,12 @@ export const subDiagramSpec: NodeSpecification = {
     }
   ],
 
-  primaryDisplayField: "diagram_name"
+  primaryDisplayField: "diagram_name",
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.sub_diagram",
+    className: "SubDiagramHandler",
+    mixins: ["LoggingMixin", "ValidationMixin", "ConfigurationMixin"],
+    serviceKeys: ["DIAGRAM_SERVICE", "STATE_STORE", "EVENT_BUS"]
+  }
 };

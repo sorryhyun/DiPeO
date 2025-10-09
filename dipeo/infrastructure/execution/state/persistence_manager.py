@@ -3,8 +3,6 @@
 import asyncio
 import json
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 import sqlite3
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -13,11 +11,13 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import ExecutionState, NodeState, Status
 
 from .models import CacheEntry, CacheMetrics
 
 logger = get_module_logger(__name__)
+
 
 class PersistenceManager:
     """Manages database operations and persistence."""
@@ -71,7 +71,7 @@ class PersistenceManager:
     async def init_schema(self) -> None:
         """Initialize database schema."""
         schema = """
-        CREATE TABLE IF NOT EXISTS execution_states (
+        CREATE TABLE IF NOT EXISTS executions (
             execution_id TEXT PRIMARY KEY,
             status TEXT NOT NULL,
             diagram_id TEXT,
@@ -90,11 +90,11 @@ class PersistenceManager:
             last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
-        CREATE INDEX IF NOT EXISTS idx_status ON execution_states(status);
-        CREATE INDEX IF NOT EXISTS idx_started_at ON execution_states(started_at);
-        CREATE INDEX IF NOT EXISTS idx_diagram_id ON execution_states(diagram_id);
-        CREATE INDEX IF NOT EXISTS idx_access_count ON execution_states(access_count DESC);
-        CREATE INDEX IF NOT EXISTS idx_last_accessed ON execution_states(last_accessed DESC);
+        CREATE INDEX IF NOT EXISTS idx_status ON executions(status);
+        CREATE INDEX IF NOT EXISTS idx_started_at ON executions(started_at);
+        CREATE INDEX IF NOT EXISTS idx_diagram_id ON executions(diagram_id);
+        CREATE INDEX IF NOT EXISTS idx_access_count ON executions(access_count DESC);
+        CREATE INDEX IF NOT EXISTS idx_last_accessed ON executions(last_accessed DESC);
 
         -- Transitions table for idempotency
         CREATE TABLE IF NOT EXISTS transitions (
@@ -132,7 +132,10 @@ class PersistenceManager:
         self, execution_id: str, entry: CacheEntry, use_full_sync: bool = False
     ) -> None:
         """Persist a cache entry to database with optional enhanced durability."""
-        state_dict = entry.state.model_dump()
+        from dipeo.infrastructure.timing import atime_phase
+
+        async with atime_phase(str(execution_id), "system", "db_serialize"):
+            state_dict = entry.state.model_dump()
 
         # Use enhanced durability for critical writes
         if use_full_sync:
@@ -142,49 +145,53 @@ class PersistenceManager:
             )
 
         try:
-            await self.execute(
-                """
-                INSERT INTO execution_states
-                (execution_id, status, diagram_id, started_at, ended_at,
-                 node_states, node_outputs, llm_usage, error, variables,
-                 exec_counts, executed_nodes, metrics, access_count, last_accessed)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(execution_id) DO UPDATE SET
-                    status=excluded.status,
-                    ended_at=excluded.ended_at,
-                    node_states=excluded.node_states,
-                    node_outputs=excluded.node_outputs,
-                    llm_usage=excluded.llm_usage,
-                    error=excluded.error,
-                    variables=excluded.variables,
-                    exec_counts=excluded.exec_counts,
-                    executed_nodes=excluded.executed_nodes,
-                    metrics=excluded.metrics,
-                    access_count=excluded.access_count,
-                    last_accessed=excluded.last_accessed
-                """,
-                (
-                    entry.state.id,
-                    entry.state.status.value,
-                    entry.state.diagram_id,
-                    entry.state.started_at,
-                    entry.state.ended_at,
-                    json.dumps(state_dict["node_states"]),
-                    json.dumps(state_dict["node_outputs"]),
-                    json.dumps(state_dict["llm_usage"]),
-                    entry.state.error,
-                    json.dumps(state_dict["variables"]),
-                    json.dumps(state_dict["exec_counts"]),
-                    json.dumps(state_dict["executed_nodes"]),
-                    json.dumps(state_dict.get("metrics")) if state_dict.get("metrics") else None,
-                    entry.access_count,
-                    datetime.now().isoformat(),
-                ),
-            )
+            async with atime_phase(str(execution_id), "system", "db_write"):
+                await self.execute(
+                    """
+                    INSERT INTO executions
+                    (execution_id, status, diagram_id, started_at, ended_at,
+                     node_states, node_outputs, llm_usage, error, variables,
+                     exec_counts, executed_nodes, metrics, access_count, last_accessed)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(execution_id) DO UPDATE SET
+                        status=excluded.status,
+                        ended_at=excluded.ended_at,
+                        node_states=excluded.node_states,
+                        node_outputs=excluded.node_outputs,
+                        llm_usage=excluded.llm_usage,
+                        error=excluded.error,
+                        variables=excluded.variables,
+                        exec_counts=excluded.exec_counts,
+                        executed_nodes=excluded.executed_nodes,
+                        metrics=excluded.metrics,
+                        access_count=excluded.access_count,
+                        last_accessed=excluded.last_accessed
+                    """,
+                    (
+                        entry.state.id,
+                        entry.state.status.value,
+                        entry.state.diagram_id,
+                        entry.state.started_at,
+                        entry.state.ended_at,
+                        json.dumps(state_dict["node_states"]),
+                        json.dumps(state_dict["node_outputs"]),
+                        json.dumps(state_dict["llm_usage"]),
+                        entry.state.error,
+                        json.dumps(state_dict["variables"]),
+                        json.dumps(state_dict["exec_counts"]),
+                        json.dumps(state_dict["executed_nodes"]),
+                        json.dumps(state_dict.get("metrics"))
+                        if state_dict.get("metrics")
+                        else None,
+                        entry.access_count,
+                        datetime.now().isoformat(),
+                    ),
+                )
 
             # Force commit for critical writes
             if use_full_sync:
-                await loop.run_in_executor(self._executor, self._conn.commit)
+                async with atime_phase(str(execution_id), "system", "db_commit"):
+                    await loop.run_in_executor(self._executor, self._conn.commit)
 
         finally:
             # Restore normal synchronous mode after critical write
@@ -203,7 +210,7 @@ class PersistenceManager:
             SELECT execution_id, status, diagram_id, started_at, ended_at,
                    node_states, node_outputs, llm_usage, error, variables,
                    exec_counts, executed_nodes, metrics, access_count
-            FROM execution_states
+            FROM executions
             WHERE execution_id = ?
             """,
             (execution_id,),
@@ -224,7 +231,7 @@ class PersistenceManager:
             SELECT execution_id, status, diagram_id, started_at, ended_at,
                    node_states, node_outputs, llm_usage, error, variables,
                    exec_counts, executed_nodes, metrics, access_count
-            FROM execution_states
+            FROM executions
             WHERE status IN (?, ?)
             ORDER BY access_count DESC, last_accessed DESC
             LIMIT ?
@@ -247,7 +254,7 @@ class PersistenceManager:
         """Update access count and timestamp for an execution."""
         await self.execute(
             """
-            UPDATE execution_states
+            UPDATE executions
             SET access_count = access_count + 1,
                 last_accessed = ?
             WHERE execution_id = ?
@@ -267,7 +274,7 @@ class PersistenceManager:
         SELECT execution_id, status, diagram_id, started_at, ended_at,
                node_states, node_outputs, llm_usage, error, variables,
                exec_counts, executed_nodes, metrics
-        FROM execution_states
+        FROM executions
         """
         conditions = []
         params = []
@@ -305,7 +312,7 @@ class PersistenceManager:
         cutoff_date = datetime.now() - timedelta(days=days)
         cutoff_iso = cutoff_date.isoformat()
 
-        await self.execute("DELETE FROM execution_states WHERE started_at < ?", (cutoff_iso,))
+        await self.execute("DELETE FROM executions WHERE started_at < ?", (cutoff_iso,))
         await self.execute("VACUUM")
 
     async def record_transition(

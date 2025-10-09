@@ -22,7 +22,7 @@ class PostProcessor(BasePostProcessor):
     reports and handling errors according to configuration.
     """
 
-    def __init__(self, config: Optional[PipelineConfig] = None):
+    def __init__(self, config: PipelineConfig | None = None):
         """Initialize pipeline with configuration."""
         self.config = config or PipelineConfig.from_preset(ProcessingPreset.STANDARD)
         self._processors: list[BaseDiagramProcessor] = []
@@ -50,7 +50,7 @@ class PostProcessor(BasePostProcessor):
             # Note: We'll create the actual grouper instance in process() with output_base_path
 
     def process(
-        self, diagram: dict[str, Any], config: Optional[Any] = None, **kwargs
+        self, diagram: dict[str, Any], config: Any | None = None, **kwargs
     ) -> tuple[dict[str, Any], DiagramPipelineReport]:
         """
         Process diagram through all configured processors.

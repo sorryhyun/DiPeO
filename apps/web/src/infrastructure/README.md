@@ -525,7 +525,7 @@ export function useStream<T>(url: string): StreamState<T> {
 
 #### Form Hooks (`forms/`)
 
-**useFormManager** (`useFormManager.ts`):
+**useFormManager** (`useFormManager.ts`) - Custom form management:
 ```typescript
 export function useFormManager<T extends Record<string, any>>(
   initialValues: T,

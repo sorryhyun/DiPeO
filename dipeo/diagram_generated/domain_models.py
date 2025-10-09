@@ -2,7 +2,7 @@
 # __generated__ by DiPeO
 """
 Domain models generated from TypeScript interfaces.
-Generated at: 2025-10-03T21:25:10.031278
+Generated at: 2025-10-09T17:34:06.659592
 """
 from __future__ import annotations
 
@@ -352,6 +352,8 @@ class NodeMetrics(BaseModel):
     error: Optional[str] | None = Field(default=None)
     
     dependencies: List[str] | None = Field(default=None)
+    
+    module_timings: Optional[Dict[str, float]] | None = Field(default=None)
     
 
 
@@ -710,6 +712,184 @@ class LLMRequestOptions(BaseModel):
     tools: List[ToolConfig] | None = Field(default=None)
     
     response_format: Any | None = Field(default=None)
+    
+
+
+
+class AuthConfig(BaseModel):
+    """"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    strategy: str
+    
+    header: Optional[str] | None = Field(default=None)
+    
+    query_param: Optional[str] | None = Field(default=None)
+    
+    format: Optional[str] | None = Field(default=None)
+    
+    scopes: Optional[List[str]] | None = Field(default=None)
+    
+
+
+
+class RateLimitConfig(BaseModel):
+    """"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    algorithm: str
+    
+    capacity: float
+    
+    refill_per_sec: float
+    
+    window_size_sec: Optional[float] | None = Field(default=None)
+    
+
+
+
+class RetryPolicy(BaseModel):
+    """"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    strategy: str
+    
+    max_retries: float
+    
+    base_delay_ms: float
+    
+    max_delay_ms: Optional[float] | None = Field(default=None)
+    
+    retry_on_status: List[float]
+    
+
+
+
+class Operation(BaseModel):
+    """"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    name: str
+    
+    method: str
+    
+    path: str
+    
+    description: Optional[str] | None = Field(default=None)
+    
+    required_scopes: Optional[List[str]] | None = Field(default=None)
+    
+    has_pagination: bool
+    
+    timeout_override: Optional[float] | None = Field(default=None)
+    
+
+
+
+class OperationSchema(BaseModel):
+    """"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    operation: str
+    
+    method: str
+    
+    path: str
+    
+    description: Optional[str] | None = Field(default=None)
+    
+    request_body: Optional[Any] | None = Field(default=None)
+    
+    query_params: Optional[Any] | None = Field(default=None)
+    
+    response: Optional[Any] | None = Field(default=None)
+    
+
+
+
+class ProviderMetadata(BaseModel):
+    """"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    version: str
+    
+    type: str
+    
+    manifest_path: Optional[str] | None = Field(default=None)
+    
+    description: Optional[str] | None = Field(default=None)
+    
+    documentation_url: Optional[str] | None = Field(default=None)
+    
+    support_email: Optional[str] | None = Field(default=None)
+    
+
+
+
+class Provider(BaseModel):
+    """"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    name: str
+    
+    operations: List[Operation]
+    
+    metadata: ProviderMetadata
+    
+    base_url: Optional[str] | None = Field(default=None)
+    
+    auth_config: Optional[AuthConfig] | None = Field(default=None)
+    
+    rate_limit: Optional[RateLimitConfig] | None = Field(default=None)
+    
+    retry_policy: Optional[RetryPolicy] | None = Field(default=None)
+    
+    default_timeout: float
+    
+
+
+
+class ProviderStatistics(BaseModel):
+    """"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    total_providers: float
+    
+    total_operations: float
+    
+    provider_types: Any
+    
+    providers: Any
+    
+
+
+
+class IntegrationTestResult(BaseModel):
+    """"""
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    
+    success: bool
+    
+    provider: str
+    
+    operation: str
+    
+    status_code: Optional[float] | None = Field(default=None)
+    
+    response_time_ms: Optional[float] | None = Field(default=None)
+    
+    error: Optional[str] | None = Field(default=None)
+    
+    response_preview: Optional[Any] | None = Field(default=None)
     
 
 

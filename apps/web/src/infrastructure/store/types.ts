@@ -13,6 +13,7 @@ import type {
   Vec2,
   DiagramFormat,
 } from '@dipeo/models';
+import type { StoreApi } from 'zustand';
 
 import type { StoreExecutionState, StoreNodeState } from '@/infrastructure/converters';
 import type { DiagramSlice } from './slices/diagram';
@@ -105,6 +106,12 @@ export interface StoreMiddleware {
 
 export type Selector<T> = (state: UnifiedStore) => T;
 export type ParameterizedSelector<P, T> = (params: P) => Selector<T>;
+
+// ===== Zustand Types =====
+
+export type SetState = (fn: (state: UnifiedStore) => void) => void;
+export type GetState = () => UnifiedStore;
+export type StoreApiType = StoreApi<UnifiedStore>;
 
 // ===== Unified Store Interface (Flattened) =====
 // Uses composition to extend all slice interfaces

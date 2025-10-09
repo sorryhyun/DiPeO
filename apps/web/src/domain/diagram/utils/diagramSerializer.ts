@@ -177,7 +177,6 @@ export function serializeDiagram(): SerializedDiagram {
   cleanNodes.forEach(node => {
     const nodeHandles = generateHandlesForNode(node);
 
-
     nodeHandles.forEach(newHandle => {
       if (!existingHandleMap.has(newHandle.id)) {
         generatedHandles.push(newHandle);
@@ -198,7 +197,6 @@ export function serializeDiagram(): SerializedDiagram {
   });
 
   const allHandleIds = Converters.arrayToUniqueSet(allHandles, handle => handle.id);
-
 
   const validArrows = (diagramArrays.arrows || []).filter(arrow => {
     const sourceValid = allHandleIds.has(arrow.source);

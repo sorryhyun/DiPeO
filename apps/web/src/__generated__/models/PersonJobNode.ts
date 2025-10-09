@@ -1,8 +1,9 @@
 // Auto-generated TypeScript model for person_job node
 import { z } from 'zod';
+import { PersonID } from '@dipeo/models';
 
 export interface PersonJobNodeData {
-  person?: string | undefined;
+  person?: PersonID | undefined;
   first_only_prompt?: string | undefined;
   first_prompt_file?: string | undefined;
   default_prompt?: string | undefined;
@@ -24,12 +25,12 @@ export interface PersonJobNodeData {
 
 // Zod schema for validation
 export const PersonJobNodeDataSchema = z.object({
-  person: z.string().optional().describe("AI person to use"),
+  person: z.any().optional().describe("AI person to use for this task"),
   first_only_prompt: z.string().optional().describe("Prompt used only on first execution"),
-  first_prompt_file: z.string().optional().describe("External prompt file for first iteration only"),
-  default_prompt: z.string().optional().describe("Default prompt template"),
+  first_prompt_file: z.string().optional().describe("Path to prompt file in /files/prompts/"),
+  default_prompt: z.string().optional().describe("Prompt template"),
   prompt_file: z.string().optional().describe("Path to prompt file in /files/prompts/"),
-  max_iteration: z.number().describe("Maximum execution iterations"),
+  max_iteration: z.number().min(1).describe("Maximum execution iterations"),
   memorize_to: z.string().optional().describe("Criteria used to select helpful messages for this task. Empty = memorize all. Special: 'GOLDFISH' for goldfish mode. Comma-separated for multiple criteria."),
   at_most: z.number().min(1).max(500).optional().describe("Select at most N messages to keep (system messages may be preserved in addition)."),
   ignore_person: z.string().optional().describe("Comma-separated list of person IDs whose messages should be excluded from memory selection."),

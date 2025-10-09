@@ -5,6 +5,8 @@
 
 import { NodeType } from '../core/enums/node-types.js';
 import { NodeSpecification } from '../node-specification.js';
+import { textField, objectField } from '../core/field-presets.js';
+import { validatedNumberField } from '../core/validation-utils.js';
 
 export const integratedApiSpec: NodeSpecification = {
   nodeType: NodeType.INTEGRATED_API,
@@ -21,7 +23,6 @@ export const integratedApiSpec: NodeSpecification = {
       required: true,
       defaultValue: "NOTION",
       description: "API provider to connect to",
-      // UI remains a select, but options are loaded dynamically in fieldOverrides
       uiConfig: {
         inputType: "select"
       }
@@ -34,67 +35,50 @@ export const integratedApiSpec: NodeSpecification = {
       description: "Operation to perform (provider-specific)",
       uiConfig: {
         inputType: "select",
-        // Options will be dynamically populated based on provider
         placeholder: "Select an operation"
       }
     },
-    {
+    textField({
       name: "resource_id",
-      type: "string",
-      required: false,
       description: "Resource identifier (e.g., page ID, channel ID)",
-      uiConfig: {
-        inputType: "text",
-        placeholder: "Resource ID (if applicable)"
-      }
-    },
-    {
+      placeholder: "Resource ID (if applicable)"
+    }),
+    objectField({
       name: "config",
-      type: "object",
-      required: false,
-      defaultValue: {},
       description: "Provider-specific configuration",
-      uiConfig: {
-        inputType: "code",
-        placeholder: "{ /* provider-specific config */ }"
-      }
-    },
-    {
+      required: false
+    }),
+    validatedNumberField({
       name: "timeout",
-      type: "number",
-      required: false,
-      defaultValue: 30,
       description: "Request timeout in seconds",
-      validation: {
-        min: 1,
-        max: 300
-      },
-      uiConfig: {
-        inputType: "number",
-        placeholder: "30"
-      }
-    },
-    {
+      min: 1,
+      max: 300,
+      defaultValue: 30,
+      placeholder: "30"
+    }),
+    validatedNumberField({
       name: "max_retries",
-      type: "number",
-      required: false,
-      defaultValue: 3,
       description: "Maximum retry attempts",
-      validation: {
-        min: 0,
-        max: 10
-      },
-      uiConfig: {
-        inputType: "number",
-        placeholder: "3"
-      }
-    }
+      min: 0,
+      max: 10,
+      defaultValue: 3,
+      placeholder: "3"
+    })
   ],
 
   handles: {
     inputs: ["default"],
     outputs: ["default", "error"]
   },
+
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "object",
+      required: false,
+      description: "Input data for API request configuration (resource IDs, parameters, request body)"
+    }
+  ],
 
   outputs: {
     result: {
@@ -113,5 +97,12 @@ export const integratedApiSpec: NodeSpecification = {
     maxRetries: 3
   },
 
-  primaryDisplayField: "provider"
+  primaryDisplayField: "provider",
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.integrated_api",
+    className: "IntegratedApiHandler",
+    mixins: ["LoggingMixin", "ValidationMixin", "ConfigurationMixin"],
+    serviceKeys: ["HTTP_CLIENT", "STATE_STORE"]
+  }
 };

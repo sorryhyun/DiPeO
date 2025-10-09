@@ -12,44 +12,28 @@ from pathlib import Path
 
 
 def setup_generated_directory(inputs=None):
-    """
-    Initialize the generated directory with base configuration files and UI components.
+    """Initialize the generated directory with base configuration files and UI components."""
 
-    This function:
-    1. Creates the generated directory if it doesn't exist
-    2. Copies all base configuration files from base_configs/
-    3. Copies all UI component files from base_configs/ui/
-    4. Creates necessary subdirectories (src/, etc.)
-    5. Installs dependencies with pnpm
-    6. Returns status for the diagram flow
-    """
-
-    # Get base directory from environment or use current file's location
     dipeo_base = os.environ.get("DIPEO_BASE_DIR")
     if dipeo_base:
         project_dir = Path(dipeo_base) / "projects" / "frontend_auto"
     else:
-        # Fallback to relative path from script location
         project_dir = Path(__file__).parent
 
     base_configs_dir = project_dir / "base_configs"
     generated_dir = project_dir / "generated"
 
-    # Check if base_configs directory exists
     if not base_configs_dir.exists():
         print(f"Error: Base configs directory not found at {base_configs_dir}")
         return {"success": False, "error": "Base configs directory not found"}
 
-    # Create generated directory if it doesn't exist
     generated_dir.mkdir(parents=True, exist_ok=True)
     print(f"✓ Ensured generated directory exists at {generated_dir}")
 
-    # Create src directory
     src_dir = generated_dir / "src"
     src_dir.mkdir(parents=True, exist_ok=True)
     print(f"✓ Created src directory at {src_dir}")
 
-    # List of config files to copy
     config_files = [
         "package.json",
         "tsconfig.json",
@@ -75,7 +59,6 @@ def setup_generated_directory(inputs=None):
         else:
             print(f"⚠ Warning: {config_file} not found in base_configs/")
 
-    # Create additional directories that might be needed
     additional_dirs = [
         "src/core",
         "src/app",
@@ -102,7 +85,6 @@ def setup_generated_directory(inputs=None):
 
     print("✓ Created all necessary subdirectories")
 
-    # Create a basic styles/tailwind.css file if it doesn't exist
     tailwind_css = generated_dir / "src" / "styles" / "tailwind.css"
     if not tailwind_css.exists():
         tailwind_css.write_text("""@tailwind base;
@@ -171,7 +153,6 @@ def setup_generated_directory(inputs=None):
         f"\n✅ Setup complete! Copied {copied_count} config files and created directory structure"
     )
 
-    # Install dependencies using pnpm
     print("\n📦 Installing dependencies with pnpm...")
     try:
         result = subprocess.run(
@@ -179,7 +160,7 @@ def setup_generated_directory(inputs=None):
             cwd=generated_dir,
             capture_output=True,
             text=True,
-            timeout=120  # 2 minute timeout
+            timeout=120
         )
         if result.returncode == 0:
             print("✓ Dependencies installed successfully")
@@ -192,14 +173,12 @@ def setup_generated_directory(inputs=None):
     except Exception as e:
         print(f"⚠ Warning: Failed to install dependencies: {e}")
 
-    # Copy UI components from base_configs/ui/ if they exist
     ui_source_dir = base_configs_dir / "ui"
     ui_components_dir = generated_dir / "src" / "components" / "ui"
     ui_components_dir.mkdir(parents=True, exist_ok=True)
 
     ui_copied = 0
     if ui_source_dir.exists():
-        # Copy all UI component files
         for ui_file in ui_source_dir.glob("*.tsx"):
             shutil.copy2(ui_file, ui_components_dir / ui_file.name)
             ui_copied += 1
@@ -210,17 +189,14 @@ def setup_generated_directory(inputs=None):
     else:
         print("⚠ No UI components found in base_configs/ui/, skipping")
 
-    # Create lib/utils.ts if it doesn't exist in base_configs
     lib_source_dir = base_configs_dir / "lib"
     lib_dir = generated_dir / "src" / "lib"
     lib_dir.mkdir(parents=True, exist_ok=True)
 
     if lib_source_dir.exists() and (lib_source_dir / "utils.ts").exists():
-        # Copy utils.ts from base_configs if it exists
         shutil.copy2(lib_source_dir / "utils.ts", lib_dir / "utils.ts")
         print("✓ Copied lib/utils.ts from base_configs")
     else:
-        # Create default utils.ts if not in base_configs
         utils_file = lib_dir / "utils.ts"
         utils_file.write_text("""import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
@@ -231,7 +207,6 @@ export function cn(...inputs: ClassValue[]) {
 """)
         print("✓ Created lib/utils.ts with cn helper")
 
-    # Create components.json config for shadcn-style components
     components_json = generated_dir / "components.json"
     components_json.write_text(json.dumps({
         "$schema": "https://ui.shadcn.com/schema.json",
@@ -252,7 +227,6 @@ export function cn(...inputs: ClassValue[]) {
     }, indent=2))
     print("✓ Created components.json for UI library configuration")
 
-    # Return success status for diagram flow
     return {
         "success": True,
         "copied_files": copied_count,

@@ -1,6 +1,9 @@
 
 import { NodeType } from '../core/enums/node-types.js';
+import { TemplateEngine } from '../core/enums/node-specific.js';
 import { NodeSpecification } from '../node-specification.js';
+import { filePathField, contentField, objectField, textField } from '../core/field-presets.js';
+import { validatedEnumField } from '../core/validation-utils.js';
 
 export const templateJobSpec: NodeSpecification = {
   nodeType: NodeType.TEMPLATE_JOB,
@@ -11,80 +14,55 @@ export const templateJobSpec: NodeSpecification = {
   description: "Process templates with data",
 
   fields: [
-    {
+    filePathField({
       name: "template_path",
-      type: "string",
-      required: false,
-      description: "Path to template file",
-      uiConfig: {
-        inputType: "text",
-        placeholder: "/path/to/file"
-      }
-    },
-    {
+      description: "Path to template file"
+    }),
+    contentField({
       name: "template_content",
-      type: "string",
-      required: false,
       description: "Inline template content",
-      uiConfig: {
-        inputType: "textarea",
-        placeholder: "Enter template content...",
-        rows: 10,
-        adjustable: true
-      }
-    },
-    {
+      placeholder: "Enter template content...",
+      rows: 10
+    }),
+    filePathField({
       name: "output_path",
-      type: "string",
-      required: false,
-      description: "Output file path",
-      uiConfig: {
-        inputType: "text",
-        placeholder: "/path/to/file"
-      }
-    },
-    {
+      description: "Output file path"
+    }),
+    objectField({
       name: "variables",
-      type: "object",
-      required: false,
       description: "Variables configuration",
-      uiConfig: {
-        inputType: "code",
-        collapsible: true
-      }
-    },
-    {
+      required: false,
+      collapsible: true
+    }),
+    validatedEnumField({
       name: "engine",
-      type: "enum",
-      required: false,
-      defaultValue: "jinja2",
       description: "Template engine to use",
-      validation: {
-        allowedValues: ["internal", "jinja2"]
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: "internal", label: "Internal" },
-          { value: "jinja2", label: "Jinja2" }
-        ]
-      }
-    },
-    {
+      options: [
+        { value: TemplateEngine.INTERNAL, label: "Internal" },
+        { value: TemplateEngine.JINJA2, label: "Jinja2" }
+      ],
+      defaultValue: TemplateEngine.JINJA2,
+      required: false
+    }),
+    textField({
       name: "preprocessor",
-      type: "string",
-      required: false,
-      description: "Preprocessor function to apply before templating",
-      uiConfig: {
-        inputType: "text"
-      }
-    }
+      description: "Preprocessor function to apply before templating"
+    })
   ],
 
   handles: {
     inputs: ["default"],
     outputs: ["default"]
   },
+
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "object",
+      required: false,
+      description: "Template variables and data for template processing"
+    }
+  ],
 
   outputs: {
     result: {
@@ -99,5 +77,12 @@ export const templateJobSpec: NodeSpecification = {
     maxRetries: 3
   },
 
-  primaryDisplayField: "engine"
+  primaryDisplayField: "engine",
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.template_job",
+    className: "TemplateJobHandler",
+    mixins: ["LoggingMixin", "ValidationMixin", "ConfigurationMixin"],
+    serviceKeys: ["FILE_SYSTEM", "STATE_STORE"]
+  }
 };

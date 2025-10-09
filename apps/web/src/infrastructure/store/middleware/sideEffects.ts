@@ -124,24 +124,25 @@ export const sideEffectsMiddleware: SideEffectsMiddleware = (config) => (set, ge
   let currentPayload: unknown = null;
 
   // Wrap set function to intercept actions
-  const wrappedSet = (partial: any, replace?: any, action?: any) => {
+  const wrappedSet = ((...args: Parameters<typeof set>) => {
+    const [partial, replace, action] = args;
+
     // Extract action info if available
     if (typeof action === 'object' && action && 'type' in action) {
-      currentAction = action.type as string;
-      currentPayload = 'payload' in action ? action.payload : partial;
+      currentAction = (action as { type: string }).type;
+      // Check if payload exists before accessing it
+      if ('payload' in action) {
+        currentPayload = (action as Record<string, unknown>).payload;
+      } else {
+        currentPayload = partial;
+      }
     } else if (typeof action === 'string') {
       currentAction = action;
       currentPayload = partial;
     }
 
     // Call original set with proper arguments
-    if (replace === undefined) {
-      (set as any)(partial);
-    } else if (action === undefined) {
-      (set as any)(partial, replace);
-    } else {
-      (set as any)(partial, replace, action);
-    }
+    (set as (...args: unknown[]) => void)(...args);
 
     // Execute side effects after state update
     if (currentAction) {
@@ -166,9 +167,9 @@ export const sideEffectsMiddleware: SideEffectsMiddleware = (config) => (set, ge
     // Reset action tracking
     currentAction = null;
     currentPayload = null;
-  };
+  }) as typeof set;
 
-  return config(wrappedSet as any, get, api);
+  return config(wrappedSet, get, api);
 };
 
 // ===== Side Effect Hooks =====

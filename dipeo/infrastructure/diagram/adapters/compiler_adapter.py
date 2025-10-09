@@ -5,10 +5,9 @@ to implement the domain DiagramCompiler port.
 """
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from typing import TYPE_CHECKING
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.diagram.ports import DiagramCompiler
 
 if TYPE_CHECKING:
@@ -16,6 +15,7 @@ if TYPE_CHECKING:
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 
 logger = get_module_logger(__name__)
+
 
 class StandardCompilerAdapter(DiagramCompiler):
     """Adapter that wraps the existing StandardCompiler implementation.
@@ -40,6 +40,7 @@ class StandardCompilerAdapter(DiagramCompiler):
 
         result = self._compiler.compile(domain_diagram)
         return result
+
 
 class CachingCompilerAdapter(DiagramCompiler):
     """Decorator adapter that adds caching to any DiagramCompiler.
@@ -90,6 +91,7 @@ class CachingCompilerAdapter(DiagramCompiler):
             del self._cache[oldest_key]
 
         return result
+
 
 class ValidatingCompilerAdapter(DiagramCompiler):
     """Decorator adapter that adds validation before compilation.

@@ -12,7 +12,6 @@ from .base import BaseCodeExecutor
 
 
 class PythonExecutor(BaseCodeExecutor):
-    """Executor for Python code."""
 
     async def execute_file(
         self, file_path: Path, inputs: dict[str, Any], timeout: int, function_name: str = "main"

@@ -1,14 +1,14 @@
 """Text format handling for structured output in PersonJob nodes."""
 
-import logging
-
-from dipeo.config.base_logger import get_module_logger
 import os
 from typing import Any
 
 from pydantic import BaseModel
 
+from dipeo.config.base_logger import get_module_logger
+
 logger = get_module_logger(__name__)
+
 
 class TextFormatHandler:
     """Handles text format configuration for structured outputs."""

@@ -30,11 +30,11 @@ class ConversionMetrics:
     connections_created: int = 0
     warnings: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
 
     @property
-    def duration_seconds(self) -> Optional[float]:
+    def duration_seconds(self) -> float | None:
         """Calculate the duration of conversion in seconds."""
         if self.start_time and self.end_time:
             return (self.end_time - self.start_time).total_seconds()
@@ -60,8 +60,8 @@ class ConversionContext:
     status: ConversionStatus = ConversionStatus.PENDING
     metrics: ConversionMetrics = field(default_factory=ConversionMetrics)
     metadata: dict[str, Any] = field(default_factory=dict)
-    current_node_id: Optional[str] = None
-    current_connection_id: Optional[str] = None
+    current_node_id: str | None = None
+    current_connection_id: str | None = None
 
     def start(self) -> None:
         """Mark the conversion as started."""
@@ -94,7 +94,7 @@ class ConversionReport:
     session_id: str
     conversion_id: str
     status: ConversionStatus
-    diagram: Optional[dict[str, Any]]
+    diagram: dict[str, Any] | None
     metrics: ConversionMetrics
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -135,7 +135,7 @@ class BaseConverter(ABC):
     def convert(
         self,
         preprocessed_data: PreprocessedData,
-        context: Optional[ConversionContext] = None,
+        context: ConversionContext | None = None,
     ) -> ConversionReport:
         """
         Convert preprocessed data into a diagram.
@@ -180,7 +180,7 @@ class BaseConverter(ABC):
         )
 
     def process(
-        self, preprocessed_data: PreprocessedData, config: Optional[Any] = None
+        self, preprocessed_data: PreprocessedData, config: Any | None = None
     ) -> tuple[dict, ConversionReport]:
         """
         Standard interface: process preprocessed data and return diagram with report.

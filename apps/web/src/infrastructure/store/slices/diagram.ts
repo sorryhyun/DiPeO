@@ -7,9 +7,8 @@ import {
   ValidationService,
   DiagramOperations
 } from '@/infrastructure/services';
-// import { recordHistory } from '@/infrastructure/store/helpers/entityHelpers';
-import { NodeType, Vec2, DiagramFormat, DomainDiagram } from '@dipeo/models';
-import type { UnifiedStore } from '../types';
+import { NodeType, Vec2, DiagramFormat, DomainDiagram, DiagramMetadata } from '@dipeo/models';
+import type { UnifiedStore, SetState, GetState, StoreApiType } from '../types';
 
 export interface DiagramSlice {
   // Core data structures
@@ -72,9 +71,9 @@ const afterChange = (state: UnifiedStore) => {
 };
 
 export const createDiagramSlice = (
-  set: (fn: (state: UnifiedStore) => void) => void,
-  get: () => UnifiedStore,
-  _api: any
+  set: SetState,
+  get: GetState,
+  _api: StoreApiType
 ): DiagramSlice => ({
   // Initialize data structures
   nodes: new Map(),
@@ -95,18 +94,16 @@ export const createDiagramSlice = (
       // Fall back to creating without validation for backward compatibility
       const node = NodeFactory.createNode(type, position, initialData);
       set(state => {
-        // Use any to bypass TypeScript's deep instantiation issue with Immer
-        (state.nodes as any).set(Converters.toNodeId(node.id), node);
-        afterChange(state as any);
+        state.nodes.set(Converters.toNodeId(node.id), node);
+        afterChange(state);
       });
       return Converters.toNodeId(node.id);
     }
 
     const node = result.data;
     set(state => {
-      // Use any to bypass TypeScript's deep instantiation issue with Immer
-      (state.nodes as any).set(Converters.toNodeId(node.id), node);
-      afterChange(state as any);
+      state.nodes.set(Converters.toNodeId(node.id), node);
+      afterChange(state);
     });
     return Converters.toNodeId(node.id);
   },
@@ -116,8 +113,8 @@ export const createDiagramSlice = (
       const node = state.nodes.get(id);
       if (node) {
         const updatedNode = { ...node, ...updates };
-        (state.nodes as any).set(id, updatedNode);
-        afterChange(state as any);
+        state.nodes.set(id, updatedNode);
+        afterChange(state);
       }
     });
   },
@@ -136,7 +133,7 @@ export const createDiagramSlice = (
 
   deleteNode: (id) => {
     set(state => {
-      const deleted = (state.nodes as any).delete(id);
+      const deleted = state.nodes.delete(id);
       if (deleted) {
         // Remove connected arrows
         const arrowsToDelete = Array.from(state.arrows.entries())
@@ -147,7 +144,7 @@ export const createDiagramSlice = (
           })
           .map(([arrowId]) => arrowId);
 
-        arrowsToDelete.forEach(arrowId => (state.arrows as any).delete(arrowId));
+        arrowsToDelete.forEach(arrowId => state.arrows.delete(arrowId));
 
         // Clear selection if deleted
         if (state.selectedId === id) {
@@ -155,7 +152,7 @@ export const createDiagramSlice = (
           state.selectedType = null;
         }
 
-        afterChange(state as any);
+        afterChange(state);
       }
     });
 
@@ -188,7 +185,7 @@ export const createDiagramSlice = (
 
     // Add optional fields only if they have actual values
     if (content_type !== undefined && content_type !== null) {
-      (arrow as any).content_type = content_type;
+      (arrow as { content_type?: string }).content_type = content_type;
     }
     if (label !== undefined && label !== null) {
       arrow.label = label;
@@ -218,8 +215,8 @@ export const createDiagramSlice = (
         throw new Error(`Target node ${targetNodeId} not found`);
       }
 
-      (state.arrows as any).set(Converters.toArrowId(arrow.id), arrow);
-      afterChange(state as any);
+      state.arrows.set(Converters.toArrowId(arrow.id), arrow);
+      afterChange(state);
     });
 
     return Converters.toArrowId(arrow.id);
@@ -234,17 +231,17 @@ export const createDiagramSlice = (
         if (updates.data && arrow.data) {
           updatedArrow.data = { ...arrow.data, ...updates.data };
         }
-        (state.arrows as any).set(id, updatedArrow);
-        afterChange(state as any);
+        state.arrows.set(id, updatedArrow);
+        afterChange(state);
       }
     });
   },
 
   deleteArrow: (id) => {
     set(state => {
-      const deleted = (state.arrows as any).delete(id);
+      const deleted = state.arrows.delete(id);
       if (deleted) {
-        afterChange(state as any);
+        afterChange(state);
       }
     });
   },
@@ -258,13 +255,13 @@ export const createDiagramSlice = (
       updates.forEach(({ id, updates: nodeUpdates }) => {
         const node = state.nodes.get(id);
         if (node) {
-          (state.nodes as any).set(id, { ...node, ...nodeUpdates });
+          state.nodes.set(id, { ...node, ...nodeUpdates });
           hasChanges = true;
         }
       });
 
       if (hasChanges) {
-        afterChange(state as any);
+        afterChange(state);
       }
     });
   },
@@ -273,7 +270,7 @@ export const createDiagramSlice = (
     set(state => {
       let hasChanges = false;
       ids.forEach(id => {
-        if ((state.nodes as any).delete(id)) {
+        if (state.nodes.delete(id)) {
           hasChanges = true;
 
           // Remove connected arrows
@@ -285,12 +282,12 @@ export const createDiagramSlice = (
             })
             .map(([arrowId]) => arrowId);
 
-          arrowsToDelete.forEach(arrowId => (state.arrows as any).delete(arrowId));
+          arrowsToDelete.forEach(arrowId => state.arrows.delete(arrowId));
         }
       });
 
       if (hasChanges) {
-        afterChange(state as any);
+        afterChange(state);
       }
     });
 
@@ -329,8 +326,8 @@ export const createDiagramSlice = (
 
   clearDiagram: () => {
     set(state => {
-      (state.nodes as any).clear();
-      (state.arrows as any).clear();
+      state.nodes.clear();
+      state.arrows.clear();
       state.diagramName = 'Untitled';
       state.diagramDescription = '';
       state.diagramId = null;
@@ -354,7 +351,7 @@ export const createDiagramSlice = (
       // Update arrays but don't increment version or record history
       state.nodesArray = Array.from(state.nodes.values());
       state.arrowsArray = Array.from(state.arrows.values());
-      state.handlesArray = Array.from((state.handles as any).values());
+      state.handlesArray = Array.from(state.handles.values());
     });
   },
 
@@ -364,7 +361,7 @@ export const createDiagramSlice = (
       state.nodesArray = Array.from(state.nodes.values());
       state.arrowsArray = Array.from(state.arrows.values());
       state.personsArray = Array.from(state.persons.values());
-      state.handlesArray = Array.from((state.handles as any).values());
+      state.handlesArray = Array.from(state.handles.values());
       // Keep dataVersion for backward compatibility but it's not critical
       state.dataVersion += 1;
     });
@@ -441,17 +438,25 @@ export const createDiagramSlice = (
       }
 
       const diagram = result.diagram;
-      const metadata = diagram.metadata || {} as any;
+      const metadata = diagram.metadata as DiagramMetadata | null | undefined;
 
       // Clear current diagram
       get().clearDiagram();
 
-      // Set metadata
+      // Set metadata with proper type guards
       set(state => {
-        if (metadata.name) state.diagramName = metadata.name;
-        if (metadata.description) state.diagramDescription = metadata.description;
-        if (metadata.id) state.diagramId = metadata.id;
-        if (metadata.format) state.diagramFormat = metadata.format;
+        if (metadata?.name && typeof metadata.name === 'string') {
+          state.diagramName = metadata.name;
+        }
+        if (metadata?.description && typeof metadata.description === 'string') {
+          state.diagramDescription = metadata.description;
+        }
+        if (metadata?.id && typeof metadata.id === 'string') {
+          state.diagramId = metadata.id;
+        }
+        if (metadata?.format && typeof metadata.format === 'string') {
+          state.diagramFormat = metadata.format as DiagramFormat;
+        }
       });
 
       // Restore nodes and arrows

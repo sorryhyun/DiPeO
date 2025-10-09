@@ -1,7 +1,5 @@
 # Comprehensive DiPeO Light Diagram Guide
 
-> **Last Updated**: January 2025
-
 ## Table of Contents
 
 1. [Introduction](#introduction)

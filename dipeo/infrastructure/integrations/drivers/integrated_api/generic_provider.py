@@ -5,14 +5,13 @@ import contextlib
 import importlib.util
 import json
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from pathlib import Path
 from typing import Any
 
 import jsonpointer
 from jinja2 import Environment, Template, meta
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.base.exceptions import ServiceError
 from dipeo.domain.integrations.ports import APIKeyPort
 from dipeo.infrastructure.integrations.adapters.api_service import APIService
@@ -31,6 +30,7 @@ from dipeo.infrastructure.integrations.drivers.integrated_api.providers.base_pro
 from dipeo.infrastructure.integrations.drivers.integrated_api.rate_limiter import RateLimiter
 
 logger = get_module_logger(__name__)
+
 
 class GenericHTTPProvider(BaseApiProvider):
     """A zero-code API provider driven by manifest configuration.

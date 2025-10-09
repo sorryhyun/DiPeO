@@ -1,13 +1,13 @@
 """Prompt file resolution utility for PersonJob handler."""
 
-import logging
-
-from dipeo.config.base_logger import get_module_logger
 import os
 from pathlib import Path
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
+
 logger = get_module_logger(__name__)
+
 
 class PromptFileResolver:
     """Resolves prompt file paths and loads prompt content."""
@@ -47,7 +47,8 @@ class PromptFileResolver:
         """Load prompt content from file."""
         if not self.filesystem:
             logger.error(
-                f"[PromptResolver] No filesystem adapter available! Cannot load prompt file: {prompt_filename}"
+                f"[PromptResolver] No filesystem adapter available! "
+                f"Cannot load prompt file: {prompt_filename}"
             )
             return None
         if not prompt_filename:

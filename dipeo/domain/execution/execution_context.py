@@ -27,14 +27,10 @@ class ExecutionContext(Protocol):
     state: "StateTracker"
     tokens: "TokenManager"
 
-    # ========== Epoch Management ==========
-
     @abstractmethod
     def current_epoch(self) -> int:
         """Get the current execution epoch."""
         ...
-
-    # ========== Variables (For Expressions and Loop Indices) ==========
 
     @abstractmethod
     def get_variable(self, name: str) -> Any:
@@ -50,8 +46,6 @@ class ExecutionContext(Protocol):
     def get_variables(self) -> dict[str, Any]:
         """Get all variables (for expression evaluation)."""
         ...
-
-    # ========== Token Operations (Phase 5) ==========
 
     @abstractmethod
     def consume_inbound(self, node_id: NodeID) -> dict[str, "Envelope"]:

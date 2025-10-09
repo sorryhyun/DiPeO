@@ -3,8 +3,10 @@
  */
 
 import { NodeType } from '../core/enums/node-types.js';
-import { SupportedLanguage } from '../core/enums/node-specific.js';
+import { SupportedLanguage, TypeScriptExtractPattern, TypeScriptParseMode, TypeScriptOutputFormat } from '../core/enums/node-specific.js';
 import { NodeSpecification } from '../node-specification.js';
+import { contentField, booleanField, textField } from '../core/field-presets.js';
+import { validatedEnumField } from '../core/validation-utils.js';
 
 export const typescriptAstSpec: NodeSpecification = {
   nodeType: NodeType.TYPESCRIPT_AST,
@@ -15,121 +17,87 @@ export const typescriptAstSpec: NodeSpecification = {
   description: "Parses TypeScript source code and extracts AST, interfaces, types, and enums",
 
   fields: [
-    {
+    contentField({
       name: "source",
-      type: "string",
-      required: false,
       description: "TypeScript source code to parse",
-      uiConfig: {
-        inputType: "code",
-        language: SupportedLanguage.TYPESCRIPT
-      }
-    },
+      inputType: "code",
+      language: SupportedLanguage.TYPESCRIPT
+    }),
     {
-      name: "extractPatterns",
+      name: "extract_patterns",
       type: "array",
       required: false,
-      defaultValue: ["interface", "type", "enum"],
+      defaultValue: [TypeScriptExtractPattern.INTERFACE, TypeScriptExtractPattern.TYPE, TypeScriptExtractPattern.ENUM],
       description: "Patterns to extract from the AST",
       validation: {
-        itemType: "string",
+        itemType: "enum",
         allowedValues: ["interface", "type", "enum", "class", "function", "const", "export"]
       },
       uiConfig: {
-        inputType: "code",
+        inputType: "code"
       }
     },
-    {
-      name: "includeJSDoc",
-      type: "boolean",
-      required: false,
-      defaultValue: false,
+    booleanField({
+      name: "include_jsdoc",
       description: "Include JSDoc comments in the extracted data",
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    },
-    {
-      name: "parseMode",
-      type: "enum",
-      required: false,
-      defaultValue: "module",
+      defaultValue: false
+    }),
+    validatedEnumField({
+      name: "parse_mode",
       description: "TypeScript parsing mode",
-      validation: {
-        allowedValues: ["module", "script"]
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: "module", label: "Module" },
-          { value: "script", label: "Script" }
-        ]
-      }
-    },
-    {
-      name: "transformEnums",
-      type: "boolean",
-      required: false,
-      defaultValue: false,
+      options: [
+        { value: TypeScriptParseMode.MODULE, label: "Module" },
+        { value: TypeScriptParseMode.SCRIPT, label: "Script" }
+      ],
+      defaultValue: TypeScriptParseMode.MODULE,
+      required: false
+    }),
+    booleanField({
+      name: "transform_enums",
       description: "Transform enum definitions to a simpler format",
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    },
-    {
-      name: "flattenOutput",
-      type: "boolean",
-      required: false,
-      defaultValue: false,
+      defaultValue: false
+    }),
+    booleanField({
+      name: "flatten_output",
       description: "Flatten the output structure for easier consumption",
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    },
-    {
-      name: "outputFormat",
-      type: "enum",
-      required: false,
-      defaultValue: "standard",
+      defaultValue: false
+    }),
+    validatedEnumField({
+      name: "output_format",
       description: "Output format for the parsed data",
-      validation: {
-        allowedValues: ["standard", "for_codegen", "for_analysis"]
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: "standard", label: "Standard" },
-          { value: "for_codegen", label: "For Code Generation" },
-          { value: "for_analysis", label: "For Analysis" }
-        ]
-      }
-    },
-    {
+      options: [
+        { value: TypeScriptOutputFormat.STANDARD, label: "Standard" },
+        { value: TypeScriptOutputFormat.FOR_CODEGEN, label: "For Code Generation" },
+        { value: TypeScriptOutputFormat.FOR_ANALYSIS, label: "For Analysis" }
+      ],
+      defaultValue: TypeScriptOutputFormat.STANDARD,
+      required: false
+    }),
+    booleanField({
       name: "batch",
-      type: "boolean",
-      required: false,
-      defaultValue: false,
       description: "Enable batch processing mode",
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    },
-    {
-      name: "batchInputKey",
-      type: "string",
-      required: false,
-      defaultValue: "sources",
+      defaultValue: false
+    }),
+    textField({
+      name: "batch_input_key",
       description: "Key to extract batch items from input",
-      uiConfig: {
-        inputType: "text"
-      }
-    }
+      defaultValue: "sources"
+    })
   ],
 
   handles: {
     inputs: ["default"],
     outputs: ["results", "error"]
   },
+
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "object",
+      required: false,
+      description: "TypeScript source code or configuration (source code as string, or object with source and options)"
+    }
+  ],
 
   outputs: {
     ast: {
@@ -166,7 +134,7 @@ export const typescriptAstSpec: NodeSpecification = {
       description: "Extract interface from TypeScript code",
       configuration: {
         source: "interface User {\n  id: string;\n  name: string;\n  age?: number;\n}",
-        extractPatterns: ["interface"]
+        extract_patterns: [TypeScriptExtractPattern.INTERFACE]
       }
     },
     {
@@ -174,11 +142,18 @@ export const typescriptAstSpec: NodeSpecification = {
       description: "Extract interfaces, types, and enums",
       configuration: {
         source: "interface User { id: string; }\ntype Status = 'active' | 'inactive';\nenum Role { Admin, User }",
-        extractPatterns: ["interface", "type", "enum"],
-        includeJSDoc: true
+        extract_patterns: [TypeScriptExtractPattern.INTERFACE, TypeScriptExtractPattern.TYPE, TypeScriptExtractPattern.ENUM],
+        include_jsdoc: true
       }
     }
   ],
 
-  primaryDisplayField: "parseMode"
+  primaryDisplayField: "parse_mode",
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.typescript_ast",
+    className: "TypescriptAstHandler",
+    mixins: ["LoggingMixin", "ValidationMixin", "ConfigurationMixin"],
+    serviceKeys: ["FILE_SYSTEM", "STATE_STORE"]
+  }
 };

@@ -2,18 +2,18 @@
 
 import logging
 
-from dipeo.config.base_logger import get_module_logger
-
 import strawberry
 
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import API_KEY_SERVICE, LLM_SERVICE
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import DomainApiKey
 from dipeo.diagram_generated.domain_models import ApiKeyID
 from dipeo.diagram_generated.graphql.inputs import CreateApiKeyInput
 from dipeo.diagram_generated.graphql.results import ApiKeyResult, DeleteResult, TestResult
 
 logger = get_module_logger(__name__)
+
 
 # Standalone resolver functions for use with OperationExecutor
 async def create_api_key(registry: ServiceRegistry, input: CreateApiKeyInput) -> ApiKeyResult:
@@ -45,6 +45,7 @@ async def create_api_key(registry: ServiceRegistry, input: CreateApiKeyInput) ->
         logger.error(f"Failed to create API key: {e}")
         return ApiKeyResult.error_result(error=f"Failed to create API key: {e!s}")
 
+
 async def delete_api_key(registry: ServiceRegistry, api_key_id: strawberry.ID) -> DeleteResult:
     """
     Resolver for DeleteApiKey operation.
@@ -65,6 +66,7 @@ async def delete_api_key(registry: ServiceRegistry, api_key_id: strawberry.ID) -
     except Exception as e:
         logger.error(f"Failed to delete API key {api_key_id}: {e}")
         return DeleteResult.error_result(error=f"Failed to delete API key: {e!s}")
+
 
 async def test_api_key(registry: ServiceRegistry, api_key_id: strawberry.ID) -> TestResult:
     """

@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for code_job.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-03T21:25:09.377268
+Generated at: 2025-10-09T17:34:05.814485
 """
 
 from typing import *
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 from dipeo.domain.diagram.models.executable_diagram import BaseExecutableNode
 from dipeo.diagram_generated.domain_models import NodeID, Vec2
 from dipeo.diagram_generated.enums import NodeType
+
 
 from dipeo.diagram_generated.enums import *
 from dipeo.diagram_generated.integrations import *
@@ -37,13 +38,13 @@ class CodeJobNode(BaseModel):
 
     # Optional node-specific fields
     
-    file_path: Optional[str] = Field(default=None, alias="filePath", description="Path to code file")
+    file_path: Optional[str] = Field(default=None, description="Path to code file")
     
-    code: Optional[str] = Field(default=None, description="Inline code to execute (alternative to filePath)")
+    code: Optional[str] = Field(default=None, description="Inline code to execute (alternative to file_path)")
     
-    function_name: Optional[str] = Field(default=None, alias="functionName", description="Function to execute")
+    function_name: Optional[str] = Field(default=None, description="Function to execute")
     
-    timeout: Optional[int] = Field(default=None, description="Execution timeout in seconds")
+    timeout: Optional[int] = Field(default=None, description="Operation timeout in seconds")
 
     class Config:
         # Make the instance immutable after creation
@@ -69,11 +70,9 @@ class CodeJobNode(BaseModel):
 
         # Add node-specific fields using original names
         data["language"] = self.language
-        # Use original field name for compatibility
-        data["filePath"] = getattr(self, "file_path")
+        data["file_path"] = self.file_path
         data["code"] = self.code
-        # Use original field name for compatibility
-        data["functionName"] = getattr(self, "function_name")
+        data["function_name"] = self.function_name
         data["timeout"] = self.timeout
 
         return data

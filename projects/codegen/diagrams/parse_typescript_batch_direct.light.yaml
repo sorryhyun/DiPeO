@@ -80,11 +80,11 @@ nodes:
     position: {x: 600, y: 200}
     props:
       batch: true
-      batchInputKey: sources
-      includeJSDoc: true
-      parseMode: module
-      outputFormat: for_codegen
-      extractPatterns: ["interface", "type", "enum", "const"]
+      batch_input_key: sources
+      include_jsdoc: true
+      parse_mode: module
+      output_format: for_codegen
+      extract_patterns: ["interface", "type", "enum", "const"]
 
   # Save parsed results to cache files
   - label: Save Cache Files

@@ -138,7 +138,9 @@ strawberry_type_rules:
     - ToolType
 
   # Types that get "Type" suffix but aren't domain types
+  # These are Pydantic domain models that should have Strawberry "Type" equivalents
   type_suffix_types:
+    # Core types
     - Vec2
     - PersonLLMConfig
     - DiagramMetadata
@@ -148,6 +150,81 @@ strawberry_type_rules:
     - ConversationMetadata
     - NodeState
     - NodeMetrics
+    - Bottleneck
+
+    # Session and conversion types
+    - ClaudeCodeSession
+    - SessionEvent
+    - ClaudeCodeMessage
+    - SessionMetadata
+    - ToolUse
+    - ToolResult
+    - ConversationTurn
+    - DiffPatchInput
+    - ClaudeCodeDiagramMetadata
+    - SessionStatistics
+    - SessionConversionOptions
+    - WatchOptions
+
+    # TypeScript AST types
+    - ParseResult
+    - InterfaceInfo
+    - PropertyInfo
+    - TypeAliasInfo
+    - EnumInfo
+    - EnumMember
+    - ClassInfo
+    - MethodInfo
+    - ParameterInfo
+    - FunctionInfo
+    - ConstantInfo
+    - BatchInput
+    - BatchResult
+
+    # CLI and conversation types
+    - CliSession
+    - CliSessionResult
+    - Message
+    - Conversation
+
+    # Execution types
+    - InteractivePromptData
+    - InteractiveResponse
+    - ExecutionUpdate
+    - NodeDefinition
+    - NodeUpdate
+    - InteractivePrompt
+    - ExecutionLogEntry
+    - KeepalivePayload
+
+    # File and tool types
+    - File
+    - FileOperationResult
+    - ToolConfig
+    - WebSearchResult
+    - ImageGenerationResult
+    - ToolOutput
+    - ChatResult
+    - LLMRequestOptions
+
+    # Integration and API types
+    - AuthConfig
+    - RateLimitConfig
+    - RetryPolicy
+    - Operation
+    - OperationSchema
+    - ProviderMetadata
+    - Provider
+    - ProviderStatistics
+    - IntegrationTestResult
+
+    # Query definition types
+    - QueryField
+    - QueryVariable
+    - QuerySpecification
+    - EntityQueryConfig
+    - QueryManifest
+    - RelationshipConfig
 
 # Conversion expression templates for from_pydantic() methods
 conversion_templates:

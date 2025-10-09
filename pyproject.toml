@@ -113,6 +113,7 @@ dependencies = [
     "psutil==7.1.0",
     # Workspace packages (automatically installed as editable by uv)
     "dipeo-server",
+    "notebook>=7.4.7",
 ]
 
 [project.optional-dependencies]

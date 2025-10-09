@@ -9,6 +9,7 @@ from dipeo.diagram_generated import (
     PersonLLMConfig,
 )
 from dipeo.diagram_generated.domain_models import PersonID
+from dipeo.infrastructure.timing.context import atime_phase, time_phase
 
 if TYPE_CHECKING:
     from dipeo.domain.conversation.memory_strategies import IntelligentMemoryStrategy
@@ -73,32 +74,42 @@ class Person:
         Returns:
             Tuple of (ChatResult, incoming_message, response_message)
         """
-        incoming = Message(
-            from_person_id=from_person_id,  # type: ignore[arg-type]
-            to_person_id=self.id,
-            content=prompt,
-            message_type="person_to_person" if from_person_id != "system" else "system_to_person",
-        )
+        trace_id = llm_options.get("trace_id", llm_options.get("execution_id", ""))
+        node_id = llm_options.get("node_id", str(self.id))
 
-        person_messages = [*all_messages, incoming]
+        with time_phase(trace_id, node_id, "direct_execution__message_prep"):
+            incoming = Message(
+                from_person_id=from_person_id,  # type: ignore[arg-type]
+                to_person_id=self.id,
+                content=prompt,
+                message_type="person_to_person"
+                if from_person_id != "system"
+                else "system_to_person",
+            )
 
-        formatted_messages = self._format_messages_for_llm(person_messages)
+            person_messages = [*all_messages, incoming]
 
-        result = await llm_service.complete(
-            messages=formatted_messages,
-            model=self.llm_config.model,
-            api_key_id=self.llm_config.api_key_id,
-            service_name=self.llm_config.service,
-            **llm_options,
-        )
+            formatted_messages = self._format_messages_for_llm(person_messages)
 
-        response_message = Message(
-            from_person_id=self.id,
-            to_person_id=from_person_id,  # type: ignore[arg-type]
-            content=result.text,
-            message_type="person_to_person" if from_person_id != "system" else "person_to_system",
-            token_count=result.llm_usage.total if result.llm_usage else None,
-        )
+        async with atime_phase(trace_id, node_id, "direct_execution__api_call"):
+            result = await llm_service.complete(
+                messages=formatted_messages,
+                model=self.llm_config.model,
+                api_key_id=self.llm_config.api_key_id,
+                service_name=self.llm_config.service,
+                **llm_options,
+            )
+
+        with time_phase(trace_id, node_id, "direct_execution__response_build"):
+            response_message = Message(
+                from_person_id=self.id,
+                to_person_id=from_person_id,  # type: ignore[arg-type]
+                content=result.text,
+                message_type="person_to_person"
+                if from_person_id != "system"
+                else "person_to_system",
+                token_count=result.llm_usage.total if result.llm_usage else None,
+            )
 
         return result, incoming, response_message
 
@@ -149,6 +160,8 @@ class Person:
         ignore_person: str | None = None,
         at_most: int | None = None,
         prompt_preview: str | None = None,
+        execution_id: str | None = None,
+        node_id: str | None = None,
         **llm_options: Any,
     ) -> tuple[ChatResult, Message, Message, list[Message] | None]:
         """Complete prompt with intelligent memory selection.
@@ -165,40 +178,47 @@ class Person:
             ignore_person: Optional comma-separated list of person IDs whose messages to exclude
             at_most: Optional maximum number of messages to select
             prompt_preview: Optional preview of the task for better memory selection
+            execution_id: Optional execution ID for timing and tracing
+            node_id: Optional node ID for per-node timing metrics
             **llm_options: Additional options for the LLM
 
         Returns:
             Tuple of (ChatResult, incoming_message, response_message, selected_messages)
             The selected_messages can be None if no selection criteria was provided
         """
-        selected_messages = None
-        messages_for_completion = all_messages
+        exec_id = execution_id or ""
 
-        if memorize_to and self._memory_strategy:
-            preview = prompt_preview or prompt
+        async with atime_phase(exec_id, str(self.id), "person_complete_with_memory"):
+            selected_messages = None
+            messages_for_completion = all_messages
 
-            selected_messages = await self._memory_strategy.select_memories(
-                candidate_messages=all_messages,
-                prompt_preview=preview,
-                memorize_to=memorize_to,
-                ignore_person=ignore_person,
-                at_most=at_most,
-                person_id=self.id,
+            if memorize_to and self._memory_strategy:
+                preview = prompt_preview or prompt
+
+                selected_messages = await self._memory_strategy.select_memories(
+                    candidate_messages=all_messages,
+                    prompt_preview=preview,
+                    memorize_to=memorize_to,
+                    ignore_person=ignore_person,
+                    at_most=at_most,
+                    person_id=self.id,
+                    llm_service=llm_service,
+                    execution_id=exec_id,
+                    node_id=node_id,
+                )
+
+                if selected_messages is not None:
+                    messages_for_completion = selected_messages
+
+            result, incoming, response = await self.complete(
+                prompt=prompt,
+                all_messages=messages_for_completion,
                 llm_service=llm_service,
+                from_person_id=from_person_id,
+                **llm_options,
             )
 
-            if selected_messages is not None:
-                messages_for_completion = selected_messages
-
-        result, incoming, response = await self.complete(
-            prompt=prompt,
-            all_messages=messages_for_completion,
-            llm_service=llm_service,
-            from_person_id=from_person_id,
-            **llm_options,
-        )
-
-        return result, incoming, response, selected_messages
+            return result, incoming, response, selected_messages
 
     def __repr__(self) -> str:
         memory_info = "with_strategy" if self._memory_strategy else "no_memory"

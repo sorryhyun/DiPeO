@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for typescript_ast.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-03T21:25:09.790396
+Generated at: 2025-10-09T17:34:06.368885
 """
 
 from typing import *
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 from dipeo.domain.diagram.models.executable_diagram import BaseExecutableNode
 from dipeo.diagram_generated.domain_models import NodeID, Vec2
 from dipeo.diagram_generated.enums import NodeType
+
 
 from dipeo.diagram_generated.enums import *
 from dipeo.diagram_generated.integrations import *
@@ -38,21 +39,21 @@ class TypescriptAstNode(BaseModel):
     
     source: Optional[str] = Field(default=None, description="TypeScript source code to parse")
     
-    extract_patterns: Optional[List[Any]] = Field(default_factory=list, alias="extractPatterns", description="Patterns to extract from the AST")
+    extract_patterns: Optional[List[Any]] = Field(default_factory=list, description="Patterns to extract from the AST")
     
-    include_js_doc: bool = Field(default=False, alias="includeJSDoc", description="Include JSDoc comments in the extracted data")
+    include_jsdoc: bool = Field(default=False, description="Include JSDoc comments in the extracted data")
     
-    parse_mode: Literal["module", "script"] = Field(default="module", alias="parseMode", description="TypeScript parsing mode")
+    parse_mode: Literal["module", "script"] = Field(default="module", description="TypeScript parsing mode")
     
-    transform_enums: bool = Field(default=False, alias="transformEnums", description="Transform enum definitions to a simpler format")
+    transform_enums: bool = Field(default=False, description="Transform enum definitions to a simpler format")
     
-    flatten_output: bool = Field(default=False, alias="flattenOutput", description="Flatten the output structure for easier consumption")
+    flatten_output: bool = Field(default=False, description="Flatten the output structure for easier consumption")
     
-    output_format: Literal["standard", "for_codegen", "for_analysis"] = Field(default="standard", alias="outputFormat", description="Output format for the parsed data")
+    output_format: Literal["standard", "for_codegen", "for_analysis"] = Field(default="standard", description="Output format for the parsed data")
     
     batch: bool = Field(default=False, description="Enable batch processing mode")
     
-    batch_input_key: str = Field(default="sources", alias="batchInputKey", description="Key to extract batch items from input")
+    batch_input_key: str = Field(default="sources", description="Key to extract batch items from input")
 
     class Config:
         # Make the instance immutable after creation
@@ -78,21 +79,14 @@ class TypescriptAstNode(BaseModel):
 
         # Add node-specific fields using original names
         data["source"] = self.source
-        # Use original field name for compatibility
-        data["extractPatterns"] = getattr(self, "extract_patterns")
-        # Use original field name for compatibility
-        data["includeJSDoc"] = getattr(self, "include_js_doc")
-        # Use original field name for compatibility
-        data["parseMode"] = getattr(self, "parse_mode")
-        # Use original field name for compatibility
-        data["transformEnums"] = getattr(self, "transform_enums")
-        # Use original field name for compatibility
-        data["flattenOutput"] = getattr(self, "flatten_output")
-        # Use original field name for compatibility
-        data["outputFormat"] = getattr(self, "output_format")
+        data["extract_patterns"] = self.extract_patterns
+        data["include_jsdoc"] = self.include_jsdoc
+        data["parse_mode"] = self.parse_mode
+        data["transform_enums"] = self.transform_enums
+        data["flatten_output"] = self.flatten_output
+        data["output_format"] = self.output_format
         data["batch"] = self.batch
-        # Use original field name for compatibility
-        data["batchInputKey"] = getattr(self, "batch_input_key")
+        data["batch_input_key"] = self.batch_input_key
 
         return data
 

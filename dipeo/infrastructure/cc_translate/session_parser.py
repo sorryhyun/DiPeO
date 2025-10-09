@@ -17,15 +17,15 @@ class SessionEvent:
     uuid: str
     message: dict[str, Any]
     timestamp: datetime
-    parent_uuid: Optional[str] = None
-    tool_name: Optional[str] = None
-    tool_input: Optional[dict[str, Any]] = None
+    parent_uuid: str | None = None
+    tool_name: str | None = None
+    tool_input: dict[str, Any] | None = None
     tool_results: list[dict[str, Any]] = field(default_factory=list)
     # New fields for richer event context
-    role: Optional[str] = None  # Role from message (user/assistant/system)
-    user_type: Optional[str] = None  # Type of user (external/internal)
+    role: str | None = None  # Role from message (user/assistant/system)
+    user_type: str | None = None  # Type of user (external/internal)
     is_meta: bool = False  # Whether this is a meta/system event
-    tool_use_result: Optional[dict[str, Any]] = None  # Full tool result payload
+    tool_use_result: dict[str, Any] | None = None  # Full tool result payload
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> "SessionEvent":
@@ -84,7 +84,7 @@ class ConversationTurn:
     """Represents a user-assistant interaction pair."""
 
     user_event: SessionEvent
-    assistant_event: Optional[SessionEvent] = None
+    assistant_event: SessionEvent | None = None
     tool_events: list[SessionEvent] = field(default_factory=list)
     meta_events: list[SessionEvent] = field(default_factory=list)  # System/meta events
 
@@ -94,8 +94,8 @@ class SessionMetadata:
     """Metadata about a Claude Code session."""
 
     session_id: str
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
     event_count: int = 0
     tool_usage_count: dict[str, int] = field(default_factory=dict)
     file_operations: dict[str, list[str]] = field(default_factory=dict)
@@ -372,7 +372,7 @@ def find_session_files(base_dir: Path, limit: int = 50) -> list[Path]:
     return session_files
 
 
-def extract_session_timestamp(file_path: Path) -> Optional[datetime]:
+def extract_session_timestamp(file_path: Path) -> datetime | None:
     """Extract the first timestamp from a session file for directory naming."""
     if not file_path.exists():
         return None

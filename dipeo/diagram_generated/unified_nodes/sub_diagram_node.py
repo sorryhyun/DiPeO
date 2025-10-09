@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for sub_diagram.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-03T21:25:09.789079
+Generated at: 2025-10-09T17:34:06.367328
 """
 
 from typing import *
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 from dipeo.domain.diagram.models.executable_diagram import BaseExecutableNode
 from dipeo.diagram_generated.domain_models import NodeID, Vec2
 from dipeo.diagram_generated.enums import NodeType
+
 
 from dipeo.diagram_generated.enums import *
 from dipeo.diagram_generated.integrations import *
@@ -50,7 +51,7 @@ class SubDiagramNode(BaseModel):
     
     isolate_conversation: bool = Field(default=False, description="Create isolated conversation context for sub-diagram")
     
-    ignore_if_sub: bool = Field(default=False, alias="ignoreIfSub", description="Skip execution if this diagram is being run as a sub-diagram")
+    ignore_if_sub: bool = Field(default=False, description="Skip execution if this diagram is being run as a sub-diagram")
     
     diagram_format: Optional[DiagramFormat] = Field(default=None, description="Format of the diagram file (yaml, json, or light)")
     
@@ -90,8 +91,7 @@ class SubDiagramNode(BaseModel):
         data["timeout"] = self.timeout
         data["wait_for_completion"] = self.wait_for_completion
         data["isolate_conversation"] = self.isolate_conversation
-        # Use original field name for compatibility
-        data["ignoreIfSub"] = getattr(self, "ignore_if_sub")
+        data["ignore_if_sub"] = self.ignore_if_sub
         data["diagram_format"] = self.diagram_format
         data["batch"] = self.batch
         data["batch_input_key"] = self.batch_input_key

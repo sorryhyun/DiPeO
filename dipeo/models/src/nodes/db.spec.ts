@@ -1,6 +1,9 @@
 
 import { NodeType } from '../core/enums/node-types.js';
+import { DBBlockSubType, DBOperation, DataFormat } from '../core/enums/node-specific.js';
 import { NodeSpecification } from '../node-specification.js';
+import { textField, objectField, booleanField } from '../core/field-presets.js';
+import { validatedEnumField } from '../core/validation-utils.js';
 
 export const dbSpec: NodeSpecification = {
   nodeType: NodeType.DB,
@@ -20,56 +23,39 @@ export const dbSpec: NodeSpecification = {
         inputType: "text"
       }
     },
-    {
+    textField({
       name: "collection",
-      type: "string",
-      required: false,
-      description: "Database collection name",
-      uiConfig: {
-        inputType: "text"
-      }
-    },
-    {
+      description: "Database collection name"
+    }),
+    validatedEnumField({
       name: "sub_type",
-      type: "enum",
-      required: true,
-      defaultValue: "fixed_prompt",
       description: "Database operation type",
-      validation: {
-        allowedValues: ["fixed_prompt", "file", "code", "api_tool"]
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: "fixed_prompt", label: "Fixed Prompt" },
-          { value: "file", label: "File" },
-          { value: "code", label: "Code" },
-          { value: "api_tool", label: "API Tool" }
-        ]
-      }
-    },
-    {
+      options: [
+        { value: DBBlockSubType.FIXED_PROMPT, label: "Fixed Prompt" },
+        { value: DBBlockSubType.FILE, label: "File" },
+        { value: DBBlockSubType.CODE, label: "Code" },
+        { value: DBBlockSubType.API_TOOL, label: "API Tool" }
+      ],
+      defaultValue: DBBlockSubType.FIXED_PROMPT,
+      required: true
+    }),
+    validatedEnumField({
       name: "operation",
-      type: "string",
-      required: true,
-      defaultValue: "",
       description: "Operation configuration",
-      validation: {
-        allowedValues: ["prompt", "read", "write", "append", "update"]
-      },
-      uiConfig: {
-        inputType: "text"
-      }
-    },
-    {
+      options: [
+        { value: DBOperation.PROMPT, label: "Prompt" },
+        { value: DBOperation.READ, label: "Read" },
+        { value: DBOperation.WRITE, label: "Write" },
+        { value: DBOperation.APPEND, label: "Append" },
+        { value: DBOperation.UPDATE, label: "Update" }
+      ],
+      defaultValue: DBOperation.READ,
+      required: true
+    }),
+    textField({
       name: "query",
-      type: "string",
-      required: false,
-      description: "Query configuration",
-      uiConfig: {
-        inputType: "text"
-      }
-    },
+      description: "Query configuration"
+    }),
     {
       name: "keys",
       type: "any",
@@ -90,49 +76,45 @@ export const dbSpec: NodeSpecification = {
         placeholder: "e.g., 1:120 or 5,10:20"
       }
     },
-    {
+    objectField({
       name: "data",
-      type: "object",
-      required: false,
       description: "Data configuration",
-      uiConfig: {
-        inputType: "code",
-        collapsible: true
-      }
-    },
-    {
+      required: false,
+      collapsible: true
+    }),
+    booleanField({
       name: "serialize_json",
-      type: "boolean",
-      required: false,
       description: "Serialize structured data to JSON string (for backward compatibility)",
-      defaultValue: false,
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    },
-    {
+      defaultValue: false
+    }),
+    validatedEnumField({
       name: "format",
-      type: "string",
-      required: false,
       description: "Data format (json, yaml, csv, text, etc.)",
-      defaultValue: "json",
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: "json", label: "JSON" },
-          { value: "yaml", label: "YAML" },
-          { value: "csv", label: "CSV" },
-          { value: "text", label: "Text" },
-          { value: "xml", label: "XML" }
-        ]
-      }
-    }
+      options: [
+        { value: DataFormat.JSON, label: "JSON" },
+        { value: DataFormat.YAML, label: "YAML" },
+        { value: DataFormat.CSV, label: "CSV" },
+        { value: DataFormat.TEXT, label: "Text" },
+        { value: DataFormat.XML, label: "XML" }
+      ],
+      defaultValue: DataFormat.JSON,
+      required: false
+    })
   ],
 
   handles: {
     inputs: ["default"],
     outputs: ["default"]
   },
+
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "object",
+      required: false,
+      description: "Input data for database operations (query parameters, data to write/update)"
+    }
+  ],
 
   outputs: {
     result: {
@@ -147,5 +129,12 @@ export const dbSpec: NodeSpecification = {
     maxRetries: 3
   },
 
-  primaryDisplayField: "operation"
+  primaryDisplayField: "operation",
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.db",
+    className: "DbHandler",
+    mixins: ["LoggingMixin", "ValidationMixin", "ConfigurationMixin"],
+    serviceKeys: ["DB_CLIENT", "FILE_SYSTEM", "STATE_STORE"]
+  }
 };

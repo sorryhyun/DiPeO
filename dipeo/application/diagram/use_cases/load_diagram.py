@@ -1,15 +1,15 @@
 """Use case for loading diagrams from various sources."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from pathlib import Path
 from typing import Any, ClassVar
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import DomainDiagram
 from dipeo.domain.diagram.segregated_ports import DiagramFilePort, DiagramFormatPort
 
 logger = get_module_logger(__name__)
+
 
 class LoadDiagramUseCase:
     """Centralized use case for loading diagrams from various sources.

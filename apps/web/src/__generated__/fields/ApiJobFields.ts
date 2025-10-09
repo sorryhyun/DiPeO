@@ -56,6 +56,15 @@ export const apiJobFields: UnifiedFieldDefinition[] = [
     description: '"Request timeout in seconds"',
     min: 0,
     max: 3600,
+    validate: (value: unknown) => {
+      if (typeof value === 'number' && value < 0) {
+        return { isValid: false, error: 'Value must be at least 0' };
+      }
+      if (typeof value === 'number' && value > 3600) {
+        return { isValid: false, error: 'Value must be at most 3600' };
+      }
+      return { isValid: true };
+    },
   },
   {
     name: 'auth_type',

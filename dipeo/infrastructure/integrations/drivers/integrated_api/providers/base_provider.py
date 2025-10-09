@@ -1,16 +1,16 @@
 """Base provider class for integrated API providers."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from abc import abstractmethod
 from typing import Any
 
+from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.base import ServiceError
 from dipeo.domain.base.mixins import InitializationMixin, LoggingMixin
 from dipeo.domain.integrations.ports import ApiProvider as ApiProviderPort
 
 logger = get_module_logger(__name__)
+
 
 class BaseApiProvider(LoggingMixin, InitializationMixin, ApiProviderPort):
     """Base class for API provider implementations."""

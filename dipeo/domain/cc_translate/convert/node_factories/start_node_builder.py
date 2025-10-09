@@ -27,8 +27,8 @@ class StartNodeBuilder(BaseNodeBuilder):
         self,
         tool_name: str,
         tool_input: dict[str, Any],
-        tool_result: Optional[dict[str, Any]] = None,
-    ) -> Optional[dict[str, Any]]:
+        tool_result: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
         """Start nodes are not created from tool events.
 
         Args:

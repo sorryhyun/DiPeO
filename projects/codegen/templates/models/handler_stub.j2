@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.execution.handlers.core.base import TypedNodeHandler
-from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.execution.engine.request import ExecutionRequest
 from dipeo.diagram_generated.generated_nodes import NodeType
 from dipeo.diagram_generated.unified_nodes.{{ node_type }}_node import {{ data_model_name }}
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory

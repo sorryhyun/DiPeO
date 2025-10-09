@@ -4,6 +4,8 @@
 
 export enum DiagramFormat {
   NATIVE = 'native',
-  LIGHT = 'light',
-  READABLE = 'readable'
+  YAML = 'yaml',
+  JSON = 'json',
+  READABLE = 'readable',
+  LIGHT = 'light'
 }

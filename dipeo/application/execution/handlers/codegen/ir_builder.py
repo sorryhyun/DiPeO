@@ -1,21 +1,21 @@
 """Handler for IR builder nodes."""
 
 import logging
-
-from dipeo.config.base_logger import get_module_logger
 from typing import Any
 
 from pydantic import BaseModel
 
-from dipeo.application.execution.execution_request import ExecutionRequest
+from dipeo.application.execution.engine.request import ExecutionRequest
 from dipeo.application.execution.handlers.core.base import TypedNodeHandler
 from dipeo.application.execution.handlers.core.decorators import requires_services
 from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.registry.keys import IR_BUILDER_REGISTRY, IR_CACHE, ServiceKey
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.unified_nodes.ir_builder_node import IrBuilderNode, NodeType
 from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
 
 logger = get_module_logger(__name__)
+
 
 @register_handler
 @requires_services(
@@ -32,27 +32,22 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
     NODE_TYPE = NodeType.IR_BUILDER
 
     def __init__(self):
-        """Initialize the IR builder node handler."""
         super().__init__()
 
     @property
     def node_class(self) -> type[IrBuilderNode]:
-        """Get the node class this handler manages."""
         return IrBuilderNode
 
     @property
     def node_type(self) -> str:
-        """Get the node type identifier."""
         return NodeType.IR_BUILDER.value
 
     @property
     def schema(self) -> type[BaseModel]:
-        """Get the node schema."""
         return IrBuilderNode
 
     @property
     def description(self) -> str:
-        """Get handler description."""
         return "Builds intermediate representation (IR) from source data"
 
     def validate(self, request: ExecutionRequest[IrBuilderNode]) -> str | None:
@@ -66,11 +61,9 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
         """
         node = request.node
 
-        # Validate builder type is provided
         if not node.builder_type:
             return "builder_type is required"
 
-        # Validate output format if provided
         if node.output_format and node.output_format not in ["json", "yaml", "raw"]:
             return f"Invalid output_format: {node.output_format}. Must be 'json', 'yaml', or 'raw'"
 
@@ -88,7 +81,6 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
         node = request.node
 
         try:
-            # Get builder from registry and validate it exists
             ir_builder_registry = request.get_required_service(IR_BUILDER_REGISTRY)
             available_builders = ir_builder_registry.list_builders()
 
@@ -103,7 +95,6 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
 
             current_builder = ir_builder_registry.get_builder(node.builder_type)
             request.set_handler_state("current_builder", current_builder)
-            # logger.info(f"Initialized {node.builder_type} IR builder")
         except Exception as e:
             logger.error(f"Failed to initialize IR builder: {e}")
             return EnvelopeFactory.create(
@@ -129,19 +120,15 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
         Returns:
             Prepared source data
         """
-        # Extract source data from the default input
         if "default" in inputs:
             envelope = inputs["default"]
-            # Extract the body/data from the envelope
             if hasattr(envelope, "body"):
                 return envelope.body
             elif hasattr(envelope, "data"):
                 return envelope.data
             else:
-                # If it's already a dict, return it
                 return inputs.get("default", {})
 
-        # If no default input, return empty dict
         return {}
 
     async def run(self, inputs: dict[str, Any], request: ExecutionRequest[IrBuilderNode]) -> Any:
@@ -157,56 +144,38 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
         node = request.node
         current_builder = request.get_handler_state("current_builder")
 
-        # Generate cache key
         current_cache_key = current_builder.get_cache_key(inputs)
         request.set_handler_state("current_cache_key", current_cache_key)
 
-        # Check cache if enabled
         if node.cache_enabled:
             cached = await self._ir_cache.get(current_cache_key)
             if cached:
-                # logger.info(f"Using cached IR for {node.builder_type}")
                 return cached
 
-        # Build IR
-        # logger.info(f"Building {node.builder_type} IR from {len(inputs)} source files")
         try:
             ir_data = await current_builder.build_ir(inputs)
 
-            # Store the IR data for metadata access in serialize_output via handler state
             request.set_handler_state("current_ir_data", ir_data)
 
-            # Validate if requested
             if node.validate_output:
                 if not current_builder.validate_ir(ir_data):
                     raise ValueError(f"IR validation failed for {node.builder_type}")
-                # logger.info(f"IR validation passed for {node.builder_type}")
 
-            # Cache result if enabled
             if node.cache_enabled:
                 await self._ir_cache.set(current_cache_key, ir_data)
-                # logger.info(f"Cached IR for {node.builder_type}")
 
-            # Return based on output format
             if node.output_format == "json":
-                # For JSON format, merge data fields with metadata at top level
-                # Templates expect IR fields at top level but may also need metadata
                 if hasattr(ir_data, "data") and hasattr(ir_data, "metadata"):
-                    # Merge data fields and metadata at top level
                     result = ir_data.data.copy() if isinstance(ir_data.data, dict) else ir_data.data
-                    # Only add IRMetadata if there's no existing metadata field (preserve template metadata)
                     if isinstance(result, dict) and "metadata" not in result:
                         if hasattr(ir_data.metadata, "dict"):
-                            # Add metadata as a top-level key
                             result["metadata"] = ir_data.metadata.dict()
                         else:
                             result["metadata"] = ir_data.metadata
                     return result
                 elif hasattr(ir_data, "dict"):
-                    # Fallback to dict if it's a Pydantic model
                     ir_dict = ir_data.dict()
                     if "data" in ir_dict and "metadata" in ir_dict:
-                        # Merge data fields with metadata
                         result = (
                             ir_dict["data"].copy()
                             if isinstance(ir_dict["data"], dict)
@@ -219,10 +188,8 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
                 else:
                     return ir_data
             elif node.output_format == "yaml":
-                # For YAML format, also merge data and metadata
                 if hasattr(ir_data, "data") and hasattr(ir_data, "metadata"):
                     result = ir_data.data.copy() if isinstance(ir_data.data, dict) else ir_data.data
-                    # Only add IRMetadata if there's no existing metadata field (preserve template metadata)
                     if isinstance(result, dict) and "metadata" not in result:
                         if hasattr(ir_data.metadata, "dict"):
                             result["metadata"] = ir_data.metadata.dict()
@@ -244,7 +211,6 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
                 else:
                     return ir_data
             else:
-                # Raw format - return as is (keeps full IRData structure)
                 return ir_data
 
         except Exception as e:
@@ -263,12 +229,10 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
         """
         node = request.node
 
-        # Create base envelope
         envelope = EnvelopeFactory.create(
             body=result, produced_by=str(node.id), trace_id=request.execution_id or ""
         )
 
-        # Build metadata - include IR metadata if it was part of the original IRData
         current_cache_key = request.get_handler_state("current_cache_key")
         current_ir_data = request.get_handler_state("current_ir_data")
 
@@ -279,11 +243,9 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
             "validated": node.validate_output,
         }
 
-        # If we stored the original IRData, extract its metadata
         if current_ir_data and hasattr(current_ir_data, "metadata"):
             meta_dict["ir_metadata"] = current_ir_data.metadata.dict()
 
-        # Use ** to unpack the dictionary as keyword arguments
         envelope = envelope.with_meta(**meta_dict)
 
         return envelope

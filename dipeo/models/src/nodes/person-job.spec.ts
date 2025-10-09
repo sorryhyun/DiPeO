@@ -1,6 +1,16 @@
 
 import { NodeType } from '../core/enums/node-types.js';
 import { NodeSpecification } from '../node-specification.js';
+import type { PersonID } from '../core/diagram.js';
+import {
+  personField,
+  promptWithFileField,
+  numberField,
+  memoryControlFields,
+  contentField,
+  textField,
+  batchExecutionFields
+} from '../core/field-presets.js';
 
 export const personJobSpec: NodeSpecification = {
   nodeType: NodeType.PERSON_JOB,
@@ -11,117 +21,22 @@ export const personJobSpec: NodeSpecification = {
   description: "Execute tasks using AI language models",
 
   fields: [
-    {
-      name: "person",
-      type: "string",
-      required: false,
-      description: "AI person to use",
-      uiConfig: {
-        inputType: "personSelect"
-      }
-    },
-    {
-      name: "first_only_prompt",
-      type: "string",
-      required: false,
-      defaultValue: "",
-      description: "Prompt used only on first execution",
-      uiConfig: {
-        inputType: "textarea",
-        placeholder: "Enter prompt template...",
-        column: 2,
-        rows: 10,
-        adjustable: true,
-        showPromptFileButton: true
-      }
-    },
-    {
-      name: "first_prompt_file",
-      type: "string",
-      required: false,
-      description: "External prompt file for first iteration only",
-      uiConfig: {
-        inputType: "text",
-        placeholder: "example_first.txt",
-        column: 2,
-        hidden: true
-      }
-    },
-    {
-      name: "default_prompt",
-      type: "string",
-      required: false,
-      description: "Default prompt template",
-      uiConfig: {
-        inputType: "textarea",
-        placeholder: "Enter prompt template...",
-        column: 2,
-        rows: 10,
-        adjustable: true,
-        showPromptFileButton: true
-      }
-    },
-    {
-      name: "prompt_file",
-      type: "string",
-      required: false,
-      description: "Path to prompt file in /files/prompts/",
-      uiConfig: {
-        inputType: "text",
-        placeholder: "example.txt",
-        column: 2,
-        hidden: true
-      }
-    },
-    {
-      name: "max_iteration",
-      type: "number",
-      required: true,
+    personField(),
+    ...promptWithFileField({
+      name: 'first_only_prompt',
+      fileFieldName: 'first_prompt_file',
+      description: 'Prompt used only on first execution',
+      placeholder: 'Enter prompt template...'
+    }),
+    ...promptWithFileField(),
+    numberField({
+      name: 'max_iteration',
+      description: 'Maximum execution iterations',
       defaultValue: 100,
-      description: "Maximum execution iterations",
-      uiConfig: {
-        inputType: "number",
-        min: 1
-      }
-    },
-    {
-      name: "memorize_to",
-      type: "string",
-      required: false,
-      description: "Criteria used to select helpful messages for this task. Empty = memorize all. Special: 'GOLDFISH' for goldfish mode. Comma-separated for multiple criteria.",
-      uiConfig: {
-        inputType: "text",
-        placeholder: "e.g., requirements, acceptance criteria, API keys",
-        column: 2
-      }
-    },
-    {
-      name: "at_most",
-      type: "number",
-      required: false,
-      description: "Select at most N messages to keep (system messages may be preserved in addition).",
-      validation: {
-        min: 1,
-        max: 500
-      },
-      uiConfig: {
-        inputType: "number",
-        min: 1,
-        max: 500,
-        column: 1
-      }
-    },
-    {
-      name: "ignore_person",
-      type: "string",
-      required: false,
-      description: "Comma-separated list of person IDs whose messages should be excluded from memory selection.",
-      uiConfig: {
-        inputType: "text",
-        placeholder: "e.g., assistant, user2",
-        column: 2
-      }
-    },
+      min: 1,
+      required: true
+    }),
+    ...memoryControlFields({ includeIgnorePerson: true }),
     {
       name: "tools",
       type: "string",
@@ -137,107 +52,53 @@ export const personJobSpec: NodeSpecification = {
         ]
       }
     },
-    {
-      name: "text_format",
-      type: "string",
-      required: false,
-      description: "JSON schema or response format for structured outputs",
-      uiConfig: {
-        inputType: "textarea",
-        placeholder: '{"type": "object", "properties": {...}}',
-        column: 2,
-        rows: 6,
-        adjustable: true
-      }
-    },
-    {
-      name: "text_format_file",
-      type: "string",
-      required: false,
-      description: "Path to Python file containing Pydantic models for structured outputs",
-      uiConfig: {
-        inputType: "text",
-        placeholder: "path/to/models.py",
-        column: 2
-      }
-    },
-    // Internal fields for compile-time prompt resolution
-    {
-      name: "resolved_prompt",
-      type: "string",
-      required: false,
-      description: "Pre-resolved prompt content from compile-time",
-      uiConfig: {
-        inputType: "textarea",
-        column: 2,
-        rows: 4
-      }
-    },
-    {
-      name: "resolved_first_prompt",
-      type: "string",
-      required: false,
-      description: "Pre-resolved first prompt content from compile-time",
-      uiConfig: {
-        inputType: "textarea",
-        column: 2,
-        rows: 4
-      }
-    },
-    // Batch execution fields
-    {
-      name: "batch",
-      type: "boolean",
-      required: false,
-      defaultValue: false,
-      description: "Enable batch mode for processing multiple items",
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    },
-    {
-      name: "batch_input_key",
-      type: "string",
-      required: false,
-      defaultValue: "items",
-      description: "Key containing the array to iterate over in batch mode",
-      uiConfig: {
-        inputType: "text",
-        placeholder: "items"
-      }
-    },
-    {
-      name: "batch_parallel",
-      type: "boolean",
-      required: false,
-      defaultValue: true,
-      description: "Execute batch items in parallel",
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    },
-    {
-      name: "max_concurrent",
-      type: "number",
-      required: false,
-      defaultValue: 10,
-      description: "Maximum concurrent executions in batch mode",
-      validation: {
-        min: 1,
-        max: 100
-      },
-      uiConfig: {
-        inputType: "number",
-        min: 1,
-        max: 100
-      }
-    },
+    contentField({
+      name: 'text_format',
+      description: 'JSON schema or response format for structured outputs',
+      placeholder: '{"type": "object", "properties": {...}}',
+      rows: 6,
+      inputType: 'textarea'
+    }),
+    textField({
+      name: 'text_format_file',
+      description: 'Path to Python file containing Pydantic models for structured outputs',
+      placeholder: 'path/to/models.py',
+      column: 2
+    }),
+    contentField({
+      name: 'resolved_prompt',
+      description: 'Pre-resolved prompt content from compile-time',
+      rows: 4,
+      inputType: 'textarea'
+    }),
+    contentField({
+      name: 'resolved_first_prompt',
+      description: 'Pre-resolved first prompt content from compile-time',
+      rows: 4,
+      inputType: 'textarea'
+    }),
+    ...batchExecutionFields(),
   ],
 
   handles: {
     inputs: ["default", "first"],
     outputs: ["default"]
   },
+
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "conversation_state",
+      required: false,
+      description: "Main conversation context and input data for AI processing"
+    },
+    {
+      name: "first",
+      contentType: "conversation_state",
+      required: false,
+      description: "Initial conversation context for first iteration (overrides default on first run)"
+    }
+  ],
 
   outputs: {
     result: {

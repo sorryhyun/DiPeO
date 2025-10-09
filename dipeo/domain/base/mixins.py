@@ -14,10 +14,6 @@ from typing import Any
 
 from .exceptions import ValidationError
 
-# ============================================================================
-# Logging Mixin
-# ============================================================================
-
 
 class LoggingMixin:
     """Mixin to add logging capabilities to a service."""
@@ -80,11 +76,6 @@ class LoggingMixin:
         return decorator
 
 
-# ============================================================================
-# Validation Mixin
-# ============================================================================
-
-
 class ValidationMixin:
     """Mixin to add validation utilities to a service."""
 
@@ -123,11 +114,6 @@ class ValidationMixin:
             raise ValidationError(
                 f"Field '{field_name}' must be one of {allowed_values}, got {value}"
             )
-
-
-# ============================================================================
-# Configuration Mixin
-# ============================================================================
 
 
 class ConfigurationMixin:
@@ -169,11 +155,6 @@ class ConfigurationMixin:
             return current
         except (KeyError, AttributeError, TypeError):
             return default
-
-
-# ============================================================================
-# Caching Mixin
-# ============================================================================
 
 
 @dataclass
@@ -261,11 +242,6 @@ class CachingMixin:
             return async_wrapper if asyncio.iscoroutinefunction(func) else sync_wrapper
 
         return decorator
-
-
-# ============================================================================
-# Initialization Mixin
-# ============================================================================
 
 
 class InitializationMixin:
