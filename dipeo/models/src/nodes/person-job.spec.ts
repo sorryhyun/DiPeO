@@ -1,6 +1,7 @@
 
 import { NodeType } from '../core/enums/node-types.js';
 import { NodeSpecification } from '../node-specification.js';
+import type { PersonID } from '../core/diagram.js';
 
 export const personJobSpec: NodeSpecification = {
   nodeType: NodeType.PERSON_JOB,
@@ -13,7 +14,7 @@ export const personJobSpec: NodeSpecification = {
   fields: [
     {
       name: "person",
-      type: "string",
+      type: "PersonID",
       required: false,
       description: "AI person to use",
       uiConfig: {

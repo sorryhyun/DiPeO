@@ -2,6 +2,7 @@
 import { NodeType } from '../core/enums/node-types.js';
 import { ConditionType } from '../core/enums/node-specific.js';
 import { NodeSpecification } from '../node-specification.js';
+import type { PersonID } from '../core/diagram.js';
 
 export const conditionSpec: NodeSpecification = {
   nodeType: NodeType.CONDITION,
@@ -65,7 +66,7 @@ export const conditionSpec: NodeSpecification = {
     },
     {
       name: "person",
-      type: "string",
+      type: "PersonID",
       required: false,
       description: "AI agent to use for decision making",
       conditional: {

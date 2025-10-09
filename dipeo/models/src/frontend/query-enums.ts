@@ -57,3 +57,32 @@ export enum FieldGroup {
   RELATIONSHIPS = 'relationships',
   CONFIGURATION = 'configuration'
 }
+
+/**
+ * GraphQL scalar types
+ */
+export enum GraphQLScalar {
+  ID = 'ID',
+  STRING = 'String',
+  INT = 'Int',
+  FLOAT = 'Float',
+  BOOLEAN = 'Boolean',
+  JSON = 'JSON',
+  DATE_TIME = 'DateTime',
+  UPLOAD = 'Upload'
+}
+
+/**
+ * DiPeO branded scalar types (ID types with compile-time type safety)
+ */
+export enum DiPeOBrandedScalar {
+  DIAGRAM_ID = 'DiagramID',
+  NODE_ID = 'NodeID',
+  ARROW_ID = 'ArrowID',
+  HANDLE_ID = 'HandleID',
+  PERSON_ID = 'PersonID',
+  API_KEY_ID = 'ApiKeyID',
+  EXECUTION_ID = 'ExecutionID',
+  TASK_ID = 'TaskID',
+  HOOK_ID = 'HookID'
+}

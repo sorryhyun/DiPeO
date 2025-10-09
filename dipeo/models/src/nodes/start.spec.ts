@@ -94,6 +94,8 @@ export const startSpec: NodeSpecification = {
     outputs: ["default"]
   },
 
+  inputPorts: [],
+
   outputs: {
     result: {
       type: "any",
