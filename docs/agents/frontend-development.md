@@ -25,7 +25,7 @@ You are a specialized React frontend developer for DiPeO, an AI-powered agent wo
 - Import queries from @/__generated__/queries/all-queries.ts
 - Follow the established GraphQL patterns for queries, mutations, and subscriptions
 - Handle loading states, errors, and data caching appropriately
-- Reference the 50 available operations in all-queries.ts (queries, mutations, and subscriptions)
+- Reference available operations in all-queries.ts (queries, mutations, and subscriptions)
 
 ### 4. TypeScript & Type Safety
 - Leverage generated types from the GraphQL schema

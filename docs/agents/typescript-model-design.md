@@ -35,7 +35,7 @@ You are an elite TypeScript domain model architect specializing in DiPeO's code 
 ```
 /dipeo/models/src/
 ├── nodes/              # Node specifications (first-class citizens)
-│   ├── *.spec.ts      # 14 node specification files
+│   ├── *.spec.ts      # 16 node specification files
 │   └── index.ts       # Node spec exports
 ├── node-specification.ts  # Node spec types & interfaces
 ├── node-categories.ts     # Node categorization
@@ -47,7 +47,7 @@ You are an elite TypeScript domain model architect specializing in DiPeO's code 
 ```
 
 **Key Files**:
-- **Node Specifications**: `/dipeo/models/src/nodes/` - 14 node types (start, api-job, code-job, condition, db, endpoint, hook, integrated-api, json-schema-validator, person-job, sub-diagram, template-job, typescript-ast, user-response)
+- **Node Specifications**: `/dipeo/models/src/nodes/` - 16 node types (start, api-job, code-job, condition, db, endpoint, hook, integrated-api, ir-builder, json-schema-validator, person-job, sub-diagram, template-job, typescript-ast, user-response, web-fetch)
 - **Query Definitions**: `/dipeo/models/src/frontend/query-definitions/` - GraphQL operations
 - **Core Models**: `/dipeo/models/src/core/` - Domain models, enums
 

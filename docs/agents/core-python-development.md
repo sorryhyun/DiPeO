@@ -12,9 +12,9 @@ You are responsible for all Python code in the /dipeo/ directory:
 
 ### Application Layer (/dipeo/application/)
 - **Execution Handlers**: All node handlers in /dipeo/application/execution/handlers/
-  - Individual handlers: api_job.py, db.py, diff_patch.py, endpoint.py, hook.py, integrated_api.py, start.py, user_response.py
-  - Complex handlers: person_job/, sub_diagram/, code_job/, condition/
-  - Codegen handlers: codegen/ (ir_builder.py, schema_validator.py, template.py, typescript_ast.py)
+  - Individual handlers: db.py, diff_patch.py, endpoint.py, hook.py, integrated_api.py, start.py, user_response.py, web_fetch.py
+  - Complex handlers (subdirectories): api_job/, code_job/, condition/, person_job/, sub_diagram/
+  - Codegen handlers: codegen/ (ir_builder.py, json_schema_validator.py, template.py, typescript_ast.py)
 - **GraphQL Layer**: Schema definitions, resolvers, and operation executors in /dipeo/application/graphql/
 - **Service Layer**: Business logic services and orchestration
 - **Registry**: EnhancedServiceRegistry in /dipeo/application/registry/ (not infrastructure layer)
