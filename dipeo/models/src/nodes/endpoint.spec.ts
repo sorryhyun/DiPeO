@@ -37,6 +37,15 @@ export const endpointSpec: NodeSpecification = {
     outputs: []
   },
 
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "object",
+      required: false,
+      description: "Final output data to be saved or returned from diagram execution"
+    }
+  ],
+
   outputs: {},
 
   execution: {
@@ -45,5 +54,12 @@ export const endpointSpec: NodeSpecification = {
     maxRetries: 3
   },
 
-  primaryDisplayField: "save_to_file"
+  primaryDisplayField: "save_to_file",
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.endpoint",
+    className: "EndpointHandler",
+    mixins: ["LoggingMixin", "ValidationMixin"],
+    serviceKeys: ["FILE_SYSTEM", "STATE_STORE", "EVENT_BUS"]
+  }
 };

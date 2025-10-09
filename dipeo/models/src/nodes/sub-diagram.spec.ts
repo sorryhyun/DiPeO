@@ -3,6 +3,7 @@
  */
 
 import { NodeType } from '../core/enums/node-types.js';
+import { DiagramFormat } from '../core/enums/diagram.js';
 import { NodeSpecification } from '../node-specification.js';
 
 export const subDiagramSpec: NodeSpecification = {
@@ -90,7 +91,7 @@ export const subDiagramSpec: NodeSpecification = {
       }
     },
     {
-      name: "ignoreIfSub",
+      name: "ignore_if_sub",
       type: "boolean",
       required: false,
       defaultValue: false,
@@ -110,9 +111,9 @@ export const subDiagramSpec: NodeSpecification = {
       uiConfig: {
         inputType: "select",
         options: [
-          { label: "YAML", value: "yaml" },
-          { label: "JSON", value: "json" },
-          { label: "Light", value: "light" }
+          { label: "YAML", value: DiagramFormat.YAML },
+          { label: "JSON", value: DiagramFormat.JSON },
+          { label: "Light", value: DiagramFormat.LIGHT }
         ]
       }
     },
@@ -153,6 +154,15 @@ export const subDiagramSpec: NodeSpecification = {
     inputs: ["default"],
     outputs: ["default"]
   },
+
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "object",
+      required: false,
+      description: "Input data to pass to the sub-diagram (mapped via input_mapping configuration)"
+    }
+  ],
 
   outputs: {
     default: {
@@ -199,5 +209,12 @@ export const subDiagramSpec: NodeSpecification = {
     }
   ],
 
-  primaryDisplayField: "diagram_name"
+  primaryDisplayField: "diagram_name",
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.sub_diagram",
+    className: "SubDiagramHandler",
+    mixins: ["LoggingMixin", "ValidationMixin", "ConfigurationMixin"],
+    serviceKeys: ["DIAGRAM_SERVICE", "STATE_STORE", "EVENT_BUS"]
+  }
 };

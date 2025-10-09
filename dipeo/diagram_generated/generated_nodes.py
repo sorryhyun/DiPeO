@@ -1,7 +1,7 @@
 """
 Compatibility shim for generated_nodes.py
 Re-exports from individual files for backward compatibility.
-Generated at: 2025-10-06T11:30:08.719169
+Generated at: 2025-10-09T13:41:19.961274
 """
 
 # Re-export all node classes from individual files
@@ -77,7 +77,7 @@ def create_executable_node(
             
             url=data.get('url', ''),
             
-            method=data.get('method', 'GET'),
+            method=data.get('method', 'HttpMethod.GET'),
             
             headers=data.get('headers'),
             
@@ -101,13 +101,13 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             
-            language=data.get('language', 'python'),
+            language=data.get('language', 'SupportedLanguage.PYTHON'),
             
-            filePath=data.get('filePath'),
+            file_path=data.get('filePath', data.get('file_path', '')),
             
             code=data.get('code'),
             
-            functionName=data.get('functionName'),
+            function_name=data.get('functionName', data.get('function_name', '')),
             
             timeout=data.get('timeout'),
             
@@ -155,9 +155,9 @@ def create_executable_node(
             
             collection=data.get('collection'),
             
-            sub_type=data.get('sub_type', 'fixed_prompt'),
+            sub_type=data.get('sub_type', 'DBBlockSubType.FIXED_PROMPT'),
             
-            operation=data.get('operation', ''),
+            operation=data.get('operation', 'DBOperation.READ'),
             
             query=data.get('query'),
             
@@ -169,7 +169,7 @@ def create_executable_node(
             
             serialize_json=data.get('serialize_json', False),
             
-            format=data.get('format', 'json'),
+            format=data.get('format', 'DataFormat.JSON'),
             
         )
     
@@ -185,9 +185,9 @@ def create_executable_node(
             
             diff=data.get('diff'),
             
-            format=data.get('format', 'unified'),
+            format=data.get('format', 'DiffFormat.UNIFIED'),
             
-            apply_mode=data.get('apply_mode', 'normal'),
+            apply_mode=data.get('apply_mode', 'PatchMode.NORMAL'),
             
             backup=data.get('backup', True),
             
@@ -229,7 +229,7 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             
-            hook_type=data.get('hook_type', 'shell'),
+            hook_type=data.get('hook_type', 'HookType.SHELL'),
             
             command=data.get('command'),
             
@@ -359,7 +359,7 @@ def create_executable_node(
             flipped=flipped,
             metadata=metadata,
             
-            trigger_mode=data.get('trigger_mode', 'none'),
+            trigger_mode=data.get('trigger_mode', 'HookTriggerMode.NONE'),
             
             custom_data=data.get('custom_data', {}),
             
@@ -393,7 +393,7 @@ def create_executable_node(
             
             isolate_conversation=data.get('isolate_conversation', False),
             
-            ignoreIfSub=data.get('ignoreIfSub', False),
+            ignore_if_sub=data.get('ignore_if_sub', False),
             
             diagram_format=data.get('diagram_format'),
             
@@ -421,7 +421,7 @@ def create_executable_node(
             
             variables=data.get('variables'),
             
-            engine=data.get('engine', 'jinja2'),
+            engine=data.get('engine', 'TemplateEngine.JINJA2'),
             
             preprocessor=data.get('preprocessor'),
             
@@ -437,21 +437,21 @@ def create_executable_node(
             
             source=data.get('source'),
             
-            extractPatterns=data.get('extractPatterns', ['interface', 'type', 'enum']),
+            extract_patterns=data.get('extract_patterns', ['TypeScriptExtractPattern.INTERFACE', 'TypeScriptExtractPattern.TYPE', 'TypeScriptExtractPattern.ENUM']),
             
-            includeJSDoc=data.get('includeJSDoc', False),
+            include_jsdoc=data.get('include_jsdoc', False),
             
-            parseMode=data.get('parseMode', 'module'),
+            parse_mode=data.get('parse_mode', 'TypeScriptParseMode.MODULE'),
             
-            transformEnums=data.get('transformEnums', False),
+            transform_enums=data.get('transform_enums', False),
             
-            flattenOutput=data.get('flattenOutput', False),
+            flatten_output=data.get('flatten_output', False),
             
-            outputFormat=data.get('outputFormat', 'standard'),
+            output_format=data.get('output_format', 'TypeScriptOutputFormat.STANDARD'),
             
             batch=data.get('batch', False),
             
-            batchInputKey=data.get('batchInputKey', 'sources'),
+            batch_input_key=data.get('batch_input_key', 'sources'),
             
         )
     

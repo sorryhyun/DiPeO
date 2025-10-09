@@ -1,5 +1,6 @@
 
 import { NodeType } from '../core/enums/node-types.js';
+import { SupportedLanguage } from '../core/enums/node-specific.js';
 import { NodeSpecification } from '../node-specification.js';
 
 export const codeJobSpec: NodeSpecification = {
@@ -15,7 +16,7 @@ export const codeJobSpec: NodeSpecification = {
       name: "language",
       type: "enum",
       required: true,
-      defaultValue: "python",
+      defaultValue: SupportedLanguage.PYTHON,
       description: "Programming language",
       validation: {
         allowedValues: ["python", "typescript", "bash", "shell"]
@@ -23,15 +24,15 @@ export const codeJobSpec: NodeSpecification = {
       uiConfig: {
         inputType: "select",
         options: [
-          { value: "python", label: "Python" },
-          { value: "typescript", label: "TypeScript" },
-          { value: "bash", label: "Bash" },
-          { value: "shell", label: "Shell" }
+          { value: SupportedLanguage.PYTHON, label: "Python" },
+          { value: SupportedLanguage.TYPESCRIPT, label: "TypeScript" },
+          { value: SupportedLanguage.BASH, label: "Bash" },
+          { value: SupportedLanguage.SHELL, label: "Shell" }
         ]
       }
     },
     {
-      name: "filePath",
+      name: "file_path",
       type: "string",
       required: false,
       description: "Path to code file",
@@ -44,7 +45,7 @@ export const codeJobSpec: NodeSpecification = {
       name: "code",
       type: "string",
       required: false,
-      description: "Inline code to execute (alternative to filePath)",
+      description: "Inline code to execute (alternative to file_path)",
       uiConfig: {
         inputType: "code",
         rows: 10,
@@ -52,7 +53,7 @@ export const codeJobSpec: NodeSpecification = {
       }
     },
     {
-      name: "functionName",
+      name: "function_name",
       type: "string",
       required: false,
       description: "Function to execute",
@@ -89,7 +90,7 @@ export const codeJobSpec: NodeSpecification = {
       name: "code",
       contentType: "raw_text",
       required: true,
-      description: "Code to execute (overrides filePath if provided)"
+      description: "Code to execute (overrides file_path if provided)"
     }
   ],
 
@@ -106,5 +107,12 @@ export const codeJobSpec: NodeSpecification = {
     maxRetries: 3
   },
 
-  primaryDisplayField: "language"
+  primaryDisplayField: "language",
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.code_job",
+    className: "CodeJobHandler",
+    mixins: ["LoggingMixin", "ValidationMixin", "ConfigurationMixin"],
+    serviceKeys: ["FILE_SYSTEM", "STATE_STORE"]
+  }
 };

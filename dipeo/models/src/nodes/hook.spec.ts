@@ -1,5 +1,6 @@
 
 import { NodeType } from '../core/enums/node-types.js';
+import { HookType } from '../core/enums/node-specific.js';
 import { NodeSpecification } from '../node-specification.js';
 
 export const hookSpec: NodeSpecification = {
@@ -15,7 +16,7 @@ export const hookSpec: NodeSpecification = {
       name: "hook_type",
       type: "enum",
       required: true,
-      defaultValue: "shell",
+      defaultValue: HookType.SHELL,
       description: "Type of hook to execute",
       validation: {
         allowedValues: ["shell", "http", "python", "file"]
@@ -23,10 +24,10 @@ export const hookSpec: NodeSpecification = {
       uiConfig: {
         inputType: "select",
         options: [
-          { value: "shell", label: "Shell" },
-          { value: "http", label: "HTTP" },
-          { value: "python", label: "Python" },
-          { value: "file", label: "File" }
+          { value: HookType.SHELL, label: "Shell" },
+          { value: HookType.HTTP, label: "HTTP" },
+          { value: HookType.PYTHON, label: "Python" },
+          { value: HookType.FILE, label: "File" }
         ]
       }
     },
@@ -92,6 +93,15 @@ export const hookSpec: NodeSpecification = {
     outputs: ["success", "error"]
   },
 
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "object",
+      required: false,
+      description: "Input data to pass to the hook execution (e.g., event payload, context data)"
+    }
+  ],
+
   outputs: {
     success: {
       type: "any",
@@ -114,7 +124,7 @@ export const hookSpec: NodeSpecification = {
       name: "Shell Hook",
       description: "Execute a shell command",
       configuration: {
-        hook_type: "shell",
+        hook_type: HookType.SHELL,
         command: "echo 'Hook executed'",
         timeout: 30
       }
@@ -123,7 +133,7 @@ export const hookSpec: NodeSpecification = {
       name: "Webhook",
       description: "Call a webhook URL",
       configuration: {
-        hook_type: "http",
+        hook_type: HookType.HTTP,
         url: "https://api.example.com/webhook",
         timeout: 60,
         retry_count: 2

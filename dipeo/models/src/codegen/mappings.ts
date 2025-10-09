@@ -26,11 +26,23 @@ export const TS_TO_PY_TYPE: Record<string, string> = {
   'SupportedLanguage': 'SupportedLanguage',
   'HttpMethod': 'HttpMethod',
   'DBBlockSubType': 'DBBlockSubType',
+  'DBOperation': 'DBOperation',
   'HookType': 'HookType',
   'DiagramFormat': 'DiagramFormat',
   'ContentType': 'ContentType',
   'ToolSelection': 'ToolSelection',
-  'APIServiceType': 'APIServiceType'
+  'APIServiceType': 'APIServiceType',
+  'ConditionType': 'ConditionType',
+  'TemplateEngine': 'TemplateEngine',
+  'IRBuilderTargetType': 'IRBuilderTargetType',
+  'IRBuilderSourceType': 'IRBuilderSourceType',
+  'IRBuilderOutputFormat': 'IRBuilderOutputFormat',
+  'TypeScriptExtractPattern': 'TypeScriptExtractPattern',
+  'TypeScriptParseMode': 'TypeScriptParseMode',
+  'TypeScriptOutputFormat': 'TypeScriptOutputFormat',
+  'DiffFormat': 'DiffFormat',
+  'PatchMode': 'PatchMode',
+  'AuthType': 'AuthType'
 };
 
 export const TYPE_TO_FIELD: Record<string, string> = {
@@ -41,12 +53,24 @@ export const TYPE_TO_FIELD: Record<string, string> = {
   'SupportedLanguage': 'select',
   'HttpMethod': 'select',
   'DBBlockSubType': 'select',
+  'DBOperation': 'select',
   'HookType': 'select',
   'HookTriggerMode': 'select',
   'ContentType': 'select',
   'DiagramFormat': 'select',
   'ToolSelection': 'select',
-  'APIServiceType': 'select'
+  'APIServiceType': 'select',
+  'ConditionType': 'select',
+  'TemplateEngine': 'select',
+  'IRBuilderTargetType': 'select',
+  'IRBuilderSourceType': 'select',
+  'IRBuilderOutputFormat': 'select',
+  'TypeScriptExtractPattern': 'select',
+  'TypeScriptParseMode': 'select',
+  'TypeScriptOutputFormat': 'select',
+  'DiffFormat': 'select',
+  'PatchMode': 'select',
+  'AuthType': 'select'
 };
 
 export const TYPE_TO_ZOD: Record<string, string> = {
@@ -63,20 +87,35 @@ export const TYPE_TO_ZOD: Record<string, string> = {
   'SupportedLanguage': 'z.nativeEnum(SupportedLanguage)',
   'HttpMethod': 'z.nativeEnum(HttpMethod)',
   'DBBlockSubType': 'z.nativeEnum(DBBlockSubType)',
+  'DBOperation': 'z.nativeEnum(DBOperation)',
   'HookType': 'z.nativeEnum(HookType)',
   'HookTriggerMode': 'z.nativeEnum(HookTriggerMode)',
   'ContentType': 'z.nativeEnum(ContentType)',
   'NodeType': 'z.nativeEnum(NodeType)',
   'DiagramFormat': 'z.nativeEnum(DiagramFormat)',
   'ToolSelection': 'z.nativeEnum(ToolSelection)',
-  'APIServiceType': 'z.nativeEnum(APIServiceType)'
+  'APIServiceType': 'z.nativeEnum(APIServiceType)',
+  'ConditionType': 'z.nativeEnum(ConditionType)',
+  'TemplateEngine': 'z.nativeEnum(TemplateEngine)',
+  'IRBuilderTargetType': 'z.nativeEnum(IRBuilderTargetType)',
+  'IRBuilderSourceType': 'z.nativeEnum(IRBuilderSourceType)',
+  'IRBuilderOutputFormat': 'z.nativeEnum(IRBuilderOutputFormat)',
+  'TypeScriptExtractPattern': 'z.nativeEnum(TypeScriptExtractPattern)',
+  'TypeScriptParseMode': 'z.nativeEnum(TypeScriptParseMode)',
+  'TypeScriptOutputFormat': 'z.nativeEnum(TypeScriptOutputFormat)',
+  'DiffFormat': 'z.nativeEnum(DiffFormat)',
+  'PatchMode': 'z.nativeEnum(PatchMode)',
+  'AuthType': 'z.nativeEnum(AuthType)'
 };
 
 export const BRANDED_TYPES = [
   'PersonID', 'NodeID', 'HandleID', 'ArrowID', 'NodeType',
-  'SupportedLanguage', 'HttpMethod', 'DBBlockSubType',
+  'SupportedLanguage', 'HttpMethod', 'DBBlockSubType', 'DBOperation',
   'HookType', 'HookTriggerMode', 'ContentType',
-  'ToolSelection', 'APIServiceType'
+  'ToolSelection', 'APIServiceType', 'ConditionType', 'TemplateEngine',
+  'IRBuilderTargetType', 'IRBuilderSourceType', 'IRBuilderOutputFormat',
+  'TypeScriptExtractPattern', 'TypeScriptParseMode', 'TypeScriptOutputFormat',
+  'DiffFormat', 'PatchMode', 'AuthType', 'DiagramFormat'
 ];
 
 export const BASE_FIELDS = ['label', 'flipped'];
@@ -126,9 +165,9 @@ export const FIELD_SPECIAL_HANDLING: Record<string, Record<string, any>> = {
     'error_on_extra': { default: 'False' }
   },
   'typescript_ast': {
-    'extractPatterns': { default: 'field(default_factory=lambda: ["interface", "type", "enum"])' },
-    'includeJSDoc': { default: 'False' },
-    'parseMode': { default: '"module"' }
+    'extract_patterns': { default: 'field(default_factory=lambda: ["interface", "type", "enum"])' },
+    'include_jsdoc': { default: 'False' },
+    'parse_mode': { default: '"module"' }
   },
   'sub_diagram': {
     'batch': { default: 'False' },

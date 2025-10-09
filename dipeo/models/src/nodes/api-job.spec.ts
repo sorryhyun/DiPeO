@@ -1,5 +1,7 @@
 
 import { NodeType } from '../core/enums/node-types.js';
+import { HttpMethod } from '../core/enums/node-specific.js';
+import { AuthType } from '../core/enums/integrations.js';
 import { NodeSpecification } from '../node-specification.js';
 
 export const apiJobSpec: NodeSpecification = {
@@ -26,7 +28,7 @@ export const apiJobSpec: NodeSpecification = {
       name: "method",
       type: "enum",
       required: true,
-      defaultValue: "GET",
+      defaultValue: HttpMethod.GET,
       description: "HTTP method",
       validation: {
         allowedValues: ["GET", "POST", "PUT", "DELETE", "PATCH"]
@@ -34,11 +36,11 @@ export const apiJobSpec: NodeSpecification = {
       uiConfig: {
         inputType: "select",
         options: [
-          { value: "GET", label: "GET" },
-          { value: "POST", label: "POST" },
-          { value: "PUT", label: "PUT" },
-          { value: "DELETE", label: "DELETE" },
-          { value: "PATCH", label: "PATCH" }
+          { value: HttpMethod.GET, label: "GET" },
+          { value: HttpMethod.POST, label: "POST" },
+          { value: HttpMethod.PUT, label: "PUT" },
+          { value: HttpMethod.DELETE, label: "DELETE" },
+          { value: HttpMethod.PATCH, label: "PATCH" }
         ]
       }
     },
@@ -94,10 +96,10 @@ export const apiJobSpec: NodeSpecification = {
       uiConfig: {
         inputType: "select",
         options: [
-          { value: "none", label: "None" },
-          { value: "bearer", label: "Bearer Token" },
-          { value: "basic", label: "Basic Auth" },
-          { value: "api_key", label: "API Key" }
+          { value: AuthType.NONE, label: "None" },
+          { value: AuthType.BEARER, label: "Bearer Token" },
+          { value: AuthType.BASIC, label: "Basic Auth" },
+          { value: AuthType.API_KEY, label: "API Key" }
         ]
       }
     },
@@ -117,6 +119,15 @@ export const apiJobSpec: NodeSpecification = {
     inputs: ["default"],
     outputs: ["default"]
   },
+
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "object",
+      required: false,
+      description: "Input data for URL parameters, headers, or request body"
+    }
+  ],
 
   outputs: {
     result: {

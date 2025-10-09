@@ -19,7 +19,7 @@ export const apiJobConfig: UnifiedNodeConfig = {
   },
   defaults: {
     url: '',
-    method: 'GET',
+    method: 'HttpMethod.GET',
   },
   customFields: apiJobFields,
   primaryDisplayField: 'method',

@@ -42,8 +42,8 @@ export const templateJobFields: UnifiedFieldDefinition[] = [
     required: false,
     description: '"Template engine to use"',
     options: [
-      { value: '"internal"', label: '"Internal"' },
-      { value: '"jinja2"', label: '"Jinja2"' },
+      { value: '"TemplateEngine.INTERNAL"', label: '"Internal"' },
+      { value: '"TemplateEngine.JINJA2"', label: '"Jinja2"' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };

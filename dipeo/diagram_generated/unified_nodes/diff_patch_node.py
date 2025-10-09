@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for diff_patch.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-06T11:30:07.746908
+Generated at: 2025-10-09T13:41:18.787651
 """
 
 from typing import *
@@ -38,9 +38,9 @@ class DiffPatchNode(BaseModel):
 
     # Optional node-specific fields
     
-    format: Literal["unified", "git", "context", "ed", "normal"] = Field(default="unified", description="Diff format type")
+    format: Literal["unified", "git", "context", "ed", "normal"] = Field(default="DiffFormat.UNIFIED", description="Diff format type")
     
-    apply_mode: Literal["normal", "force", "dry_run", "reverse"] = Field(default="normal", description="How to apply the patch")
+    apply_mode: Literal["normal", "force", "dry_run", "reverse"] = Field(default="PatchMode.NORMAL", description="How to apply the patch")
     
     backup: bool = Field(default=True, description="Create backup before patching")
     

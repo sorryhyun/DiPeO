@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for condition.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-06T11:30:07.745233
+Generated at: 2025-10-09T13:41:18.785744
 """
 
 from typing import *
@@ -36,7 +36,7 @@ class ConditionNode(BaseModel):
 
     # Optional node-specific fields
     
-    condition_type: Literal["detect_max_iterations", "check_nodes_executed", "custom", "llm_decision"] = Field(default="custom", description="Type of condition to evaluate")
+    condition_type: Literal["detect_max_iterations", "check_nodes_executed", "custom", "llm_decision"] = Field(default="ConditionType.CUSTOM", description="Type of condition to evaluate")
     
     expression: Optional[str] = Field(default=None, description="Boolean expression to evaluate")
     

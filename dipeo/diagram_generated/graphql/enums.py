@@ -2,7 +2,7 @@
 Generated Strawberry GraphQL enum definitions for DiPeO.
 Avoid editing THIS FILE DIRECTLY.
 
-Generated at: 2025-10-06T11:30:05.588911
+Generated at: 2025-10-09T13:41:16.150536
 """
 
 from enum import Enum
@@ -105,9 +105,9 @@ class HandleLabelGraphQL(Enum):
 @strawberry.enum
 class DiagramFormatGraphQL(Enum):
     """GraphQL enum for DiagramFormat"""
-    NATIVE = "native"
+    YAML = "yaml"
+    JSON = "json"
     LIGHT = "light"
-    READABLE = "readable"
 
 
 @strawberry.enum
@@ -237,6 +237,16 @@ class DBBlockSubTypeGraphQL(Enum):
 
 
 @strawberry.enum
+class DBOperationGraphQL(Enum):
+    """GraphQL enum for DBOperation"""
+    PROMPT = "prompt"
+    READ = "read"
+    WRITE = "write"
+    APPEND = "append"
+    UPDATE = "update"
+
+
+@strawberry.enum
 class SupportedLanguageGraphQL(Enum):
     """GraphQL enum for SupportedLanguage"""
     PYTHON = "python"
@@ -248,18 +258,18 @@ class SupportedLanguageGraphQL(Enum):
 @strawberry.enum
 class HttpMethodGraphQL(Enum):
     """GraphQL enum for HttpMethod"""
-    GET = "get"
-    POST = "post"
-    PUT = "put"
-    DELETE = "delete"
-    PATCH = "patch"
+    GET = "GET"
+    POST = "POST"
+    PUT = "PUT"
+    DELETE = "DELETE"
+    PATCH = "PATCH"
 
 
 @strawberry.enum
 class HookTypeGraphQL(Enum):
     """GraphQL enum for HookType"""
     SHELL = "shell"
-    WEBHOOK = "webhook"
+    HTTP = "http"
     PYTHON = "python"
     FILE = "file"
 
@@ -286,6 +296,88 @@ class TemplateEngineGraphQL(Enum):
     """GraphQL enum for TemplateEngine"""
     INTERNAL = "internal"
     JINJA2 = "jinja2"
+
+
+@strawberry.enum
+class IRBuilderTargetTypeGraphQL(Enum):
+    """GraphQL enum for IRBuilderTargetType"""
+    BACKEND = "backend"
+    FRONTEND = "frontend"
+    STRAWBERRY = "strawberry"
+    CUSTOM = "custom"
+
+
+@strawberry.enum
+class IRBuilderSourceTypeGraphQL(Enum):
+    """GraphQL enum for IRBuilderSourceType"""
+    AST = "ast"
+    SCHEMA = "schema"
+    CONFIG = "config"
+    AUTO = "auto"
+
+
+@strawberry.enum
+class IRBuilderOutputFormatGraphQL(Enum):
+    """GraphQL enum for IRBuilderOutputFormat"""
+    JSON = "json"
+    YAML = "yaml"
+    PYTHON = "python"
+
+
+@strawberry.enum
+class TypeScriptExtractPatternGraphQL(Enum):
+    """GraphQL enum for TypeScriptExtractPattern"""
+    INTERFACE = "interface"
+    TYPE = "type"
+    ENUM = "enum"
+    CLASS = "class"
+    FUNCTION = "function"
+    CONST = "const"
+    EXPORT = "export"
+
+
+@strawberry.enum
+class TypeScriptParseModeGraphQL(Enum):
+    """GraphQL enum for TypeScriptParseMode"""
+    MODULE = "module"
+    SCRIPT = "script"
+
+
+@strawberry.enum
+class TypeScriptOutputFormatGraphQL(Enum):
+    """GraphQL enum for TypeScriptOutputFormat"""
+    STANDARD = "standard"
+    FOR_CODEGEN = "for_codegen"
+    FOR_ANALYSIS = "for_analysis"
+
+
+@strawberry.enum
+class DiffFormatGraphQL(Enum):
+    """GraphQL enum for DiffFormat"""
+    UNIFIED = "unified"
+    GIT = "git"
+    CONTEXT = "context"
+    ED = "ed"
+    NORMAL = "normal"
+
+
+@strawberry.enum
+class PatchModeGraphQL(Enum):
+    """GraphQL enum for PatchMode"""
+    NORMAL = "normal"
+    FORCE = "force"
+    DRY_RUN = "dry_run"
+    REVERSE = "reverse"
+
+
+@strawberry.enum
+class DataFormatGraphQL(Enum):
+    """GraphQL enum for DataFormat"""
+    JSON = "json"
+    YAML = "yaml"
+    CSV = "csv"
+    TEXT = "text"
+    XML = "xml"
 
 
 @strawberry.enum
@@ -351,12 +443,22 @@ __all__ = [
     "AuthTypeGraphQL",
     "RetryStrategyGraphQL",
     "DBBlockSubTypeGraphQL",
+    "DBOperationGraphQL",
     "SupportedLanguageGraphQL",
     "HttpMethodGraphQL",
     "HookTypeGraphQL",
     "HookTriggerModeGraphQL",
     "ConditionTypeGraphQL",
     "TemplateEngineGraphQL",
+    "IRBuilderTargetTypeGraphQL",
+    "IRBuilderSourceTypeGraphQL",
+    "IRBuilderOutputFormatGraphQL",
+    "TypeScriptExtractPatternGraphQL",
+    "TypeScriptParseModeGraphQL",
+    "TypeScriptOutputFormatGraphQL",
+    "DiffFormatGraphQL",
+    "PatchModeGraphQL",
+    "DataFormatGraphQL",
     "NodeTypeGraphQL",
     "SeverityGraphQL",
     "EventPriorityGraphQL",
@@ -599,9 +701,9 @@ def convert_diagramformat_to_graphql(python_enum):
     """Convert Python DiagramFormat enum to GraphQL enum."""
     from ..enums import DiagramFormat
     mapping = {
-        DiagramFormat.NATIVE: DiagramFormatGraphQL.NATIVE,
+        DiagramFormat.YAML: DiagramFormatGraphQL.YAML,
+        DiagramFormat.JSON: DiagramFormatGraphQL.JSON,
         DiagramFormat.LIGHT: DiagramFormatGraphQL.LIGHT,
-        DiagramFormat.READABLE: DiagramFormatGraphQL.READABLE,
     }
     return mapping.get(python_enum)
 
@@ -609,9 +711,9 @@ def convert_diagramformat_from_graphql(graphql_enum):
     """Convert GraphQL DiagramFormat enum to Python enum."""
     from ..enums import DiagramFormat
     mapping = {
-        DiagramFormatGraphQL.NATIVE: DiagramFormat.NATIVE,
+        DiagramFormatGraphQL.YAML: DiagramFormat.YAML,
+        DiagramFormatGraphQL.JSON: DiagramFormat.JSON,
         DiagramFormatGraphQL.LIGHT: DiagramFormat.LIGHT,
-        DiagramFormatGraphQL.READABLE: DiagramFormat.READABLE,
     }
     return mapping.get(graphql_enum)
 
@@ -928,6 +1030,31 @@ def convert_dbblocksubtype_from_graphql(graphql_enum):
     return mapping.get(graphql_enum)
 
 
+def convert_dboperation_to_graphql(python_enum):
+    """Convert Python DBOperation enum to GraphQL enum."""
+    from ..enums import DBOperation
+    mapping = {
+        DBOperation.PROMPT: DBOperationGraphQL.PROMPT,
+        DBOperation.READ: DBOperationGraphQL.READ,
+        DBOperation.WRITE: DBOperationGraphQL.WRITE,
+        DBOperation.APPEND: DBOperationGraphQL.APPEND,
+        DBOperation.UPDATE: DBOperationGraphQL.UPDATE,
+    }
+    return mapping.get(python_enum)
+
+def convert_dboperation_from_graphql(graphql_enum):
+    """Convert GraphQL DBOperation enum to Python enum."""
+    from ..enums import DBOperation
+    mapping = {
+        DBOperationGraphQL.PROMPT: DBOperation.PROMPT,
+        DBOperationGraphQL.READ: DBOperation.READ,
+        DBOperationGraphQL.WRITE: DBOperation.WRITE,
+        DBOperationGraphQL.APPEND: DBOperation.APPEND,
+        DBOperationGraphQL.UPDATE: DBOperation.UPDATE,
+    }
+    return mapping.get(graphql_enum)
+
+
 def convert_supportedlanguage_to_graphql(python_enum):
     """Convert Python SupportedLanguage enum to GraphQL enum."""
     from ..enums import SupportedLanguage
@@ -981,7 +1108,7 @@ def convert_hooktype_to_graphql(python_enum):
     from ..enums import HookType
     mapping = {
         HookType.SHELL: HookTypeGraphQL.SHELL,
-        HookType.WEBHOOK: HookTypeGraphQL.WEBHOOK,
+        HookType.HTTP: HookTypeGraphQL.HTTP,
         HookType.PYTHON: HookTypeGraphQL.PYTHON,
         HookType.FILE: HookTypeGraphQL.FILE,
     }
@@ -992,7 +1119,7 @@ def convert_hooktype_from_graphql(graphql_enum):
     from ..enums import HookType
     mapping = {
         HookTypeGraphQL.SHELL: HookType.SHELL,
-        HookTypeGraphQL.WEBHOOK: HookType.WEBHOOK,
+        HookTypeGraphQL.HTTP: HookType.HTTP,
         HookTypeGraphQL.PYTHON: HookType.PYTHON,
         HookTypeGraphQL.FILE: HookType.FILE,
     }
@@ -1058,6 +1185,215 @@ def convert_templateengine_from_graphql(graphql_enum):
     mapping = {
         TemplateEngineGraphQL.INTERNAL: TemplateEngine.INTERNAL,
         TemplateEngineGraphQL.JINJA2: TemplateEngine.JINJA2,
+    }
+    return mapping.get(graphql_enum)
+
+
+def convert_irbuildertargettype_to_graphql(python_enum):
+    """Convert Python IRBuilderTargetType enum to GraphQL enum."""
+    from ..enums import IRBuilderTargetType
+    mapping = {
+        IRBuilderTargetType.BACKEND: IRBuilderTargetTypeGraphQL.BACKEND,
+        IRBuilderTargetType.FRONTEND: IRBuilderTargetTypeGraphQL.FRONTEND,
+        IRBuilderTargetType.STRAWBERRY: IRBuilderTargetTypeGraphQL.STRAWBERRY,
+        IRBuilderTargetType.CUSTOM: IRBuilderTargetTypeGraphQL.CUSTOM,
+    }
+    return mapping.get(python_enum)
+
+def convert_irbuildertargettype_from_graphql(graphql_enum):
+    """Convert GraphQL IRBuilderTargetType enum to Python enum."""
+    from ..enums import IRBuilderTargetType
+    mapping = {
+        IRBuilderTargetTypeGraphQL.BACKEND: IRBuilderTargetType.BACKEND,
+        IRBuilderTargetTypeGraphQL.FRONTEND: IRBuilderTargetType.FRONTEND,
+        IRBuilderTargetTypeGraphQL.STRAWBERRY: IRBuilderTargetType.STRAWBERRY,
+        IRBuilderTargetTypeGraphQL.CUSTOM: IRBuilderTargetType.CUSTOM,
+    }
+    return mapping.get(graphql_enum)
+
+
+def convert_irbuildersourcetype_to_graphql(python_enum):
+    """Convert Python IRBuilderSourceType enum to GraphQL enum."""
+    from ..enums import IRBuilderSourceType
+    mapping = {
+        IRBuilderSourceType.AST: IRBuilderSourceTypeGraphQL.AST,
+        IRBuilderSourceType.SCHEMA: IRBuilderSourceTypeGraphQL.SCHEMA,
+        IRBuilderSourceType.CONFIG: IRBuilderSourceTypeGraphQL.CONFIG,
+        IRBuilderSourceType.AUTO: IRBuilderSourceTypeGraphQL.AUTO,
+    }
+    return mapping.get(python_enum)
+
+def convert_irbuildersourcetype_from_graphql(graphql_enum):
+    """Convert GraphQL IRBuilderSourceType enum to Python enum."""
+    from ..enums import IRBuilderSourceType
+    mapping = {
+        IRBuilderSourceTypeGraphQL.AST: IRBuilderSourceType.AST,
+        IRBuilderSourceTypeGraphQL.SCHEMA: IRBuilderSourceType.SCHEMA,
+        IRBuilderSourceTypeGraphQL.CONFIG: IRBuilderSourceType.CONFIG,
+        IRBuilderSourceTypeGraphQL.AUTO: IRBuilderSourceType.AUTO,
+    }
+    return mapping.get(graphql_enum)
+
+
+def convert_irbuilderoutputformat_to_graphql(python_enum):
+    """Convert Python IRBuilderOutputFormat enum to GraphQL enum."""
+    from ..enums import IRBuilderOutputFormat
+    mapping = {
+        IRBuilderOutputFormat.JSON: IRBuilderOutputFormatGraphQL.JSON,
+        IRBuilderOutputFormat.YAML: IRBuilderOutputFormatGraphQL.YAML,
+        IRBuilderOutputFormat.PYTHON: IRBuilderOutputFormatGraphQL.PYTHON,
+    }
+    return mapping.get(python_enum)
+
+def convert_irbuilderoutputformat_from_graphql(graphql_enum):
+    """Convert GraphQL IRBuilderOutputFormat enum to Python enum."""
+    from ..enums import IRBuilderOutputFormat
+    mapping = {
+        IRBuilderOutputFormatGraphQL.JSON: IRBuilderOutputFormat.JSON,
+        IRBuilderOutputFormatGraphQL.YAML: IRBuilderOutputFormat.YAML,
+        IRBuilderOutputFormatGraphQL.PYTHON: IRBuilderOutputFormat.PYTHON,
+    }
+    return mapping.get(graphql_enum)
+
+
+def convert_typescriptextractpattern_to_graphql(python_enum):
+    """Convert Python TypeScriptExtractPattern enum to GraphQL enum."""
+    from ..enums import TypeScriptExtractPattern
+    mapping = {
+        TypeScriptExtractPattern.INTERFACE: TypeScriptExtractPatternGraphQL.INTERFACE,
+        TypeScriptExtractPattern.TYPE: TypeScriptExtractPatternGraphQL.TYPE,
+        TypeScriptExtractPattern.ENUM: TypeScriptExtractPatternGraphQL.ENUM,
+        TypeScriptExtractPattern.CLASS: TypeScriptExtractPatternGraphQL.CLASS,
+        TypeScriptExtractPattern.FUNCTION: TypeScriptExtractPatternGraphQL.FUNCTION,
+        TypeScriptExtractPattern.CONST: TypeScriptExtractPatternGraphQL.CONST,
+        TypeScriptExtractPattern.EXPORT: TypeScriptExtractPatternGraphQL.EXPORT,
+    }
+    return mapping.get(python_enum)
+
+def convert_typescriptextractpattern_from_graphql(graphql_enum):
+    """Convert GraphQL TypeScriptExtractPattern enum to Python enum."""
+    from ..enums import TypeScriptExtractPattern
+    mapping = {
+        TypeScriptExtractPatternGraphQL.INTERFACE: TypeScriptExtractPattern.INTERFACE,
+        TypeScriptExtractPatternGraphQL.TYPE: TypeScriptExtractPattern.TYPE,
+        TypeScriptExtractPatternGraphQL.ENUM: TypeScriptExtractPattern.ENUM,
+        TypeScriptExtractPatternGraphQL.CLASS: TypeScriptExtractPattern.CLASS,
+        TypeScriptExtractPatternGraphQL.FUNCTION: TypeScriptExtractPattern.FUNCTION,
+        TypeScriptExtractPatternGraphQL.CONST: TypeScriptExtractPattern.CONST,
+        TypeScriptExtractPatternGraphQL.EXPORT: TypeScriptExtractPattern.EXPORT,
+    }
+    return mapping.get(graphql_enum)
+
+
+def convert_typescriptparsemode_to_graphql(python_enum):
+    """Convert Python TypeScriptParseMode enum to GraphQL enum."""
+    from ..enums import TypeScriptParseMode
+    mapping = {
+        TypeScriptParseMode.MODULE: TypeScriptParseModeGraphQL.MODULE,
+        TypeScriptParseMode.SCRIPT: TypeScriptParseModeGraphQL.SCRIPT,
+    }
+    return mapping.get(python_enum)
+
+def convert_typescriptparsemode_from_graphql(graphql_enum):
+    """Convert GraphQL TypeScriptParseMode enum to Python enum."""
+    from ..enums import TypeScriptParseMode
+    mapping = {
+        TypeScriptParseModeGraphQL.MODULE: TypeScriptParseMode.MODULE,
+        TypeScriptParseModeGraphQL.SCRIPT: TypeScriptParseMode.SCRIPT,
+    }
+    return mapping.get(graphql_enum)
+
+
+def convert_typescriptoutputformat_to_graphql(python_enum):
+    """Convert Python TypeScriptOutputFormat enum to GraphQL enum."""
+    from ..enums import TypeScriptOutputFormat
+    mapping = {
+        TypeScriptOutputFormat.STANDARD: TypeScriptOutputFormatGraphQL.STANDARD,
+        TypeScriptOutputFormat.FOR_CODEGEN: TypeScriptOutputFormatGraphQL.FOR_CODEGEN,
+        TypeScriptOutputFormat.FOR_ANALYSIS: TypeScriptOutputFormatGraphQL.FOR_ANALYSIS,
+    }
+    return mapping.get(python_enum)
+
+def convert_typescriptoutputformat_from_graphql(graphql_enum):
+    """Convert GraphQL TypeScriptOutputFormat enum to Python enum."""
+    from ..enums import TypeScriptOutputFormat
+    mapping = {
+        TypeScriptOutputFormatGraphQL.STANDARD: TypeScriptOutputFormat.STANDARD,
+        TypeScriptOutputFormatGraphQL.FOR_CODEGEN: TypeScriptOutputFormat.FOR_CODEGEN,
+        TypeScriptOutputFormatGraphQL.FOR_ANALYSIS: TypeScriptOutputFormat.FOR_ANALYSIS,
+    }
+    return mapping.get(graphql_enum)
+
+
+def convert_diffformat_to_graphql(python_enum):
+    """Convert Python DiffFormat enum to GraphQL enum."""
+    from ..enums import DiffFormat
+    mapping = {
+        DiffFormat.UNIFIED: DiffFormatGraphQL.UNIFIED,
+        DiffFormat.GIT: DiffFormatGraphQL.GIT,
+        DiffFormat.CONTEXT: DiffFormatGraphQL.CONTEXT,
+        DiffFormat.ED: DiffFormatGraphQL.ED,
+        DiffFormat.NORMAL: DiffFormatGraphQL.NORMAL,
+    }
+    return mapping.get(python_enum)
+
+def convert_diffformat_from_graphql(graphql_enum):
+    """Convert GraphQL DiffFormat enum to Python enum."""
+    from ..enums import DiffFormat
+    mapping = {
+        DiffFormatGraphQL.UNIFIED: DiffFormat.UNIFIED,
+        DiffFormatGraphQL.GIT: DiffFormat.GIT,
+        DiffFormatGraphQL.CONTEXT: DiffFormat.CONTEXT,
+        DiffFormatGraphQL.ED: DiffFormat.ED,
+        DiffFormatGraphQL.NORMAL: DiffFormat.NORMAL,
+    }
+    return mapping.get(graphql_enum)
+
+
+def convert_patchmode_to_graphql(python_enum):
+    """Convert Python PatchMode enum to GraphQL enum."""
+    from ..enums import PatchMode
+    mapping = {
+        PatchMode.NORMAL: PatchModeGraphQL.NORMAL,
+        PatchMode.FORCE: PatchModeGraphQL.FORCE,
+        PatchMode.DRY_RUN: PatchModeGraphQL.DRY_RUN,
+        PatchMode.REVERSE: PatchModeGraphQL.REVERSE,
+    }
+    return mapping.get(python_enum)
+
+def convert_patchmode_from_graphql(graphql_enum):
+    """Convert GraphQL PatchMode enum to Python enum."""
+    from ..enums import PatchMode
+    mapping = {
+        PatchModeGraphQL.NORMAL: PatchMode.NORMAL,
+        PatchModeGraphQL.FORCE: PatchMode.FORCE,
+        PatchModeGraphQL.DRY_RUN: PatchMode.DRY_RUN,
+        PatchModeGraphQL.REVERSE: PatchMode.REVERSE,
+    }
+    return mapping.get(graphql_enum)
+
+
+def convert_dataformat_to_graphql(python_enum):
+    """Convert Python DataFormat enum to GraphQL enum."""
+    from ..enums import DataFormat
+    mapping = {
+        DataFormat.JSON: DataFormatGraphQL.JSON,
+        DataFormat.YAML: DataFormatGraphQL.YAML,
+        DataFormat.CSV: DataFormatGraphQL.CSV,
+        DataFormat.TEXT: DataFormatGraphQL.TEXT,
+        DataFormat.XML: DataFormatGraphQL.XML,
+    }
+    return mapping.get(python_enum)
+
+def convert_dataformat_from_graphql(graphql_enum):
+    """Convert GraphQL DataFormat enum to Python enum."""
+    from ..enums import DataFormat
+    mapping = {
+        DataFormatGraphQL.JSON: DataFormat.JSON,
+        DataFormatGraphQL.YAML: DataFormat.YAML,
+        DataFormatGraphQL.CSV: DataFormat.CSV,
+        DataFormatGraphQL.TEXT: DataFormat.TEXT,
+        DataFormatGraphQL.XML: DataFormat.XML,
     }
     return mapping.get(graphql_enum)
 

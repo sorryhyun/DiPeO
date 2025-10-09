@@ -6,8 +6,9 @@ This directory contains detailed development guides for DiPeO's specialized Clau
 
 ### [Core Python Development](core-python-development.md)
 **Agent**: `dipeo-core-python`
-**Domain**: Backend Python business logic, execution handlers, infrastructure, service architecture
-**Key Areas**: `/dipeo/application/`, `/dipeo/domain/`, `/dipeo/infrastructure/`
+**Domain**: Backend Python business logic, execution handlers, runtime infrastructure, service architecture
+**Key Areas**: `/dipeo/application/`, `/dipeo/domain/`, `/dipeo/infrastructure/` (runtime only, not codegen)
+**Role**: Consumes generated code as read-only dependency, implements application logic
 
 ### [Frontend Development](frontend-development.md)
 **Agent**: `dipeo-frontend-dev`
@@ -16,13 +17,15 @@ This directory contains detailed development guides for DiPeO's specialized Clau
 
 ### [TypeScript Model Design](typescript-model-design.md)
 **Agent**: `typescript-model-designer`
-**Domain**: TypeScript specifications that drive code generation
-**Key Areas**: `/dipeo/models/src/`, node specs, query definitions
+**Domain**: TypeScript specifications - single source of truth for domain models
+**Key Areas**: `/dipeo/models/src/` (owns all TypeScript source)
+**Role**: Designs specs, coordinates with codegen-specialist for generation validation
 
 ### [Code Generation Pipeline](codegen-pipeline.md)
 **Agent**: `dipeo-codegen-specialist`
-**Domain**: Code generation system, IR builders, staging validation
-**Key Areas**: `/dipeo/infrastructure/codegen/`, TypeScript→Python pipeline
+**Domain**: **Bridge agent** - owns entire codegen infrastructure & generated code diagnosis
+**Key Areas**: `/dipeo/infrastructure/codegen/` (full ownership), generated code review
+**Role**: Validates specs, runs pipeline, diagnoses generated code, coordinates between TS & Python
 
 ## Feature-Specific Agents
 

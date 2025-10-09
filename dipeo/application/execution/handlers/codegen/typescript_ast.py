@@ -147,7 +147,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                     sources=sources,
                     extract_patterns=node.extract_patterns or ["interface", "type", "enum"],
                     options={
-                        "includeJSDoc": node.include_js_doc or False,
+                        "includeJSDoc": node.include_jsdoc or False,
                         "parseMode": node.parse_mode or "module",
                     },
                 )
@@ -176,7 +176,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
                     source=source,
                     extract_patterns=node.extract_patterns or ["interface", "type", "enum"],
                     options={
-                        "includeJSDoc": node.include_js_doc or False,
+                        "includeJSDoc": node.include_jsdoc or False,
                         "parseMode": node.parse_mode or "module",
                     },
                 )
@@ -236,7 +236,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
             return EnvelopeFactory.create(output, produced_by=node.id, trace_id=trace_id).with_meta(
                 extracted_count=result["metadata"].get("extractedCount", 0),
                 parse_mode=node.parse_mode or "module",
-                include_jsdoc=node.include_js_doc or False,
+                include_jsdoc=node.include_jsdoc or False,
             )
 
         return super().serialize_output(result, request)

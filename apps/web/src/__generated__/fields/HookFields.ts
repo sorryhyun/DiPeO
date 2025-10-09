@@ -9,10 +9,10 @@ export const hookFields: UnifiedFieldDefinition[] = [
     required: true,
     description: '"Type of hook to execute"',
     options: [
-      { value: '"shell"', label: '"Shell"' },
-      { value: '"http"', label: '"HTTP"' },
-      { value: '"python"', label: '"Python"' },
-      { value: '"file"', label: '"File"' },
+      { value: '"HookType.SHELL"', label: '"Shell"' },
+      { value: '"HookType.HTTP"', label: '"HTTP"' },
+      { value: '"HookType.PYTHON"', label: '"Python"' },
+      { value: '"HookType.FILE"', label: '"File"' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };

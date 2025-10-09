@@ -1,4 +1,5 @@
 import { NodeType } from '../core/enums/node-types.js';
+import { DiffFormat, PatchMode } from '../core/enums/node-specific.js';
 import { NodeSpecification } from '../node-specification.js';
 
 export const diffPatchSpec: NodeSpecification = {
@@ -37,18 +38,18 @@ export const diffPatchSpec: NodeSpecification = {
       type: "enum",
       required: false,
       description: "Diff format type",
-      defaultValue: "unified",
+      defaultValue: DiffFormat.UNIFIED,
       validation: {
         allowedValues: ["unified", "git", "context", "ed", "normal"]
       },
       uiConfig: {
         inputType: "select",
         options: [
-          { value: "unified", label: "Unified" },
-          { value: "git", label: "Git" },
-          { value: "context", label: "Context" },
-          { value: "ed", label: "Ed Script" },
-          { value: "normal", label: "Normal" }
+          { value: DiffFormat.UNIFIED, label: "Unified" },
+          { value: DiffFormat.GIT, label: "Git" },
+          { value: DiffFormat.CONTEXT, label: "Context" },
+          { value: DiffFormat.ED, label: "Ed Script" },
+          { value: DiffFormat.NORMAL, label: "Normal" }
         ]
       }
     },
@@ -57,17 +58,17 @@ export const diffPatchSpec: NodeSpecification = {
       type: "enum",
       required: false,
       description: "How to apply the patch",
-      defaultValue: "normal",
+      defaultValue: PatchMode.NORMAL,
       validation: {
         allowedValues: ["normal", "force", "dry_run", "reverse"]
       },
       uiConfig: {
         inputType: "select",
         options: [
-          { value: "normal", label: "Normal" },
-          { value: "force", label: "Force" },
-          { value: "dry_run", label: "Dry Run" },
-          { value: "reverse", label: "Reverse" }
+          { value: PatchMode.NORMAL, label: "Normal" },
+          { value: PatchMode.FORCE, label: "Force" },
+          { value: PatchMode.DRY_RUN, label: "Dry Run" },
+          { value: PatchMode.REVERSE, label: "Reverse" }
         ]
       }
     },
@@ -175,6 +176,15 @@ export const diffPatchSpec: NodeSpecification = {
     outputs: ["success", "error"]
   },
 
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "object",
+      required: false,
+      description: "Input data containing diff content, target path, or patch configuration"
+    }
+  ],
+
   outputs: {
     result: {
       type: "any",
@@ -202,6 +212,13 @@ export const diffPatchSpec: NodeSpecification = {
 
   primaryDisplayField: "target_path",
 
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.diff_patch",
+    className: "DiffPatchHandler",
+    mixins: ["LoggingMixin", "ValidationMixin", "ConfigurationMixin"],
+    serviceKeys: ["FILE_SYSTEM", "STATE_STORE"]
+  },
+
   examples: [
     {
       name: "Simple file patch",
@@ -209,8 +226,8 @@ export const diffPatchSpec: NodeSpecification = {
       configuration: {
         target_path: "/src/main.py",
         diff: "--- a/main.py\n+++ b/main.py\n@@ -10,3 +10,4 @@\n def main():\n     print('Hello')\n+    print('World')\n     return 0",
-        format: "unified",
-        apply_mode: "normal",
+        format: DiffFormat.UNIFIED,
+        apply_mode: PatchMode.NORMAL,
         backup: true
       }
     },
@@ -220,7 +237,7 @@ export const diffPatchSpec: NodeSpecification = {
       configuration: {
         target_path: "/config/settings.json",
         diff: "...",
-        apply_mode: "dry_run",
+        apply_mode: PatchMode.DRY_RUN,
         validate_patch: true
       }
     }

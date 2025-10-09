@@ -1,6 +1,7 @@
 export * from './query-enums';
 export * from './query-builder';
 export * from './query-specifications';
+export * from './query-validation';
 export * from './query-definitions';
 export * from './subscription-queries';
 export * from './relationship-queries';

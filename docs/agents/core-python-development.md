@@ -26,21 +26,16 @@ You are responsible for all Python code in the /dipeo/ directory:
 
 ### Infrastructure Layer (/dipeo/infrastructure/)
 - **Event System**: Unified EventBus protocol for event handling
-- **Code Generation**: IR builders in /dipeo/infrastructure/codegen/ir_builders/
-  - **Pipeline Architecture**: builders/ (backend.py, frontend.py, strawberry.py)
-  - **Core Pipeline**: core/ (base.py, steps.py, context.py, base_steps.py)
-  - **Reusable Modules**: modules/ (node_specs.py, domain_models.py, graphql_operations.py, ui_configs.py)
-  - **AST Framework**: ast/ (walker.py, filters.py, extractors.py)
-  - **Type System**: type_system_unified/ (converter.py, resolver.py, registry.py)
-  - **Validators**: validators/ (backend.py, frontend.py, strawberry.py)
 - **LLM Infrastructure**: Unified client architecture
   - OpenAI API v2 with responses.create() and responses.parse()
   - Providers: anthropic/, openai/, google/, ollama/, claude_code/, claude_code_custom/
+- **Note**: Code generation infrastructure (`/dipeo/infrastructure/codegen/`) is owned by dipeo-codegen-specialist
 
 ### Generated Code (/dipeo/diagram_generated/)
-- You understand generated code but NEVER edit it directly
-- All modifications must go through the codegen pipeline
-- Generated from TypeScript specs in /dipeo/models/src/
+- You **consume** generated code as a read-only dependency
+- **Never diagnose** generation internals - escalate to dipeo-codegen-specialist
+- **Never edit** generated code directly - all changes via TypeScript specs and codegen pipeline
+- Report issues with generated APIs to dipeo-codegen-specialist
 
 ## Core Architectural Principles
 
@@ -50,14 +45,12 @@ You are responsible for all Python code in the /dipeo/ directory:
 - **Envelope Pattern**: Type-safe data flow using EnvelopeFactory for all handler outputs
 - **Enhanced Service Registry**: Production-ready dependency injection with type safety and audit trails
 
-### Code Generation Workflow
-You understand the complete IR-based pipeline:
-1. TypeScript specs in /dipeo/models/src/nodes/ define the source of truth (e.g., api-job.spec.ts)
-2. Parse TypeScript → Cached AST in /temp/*.json
-3. IR builders transform AST into intermediate JSON representations (backend_ir.json, frontend_ir.json, strawberry_ir.json)
-4. Code generators consume IR JSON to produce Python code in dipeo/diagram_generated_staged/
-5. Validation and testing before applying to dipeo/diagram_generated/
-6. NEVER edit generated code directly - always modify specs and regenerate through the pipeline
+### Code Generation (High-Level Understanding)
+You understand that generated code comes from TypeScript specs, but detailed pipeline knowledge is owned by dipeo-codegen-specialist:
+- TypeScript specs in `/dipeo/models/src/` → IR builders → Generated Python in `/dipeo/diagram_generated/`
+- Your role: **Consumer** of generated types and APIs
+- When generated APIs don't meet needs: Report to dipeo-codegen-specialist
+- When you need new generated types: Request from typescript-model-designer → dipeo-codegen-specialist
 
 ### LLM Integration
 - Unified client architecture for all providers (OpenAI, Anthropic, Google, Ollama, Claude Code, Claude Code Custom)
@@ -215,10 +208,12 @@ from dipeo.domain.codegen.ir_models import IRSchema, IRTypeDefinition
 from dipeo.domain.codegen.ir_builder_port import IRBuilderPort
 ```
 
-### When You Need Help
-- **Generated code issues**: Trace back to TypeScript specs in /nodes/ and IR builders pipeline
+### When You Need Help & Escalation Paths
+- **Generated code doesn't provide expected APIs**: Escalate to dipeo-codegen-specialist (they diagnose IR builders and generation)
+- **Generated code structure questions**: Escalate to dipeo-codegen-specialist (they understand generation internals)
+- **Need new node types or models**: Request from typescript-model-designer
 - **Architecture questions**: Refer to @docs/architecture/
-- **Frontend integration**: Defer to frontend-focused agents
+- **Frontend integration**: Defer to dipeo-frontend-dev
 - **CLI issues**: Defer to CLI-focused agents
 - **Documentation creation**: Only create if explicitly requested
 

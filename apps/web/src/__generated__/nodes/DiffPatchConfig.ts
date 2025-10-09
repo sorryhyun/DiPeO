@@ -19,8 +19,8 @@ export const diffPatchConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
-    format: 'unified',
-    apply_mode: 'normal',
+    format: 'DiffFormat.UNIFIED',
+    apply_mode: 'PatchMode.NORMAL',
     backup: true,
     validate_patch: true,
     strip_level: 1,

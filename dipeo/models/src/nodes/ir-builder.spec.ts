@@ -1,5 +1,6 @@
 import { NodeType } from '../core/enums/node-types.js';
 import { DataType } from '../core/enums/data-types.js';
+import { IRBuilderTargetType, IRBuilderSourceType, IRBuilderOutputFormat } from '../core/enums/node-specific.js';
 import { NodeSpecification } from '../node-specification.js';
 
 export const irBuilderSpec: NodeSpecification = {
@@ -22,10 +23,10 @@ export const irBuilderSpec: NodeSpecification = {
       uiConfig: {
         inputType: "select",
         options: [
-          { value: "backend", label: "Backend" },
-          { value: "frontend", label: "Frontend" },
-          { value: "strawberry", label: "Strawberry (GraphQL)" },
-          { value: "custom", label: "Custom" }
+          { value: IRBuilderTargetType.BACKEND, label: "Backend" },
+          { value: IRBuilderTargetType.FRONTEND, label: "Frontend" },
+          { value: IRBuilderTargetType.STRAWBERRY, label: "Strawberry (GraphQL)" },
+          { value: IRBuilderTargetType.CUSTOM, label: "Custom" }
         ]
       }
     },
@@ -40,10 +41,10 @@ export const irBuilderSpec: NodeSpecification = {
       uiConfig: {
         inputType: "select",
         options: [
-          { value: "ast", label: "AST" },
-          { value: "schema", label: "Schema" },
-          { value: "config", label: "Config" },
-          { value: "auto", label: "Auto-detect" }
+          { value: IRBuilderSourceType.AST, label: "AST" },
+          { value: IRBuilderSourceType.SCHEMA, label: "Schema" },
+          { value: IRBuilderSourceType.CONFIG, label: "Config" },
+          { value: IRBuilderSourceType.AUTO, label: "Auto-detect" }
         ]
       }
     },
@@ -68,9 +69,9 @@ export const irBuilderSpec: NodeSpecification = {
       uiConfig: {
         inputType: "select",
         options: [
-          { value: "json", label: "JSON" },
-          { value: "yaml", label: "YAML" },
-          { value: "python", label: "Python" }
+          { value: IRBuilderOutputFormat.JSON, label: "JSON" },
+          { value: IRBuilderOutputFormat.YAML, label: "YAML" },
+          { value: IRBuilderOutputFormat.PYTHON, label: "Python" }
         ]
       }
     },
@@ -121,5 +122,12 @@ export const irBuilderSpec: NodeSpecification = {
     maxRetries: 2
   },
 
-  primaryDisplayField: "builder_type"
+  primaryDisplayField: "builder_type",
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.ir_builder",
+    className: "IrBuilderHandler",
+    mixins: ["LoggingMixin", "ValidationMixin", "ConfigurationMixin"],
+    serviceKeys: ["FILE_SYSTEM", "STATE_STORE"]
+  }
 };

@@ -17,11 +17,11 @@ export const apiJobFields: UnifiedFieldDefinition[] = [
     required: true,
     description: '"HTTP method"',
     options: [
-      { value: '"GET"', label: '"GET"' },
-      { value: '"POST"', label: '"POST"' },
-      { value: '"PUT"', label: '"PUT"' },
-      { value: '"DELETE"', label: '"DELETE"' },
-      { value: '"PATCH"', label: '"PATCH"' },
+      { value: '"HttpMethod.GET"', label: '"GET"' },
+      { value: '"HttpMethod.POST"', label: '"POST"' },
+      { value: '"HttpMethod.PUT"', label: '"PUT"' },
+      { value: '"HttpMethod.DELETE"', label: '"DELETE"' },
+      { value: '"HttpMethod.PATCH"', label: '"PATCH"' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };
@@ -64,10 +64,10 @@ export const apiJobFields: UnifiedFieldDefinition[] = [
     required: false,
     description: '"Authentication type"',
     options: [
-      { value: '"none"', label: '"None"' },
-      { value: '"bearer"', label: '"Bearer Token"' },
-      { value: '"basic"', label: '"Basic Auth"' },
-      { value: '"api_key"', label: '"API Key"' },
+      { value: '"AuthType.NONE"', label: '"None"' },
+      { value: '"AuthType.BEARER"', label: '"Bearer Token"' },
+      { value: '"AuthType.BASIC"', label: '"Basic Auth"' },
+      { value: '"AuthType.API_KEY"', label: '"API Key"' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };

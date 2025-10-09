@@ -239,6 +239,21 @@ export const personJobSpec: NodeSpecification = {
     outputs: ["default"]
   },
 
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "conversation_state",
+      required: false,
+      description: "Main conversation context and input data for AI processing"
+    },
+    {
+      name: "first",
+      contentType: "conversation_state",
+      required: false,
+      description: "Initial conversation context for first iteration (overrides default on first run)"
+    }
+  ],
+
   outputs: {
     result: {
       type: "any",

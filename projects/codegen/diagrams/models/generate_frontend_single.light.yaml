@@ -47,8 +47,8 @@ nodes:
     position: {x: 550, y: 200}
     props:
       language: python
-      filePath: dipeo/infrastructure/codegen/generators/node_extractor.py
-      functionName: main
+      file_path: dipeo/infrastructure/codegen/generators/node_extractor.py
+      function_name: main
 
   # Generate all three file using template_job
   - label: Generate TypeScript Model

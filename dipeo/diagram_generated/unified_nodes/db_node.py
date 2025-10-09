@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for db.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-06T11:30:07.746032
+Generated at: 2025-10-09T13:41:18.786888
 """
 
 from typing import *
@@ -26,7 +26,7 @@ class DbNode(BaseModel):
 
     # Required node-specific fields
     sub_type: DBBlockSubType = Field(description="Database operation type")
-    operation: str = Field(description="Operation configuration")
+    operation: Literal["prompt", "read", "write", "append", "update"] = Field(description="Operation configuration")
 
     # Optional base fields
     label: str = Field(default="", description="Node label for display")
@@ -52,7 +52,7 @@ class DbNode(BaseModel):
     
     serialize_json: bool = Field(default=False, description="Serialize structured data to JSON string (for backward compatibility)")
     
-    format: str = Field(default="json", description="Data format (json, yaml, csv, text, etc.)")
+    format: Literal["json", "yaml", "csv", "text", "xml"] = Field(default="DataFormat.JSON", description="Data format (json, yaml, csv, text, etc.)")
 
     class Config:
         # Make the instance immutable after creation

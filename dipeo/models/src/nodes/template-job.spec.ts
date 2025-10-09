@@ -1,5 +1,6 @@
 
 import { NodeType } from '../core/enums/node-types.js';
+import { TemplateEngine } from '../core/enums/node-specific.js';
 import { NodeSpecification } from '../node-specification.js';
 
 export const templateJobSpec: NodeSpecification = {
@@ -57,7 +58,7 @@ export const templateJobSpec: NodeSpecification = {
       name: "engine",
       type: "enum",
       required: false,
-      defaultValue: "jinja2",
+      defaultValue: TemplateEngine.JINJA2,
       description: "Template engine to use",
       validation: {
         allowedValues: ["internal", "jinja2"]
@@ -65,8 +66,8 @@ export const templateJobSpec: NodeSpecification = {
       uiConfig: {
         inputType: "select",
         options: [
-          { value: "internal", label: "Internal" },
-          { value: "jinja2", label: "Jinja2" }
+          { value: TemplateEngine.INTERNAL, label: "Internal" },
+          { value: TemplateEngine.JINJA2, label: "Jinja2" }
         ]
       }
     },
@@ -86,6 +87,15 @@ export const templateJobSpec: NodeSpecification = {
     outputs: ["default"]
   },
 
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "object",
+      required: false,
+      description: "Template variables and data for template processing"
+    }
+  ],
+
   outputs: {
     result: {
       type: "any",
@@ -99,5 +109,12 @@ export const templateJobSpec: NodeSpecification = {
     maxRetries: 3
   },
 
-  primaryDisplayField: "engine"
+  primaryDisplayField: "engine",
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.template_job",
+    className: "TemplateJobHandler",
+    mixins: ["LoggingMixin", "ValidationMixin", "ConfigurationMixin"],
+    serviceKeys: ["FILE_SYSTEM", "STATE_STORE"]
+  }
 };

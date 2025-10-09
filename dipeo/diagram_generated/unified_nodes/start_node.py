@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for start.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-06T11:30:08.450444
+Generated at: 2025-10-09T13:41:19.653772
 """
 
 from typing import *
@@ -36,7 +36,7 @@ class StartNode(BaseModel):
 
     # Optional node-specific fields
     
-    trigger_mode: HookTriggerMode = Field(default="none", description="How this start node is triggered")
+    trigger_mode: HookTriggerMode = Field(default="HookTriggerMode.NONE", description="How this start node is triggered")
     
     custom_data: Any = Field(default={}, description="Custom data to pass when manually triggered")
     

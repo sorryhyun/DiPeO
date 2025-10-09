@@ -1,7 +1,7 @@
 """
 Generated enum definitions for DiPeO.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-06T11:30:08.719169
+Generated at: 2025-10-09T13:41:19.961274
 """
 
 from enum import Enum
@@ -74,11 +74,11 @@ class HandleLabel(str, Enum):
 class DiagramFormat(str, Enum):
     """"""
     
-    NATIVE = "native"
+    YAML = "yaml"
+    
+    JSON = "json"
     
     LIGHT = "light"
-    
-    READABLE = "readable"
     
 
 
@@ -274,6 +274,21 @@ class DBBlockSubType(str, Enum):
     
 
 
+class DBOperation(str, Enum):
+    """"""
+    
+    PROMPT = "prompt"
+    
+    READ = "read"
+    
+    WRITE = "write"
+    
+    APPEND = "append"
+    
+    UPDATE = "update"
+    
+
+
 class SupportedLanguage(str, Enum):
     """"""
     
@@ -290,15 +305,15 @@ class SupportedLanguage(str, Enum):
 class HttpMethod(str, Enum):
     """"""
     
-    GET = "get"
+    GET = "GET"
     
-    POST = "post"
+    POST = "POST"
     
-    PUT = "put"
+    PUT = "PUT"
     
-    DELETE = "delete"
+    DELETE = "DELETE"
     
-    PATCH = "patch"
+    PATCH = "PATCH"
     
 
 
@@ -307,7 +322,7 @@ class HookType(str, Enum):
     
     SHELL = "shell"
     
-    WEBHOOK = "webhook"
+    HTTP = "http"
     
     PYTHON = "python"
     
@@ -345,6 +360,125 @@ class TemplateEngine(str, Enum):
     INTERNAL = "internal"
     
     JINJA2 = "jinja2"
+    
+
+
+class IRBuilderTargetType(str, Enum):
+    """"""
+    
+    BACKEND = "backend"
+    
+    FRONTEND = "frontend"
+    
+    STRAWBERRY = "strawberry"
+    
+    CUSTOM = "custom"
+    
+
+
+class IRBuilderSourceType(str, Enum):
+    """"""
+    
+    AST = "ast"
+    
+    SCHEMA = "schema"
+    
+    CONFIG = "config"
+    
+    AUTO = "auto"
+    
+
+
+class IRBuilderOutputFormat(str, Enum):
+    """"""
+    
+    JSON = "json"
+    
+    YAML = "yaml"
+    
+    PYTHON = "python"
+    
+
+
+class TypeScriptExtractPattern(str, Enum):
+    """"""
+    
+    INTERFACE = "interface"
+    
+    TYPE = "type"
+    
+    ENUM = "enum"
+    
+    CLASS = "class"
+    
+    FUNCTION = "function"
+    
+    CONST = "const"
+    
+    EXPORT = "export"
+    
+
+
+class TypeScriptParseMode(str, Enum):
+    """"""
+    
+    MODULE = "module"
+    
+    SCRIPT = "script"
+    
+
+
+class TypeScriptOutputFormat(str, Enum):
+    """"""
+    
+    STANDARD = "standard"
+    
+    FOR_CODEGEN = "for_codegen"
+    
+    FOR_ANALYSIS = "for_analysis"
+    
+
+
+class DiffFormat(str, Enum):
+    """"""
+    
+    UNIFIED = "unified"
+    
+    GIT = "git"
+    
+    CONTEXT = "context"
+    
+    ED = "ed"
+    
+    NORMAL = "normal"
+    
+
+
+class PatchMode(str, Enum):
+    """"""
+    
+    NORMAL = "normal"
+    
+    FORCE = "force"
+    
+    DRY_RUN = "dry_run"
+    
+    REVERSE = "reverse"
+    
+
+
+class DataFormat(str, Enum):
+    """"""
+    
+    JSON = "json"
+    
+    YAML = "yaml"
+    
+    CSV = "csv"
+    
+    TEXT = "text"
+    
+    XML = "xml"
     
 
 
@@ -524,6 +658,8 @@ __all__ = [
     
     "DBBlockSubType",
     
+    "DBOperation",
+    
     "SupportedLanguage",
     
     "HttpMethod",
@@ -535,6 +671,24 @@ __all__ = [
     "ConditionType",
     
     "TemplateEngine",
+    
+    "IRBuilderTargetType",
+    
+    "IRBuilderSourceType",
+    
+    "IRBuilderOutputFormat",
+    
+    "TypeScriptExtractPattern",
+    
+    "TypeScriptParseMode",
+    
+    "TypeScriptOutputFormat",
+    
+    "DiffFormat",
+    
+    "PatchMode",
+    
+    "DataFormat",
     
     "NodeType",
     

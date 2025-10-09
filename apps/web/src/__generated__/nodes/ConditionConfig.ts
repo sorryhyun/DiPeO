@@ -19,7 +19,7 @@ export const conditionConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
-    condition_type: 'custom',
+    condition_type: 'ConditionType.CUSTOM',
     memorize_to: 'GOLDFISH',
     skippable: false,
   },

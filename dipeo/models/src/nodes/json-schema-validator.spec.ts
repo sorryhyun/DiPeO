@@ -68,6 +68,15 @@ export const jsonSchemaValidatorSpec: NodeSpecification = {
     outputs: ["default"]
   },
 
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "object",
+      required: false,
+      description: "Data object to validate against the JSON schema"
+    }
+  ],
+
   outputs: {
     result: {
       type: "any",
@@ -81,5 +90,12 @@ export const jsonSchemaValidatorSpec: NodeSpecification = {
     maxRetries: 3
   },
 
-  primaryDisplayField: "schema_path"
+  primaryDisplayField: "schema_path",
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.json_schema_validator",
+    className: "JsonSchemaValidatorHandler",
+    mixins: ["LoggingMixin", "ValidationMixin"],
+    serviceKeys: ["FILE_SYSTEM", "STATE_STORE"]
+  }
 };

@@ -2,7 +2,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-10-06T11:30:05.588911
+Generated at: 2025-10-09T13:41:16.150536
 """
 
 import strawberry
@@ -136,15 +136,15 @@ class CreateCodeJobInput:
     
     
     
-    filePath: Optional[str] = None  # Path to code file
+    file_path: Optional[str] = None  # Path to code file
     
     
     
-    code: Optional[str] = None  # Inline code to execute (alternative to filePath)
+    code: Optional[str] = None  # Inline code to execute (alternative to file_path)
     
     
     
-    functionName: Optional[str] = None  # Function to execute
+    function_name: Optional[str] = None  # Function to execute
     
     
     
@@ -166,15 +166,15 @@ class UpdateCodeJobInput:
     
     
     
-    filePath: Optional[str] = None  # Path to code file
+    file_path: Optional[str] = None  # Path to code file
     
     
     
-    code: Optional[str] = None  # Inline code to execute (alternative to filePath)
+    code: Optional[str] = None  # Inline code to execute (alternative to file_path)
     
     
     
-    functionName: Optional[str] = None  # Function to execute
+    function_name: Optional[str] = None  # Function to execute
     
     
     
@@ -333,7 +333,8 @@ class CreateDbInput:
     
     
     
-    format: Optional[str] = None  # Data format (json, yaml, csv, text, etc.)
+    # Enum field: Data format (json, yaml, csv, text, etc.)
+    format: Optional[str] = None  # Values: ['json', 'yaml', 'csv', 'text', 'xml']
     
     
 
@@ -384,7 +385,8 @@ class UpdateDbInput:
     
     
     
-    format: Optional[str] = None  # Data format (json, yaml, csv, text, etc.)
+    # Enum field: Data format (json, yaml, csv, text, etc.)
+    format: Optional[str] = None  # Values: ['json', 'yaml', 'csv', 'text', 'xml']
     
     
 
@@ -1073,7 +1075,7 @@ class CreateSubDiagramInput:
     
     
     
-    ignoreIfSub: Optional[bool] = None  # Skip execution if this diagram is being run as a sub-diagram
+    ignore_if_sub: Optional[bool] = None  # Skip execution if this diagram is being run as a sub-diagram
     
     
     
@@ -1131,7 +1133,7 @@ class UpdateSubDiagramInput:
     
     
     
-    ignoreIfSub: Optional[bool] = None  # Skip execution if this diagram is being run as a sub-diagram
+    ignore_if_sub: Optional[bool] = None  # Skip execution if this diagram is being run as a sub-diagram
     
     
     
@@ -1238,29 +1240,29 @@ class CreateTypescriptAstInput:
     
     
     # Enum field: Patterns to extract from the AST
-    extractPatterns: Optional[str] = None  # Values: ['interface', 'type', 'enum', 'class', 'function', 'const', 'export']
+    extract_patterns: Optional[str] = None  # Values: ['interface', 'type', 'enum', 'class', 'function', 'const', 'export']
     
     
     
-    includeJSDoc: Optional[bool] = None  # Include JSDoc comments in the extracted data
+    include_jsdoc: Optional[bool] = None  # Include JSDoc comments in the extracted data
     
     
     
     # Enum field: TypeScript parsing mode
-    parseMode: Optional[str] = None  # Values: ['module', 'script']
+    parse_mode: Optional[str] = None  # Values: ['module', 'script']
     
     
     
-    transformEnums: Optional[bool] = None  # Transform enum definitions to a simpler format
+    transform_enums: Optional[bool] = None  # Transform enum definitions to a simpler format
     
     
     
-    flattenOutput: Optional[bool] = None  # Flatten the output structure for easier consumption
+    flatten_output: Optional[bool] = None  # Flatten the output structure for easier consumption
     
     
     
     # Enum field: Output format for the parsed data
-    outputFormat: Optional[str] = None  # Values: ['standard', 'for_codegen', 'for_analysis']
+    output_format: Optional[str] = None  # Values: ['standard', 'for_codegen', 'for_analysis']
     
     
     
@@ -1268,7 +1270,7 @@ class CreateTypescriptAstInput:
     
     
     
-    batchInputKey: Optional[str] = None  # Key to extract batch items from input
+    batch_input_key: Optional[str] = None  # Key to extract batch items from input
     
     
 
@@ -1286,29 +1288,29 @@ class UpdateTypescriptAstInput:
     
     
     # Enum field: Patterns to extract from the AST
-    extractPatterns: Optional[str] = None  # Values: ['interface', 'type', 'enum', 'class', 'function', 'const', 'export']
+    extract_patterns: Optional[str] = None  # Values: ['interface', 'type', 'enum', 'class', 'function', 'const', 'export']
     
     
     
-    includeJSDoc: Optional[bool] = None  # Include JSDoc comments in the extracted data
+    include_jsdoc: Optional[bool] = None  # Include JSDoc comments in the extracted data
     
     
     
     # Enum field: TypeScript parsing mode
-    parseMode: Optional[str] = None  # Values: ['module', 'script']
+    parse_mode: Optional[str] = None  # Values: ['module', 'script']
     
     
     
-    transformEnums: Optional[bool] = None  # Transform enum definitions to a simpler format
+    transform_enums: Optional[bool] = None  # Transform enum definitions to a simpler format
     
     
     
-    flattenOutput: Optional[bool] = None  # Flatten the output structure for easier consumption
+    flatten_output: Optional[bool] = None  # Flatten the output structure for easier consumption
     
     
     
     # Enum field: Output format for the parsed data
-    outputFormat: Optional[str] = None  # Values: ['standard', 'for_codegen', 'for_analysis']
+    output_format: Optional[str] = None  # Values: ['standard', 'for_codegen', 'for_analysis']
     
     
     
@@ -1316,7 +1318,7 @@ class UpdateTypescriptAstInput:
     
     
     
-    batchInputKey: Optional[str] = None  # Key to extract batch items from input
+    batch_input_key: Optional[str] = None  # Key to extract batch items from input
     
     
 

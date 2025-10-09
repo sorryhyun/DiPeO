@@ -9,10 +9,10 @@ export const irBuilderFields: UnifiedFieldDefinition[] = [
     required: true,
     description: '"Type of IR builder to use"',
     options: [
-      { value: '"backend"', label: '"Backend"' },
-      { value: '"frontend"', label: '"Frontend"' },
-      { value: '"strawberry"', label: '"Strawberry (GraphQL)"' },
-      { value: '"custom"', label: '"Custom"' },
+      { value: '"IRBuilderTargetType.BACKEND"', label: '"Backend"' },
+      { value: '"IRBuilderTargetType.FRONTEND"', label: '"Frontend"' },
+      { value: '"IRBuilderTargetType.STRAWBERRY"', label: '"Strawberry (GraphQL)"' },
+      { value: '"IRBuilderTargetType.CUSTOM"', label: '"Custom"' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };
@@ -25,10 +25,10 @@ export const irBuilderFields: UnifiedFieldDefinition[] = [
     required: false,
     description: '"Type of source data"',
     options: [
-      { value: '"ast"', label: '"AST"' },
-      { value: '"schema"', label: '"Schema"' },
-      { value: '"config"', label: '"Config"' },
-      { value: '"auto"', label: '"Auto-detect"' },
+      { value: '"IRBuilderSourceType.AST"', label: '"AST"' },
+      { value: '"IRBuilderSourceType.SCHEMA"', label: '"Schema"' },
+      { value: '"IRBuilderSourceType.CONFIG"', label: '"Config"' },
+      { value: '"IRBuilderSourceType.AUTO"', label: '"Auto-detect"' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };
@@ -49,9 +49,9 @@ export const irBuilderFields: UnifiedFieldDefinition[] = [
     required: false,
     description: '"Output format for IR"',
     options: [
-      { value: '"json"', label: '"JSON"' },
-      { value: '"yaml"', label: '"YAML"' },
-      { value: '"python"', label: '"Python"' },
+      { value: '"IRBuilderOutputFormat.JSON"', label: '"JSON"' },
+      { value: '"IRBuilderOutputFormat.YAML"', label: '"YAML"' },
+      { value: '"IRBuilderOutputFormat.PYTHON"', label: '"Python"' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };

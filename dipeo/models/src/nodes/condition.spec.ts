@@ -16,7 +16,7 @@ export const conditionSpec: NodeSpecification = {
       name: "condition_type",
       type: "enum",
       required: false,
-      defaultValue: "custom",
+      defaultValue: ConditionType.CUSTOM,
       description: "Type of condition to evaluate",
       validation: {
         allowedValues: ["detect_max_iterations", "check_nodes_executed", "custom", "llm_decision"]
@@ -24,10 +24,10 @@ export const conditionSpec: NodeSpecification = {
       uiConfig: {
         inputType: "select",
         options: [
-          { value: "detect_max_iterations", label: "Detect Max Iterations" },
-          { value: "check_nodes_executed", label: "Check Nodes Executed" },
-          { value: "custom", label: "Custom Expression" },
-          { value: "llm_decision", label: "LLM Decision" }
+          { value: ConditionType.DETECT_MAX_ITERATIONS, label: "Detect Max Iterations" },
+          { value: ConditionType.CHECK_NODES_EXECUTED, label: "Check Nodes Executed" },
+          { value: ConditionType.CUSTOM, label: "Custom Expression" },
+          { value: ConditionType.LLM_DECISION, label: "LLM Decision" }
         ]
       }
     },
@@ -38,7 +38,7 @@ export const conditionSpec: NodeSpecification = {
       description: "Boolean expression to evaluate",
       conditional: {
         field: "condition_type",
-        values: ["custom"]
+        values: [ConditionType.CUSTOM]
       },
       uiConfig: {
         inputType: "textarea",
@@ -53,7 +53,7 @@ export const conditionSpec: NodeSpecification = {
       description: "Node indices for detect_max_iteration condition",
       conditional: {
         field: "condition_type",
-        values: ["detect_max_iterations", "check_nodes_executed"]
+        values: [ConditionType.DETECT_MAX_ITERATIONS, ConditionType.CHECK_NODES_EXECUTED]
       },
       validation: {
         itemType: "string"
@@ -70,7 +70,7 @@ export const conditionSpec: NodeSpecification = {
       description: "AI agent to use for decision making",
       conditional: {
         field: "condition_type",
-        values: ["llm_decision"]
+        values: [ConditionType.LLM_DECISION]
       },
       uiConfig: {
         inputType: "personSelect",
@@ -84,7 +84,7 @@ export const conditionSpec: NodeSpecification = {
       description: "Prompt for LLM to make a judgment",
       conditional: {
         field: "condition_type",
-        values: ["llm_decision"]
+        values: [ConditionType.LLM_DECISION]
       },
       uiConfig: {
         inputType: "textarea",
@@ -99,7 +99,7 @@ export const conditionSpec: NodeSpecification = {
       description: "External prompt file path",
       conditional: {
         field: "condition_type",
-        values: ["llm_decision"]
+        values: [ConditionType.LLM_DECISION]
       },
       uiConfig: {
         inputType: "text",
@@ -114,7 +114,7 @@ export const conditionSpec: NodeSpecification = {
       description: "Memory control strategy (e.g., GOLDFISH for fresh evaluation)",
       conditional: {
         field: "condition_type",
-        values: ["llm_decision"]
+        values: [ConditionType.LLM_DECISION]
       },
       uiConfig: {
         inputType: "text",
@@ -128,7 +128,7 @@ export const conditionSpec: NodeSpecification = {
       description: "Maximum messages to keep in memory",
       conditional: {
         field: "condition_type",
-        values: ["llm_decision"]
+        values: [ConditionType.LLM_DECISION]
       },
       uiConfig: {
         inputType: "number",
@@ -162,6 +162,15 @@ export const conditionSpec: NodeSpecification = {
     outputs: ["condtrue", "condfalse"]
   },
 
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "object",
+      required: false,
+      description: "Input data for condition evaluation (object for custom expressions, conversation state for LLM decisions)"
+    }
+  ],
+
   outputs: {
     true: {
       type: "any",
@@ -179,5 +188,12 @@ export const conditionSpec: NodeSpecification = {
     maxRetries: 3
   },
 
-  primaryDisplayField: "condition_type"
+  primaryDisplayField: "condition_type",
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.condition",
+    className: "ConditionHandler",
+    mixins: ["LoggingMixin", "ValidationMixin", "ConfigurationMixin"],
+    serviceKeys: ["LLM_CLIENT", "STATE_STORE", "EVENT_BUS"]
+  }
 };

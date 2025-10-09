@@ -41,6 +41,15 @@ export const userResponseSpec: NodeSpecification = {
     outputs: ["default"]
   },
 
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "object",
+      required: false,
+      description: "Context data to display to the user along with the prompt"
+    }
+  ],
+
   outputs: {
     result: {
       type: "any",
@@ -54,5 +63,12 @@ export const userResponseSpec: NodeSpecification = {
     maxRetries: 3
   },
 
-  primaryDisplayField: "prompt"
+  primaryDisplayField: "prompt",
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.user_response",
+    className: "UserResponseHandler",
+    mixins: ["LoggingMixin", "ValidationMixin"],
+    serviceKeys: ["STATE_STORE", "EVENT_BUS"]
+  }
 };

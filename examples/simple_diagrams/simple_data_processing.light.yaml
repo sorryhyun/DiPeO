@@ -62,7 +62,7 @@ nodes:
           }
 
       result = process_data(inputs)
-    functionName: process_data
+    function_name: process_data
 
 - label: analyze patterns
   type: PERSON_JOB
@@ -121,7 +121,7 @@ nodes:
           return {"report": report, "metadata": stats}
 
       result = format_report(inputs)
-    functionName: format_report
+    function_name: format_report
 
 - label: save report
   type: ENDPOINT

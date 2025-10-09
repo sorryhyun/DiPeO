@@ -96,6 +96,15 @@ export const integratedApiSpec: NodeSpecification = {
     outputs: ["default", "error"]
   },
 
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "object",
+      required: false,
+      description: "Input data for API request configuration (resource IDs, parameters, request body)"
+    }
+  ],
+
   outputs: {
     result: {
       type: "any",
@@ -113,5 +122,12 @@ export const integratedApiSpec: NodeSpecification = {
     maxRetries: 3
   },
 
-  primaryDisplayField: "provider"
+  primaryDisplayField: "provider",
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.integrated_api",
+    className: "IntegratedApiHandler",
+    mixins: ["LoggingMixin", "ValidationMixin", "ConfigurationMixin"],
+    serviceKeys: ["HTTP_CLIENT", "STATE_STORE"]
+  }
 };

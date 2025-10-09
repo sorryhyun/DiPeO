@@ -9,10 +9,10 @@ export const conditionFields: UnifiedFieldDefinition[] = [
     required: false,
     description: '"Type of condition to evaluate"',
     options: [
-      { value: '"detect_max_iterations"', label: '"Detect Max Iterations"' },
-      { value: '"check_nodes_executed"', label: '"Check Nodes Executed"' },
-      { value: '"custom"', label: '"Custom Expression"' },
-      { value: '"llm_decision"', label: '"LLM Decision"' },
+      { value: '"ConditionType.DETECT_MAX_ITERATIONS"', label: '"Detect Max Iterations"' },
+      { value: '"ConditionType.CHECK_NODES_EXECUTED"', label: '"Check Nodes Executed"' },
+      { value: '"ConditionType.CUSTOM"', label: '"Custom Expression"' },
+      { value: '"ConditionType.LLM_DECISION"', label: '"LLM Decision"' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };

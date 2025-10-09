@@ -23,10 +23,10 @@ export const dbFields: UnifiedFieldDefinition[] = [
     required: true,
     description: '"Database operation type"',
     options: [
-      { value: '"fixed_prompt"', label: '"Fixed Prompt"' },
-      { value: '"file"', label: '"File"' },
-      { value: '"code"', label: '"Code"' },
-      { value: '"api_tool"', label: '"API Tool"' },
+      { value: '"DBBlockSubType.FIXED_PROMPT"', label: '"Fixed Prompt"' },
+      { value: '"DBBlockSubType.FILE"', label: '"File"' },
+      { value: '"DBBlockSubType.CODE"', label: '"Code"' },
+      { value: '"DBBlockSubType.API_TOOL"', label: '"API Tool"' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };
@@ -38,6 +38,13 @@ export const dbFields: UnifiedFieldDefinition[] = [
     label: '"Operation"',
     required: true,
     description: '"Operation configuration"',
+    options: [
+      { value: '"DBOperation.PROMPT"', label: '"Prompt"' },
+      { value: '"DBOperation.READ"', label: '"Read"' },
+      { value: '"DBOperation.WRITE"', label: '"Write"' },
+      { value: '"DBOperation.APPEND"', label: '"Append"' },
+      { value: '"DBOperation.UPDATE"', label: '"Update"' },
+    ],
     validate: (value: unknown) => {
       return { isValid: true };
     },
@@ -86,11 +93,14 @@ export const dbFields: UnifiedFieldDefinition[] = [
     required: false,
     description: '"Data format (json, yaml, csv, text, etc.)"',
     options: [
-      { value: '"json"', label: '"JSON"' },
-      { value: '"yaml"', label: '"YAML"' },
-      { value: '"csv"', label: '"CSV"' },
-      { value: '"text"', label: '"Text"' },
-      { value: '"xml"', label: '"XML"' },
+      { value: '"DataFormat.JSON"', label: '"JSON"' },
+      { value: '"DataFormat.YAML"', label: '"YAML"' },
+      { value: '"DataFormat.CSV"', label: '"CSV"' },
+      { value: '"DataFormat.TEXT"', label: '"Text"' },
+      { value: '"DataFormat.XML"', label: '"XML"' },
     ],
+    validate: (value: unknown) => {
+      return { isValid: true };
+    },
   },
 ];

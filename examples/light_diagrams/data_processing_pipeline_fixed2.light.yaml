@@ -58,8 +58,8 @@ nodes:
     position: {x: 19, y: 342}
     props:
       language: python
-      filePath: files/code_examples/data_processor.py
-      functionName: parse_data
+      file_path: files/code_examples/data_processor.py
+      function_name: parse_data
 
   - label: Quality Check
     type: person_job
@@ -88,8 +88,8 @@ nodes:
     position: {x: 731, y: 425}
     props:
       language: python
-      filePath: files/code_examples/data_processor.py
-      functionName: extract_score
+      file_path: files/code_examples/data_processor.py
+      function_name: extract_score
 
   - label: Check Quality Threshold
     type: condition
@@ -104,8 +104,8 @@ nodes:
     position: {x: 271, y: 943}
     props:
       language: python
-      filePath: files/code_examples/data_processor.py
-      functionName: transform_data
+      file_path: files/code_examples/data_processor.py
+      function_name: transform_data
       flipped: [true, false]
 
   - label: Enrich with API
@@ -123,8 +123,8 @@ nodes:
     position: {x: -393, y: 854}
     props:
       language: python
-      filePath: files/code_examples/data_processor.py
-      functionName: enrich_data
+      file_path: files/code_examples/data_processor.py
+      function_name: enrich_data
       flipped: [true, false]
 
   - label: Pattern Analysis
@@ -132,8 +132,8 @@ nodes:
     position: {x: -550, y: 950}
     props:
       language: python
-      filePath: files/code_examples/data_processor.py
-      functionName: analyze_patterns
+      file_path: files/code_examples/data_processor.py
+      function_name: analyze_patterns
       flipped: [true, false]
 
   - label: Analyze Patterns
@@ -163,8 +163,8 @@ nodes:
     position: {x: 276, y: 655}
     props:
       language: python
-      filePath: files/code_examples/data_processor.py
-      functionName: handle_error
+      file_path: files/code_examples/data_processor.py
+      function_name: handle_error
       flipped: [true, false]
 
   - label: Generate Report

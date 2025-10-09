@@ -19,17 +19,17 @@ export const typescriptAstConfig: UnifiedNodeConfig = {
     ],
   },
   defaults: {
-    extractPatterns: ["interface", "type", "enum"],
-    includeJSDoc: false,
-    parseMode: 'module',
-    transformEnums: false,
-    flattenOutput: false,
-    outputFormat: 'standard',
+    extract_patterns: ["TypeScriptExtractPattern.INTERFACE", "TypeScriptExtractPattern.TYPE", "TypeScriptExtractPattern.ENUM"],
+    include_jsdoc: false,
+    parse_mode: 'TypeScriptParseMode.MODULE',
+    transform_enums: false,
+    flatten_output: false,
+    output_format: 'TypeScriptOutputFormat.STANDARD',
     batch: false,
-    batchInputKey: 'sources',
+    batch_input_key: 'sources',
   },
   customFields: typescriptAstFields,
-  primaryDisplayField: 'parseMode',
+  primaryDisplayField: 'parse_mode',
 };
 
 export default typescriptAstConfig;

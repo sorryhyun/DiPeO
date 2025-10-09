@@ -1,5 +1,6 @@
 
 import { NodeType } from '../core/enums/node-types.js';
+import { HookTriggerMode } from '../core/enums/node-specific.js';
 import { NodeSpecification } from '../node-specification.js';
 
 export const startSpec: NodeSpecification = {
@@ -15,7 +16,7 @@ export const startSpec: NodeSpecification = {
       name: "trigger_mode",
       type: "enum",
       required: false,
-      defaultValue: "none",
+      defaultValue: HookTriggerMode.NONE,
       description: "How this start node is triggered",
       validation: {
         allowedValues: ["none", "manual", "hook"]
@@ -23,9 +24,9 @@ export const startSpec: NodeSpecification = {
       uiConfig: {
         inputType: "select",
         options: [
-          { value: "none", label: "None - Simple start point" },
-          { value: "manual", label: "Manual - Triggered manually with data" },
-          { value: "hook", label: "Hook - Triggered by external events" }
+          { value: HookTriggerMode.NONE, label: "None - Simple start point" },
+          { value: HookTriggerMode.MANUAL, label: "Manual - Triggered manually with data" },
+          { value: HookTriggerMode.HOOK, label: "Hook - Triggered by external events" }
         ]
       }
     },
@@ -37,7 +38,7 @@ export const startSpec: NodeSpecification = {
       description: "Custom data to pass when manually triggered",
       conditional: {
         field: "trigger_mode",
-        values: ["manual"]
+        values: [HookTriggerMode.MANUAL]
       },
       uiConfig: {
         inputType: "text"
@@ -51,7 +52,7 @@ export const startSpec: NodeSpecification = {
       description: "Expected output data structure",
       conditional: {
         field: "trigger_mode",
-        values: ["manual"]
+        values: [HookTriggerMode.MANUAL]
       },
       uiConfig: {
         inputType: "code",
@@ -65,7 +66,7 @@ export const startSpec: NodeSpecification = {
       description: "Event name to listen for",
       conditional: {
         field: "trigger_mode",
-        values: ["hook"]
+        values: [HookTriggerMode.HOOK]
       },
       uiConfig: {
         inputType: "text",
@@ -79,7 +80,7 @@ export const startSpec: NodeSpecification = {
       description: "Filters to apply to incoming events",
       conditional: {
         field: "trigger_mode",
-        values: ["hook"]
+        values: [HookTriggerMode.HOOK]
       },
       uiConfig: {
         inputType: "code",
@@ -104,5 +105,12 @@ export const startSpec: NodeSpecification = {
     timeout: 300,
     retryable: true,
     maxRetries: 3
+  },
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.start",
+    className: "StartHandler",
+    mixins: ["LoggingMixin", "ValidationMixin"],
+    serviceKeys: ["STATE_STORE", "EVENT_BUS"]
   }
 };

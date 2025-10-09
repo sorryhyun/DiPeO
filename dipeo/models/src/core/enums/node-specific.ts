@@ -9,6 +9,14 @@ export enum DBBlockSubType {
   API_TOOL = 'api_tool'
 }
 
+export enum DBOperation {
+  PROMPT = 'prompt',
+  READ = 'read',
+  WRITE = 'write',
+  APPEND = 'append',
+  UPDATE = 'update'
+}
+
 export enum SupportedLanguage {
   PYTHON = 'python',
   TYPESCRIPT = 'typescript',
@@ -17,16 +25,16 @@ export enum SupportedLanguage {
 }
 
 export enum HttpMethod {
-  GET = 'get',
-  POST = 'post',
-  PUT = 'put',
-  DELETE = 'delete',
-  PATCH = 'patch'
+  GET = 'GET',
+  POST = 'POST',
+  PUT = 'PUT',
+  DELETE = 'DELETE',
+  PATCH = 'PATCH'
 }
 
 export enum HookType {
   SHELL = 'shell',
-  WEBHOOK = 'webhook',
+  HTTP = 'http',
   PYTHON = 'python',
   FILE = 'file'
 }
@@ -47,4 +55,68 @@ export enum ConditionType {
 export enum TemplateEngine {
   INTERNAL = 'internal',
   JINJA2 = 'jinja2'
+}
+
+export enum IRBuilderTargetType {
+  BACKEND = 'backend',
+  FRONTEND = 'frontend',
+  STRAWBERRY = 'strawberry',
+  CUSTOM = 'custom'
+}
+
+export enum IRBuilderSourceType {
+  AST = 'ast',
+  SCHEMA = 'schema',
+  CONFIG = 'config',
+  AUTO = 'auto'
+}
+
+export enum IRBuilderOutputFormat {
+  JSON = 'json',
+  YAML = 'yaml',
+  PYTHON = 'python'
+}
+
+export enum TypeScriptExtractPattern {
+  INTERFACE = 'interface',
+  TYPE = 'type',
+  ENUM = 'enum',
+  CLASS = 'class',
+  FUNCTION = 'function',
+  CONST = 'const',
+  EXPORT = 'export'
+}
+
+export enum TypeScriptParseMode {
+  MODULE = 'module',
+  SCRIPT = 'script'
+}
+
+export enum TypeScriptOutputFormat {
+  STANDARD = 'standard',
+  FOR_CODEGEN = 'for_codegen',
+  FOR_ANALYSIS = 'for_analysis'
+}
+
+export enum DiffFormat {
+  UNIFIED = 'unified',
+  GIT = 'git',
+  CONTEXT = 'context',
+  ED = 'ed',
+  NORMAL = 'normal'
+}
+
+export enum PatchMode {
+  NORMAL = 'normal',
+  FORCE = 'force',
+  DRY_RUN = 'dry_run',
+  REVERSE = 'reverse'
+}
+
+export enum DataFormat {
+  JSON = 'json',
+  YAML = 'yaml',
+  CSV = 'csv',
+  TEXT = 'text',
+  XML = 'xml'
 }

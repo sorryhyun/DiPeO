@@ -26,11 +26,11 @@ export const diffPatchFields: UnifiedFieldDefinition[] = [
     required: false,
     description: '"Diff format type"',
     options: [
-      { value: '"unified"', label: '"Unified"' },
-      { value: '"git"', label: '"Git"' },
-      { value: '"context"', label: '"Context"' },
-      { value: '"ed"', label: '"Ed Script"' },
-      { value: '"normal"', label: '"Normal"' },
+      { value: '"DiffFormat.UNIFIED"', label: '"Unified"' },
+      { value: '"DiffFormat.GIT"', label: '"Git"' },
+      { value: '"DiffFormat.CONTEXT"', label: '"Context"' },
+      { value: '"DiffFormat.ED"', label: '"Ed Script"' },
+      { value: '"DiffFormat.NORMAL"', label: '"Normal"' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };
@@ -43,10 +43,10 @@ export const diffPatchFields: UnifiedFieldDefinition[] = [
     required: false,
     description: '"How to apply the patch"',
     options: [
-      { value: '"normal"', label: '"Normal"' },
-      { value: '"force"', label: '"Force"' },
-      { value: '"dry_run"', label: '"Dry Run"' },
-      { value: '"reverse"', label: '"Reverse"' },
+      { value: '"PatchMode.NORMAL"', label: '"Normal"' },
+      { value: '"PatchMode.FORCE"', label: '"Force"' },
+      { value: '"PatchMode.DRY_RUN"', label: '"Dry Run"' },
+      { value: '"PatchMode.REVERSE"', label: '"Reverse"' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };

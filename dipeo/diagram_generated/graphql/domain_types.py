@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces using simplified type resolver.
 
-Generated at: 2025-10-06T11:30:05.588911
+Generated at: 2025-10-09T13:41:16.150536
 """
 
 from __future__ import annotations
@@ -87,6 +87,8 @@ from ..domain_models import (
     ConversationTurn,
     TypeAliasInfo,
     ParseResult,
+    ValidationError,
+    ValidationResult,
     Vec2,
     DomainNode,
     DomainDiagram,
@@ -876,6 +878,23 @@ class ParseResultType:
     functions: Optional[List[FunctionInfoType]] = None
     constants: Optional[List[ConstantInfoType]] = None
     error: Optional[str] = None
+
+
+@strawberry.type
+class ValidationErrorType:
+    """ValidationError domain type"""
+    field: str
+    message: str
+    severity: ValidationSeverity
+    code: Optional[str] = None
+
+
+@strawberry.type
+class ValidationResultType:
+    """ValidationResult domain type"""
+    valid: bool
+    errors: List[ValidationError]
+    warnings: List[ValidationError]
 
 
 @strawberry.type

@@ -66,9 +66,9 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
     description: '"Create isolated conversation context for sub-diagram"',
   },
   {
-    name: 'ignoreIfSub',
+    name: 'ignore_if_sub',
     type: 'checkbox',
-    label: '"Ignoreifsub"',
+    label: '"Ignore if sub"',
     required: false,
     description: '"Skip execution if this diagram is being run as a sub-diagram"',
   },
@@ -79,9 +79,9 @@ export const subDiagramFields: UnifiedFieldDefinition[] = [
     required: false,
     description: '"Format of the diagram file (yaml, json, or light)"',
     options: [
-      { value: '"yaml"', label: '"YAML"' },
-      { value: '"json"', label: '"JSON"' },
-      { value: '"light"', label: '"Light"' },
+      { value: '"DiagramFormat.YAML"', label: '"YAML"' },
+      { value: '"DiagramFormat.JSON"', label: '"JSON"' },
+      { value: '"DiagramFormat.LIGHT"', label: '"Light"' },
     ],
     validate: (value: unknown) => {
       return { isValid: true };

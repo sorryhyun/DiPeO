@@ -3,7 +3,7 @@
  */
 
 import { NodeType } from '../core/enums/node-types.js';
-import { SupportedLanguage } from '../core/enums/node-specific.js';
+import { SupportedLanguage, TypeScriptExtractPattern, TypeScriptParseMode, TypeScriptOutputFormat } from '../core/enums/node-specific.js';
 import { NodeSpecification } from '../node-specification.js';
 
 export const typescriptAstSpec: NodeSpecification = {
@@ -26,13 +26,13 @@ export const typescriptAstSpec: NodeSpecification = {
       }
     },
     {
-      name: "extractPatterns",
+      name: "extract_patterns",
       type: "array",
       required: false,
-      defaultValue: ["interface", "type", "enum"],
+      defaultValue: [TypeScriptExtractPattern.INTERFACE, TypeScriptExtractPattern.TYPE, TypeScriptExtractPattern.ENUM],
       description: "Patterns to extract from the AST",
       validation: {
-        itemType: "string",
+        itemType: "enum",
         allowedValues: ["interface", "type", "enum", "class", "function", "const", "export"]
       },
       uiConfig: {
@@ -40,7 +40,7 @@ export const typescriptAstSpec: NodeSpecification = {
       }
     },
     {
-      name: "includeJSDoc",
+      name: "include_jsdoc",
       type: "boolean",
       required: false,
       defaultValue: false,
@@ -50,10 +50,10 @@ export const typescriptAstSpec: NodeSpecification = {
       }
     },
     {
-      name: "parseMode",
+      name: "parse_mode",
       type: "enum",
       required: false,
-      defaultValue: "module",
+      defaultValue: TypeScriptParseMode.MODULE,
       description: "TypeScript parsing mode",
       validation: {
         allowedValues: ["module", "script"]
@@ -61,13 +61,13 @@ export const typescriptAstSpec: NodeSpecification = {
       uiConfig: {
         inputType: "select",
         options: [
-          { value: "module", label: "Module" },
-          { value: "script", label: "Script" }
+          { value: TypeScriptParseMode.MODULE, label: "Module" },
+          { value: TypeScriptParseMode.SCRIPT, label: "Script" }
         ]
       }
     },
     {
-      name: "transformEnums",
+      name: "transform_enums",
       type: "boolean",
       required: false,
       defaultValue: false,
@@ -77,7 +77,7 @@ export const typescriptAstSpec: NodeSpecification = {
       }
     },
     {
-      name: "flattenOutput",
+      name: "flatten_output",
       type: "boolean",
       required: false,
       defaultValue: false,
@@ -87,10 +87,10 @@ export const typescriptAstSpec: NodeSpecification = {
       }
     },
     {
-      name: "outputFormat",
+      name: "output_format",
       type: "enum",
       required: false,
-      defaultValue: "standard",
+      defaultValue: TypeScriptOutputFormat.STANDARD,
       description: "Output format for the parsed data",
       validation: {
         allowedValues: ["standard", "for_codegen", "for_analysis"]
@@ -98,9 +98,9 @@ export const typescriptAstSpec: NodeSpecification = {
       uiConfig: {
         inputType: "select",
         options: [
-          { value: "standard", label: "Standard" },
-          { value: "for_codegen", label: "For Code Generation" },
-          { value: "for_analysis", label: "For Analysis" }
+          { value: TypeScriptOutputFormat.STANDARD, label: "Standard" },
+          { value: TypeScriptOutputFormat.FOR_CODEGEN, label: "For Code Generation" },
+          { value: TypeScriptOutputFormat.FOR_ANALYSIS, label: "For Analysis" }
         ]
       }
     },
@@ -115,7 +115,7 @@ export const typescriptAstSpec: NodeSpecification = {
       }
     },
     {
-      name: "batchInputKey",
+      name: "batch_input_key",
       type: "string",
       required: false,
       defaultValue: "sources",
@@ -130,6 +130,15 @@ export const typescriptAstSpec: NodeSpecification = {
     inputs: ["default"],
     outputs: ["results", "error"]
   },
+
+  inputPorts: [
+    {
+      name: "default",
+      contentType: "object",
+      required: false,
+      description: "TypeScript source code or configuration (source code as string, or object with source and options)"
+    }
+  ],
 
   outputs: {
     ast: {
@@ -166,7 +175,7 @@ export const typescriptAstSpec: NodeSpecification = {
       description: "Extract interface from TypeScript code",
       configuration: {
         source: "interface User {\n  id: string;\n  name: string;\n  age?: number;\n}",
-        extractPatterns: ["interface"]
+        extract_patterns: [TypeScriptExtractPattern.INTERFACE]
       }
     },
     {
@@ -174,11 +183,18 @@ export const typescriptAstSpec: NodeSpecification = {
       description: "Extract interfaces, types, and enums",
       configuration: {
         source: "interface User { id: string; }\ntype Status = 'active' | 'inactive';\nenum Role { Admin, User }",
-        extractPatterns: ["interface", "type", "enum"],
-        includeJSDoc: true
+        extract_patterns: [TypeScriptExtractPattern.INTERFACE, TypeScriptExtractPattern.TYPE, TypeScriptExtractPattern.ENUM],
+        include_jsdoc: true
       }
     }
   ],
 
-  primaryDisplayField: "parseMode"
+  primaryDisplayField: "parse_mode",
+
+  handlerMetadata: {
+    modulePath: "dipeo.application.execution.handlers.typescript_ast",
+    className: "TypescriptAstHandler",
+    mixins: ["LoggingMixin", "ValidationMixin", "ConfigurationMixin"],
+    serviceKeys: ["FILE_SYSTEM", "STATE_STORE"]
+  }
 };
