@@ -3,6 +3,8 @@ import { NodeType } from '../core/enums/node-types.js';
 import { HttpMethod } from '../core/enums/node-specific.js';
 import { AuthType } from '../core/enums/integrations.js';
 import { NodeSpecification } from '../node-specification.js';
+import { textField, objectField, timeoutField } from '../core/field-presets.js';
+import { validatedEnumField } from '../core/validation-utils.js';
 
 export const apiJobSpec: NodeSpecification = {
   nodeType: NodeType.API_JOB,
@@ -13,106 +15,66 @@ export const apiJobSpec: NodeSpecification = {
   description: "Make HTTP API requests",
 
   fields: [
-    {
+    textField({
       name: "url",
-      type: "string",
-      required: true,
-      defaultValue: "",
       description: "API endpoint URL",
-      uiConfig: {
-        inputType: "text",
-        placeholder: "https://example.com"
-      }
-    },
-    {
-      name: "method",
-      type: "enum",
+      placeholder: "https://example.com",
       required: true,
-      defaultValue: HttpMethod.GET,
+      defaultValue: ""
+    }),
+    validatedEnumField({
+      name: "method",
       description: "HTTP method",
-      validation: {
-        allowedValues: ["GET", "POST", "PUT", "DELETE", "PATCH"]
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: HttpMethod.GET, label: "GET" },
-          { value: HttpMethod.POST, label: "POST" },
-          { value: HttpMethod.PUT, label: "PUT" },
-          { value: HttpMethod.DELETE, label: "DELETE" },
-          { value: HttpMethod.PATCH, label: "PATCH" }
-        ]
-      }
-    },
-    {
+      options: [
+        { value: HttpMethod.GET, label: "GET" },
+        { value: HttpMethod.POST, label: "POST" },
+        { value: HttpMethod.PUT, label: "PUT" },
+        { value: HttpMethod.DELETE, label: "DELETE" },
+        { value: HttpMethod.PATCH, label: "PATCH" }
+      ],
+      defaultValue: HttpMethod.GET,
+      required: true
+    }),
+    objectField({
       name: "headers",
-      type: "object",
-      required: false,
       description: "HTTP headers",
-      uiConfig: {
-        inputType: "code",
-        collapsible: true
-      }
-    },
-    {
+      required: false,
+      collapsible: true
+    }),
+    objectField({
       name: "params",
-      type: "object",
-      required: false,
       description: "Query parameters",
-      uiConfig: {
-        inputType: "code",
-        collapsible: true
-      }
-    },
-    {
+      required: false,
+      collapsible: true
+    }),
+    objectField({
       name: "body",
-      type: "object",
-      required: false,
       description: "Request body",
-      uiConfig: {
-        inputType: "code",
-        collapsible: true
-      }
-    },
-    {
+      required: false,
+      collapsible: true
+    }),
+    timeoutField({
       name: "timeout",
-      type: "number",
-      required: false,
       description: "Request timeout in seconds",
-      uiConfig: {
-        inputType: "number",
-        min: 0,
-        max: 3600
-      }
-    },
-    {
+      required: false
+    }),
+    validatedEnumField({
       name: "auth_type",
-      type: "enum",
-      required: false,
       description: "Authentication type",
-      validation: {
-        allowedValues: ["none", "bearer", "basic", "api_key"]
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: AuthType.NONE, label: "None" },
-          { value: AuthType.BEARER, label: "Bearer Token" },
-          { value: AuthType.BASIC, label: "Basic Auth" },
-          { value: AuthType.API_KEY, label: "API Key" }
-        ]
-      }
-    },
-    {
+      options: [
+        { value: AuthType.NONE, label: "None" },
+        { value: AuthType.BEARER, label: "Bearer Token" },
+        { value: AuthType.BASIC, label: "Basic Auth" },
+        { value: AuthType.API_KEY, label: "API Key" }
+      ],
+      required: false
+    }),
+    objectField({
       name: "auth_config",
-      type: "object",
-      required: false,
       description: "Authentication configuration",
-      uiConfig: {
-        inputType: "code",
-        collapsible: true
-      }
-    }
+      required: false,
+      collapsible: true
+    })
   ],
 
   handles: {

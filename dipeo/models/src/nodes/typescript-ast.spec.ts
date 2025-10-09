@@ -5,6 +5,8 @@
 import { NodeType } from '../core/enums/node-types.js';
 import { SupportedLanguage, TypeScriptExtractPattern, TypeScriptParseMode, TypeScriptOutputFormat } from '../core/enums/node-specific.js';
 import { NodeSpecification } from '../node-specification.js';
+import { contentField, booleanField, textField } from '../core/field-presets.js';
+import { validatedEnumField } from '../core/validation-utils.js';
 
 export const typescriptAstSpec: NodeSpecification = {
   nodeType: NodeType.TYPESCRIPT_AST,
@@ -15,16 +17,12 @@ export const typescriptAstSpec: NodeSpecification = {
   description: "Parses TypeScript source code and extracts AST, interfaces, types, and enums",
 
   fields: [
-    {
+    contentField({
       name: "source",
-      type: "string",
-      required: false,
       description: "TypeScript source code to parse",
-      uiConfig: {
-        inputType: "code",
-        language: SupportedLanguage.TYPESCRIPT
-      }
-    },
+      inputType: "code",
+      language: SupportedLanguage.TYPESCRIPT
+    }),
     {
       name: "extract_patterns",
       type: "array",
@@ -36,94 +34,55 @@ export const typescriptAstSpec: NodeSpecification = {
         allowedValues: ["interface", "type", "enum", "class", "function", "const", "export"]
       },
       uiConfig: {
-        inputType: "code",
+        inputType: "code"
       }
     },
-    {
+    booleanField({
       name: "include_jsdoc",
-      type: "boolean",
-      required: false,
-      defaultValue: false,
       description: "Include JSDoc comments in the extracted data",
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    },
-    {
+      defaultValue: false
+    }),
+    validatedEnumField({
       name: "parse_mode",
-      type: "enum",
-      required: false,
-      defaultValue: TypeScriptParseMode.MODULE,
       description: "TypeScript parsing mode",
-      validation: {
-        allowedValues: ["module", "script"]
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: TypeScriptParseMode.MODULE, label: "Module" },
-          { value: TypeScriptParseMode.SCRIPT, label: "Script" }
-        ]
-      }
-    },
-    {
+      options: [
+        { value: TypeScriptParseMode.MODULE, label: "Module" },
+        { value: TypeScriptParseMode.SCRIPT, label: "Script" }
+      ],
+      defaultValue: TypeScriptParseMode.MODULE,
+      required: false
+    }),
+    booleanField({
       name: "transform_enums",
-      type: "boolean",
-      required: false,
-      defaultValue: false,
       description: "Transform enum definitions to a simpler format",
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    },
-    {
+      defaultValue: false
+    }),
+    booleanField({
       name: "flatten_output",
-      type: "boolean",
-      required: false,
-      defaultValue: false,
       description: "Flatten the output structure for easier consumption",
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    },
-    {
+      defaultValue: false
+    }),
+    validatedEnumField({
       name: "output_format",
-      type: "enum",
-      required: false,
-      defaultValue: TypeScriptOutputFormat.STANDARD,
       description: "Output format for the parsed data",
-      validation: {
-        allowedValues: ["standard", "for_codegen", "for_analysis"]
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: TypeScriptOutputFormat.STANDARD, label: "Standard" },
-          { value: TypeScriptOutputFormat.FOR_CODEGEN, label: "For Code Generation" },
-          { value: TypeScriptOutputFormat.FOR_ANALYSIS, label: "For Analysis" }
-        ]
-      }
-    },
-    {
+      options: [
+        { value: TypeScriptOutputFormat.STANDARD, label: "Standard" },
+        { value: TypeScriptOutputFormat.FOR_CODEGEN, label: "For Code Generation" },
+        { value: TypeScriptOutputFormat.FOR_ANALYSIS, label: "For Analysis" }
+      ],
+      defaultValue: TypeScriptOutputFormat.STANDARD,
+      required: false
+    }),
+    booleanField({
       name: "batch",
-      type: "boolean",
-      required: false,
-      defaultValue: false,
       description: "Enable batch processing mode",
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    },
-    {
+      defaultValue: false
+    }),
+    textField({
       name: "batch_input_key",
-      type: "string",
-      required: false,
-      defaultValue: "sources",
       description: "Key to extract batch items from input",
-      uiConfig: {
-        inputType: "text"
-      }
-    }
+      defaultValue: "sources"
+    })
   ],
 
   handles: {

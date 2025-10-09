@@ -2,6 +2,8 @@
 import { NodeType } from '../core/enums/node-types.js';
 import { SupportedLanguage } from '../core/enums/node-specific.js';
 import { NodeSpecification } from '../node-specification.js';
+import { filePathField, contentField, textField, timeoutField } from '../core/field-presets.js';
+import { validatedEnumField } from '../core/validation-utils.js';
 
 export const codeJobSpec: NodeSpecification = {
   nodeType: NodeType.CODE_JOB,
@@ -12,66 +14,33 @@ export const codeJobSpec: NodeSpecification = {
   description: "Execute custom code functions",
 
   fields: [
-    {
+    validatedEnumField({
       name: "language",
-      type: "enum",
-      required: true,
-      defaultValue: SupportedLanguage.PYTHON,
       description: "Programming language",
-      validation: {
-        allowedValues: ["python", "typescript", "bash", "shell"]
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: SupportedLanguage.PYTHON, label: "Python" },
-          { value: SupportedLanguage.TYPESCRIPT, label: "TypeScript" },
-          { value: SupportedLanguage.BASH, label: "Bash" },
-          { value: SupportedLanguage.SHELL, label: "Shell" }
-        ]
-      }
-    },
-    {
+      options: [
+        { value: SupportedLanguage.PYTHON, label: "Python" },
+        { value: SupportedLanguage.TYPESCRIPT, label: "TypeScript" },
+        { value: SupportedLanguage.BASH, label: "Bash" },
+        { value: SupportedLanguage.SHELL, label: "Shell" }
+      ],
+      defaultValue: SupportedLanguage.PYTHON,
+      required: true
+    }),
+    filePathField({
       name: "file_path",
-      type: "string",
-      required: false,
-      description: "Path to code file",
-      uiConfig: {
-        inputType: "text",
-        placeholder: "/path/to/file"
-      }
-    },
-    {
+      description: "Path to code file"
+    }),
+    contentField({
       name: "code",
-      type: "string",
-      required: false,
       description: "Inline code to execute (alternative to file_path)",
-      uiConfig: {
-        inputType: "code",
-        rows: 10,
-        adjustable: true
-      }
-    },
-    {
+      inputType: "code",
+      rows: 10
+    }),
+    textField({
       name: "function_name",
-      type: "string",
-      required: false,
-      description: "Function to execute",
-      uiConfig: {
-        inputType: "text"
-      }
-    },
-    {
-      name: "timeout",
-      type: "number",
-      required: false,
-      description: "Execution timeout in seconds",
-      uiConfig: {
-        inputType: "number",
-        min: 0,
-        max: 3600
-      }
-    }
+      description: "Function to execute"
+    }),
+    timeoutField()
   ],
 
   handles: {

@@ -1,6 +1,8 @@
 import { NodeType } from '../core/enums/node-types.js';
 import { DiffFormat, PatchMode } from '../core/enums/node-specific.js';
 import { NodeSpecification } from '../node-specification.js';
+import { textField, contentField, booleanField } from '../core/field-presets.js';
+import { validatedEnumField, validatedNumberField } from '../core/validation-utils.js';
 
 export const diffPatchSpec: NodeSpecification = {
   nodeType: NodeType.DIFF_PATCH,
@@ -11,164 +13,96 @@ export const diffPatchSpec: NodeSpecification = {
   description: "Apply unified diffs to files with safety controls",
 
   fields: [
-    {
+    textField({
       name: "target_path",
-      type: "string",
-      required: true,
       description: "Path to the file to patch",
-      uiConfig: {
-        inputType: "text",
-        placeholder: "/path/to/file.txt"
-      }
-    },
-    {
+      placeholder: "/path/to/file.txt",
+      required: true
+    }),
+    contentField({
       name: "diff",
-      type: "string",
-      required: true,
       description: "Unified diff content to apply",
-      uiConfig: {
-        inputType: "code",
-        collapsible: true,
-        rows: 15,
-        placeholder: "--- a/file.txt\n+++ b/file.txt\n@@ -1,3 +1,3 @@\n line1\n-old line\n+new line\n line3"
-      }
-    },
-    {
+      inputType: "code",
+      rows: 15,
+      placeholder: "--- a/file.txt\n+++ b/file.txt\n@@ -1,3 +1,3 @@\n line1\n-old line\n+new line\n line3",
+      required: true
+    }),
+    validatedEnumField({
       name: "format",
-      type: "enum",
-      required: false,
       description: "Diff format type",
+      options: [
+        { value: DiffFormat.UNIFIED, label: "Unified" },
+        { value: DiffFormat.GIT, label: "Git" },
+        { value: DiffFormat.CONTEXT, label: "Context" },
+        { value: DiffFormat.ED, label: "Ed Script" },
+        { value: DiffFormat.NORMAL, label: "Normal" }
+      ],
       defaultValue: DiffFormat.UNIFIED,
-      validation: {
-        allowedValues: ["unified", "git", "context", "ed", "normal"]
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: DiffFormat.UNIFIED, label: "Unified" },
-          { value: DiffFormat.GIT, label: "Git" },
-          { value: DiffFormat.CONTEXT, label: "Context" },
-          { value: DiffFormat.ED, label: "Ed Script" },
-          { value: DiffFormat.NORMAL, label: "Normal" }
-        ]
-      }
-    },
-    {
+      required: false
+    }),
+    validatedEnumField({
       name: "apply_mode",
-      type: "enum",
-      required: false,
       description: "How to apply the patch",
+      options: [
+        { value: PatchMode.NORMAL, label: "Normal" },
+        { value: PatchMode.FORCE, label: "Force" },
+        { value: PatchMode.DRY_RUN, label: "Dry Run" },
+        { value: PatchMode.REVERSE, label: "Reverse" }
+      ],
       defaultValue: PatchMode.NORMAL,
-      validation: {
-        allowedValues: ["normal", "force", "dry_run", "reverse"]
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: PatchMode.NORMAL, label: "Normal" },
-          { value: PatchMode.FORCE, label: "Force" },
-          { value: PatchMode.DRY_RUN, label: "Dry Run" },
-          { value: PatchMode.REVERSE, label: "Reverse" }
-        ]
-      }
-    },
-    {
+      required: false
+    }),
+    booleanField({
       name: "backup",
-      type: "boolean",
-      required: false,
       description: "Create backup before patching",
-      defaultValue: true,
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    },
-    {
+      defaultValue: true
+    }),
+    booleanField({
       name: "validate_patch",
-      type: "boolean",
-      required: false,
       description: "Validate patch before applying",
-      defaultValue: true,
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    },
+      defaultValue: true
+    }),
     {
-      name: "backup_dir",
-      type: "string",
-      required: false,
-      description: "Directory for backup files",
+      ...textField({
+        name: "backup_dir",
+        description: "Directory for backup files",
+        placeholder: "/tmp/backups"
+      }),
       conditional: {
         field: "backup",
         values: [true],
         operator: "equals"
-      },
-      uiConfig: {
-        inputType: "text",
-        placeholder: "/tmp/backups"
       }
     },
-    {
+    validatedNumberField({
       name: "strip_level",
-      type: "number",
-      required: false,
       description: "Strip N leading path components (like patch -pN)",
-      defaultValue: 1,
-      validation: {
-        min: 0,
-        max: 10
-      },
-      uiConfig: {
-        inputType: "number",
-        min: 0,
-        max: 10
-      }
-    },
-    {
+      min: 0,
+      max: 10,
+      defaultValue: 1
+    }),
+    validatedNumberField({
       name: "fuzz_factor",
-      type: "number",
-      required: false,
       description: "Number of lines that can be ignored when matching context",
-      defaultValue: 2,
-      validation: {
-        min: 0,
-        max: 100
-      },
-      uiConfig: {
-        inputType: "number",
-        min: 0,
-        max: 100
-      }
-    },
-    {
+      min: 0,
+      max: 100,
+      defaultValue: 2
+    }),
+    textField({
       name: "reject_file",
-      type: "string",
-      required: false,
       description: "Path to save rejected hunks",
-      uiConfig: {
-        inputType: "text",
-        placeholder: "/tmp/patch.reject"
-      }
-    },
-    {
+      placeholder: "/tmp/patch.reject"
+    }),
+    booleanField({
       name: "ignore_whitespace",
-      type: "boolean",
-      required: false,
       description: "Ignore whitespace changes when matching",
-      defaultValue: false,
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    },
-    {
+      defaultValue: false
+    }),
+    booleanField({
       name: "create_missing",
-      type: "boolean",
-      required: false,
       description: "Create target file if it doesn't exist",
-      defaultValue: false,
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    }
+      defaultValue: false
+    })
   ],
 
   handles: {

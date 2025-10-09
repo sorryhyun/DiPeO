@@ -2,6 +2,8 @@ import { NodeType } from '../core/enums/node-types.js';
 import { DataType } from '../core/enums/data-types.js';
 import { IRBuilderTargetType, IRBuilderSourceType, IRBuilderOutputFormat } from '../core/enums/node-specific.js';
 import { NodeSpecification } from '../node-specification.js';
+import { textField, booleanField } from '../core/field-presets.js';
+import { validatedEnumField } from '../core/validation-utils.js';
 
 export const irBuilderSpec: NodeSpecification = {
   nodeType: NodeType.IR_BUILDER,
@@ -12,87 +14,51 @@ export const irBuilderSpec: NodeSpecification = {
   description: "Build Intermediate Representation for code generation",
 
   fields: [
-    {
+    validatedEnumField({
       name: "builder_type",
-      type: "enum",
-      required: true,
       description: "Type of IR builder to use",
-      validation: {
-        allowedValues: ["backend", "frontend", "strawberry", "custom"]
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: IRBuilderTargetType.BACKEND, label: "Backend" },
-          { value: IRBuilderTargetType.FRONTEND, label: "Frontend" },
-          { value: IRBuilderTargetType.STRAWBERRY, label: "Strawberry (GraphQL)" },
-          { value: IRBuilderTargetType.CUSTOM, label: "Custom" }
-        ]
-      }
-    },
-    {
+      options: [
+        { value: IRBuilderTargetType.BACKEND, label: "Backend" },
+        { value: IRBuilderTargetType.FRONTEND, label: "Frontend" },
+        { value: IRBuilderTargetType.STRAWBERRY, label: "Strawberry (GraphQL)" },
+        { value: IRBuilderTargetType.CUSTOM, label: "Custom" }
+      ],
+      required: true
+    }),
+    validatedEnumField({
       name: "source_type",
-      type: "enum",
-      required: false,
       description: "Type of source data",
-      validation: {
-        allowedValues: ["ast", "schema", "config", "auto"]
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: IRBuilderSourceType.AST, label: "AST" },
-          { value: IRBuilderSourceType.SCHEMA, label: "Schema" },
-          { value: IRBuilderSourceType.CONFIG, label: "Config" },
-          { value: IRBuilderSourceType.AUTO, label: "Auto-detect" }
-        ]
-      }
-    },
-    {
+      options: [
+        { value: IRBuilderSourceType.AST, label: "AST" },
+        { value: IRBuilderSourceType.SCHEMA, label: "Schema" },
+        { value: IRBuilderSourceType.CONFIG, label: "Config" },
+        { value: IRBuilderSourceType.AUTO, label: "Auto-detect" }
+      ],
+      required: false
+    }),
+    textField({
       name: "config_path",
-      type: "string",
-      required: false,
       description: "Path to configuration directory",
-      uiConfig: {
-        inputType: "text",
-        placeholder: "projects/codegen/config/"
-      }
-    },
-    {
+      placeholder: "projects/codegen/config/"
+    }),
+    validatedEnumField({
       name: "output_format",
-      type: "enum",
-      required: false,
       description: "Output format for IR",
-      validation: {
-        allowedValues: ["json", "yaml", "python"]
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: IRBuilderOutputFormat.JSON, label: "JSON" },
-          { value: IRBuilderOutputFormat.YAML, label: "YAML" },
-          { value: IRBuilderOutputFormat.PYTHON, label: "Python" }
-        ]
-      }
-    },
-    {
+      options: [
+        { value: IRBuilderOutputFormat.JSON, label: "JSON" },
+        { value: IRBuilderOutputFormat.YAML, label: "YAML" },
+        { value: IRBuilderOutputFormat.PYTHON, label: "Python" }
+      ],
+      required: false
+    }),
+    booleanField({
       name: "cache_enabled",
-      type: "boolean",
-      required: false,
-      description: "Enable IR caching",
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    },
-    {
+      description: "Enable IR caching"
+    }),
+    booleanField({
       name: "validate_output",
-      type: "boolean",
-      required: false,
-      description: "Validate IR structure before output",
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    }
+      description: "Validate IR structure before output"
+    })
   ],
 
   handles: {

@@ -3,6 +3,8 @@ import { NodeType } from '../core/enums/node-types.js';
 import { ConditionType } from '../core/enums/node-specific.js';
 import { NodeSpecification } from '../node-specification.js';
 import type { PersonID } from '../core/diagram.js';
+import { personField, contentField, textField, booleanField } from '../core/field-presets.js';
+import { validatedEnumField, validatedArrayField, validatedNumberField } from '../core/validation-utils.js';
 
 export const conditionSpec: NodeSpecification = {
   nodeType: NodeType.CONDITION,
@@ -13,62 +15,45 @@ export const conditionSpec: NodeSpecification = {
   description: "Conditional branching based on expressions",
 
   fields: [
-    {
+    validatedEnumField({
       name: "condition_type",
-      type: "enum",
-      required: false,
-      defaultValue: ConditionType.CUSTOM,
       description: "Type of condition to evaluate",
-      validation: {
-        allowedValues: ["detect_max_iterations", "check_nodes_executed", "custom", "llm_decision"]
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: ConditionType.DETECT_MAX_ITERATIONS, label: "Detect Max Iterations" },
-          { value: ConditionType.CHECK_NODES_EXECUTED, label: "Check Nodes Executed" },
-          { value: ConditionType.CUSTOM, label: "Custom Expression" },
-          { value: ConditionType.LLM_DECISION, label: "LLM Decision" }
-        ]
-      }
-    },
+      options: [
+        { value: ConditionType.DETECT_MAX_ITERATIONS, label: "Detect Max Iterations" },
+        { value: ConditionType.CHECK_NODES_EXECUTED, label: "Check Nodes Executed" },
+        { value: ConditionType.CUSTOM, label: "Custom Expression" },
+        { value: ConditionType.LLM_DECISION, label: "LLM Decision" }
+      ],
+      defaultValue: ConditionType.CUSTOM,
+      required: false
+    }),
     {
-      name: "expression",
-      type: "string",
-      required: false,
-      description: "Boolean expression to evaluate",
+      ...contentField({
+        name: "expression",
+        description: "Boolean expression to evaluate",
+        placeholder: "e.g., inputs.value > 10",
+        rows: 3
+      }),
       conditional: {
         field: "condition_type",
         values: [ConditionType.CUSTOM]
-      },
-      uiConfig: {
-        inputType: "textarea",
-        placeholder: "e.g., inputs.value > 10",
-        rows: 3
       }
     },
-    {
+    validatedArrayField({
       name: "node_indices",
-      type: "array",
-      required: false,
       description: "Node indices for detect_max_iteration condition",
+      itemType: "string",
+      inputType: "nodeSelect",
+      placeholder: "Select nodes to monitor",
       conditional: {
         field: "condition_type",
         values: [ConditionType.DETECT_MAX_ITERATIONS, ConditionType.CHECK_NODES_EXECUTED]
-      },
-      validation: {
-        itemType: "string"
-      },
-      uiConfig: {
-        inputType: "nodeSelect",
-        placeholder: "Select nodes to monitor"
       }
-    },
+    }),
     {
-      name: "person",
-      type: "PersonID",
-      required: false,
-      description: "AI agent to use for decision making",
+      ...personField({
+        description: "AI agent to use for decision making"
+      }),
       conditional: {
         field: "condition_type",
         values: [ConditionType.LLM_DECISION]
@@ -79,83 +64,61 @@ export const conditionSpec: NodeSpecification = {
       }
     },
     {
-      name: "judge_by",
-      type: "string",
-      required: false,
-      description: "Prompt for LLM to make a judgment",
-      conditional: {
-        field: "condition_type",
-        values: [ConditionType.LLM_DECISION]
-      },
-      uiConfig: {
-        inputType: "textarea",
+      ...contentField({
+        name: "judge_by",
+        description: "Prompt for LLM to make a judgment",
         placeholder: "Enter the prompt for LLM to judge (should result in YES/NO)",
         rows: 5
-      }
-    },
-    {
-      name: "judge_by_file",
-      type: "string",
-      required: false,
-      description: "External prompt file path",
+      }),
       conditional: {
         field: "condition_type",
         values: [ConditionType.LLM_DECISION]
-      },
-      uiConfig: {
-        inputType: "text",
+      }
+    },
+    {
+      ...textField({
+        name: "judge_by_file",
+        description: "External prompt file path",
         placeholder: "e.g., prompts/quality_check.txt"
-      }
-    },
-    {
-      name: "memorize_to",
-      type: "string",
-      required: false,
-      defaultValue: "GOLDFISH",
-      description: "Memory control strategy (e.g., GOLDFISH for fresh evaluation)",
+      }),
       conditional: {
         field: "condition_type",
         values: [ConditionType.LLM_DECISION]
-      },
-      uiConfig: {
-        inputType: "text",
+      }
+    },
+    {
+      ...textField({
+        name: "memorize_to",
+        description: "Memory control strategy (e.g., GOLDFISH for fresh evaluation)",
+        defaultValue: "GOLDFISH",
         placeholder: "e.g., GOLDFISH"
-      }
-    },
-    {
-      name: "at_most",
-      type: "number",
-      required: false,
-      description: "Maximum messages to keep in memory",
+      }),
       conditional: {
         field: "condition_type",
         values: [ConditionType.LLM_DECISION]
-      },
-      uiConfig: {
-        inputType: "number",
+      }
+    },
+    {
+      ...validatedNumberField({
+        name: "at_most",
+        description: "Maximum messages to keep in memory",
         placeholder: "e.g., 10"
+      }),
+      conditional: {
+        field: "condition_type",
+        values: [ConditionType.LLM_DECISION]
       }
     },
-    {
+    textField({
       name: "expose_index_as",
-      type: "string",
-      required: false,
       description: "Variable name to expose the condition node's execution count (0-based index) to downstream nodes",
-      uiConfig: {
-        inputType: "text",
-        placeholder: "e.g., current_index, loop_counter"
-      }
-    },
-    {
+      placeholder: "e.g., current_index, loop_counter"
+    }),
+    booleanField({
       name: "skippable",
-      type: "boolean",
-      required: false,
-      defaultValue: false,
       description: "When true, downstream nodes can execute even if this condition hasn't been evaluated yet",
-      uiConfig: {
-        inputType: "checkbox"
-      }
-    }
+      defaultValue: false
+    })
   ],
 
   handles: {

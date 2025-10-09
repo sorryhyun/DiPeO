@@ -2,6 +2,8 @@
 import { NodeType } from '../core/enums/node-types.js';
 import { HookTriggerMode } from '../core/enums/node-specific.js';
 import { NodeSpecification } from '../node-specification.js';
+import { objectField, textField } from '../core/field-presets.js';
+import { validatedEnumField } from '../core/validation-utils.js';
 
 export const startSpec: NodeSpecification = {
   nodeType: NodeType.START,
@@ -12,24 +14,17 @@ export const startSpec: NodeSpecification = {
   description: "Entry point for diagram execution",
 
   fields: [
-    {
+    validatedEnumField({
       name: "trigger_mode",
-      type: "enum",
-      required: false,
-      defaultValue: HookTriggerMode.NONE,
       description: "How this start node is triggered",
-      validation: {
-        allowedValues: ["none", "manual", "hook"]
-      },
-      uiConfig: {
-        inputType: "select",
-        options: [
-          { value: HookTriggerMode.NONE, label: "None - Simple start point" },
-          { value: HookTriggerMode.MANUAL, label: "Manual - Triggered manually with data" },
-          { value: HookTriggerMode.HOOK, label: "Hook - Triggered by external events" }
-        ]
-      }
-    },
+      options: [
+        { value: HookTriggerMode.NONE, label: "None - Simple start point" },
+        { value: HookTriggerMode.MANUAL, label: "Manual - Triggered manually with data" },
+        { value: HookTriggerMode.HOOK, label: "Hook - Triggered by external events" }
+      ],
+      defaultValue: HookTriggerMode.NONE,
+      required: false
+    }),
     {
       name: "custom_data",
       type: "any",
@@ -45,46 +40,39 @@ export const startSpec: NodeSpecification = {
       }
     },
     {
-      name: "output_data_structure",
-      type: "object",
-      required: false,
+      ...objectField({
+        name: "output_data_structure",
+        description: "Expected output data structure",
+        required: false,
+        collapsible: true
+      }),
       defaultValue: {},
-      description: "Expected output data structure",
       conditional: {
         field: "trigger_mode",
         values: [HookTriggerMode.MANUAL]
-      },
-      uiConfig: {
-        inputType: "code",
-        collapsible: true
       }
     },
     {
-      name: "hook_event",
-      type: "string",
-      required: false,
-      description: "Event name to listen for",
-      conditional: {
-        field: "trigger_mode",
-        values: [HookTriggerMode.HOOK]
-      },
-      uiConfig: {
-        inputType: "text",
+      ...textField({
+        name: "hook_event",
+        description: "Event name to listen for",
         placeholder: "e.g., webhook.received, file.uploaded"
-      }
-    },
-    {
-      name: "hook_filters",
-      type: "object",
-      required: false,
-      description: "Filters to apply to incoming events",
+      }),
       conditional: {
         field: "trigger_mode",
         values: [HookTriggerMode.HOOK]
-      },
-      uiConfig: {
-        inputType: "code",
+      }
+    },
+    {
+      ...objectField({
+        name: "hook_filters",
+        description: "Filters to apply to incoming events",
+        required: false,
         collapsible: true
+      }),
+      conditional: {
+        field: "trigger_mode",
+        values: [HookTriggerMode.HOOK]
       }
     }
   ],
