@@ -38,10 +38,24 @@
       "WebFetch(domain:www.anthropic.com)",
       "Read(//home/soryhyun/.claude/projects/**)",
       "Bash(wc:*)",
-      "SlashCommand(/dipeotodos)"
+      "SlashCommand(/dipeotodos)",
+      "Read(//home/soryhyun/.claude/**)"
     ],
     "deny": [],
     "ask": []
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/inject-agent-docs.py"
+          }
+        ]
+      }
+    ]
   },
   "additionalDirectories": [
     ".claude/commands"
