@@ -180,7 +180,6 @@ class OperationExecutor:
         expected_missing = {
             "BaseGraphQLOperation",
             "GetSupportedFormatsOperation",
-            "ExecutionUpdatesOperation",
         }
 
         for op_cls in _iter_operation_classes():
@@ -202,11 +201,7 @@ class OperationExecutor:
                     self._register_operation(op_cls, fn, result_type)
                     break
             else:
-                # Only log if this is an unexpected missing resolver
-                if op_cls.__name__ not in expected_missing:
-                    logger.debug(
-                        f"No resolver found for operation {op_cls.__name__}, expected function name: {func_name}"
-                    )
+                pass
 
     def _register_operation(
         self, operation_class: type, resolver_method: Callable, result_type: type | None = None

@@ -2,16 +2,27 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces using simplified type resolver.
 
-Generated at: 2025-10-09T17:34:03.674273
+Generated at: 2025-10-10T14:03:06.740326
 """
 
 from __future__ import annotations
 
 import strawberry
-from typing import Optional, Dict, Any, List, Union, Literal
-from strawberry.scalars import JSON as JSONScalar
+from typing import Optional, Dict, Any, List, Union, Literal, TypeAlias, TYPE_CHECKING
+from strawberry.scalars import JSON
 from .inputs import Float, String, Boolean
 from dipeo.domain.type_defs import JsonValue, JsonDict
+
+# Type aliases for Strawberry
+# JSON from strawberry.scalars is used directly for runtime
+# For type checking, we treat it as Any since it's a ScalarWrapper
+if TYPE_CHECKING:
+    JSONScalar = Any
+else:
+    JSONScalar = JSON
+
+DefaultValue: TypeAlias = Union[str, float, bool, None, Dict[str, Any], List[Any]]
+ValidationSeverity: TypeAlias = Literal["error", "warning"]
 
 # Import the Pydantic domain models
 from ..domain_models import (
@@ -823,8 +834,8 @@ class ValidationErrorType:
 class ValidationResultType:
     """ValidationResult domain type"""
     valid: bool
-    errors: List[ValidationError]
-    warnings: List[ValidationError]
+    errors: List[ValidationErrorType]
+    warnings: List[ValidationErrorType]
 
 
 @strawberry.type

@@ -50,10 +50,12 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
 
     server_manager = None
     if (debug or timing) and args.command == "run":
-        print("🚀 Starting background server for monitoring (async)...")
+        print("🚀 Starting background server for monitoring...")
         server_manager = ServerManager()
-        asyncio.create_task(server_manager.start_async())
-        print("💡 Monitor will be available at http://localhost:3000/?monitor=true (starting...)")
+        if await server_manager.start():
+            print("✅ Monitor available at http://localhost:3000/?monitor=true")
+        else:
+            print("⚠️  Server failed to start, monitor unavailable")
 
     container = await create_server_container()
     await init_resources(container)
@@ -185,6 +187,9 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
         await shutdown_resources(container)
 
         if server_manager:
+            # Give a brief moment for any final GraphQL operations to complete
+            # (e.g., unregister CLI session mutation)
+            await asyncio.sleep(0.5)
             await server_manager.stop()
 
 

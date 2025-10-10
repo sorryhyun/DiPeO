@@ -86,9 +86,6 @@ class IntelligentMemoryStrategy:
             )
 
         top_candidates = [msg for msg, score in scored_messages[: self.config.hard_cap]]
-        print(
-            f"[Memory] Top candidates (hard_cap={self.config.hard_cap}): {len(top_candidates)} messages"
-        )
 
         person_name = None
 

@@ -14,12 +14,12 @@ from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import Status
 from dipeo.diagram_generated.domain_models import ExecutionID
 from dipeo.diagram_generated.enums import EventType
-from dipeo.diagram_generated.graphql.domain_types import ExecutionUpdate
+from dipeo.diagram_generated.graphql.domain_types import ExecutionUpdateType
 
 logger = get_module_logger(__name__)
 
 
-def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdate | None:
+def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdateType | None:
     """Transform raw event to ExecutionUpdate type."""
     # Normalize timestamp to string
     timestamp = event.get("timestamp")
@@ -82,7 +82,8 @@ def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdate | None
             "metrics": event_data.get("metrics"),
             "error": event_data.get("error"),
             "token_usage": event_data.get("token_usage"),  # From data payload
-            "memory_selection": event_meta.get("memory_selection") or event_data.get("memory_selection"),  # Check meta first, then data
+            "memory_selection": event_meta.get("memory_selection")
+            or event_data.get("memory_selection"),  # Check meta first, then data
             "person_id": event_meta.get("person_id"),  # From metadata
             "model": event_meta.get("model"),  # From metadata
         }
@@ -124,7 +125,7 @@ def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdate | None
         # For other events, pass through the data as-is
         data = {k: v for k, v in event.items() if k not in ["type", "timestamp", "executionId"]}
 
-    return ExecutionUpdate(
+    return ExecutionUpdateType(
         execution_id=exec_id_str,
         type=event_type,  # Use 'type' not 'event_type' to match the model
         data=data,  # Strawberry will handle JSON serialization
@@ -191,7 +192,7 @@ def _transform_execution_log(event: dict[str, Any]) -> dict[str, Any] | None:
 
 async def execution_updates(
     registry: ServiceRegistry, execution_id: str, last_seq: int | None = None
-) -> AsyncGenerator[ExecutionUpdate]:
+) -> AsyncGenerator[ExecutionUpdateType]:
     """Subscribe to real-time updates for an execution."""
     resolver = BaseSubscriptionResolver(registry)
 
@@ -216,7 +217,7 @@ async def execution_updates(
                 event_filter=None,  # Accept all events for execution updates
                 event_transformer=_transform_execution_update,
             ):
-                if isinstance(event, ExecutionUpdate):
+                if isinstance(event, ExecutionUpdateType):
                     yield event
                 # No special handling needed for status changes - they come as proper event types
 

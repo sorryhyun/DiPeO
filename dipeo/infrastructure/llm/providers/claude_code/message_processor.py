@@ -250,9 +250,6 @@ class ClaudeCodeMessageProcessor:
         if current_user_messages:
             result.append(ClaudeCodeMessageProcessor._merge_user_messages(current_user_messages))
 
-        logger.debug(
-            f"[ClaudeCode] Combined {len(formatted_messages)} messages into {len(result)} messages"
-        )
         return result
 
     @staticmethod
@@ -525,10 +522,6 @@ class ClaudeCodeMessageProcessor:
 
             mcp_server = create_dipeo_mcp_server()
 
-            logger.debug(
-                f"[ClaudeCode] MCP server configured for {execution_phase}: select_memory_messages/make_decision"
-            )
-
             options["mcp_servers"] = {"dipeo_structured_output": mcp_server}
             options["allowed_tools"] = [
                 "mcp__dipeo_structured_output__select_memory_messages",
@@ -563,7 +556,6 @@ class ClaudeCodeMessageProcessor:
 
             hooks_dict[event_type] = event_matchers
 
-        logger.debug(f"[ClaudeCode] Configured hooks: {list(hooks_dict.keys())}")
         return {"hooks": hooks_dict}
 
     @staticmethod

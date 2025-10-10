@@ -260,7 +260,7 @@ class UnifiedOpenAIClient:
         kwargs_without_formats = {
             k: v
             for k, v in kwargs.items()
-            if k not in ["text_format", "messages", "execution_phase", "trace_id"]
+            if k not in ["text_format", "messages", "execution_phase", "trace_id", "person_name"]
         }
         params.update(kwargs_without_formats)
 
@@ -325,7 +325,8 @@ class UnifiedOpenAIClient:
         kwargs_filtered = {
             k: v
             for k, v in kwargs.items()
-            if k not in ["response_format", "text_format", "messages", "execution_phase"]
+            if k
+            not in ["response_format", "text_format", "messages", "execution_phase", "person_name"]
         }
         params.update(kwargs_filtered)
 

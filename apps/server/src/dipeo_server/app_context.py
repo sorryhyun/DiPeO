@@ -16,6 +16,7 @@ _container: Container | None = None
 async def create_server_container() -> Container:
     """Create a server container with appropriate configuration."""
     import time
+
     start_time = time.time()
 
     settings = get_settings()
@@ -34,9 +35,7 @@ async def create_server_container() -> Container:
         STATE_STORE,
     )
 
-    logger.debug("Bootstrapping services...")
     bootstrap_services(container.registry, redis_client=None)
-    logger.debug(f"Services bootstrapped in {(time.time() - start_time) * 1000:.1f}ms")
 
     features = os.getenv("DIPEO_FEATURES", "").split(",") if os.getenv("DIPEO_FEATURES") else []
     if features:
@@ -57,23 +56,15 @@ async def create_server_container() -> Container:
     from dipeo.application.registry import ServiceKey
     from dipeo.application.registry.keys import STATE_REPOSITORY
 
-    logger.debug("Initializing state repository...")
     state_store = container.registry.resolve(STATE_REPOSITORY)
     await initialize_service(state_store)
-    logger.debug(f"State repository initialized in {(time.time() - start_time) * 1000:.1f}ms")
 
     if not container.registry.has(STATE_STORE):
         container.registry.register(STATE_STORE, state_store)
-    else:
-        logger.debug("STATE_STORE already registered, skipping")
 
-    logger.debug("Executing event subscriptions...")
     await execute_event_subscriptions(container.registry)
-    logger.debug(f"Event subscriptions executed in {(time.time() - start_time) * 1000:.1f}ms")
 
-    logger.debug("Initializing message router...")
     await message_router.initialize()
-    logger.debug(f"Message router initialized in {(time.time() - start_time) * 1000:.1f}ms")
 
     if domain_event_bus is not None:
         from dipeo.domain.events.types import EventPriority
@@ -96,7 +87,6 @@ async def create_server_container() -> Container:
 
     from dipeo.application.execution.observers import MetricsObserver
 
-    logger.debug("Setting up metrics observer...")
     metrics_observer = MetricsObserver(event_bus=event_bus, state_store=state_store)
 
     METRICS_OBSERVER_KEY = ServiceKey[MetricsObserver]("metrics_observer")
@@ -114,13 +104,11 @@ async def create_server_container() -> Container:
         await event_bus.subscribe(event_type, metrics_observer)
 
     await metrics_observer.start()
-    logger.debug(f"Metrics observer started in {(time.time() - start_time) * 1000:.1f}ms")
 
     from dipeo.infrastructure.integrations.drivers.integrated_api.registry import (
         ProviderRegistry,
     )
 
-    logger.debug("Initializing provider registry...")
     provider_registry = ProviderRegistry()
     await provider_registry.initialize()
 
@@ -133,13 +121,10 @@ async def create_server_container() -> Container:
         logger.warning(f"Failed to load provider manifests: {e}")
 
     container.registry.register(PROVIDER_REGISTRY, provider_registry)
-    logger.debug(f"Provider registry initialized in {(time.time() - start_time) * 1000:.1f}ms")
 
-    logger.debug("Initializing event buses...")
     if domain_event_bus is not None:
         await domain_event_bus.initialize()
     await event_bus.initialize()
-    logger.debug(f"Event buses initialized in {(time.time() - start_time) * 1000:.1f}ms")
 
     from dipeo.application.execution.use_cases import CliSessionService
 

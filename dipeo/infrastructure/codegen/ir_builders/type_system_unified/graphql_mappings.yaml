@@ -225,6 +225,8 @@ strawberry_type_rules:
     - EntityQueryConfig
     - QueryManifest
     - RelationshipConfig
+    - ValidationError
+    - ValidationResult
 
 # Conversion expression templates for from_pydantic() methods
 conversion_templates:

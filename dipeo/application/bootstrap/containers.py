@@ -199,7 +199,6 @@ class Container:
             and self.config.env == "production"
         ):
             self.registry.freeze()
-            logger.info("Registry frozen for production safety")
 
     async def shutdown(self):
         """Shutdown all services in reverse order."""

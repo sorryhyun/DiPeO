@@ -25,7 +25,7 @@ from dipeo.application.registry.keys import (
 )
 from dipeo.config import FILES_DIR
 from dipeo.config.base_logger import get_module_logger
-from dipeo.diagram_generated import LLMService, NodeType
+from dipeo.diagram_generated import LLMService, NodeType, Status
 from dipeo.diagram_generated.domain_models import ApiKeyID, DiagramID, ExecutionID, PersonID
 from dipeo.diagram_generated.graphql.domain_types import (
     AuthConfigType,
@@ -205,9 +205,39 @@ async def list_executions(
 
 async def get_execution_order(registry: ServiceRegistry, execution_id: strawberry.ID) -> JSON:
     """Get the execution order for a given execution."""
+    import asyncio
+
     state_store = registry.resolve(STATE_STORE)
     execution_id_typed = ExecutionID(str(execution_id))
-    execution = await state_store.get_state(str(execution_id_typed))
+
+    # For active executions, prefer cache to get the freshest data
+    # The cache-first store might return stale DB data if cache was evicted
+    execution = None
+    if hasattr(state_store, "get_state_from_cache"):
+        execution = await state_store.get_state_from_cache(str(execution_id_typed))
+
+    # If not in cache, try regular get_state with retry logic for race conditions
+    if not execution:
+        for attempt in range(5):  # Increased attempts for CLI forwarding
+            execution = await state_store.get_state(str(execution_id_typed))
+            if execution:
+                break
+            if attempt < 4:  # Don't sleep on the last attempt
+                await asyncio.sleep(
+                    0.05 * (2**attempt)
+                )  # Exponential backoff: 50ms, 100ms, 200ms, 400ms
+
+    # If execution is RUNNING but has no executed nodes yet, wait for events to be processed
+    # This handles the race condition where frontend queries before NODE_STARTED events arrive
+    if execution and execution.status == Status.RUNNING and not execution.executed_nodes:
+        for _ in range(3):  # Wait up to 300ms for nodes to appear
+            await asyncio.sleep(0.1)  # Wait 100ms between checks
+            # Re-fetch from cache to get latest updates
+            if hasattr(state_store, "get_state_from_cache"):
+                fresh_execution = await state_store.get_state_from_cache(str(execution_id_typed))
+                if fresh_execution and fresh_execution.executed_nodes:
+                    execution = fresh_execution
+                    break
 
     if not execution:
         return {

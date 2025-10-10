@@ -2,7 +2,7 @@
 Strawberry GraphQL scalar types for DiPeO.
 Auto-generated from TypeScript branded types.
 
-Generated at: 2025-10-09T17:34:03.674273
+Generated at: 2025-10-10T14:03:06.740326
 """
 
 import strawberry

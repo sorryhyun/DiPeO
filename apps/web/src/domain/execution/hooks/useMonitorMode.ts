@@ -15,6 +15,8 @@ import { useUIState, useUIOperations } from '@/infrastructure/store/hooks';
 import { nodeId } from '@/infrastructure/types';
 import { Status } from '@dipeo/models';
 import { GETACTIVECLISESSION_QUERY, GETEXECUTION_QUERY } from '@/__generated__/queries/all-queries';
+import { addWSLifecycleListener } from '@/lib/graphql/client';
+import { useExecutionSubscriptionHandler } from './useExecutionSubscriptionHandler';
 
 export interface UseMonitorModeOptions {
   pollCliSessions?: boolean;
@@ -60,6 +62,9 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
   });
 
   const activeSession = cliSessionData?.getActiveCliSession;
+
+  // Subscribe to execution updates for real-time node highlighting
+  useExecutionSubscriptionHandler(activeSession?.execution_id || null);
 
   // CLI session monitoring handles all execution now
   // No need for URL-based execution logic
@@ -231,6 +236,40 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
       }
     }
   }, [execution?.isRunning, isMonitorMode, activeSession]);
+
+  // Listen for WebSocket shutdown events
+  useEffect(() => {
+    if (!isMonitorMode()) return;
+
+    const cleanup = addWSLifecycleListener((event) => {
+      if (event.type === 'shutdown') {
+        console.log('[Monitor] Server shutdown detected via WebSocket');
+        // Clear diagram immediately on graceful shutdown
+        const store = useUnifiedStore.getState();
+        if (store.isMonitorMode) {
+          // Cancel any pending clear operation
+          if (clearTimeoutRef.current) {
+            clearTimeout(clearTimeoutRef.current);
+            clearTimeoutRef.current = null;
+          }
+
+          // Clear state
+          lastSessionIdRef.current = null;
+          hasStartedRef.current = false;
+          initialConnectionRef.current = true;
+
+          // Clear diagram
+          store.clearDiagram();
+          setActiveCanvas('main');
+          toast.success('CLI execution completed');
+        }
+      }
+    });
+
+    return () => {
+      cleanup();
+    };
+  }, [isMonitorMode, setActiveCanvas]);
 
   // Cleanup timeout on unmount or when monitor mode changes
   useEffect(() => {

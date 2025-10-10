@@ -88,9 +88,15 @@ export const useExecutionData = () => useUnifiedStore(
 
 /**
  * Get execution state for a specific node
+ * Note: We need to track both the Map reference AND the value at the key
+ * to ensure re-renders when node state changes
  */
 export const useNodeExecutionData = (nodeId: NodeID) =>
-  useUnifiedStore(state => state.execution.nodeStates.get(nodeId));
+  useUnifiedStore(state => {
+    // Force re-render by accessing both the Map and the specific value
+    const map = state.execution.nodeStates;
+    return map.get(nodeId);
+  });
 
 // === Selection Data Hooks ===
 

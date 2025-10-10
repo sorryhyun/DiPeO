@@ -63,7 +63,7 @@ class ClaudeCodeResponseParser:
                 if "message_ids" in data or "decision" in data:
                     return data
         except (json.JSONDecodeError, ValueError) as e:
-            logger.debug(f"[ClaudeCode] Response is not valid JSON: {e}")
+            pass
 
         # Fallback: Look for JSON objects in the text
         json_pattern = r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}"
@@ -115,7 +115,6 @@ class ClaudeCodeResponseParser:
             if potential_ids:
                 message_ids = potential_ids[:20]  # Reasonable upper limit
 
-        logger.debug(f"[ClaudeCode] Parsed memory selection: {len(message_ids)} messages")
         return MemorySelectionOutput(message_ids=message_ids)
 
     @staticmethod
@@ -145,7 +144,6 @@ class ClaudeCodeResponseParser:
             )
             decision = False
 
-        logger.debug(f"[ClaudeCode] Text parsing result: decision={decision}")
         return DecisionOutput(decision=decision)
 
     @staticmethod
@@ -164,10 +162,6 @@ class ClaudeCodeResponseParser:
         Returns:
             LLMResponse with structured output
         """
-        logger.debug(
-            f"[ClaudeCode] Parsing tool invocation data for {execution_phase}: {tool_data}"
-        )
-
         structured_output = None
 
         if execution_phase == ExecutionPhase.MEMORY_SELECTION:
@@ -176,10 +170,6 @@ class ClaudeCodeResponseParser:
             # The tool input directly contains the message_ids
             message_ids = tool_data.get("message_ids", [])
             structured_output = MemorySelectionOutput(message_ids=message_ids)
-            logger.debug(
-                f"[ClaudeCode] Created MemorySelectionOutput from tool invocation: "
-                f"selected {len(message_ids)} messages"
-            )
 
         elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
             from dipeo.infrastructure.llm.drivers.types import DecisionOutput
@@ -187,9 +177,6 @@ class ClaudeCodeResponseParser:
             # The tool input directly contains the decision
             decision = tool_data.get("decision", False)
             structured_output = DecisionOutput(decision=decision)
-            logger.debug(
-                f"[ClaudeCode] Created DecisionOutput from tool invocation: " f"decision={decision}"
-            )
 
         # Return the response with structured output
         from dipeo.infrastructure.llm.drivers.types import ProviderType
@@ -227,34 +214,18 @@ class ClaudeCodeResponseParser:
 
         if tool_result:
             # Tool was used, create structured output from tool result
-            logger.debug(
-                f"[ClaudeCode] Tool result extracted successfully for {execution_phase}: "
-                f"{tool_result}"
-            )
             if execution_phase == ExecutionPhase.MEMORY_SELECTION:
                 from dipeo.infrastructure.llm.drivers.types import MemorySelectionOutput
 
                 structured_output = MemorySelectionOutput(
                     message_ids=tool_result.get("message_ids", [])
                 )
-                logger.debug(
-                    f"[ClaudeCode] Created MemorySelectionOutput from tool: "
-                    f"selected {len(tool_result.get('message_ids', []))} messages"
-                )
             elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
                 from dipeo.infrastructure.llm.drivers.types import DecisionOutput
 
                 structured_output = DecisionOutput(decision=tool_result.get("decision", False))
-                logger.debug(
-                    f"[ClaudeCode] Created DecisionOutput from tool: "
-                    f"decision={tool_result.get('decision', False)}"
-                )
         else:
             # Simplified fallback parsing
-            logger.warning(
-                f"[ClaudeCode] No tool result found for {execution_phase}, "
-                f"falling back to text parsing. Response preview: {clean_response[:200]}..."
-            )
             if execution_phase == ExecutionPhase.MEMORY_SELECTION:
                 structured_output = ClaudeCodeResponseParser.parse_memory_selection(clean_response)
             elif execution_phase == ExecutionPhase.DECISION_EVALUATION:

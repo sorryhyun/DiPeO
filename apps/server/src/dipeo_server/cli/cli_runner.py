@@ -92,6 +92,7 @@ class CLIRunner:
 
             # Create and subscribe MetricsObserver if debug or timing enabled
             metrics_observer = None
+            event_forwarder = None
             if debug or os.getenv("DIPEO_TIMING_ENABLED") == "true":
                 from dipeo.application.execution.observers import MetricsObserver
                 from dipeo.application.registry.keys import EVENT_BUS
@@ -112,7 +113,23 @@ class CLIRunner:
 
                 # Start the metrics observer
                 await metrics_observer.start()
-                logger.debug("MetricsObserver started for CLI execution")
+
+                # Create EventForwarder to forward events to background server if available
+                if await self.session_manager.is_server_available():
+                    from dipeo_server.cli.event_forwarder import EventForwarder
+
+                    event_forwarder = EventForwarder(execution_id=str(execution_id))
+
+                    # Subscribe to node AND execution events
+                    forward_events = [
+                        EventType.NODE_STARTED,
+                        EventType.NODE_COMPLETED,
+                        EventType.NODE_ERROR,
+                        EventType.EXECUTION_COMPLETED,
+                        EventType.EXECUTION_ERROR,
+                    ]
+                    await event_bus.subscribe(forward_events, event_forwarder)
+                    await event_forwarder.start()
 
             # Register CLI session for monitor mode support
             await self.session_manager.register_cli_session(
@@ -191,6 +208,11 @@ class CLIRunner:
 
                 return False
             finally:
+                # Stop event forwarder if it was created
+                if event_forwarder:
+                    await event_forwarder.stop()
+                    logger.debug("EventForwarder stopped")
+
                 # Stop metrics observer if it was created
                 if metrics_observer:
                     await metrics_observer.stop()

@@ -41,14 +41,24 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
   const { execution } = operations.executionOps;
   const currentExecutionId = providedExecutionId || (execution?.executionId ? executionId(execution.executionId) : undefined);
   const [executionOrder, setExecutionOrder] = useState<ExecutionOrderData | null>(null);
+  const [lastLoggedStatus, setLastLoggedStatus] = useState<string | null>(null);
+
+  // Reset state when execution ID changes
+  useEffect(() => {
+    setExecutionOrder(null);
+    setLastLoggedStatus(null);
+  }, [currentExecutionId]);
 
   // Determine if we should poll based on execution status
-  const shouldPoll = executionOrder ? isExecutionActive(executionOrder.status as any) : true;
+  // Note: Status is normalized to lowercase in onCompleted handler
+  const shouldPoll = executionOrder
+    ? isExecutionActive(executionOrder.status as Status)
+    : true;
 
   // Dynamic poll interval based on execution status
   const pollInterval = useMemo(() => {
     if (!currentExecutionId) return 0;
-    return shouldPoll ? 1000 : 0;  // Reduced from 2000ms to 1000ms for more responsive updates
+    return shouldPoll ? 1000 : 0;
   }, [currentExecutionId, shouldPoll]);
 
   const { data, loading, error, refetch } = useGetExecutionOrderQuery({
@@ -57,9 +67,6 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
     pollInterval,
     onCompleted: (data: GetExecutionOrderQuery) => {
       if (data?.getExecutionOrder) {
-        // Debug: log raw data structure
-        console.log('Raw execution order data:', data.getExecutionOrder);
-
         // Handle case where data might be a string (JSONScalar)
         let parsedData;
         try {
@@ -71,20 +78,38 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
           return;
         }
 
-        // Debug: log parsed data
-        console.log('Parsed execution order data:', parsedData);
-
-        // Ensure nodes is an array
+        // Normalize status to lowercase and ensure nodes array
+        // Note: Apollo freezes objects, so we must create a new object
         if (parsedData && typeof parsedData === 'object') {
-          if (!parsedData.nodes) {
-            parsedData.nodes = [];
-          } else if (!Array.isArray(parsedData.nodes)) {
-            console.warn('Nodes is not an array, converting:', parsedData.nodes);
-            parsedData.nodes = [];
+          // Ensure nodes is an array before processing
+          let nodes = parsedData.nodes;
+          if (!nodes || !Array.isArray(nodes)) {
+            nodes = [];
           }
 
-          // Debug: log final nodes array
-          console.log('Final nodes array:', parsedData.nodes);
+          // Create new object with normalized statuses
+          parsedData = {
+            ...parsedData,
+            status: typeof parsedData.status === 'string' ? parsedData.status.toLowerCase() : parsedData.status,
+            nodes: nodes.map((node: ExecutionStep) => ({
+              ...node,
+              status: typeof node.status === 'string' ? node.status.toLowerCase() : node.status
+            }))
+          };
+
+          // Only log when status changes to a terminal state
+          if (parsedData.status !== lastLoggedStatus) {
+            const isTerminal = ['completed', 'failed', 'aborted'].includes(parsedData.status);
+            if (isTerminal) {
+              console.log(`\n✅ Execution ${parsedData.status}: ${currentExecutionId}`);
+              console.log(`   Nodes executed: ${parsedData.nodes.length}/${parsedData.totalNodes}`);
+              if (parsedData.startedAt && parsedData.endedAt) {
+                const duration = new Date(parsedData.endedAt).getTime() - new Date(parsedData.startedAt).getTime();
+                console.log(`   Duration: ${Math.round(duration)}ms`);
+              }
+              setLastLoggedStatus(parsedData.status);
+            }
+          }
         }
 
         setExecutionOrder(parsedData);
@@ -211,7 +236,7 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
               <Play className="h-3 w-3 mr-1" />
               {executionOrder.totalNodes} nodes executed
             </span>
-            {executionOrder.status === 'RUNNING' && (
+            {executionOrder.status === 'running' && (
               <span className="flex items-center text-blue-600">
                 <Activity className="h-3 w-3 mr-1 animate-pulse" />
                 Running

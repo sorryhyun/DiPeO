@@ -6,6 +6,19 @@ import { createUploadLink } from 'apollo-upload-client';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { toast } from 'sonner';
 
+// Event emitter for WebSocket lifecycle events
+type WSLifecycleListener = (event: { type: 'shutdown' | 'reconnected' }) => void;
+const wsLifecycleListeners = new Set<WSLifecycleListener>();
+
+export const addWSLifecycleListener = (listener: WSLifecycleListener) => {
+  wsLifecycleListeners.add(listener);
+  return () => wsLifecycleListeners.delete(listener);
+};
+
+const notifyWSLifecycle = (event: { type: 'shutdown' | 'reconnected' }) => {
+  wsLifecycleListeners.forEach(listener => listener(event));
+};
+
 const httpLink = createUploadLink({
   uri: `http://${import.meta.env.VITE_API_HOST || 'localhost:8000'}/graphql`,
   credentials: 'same-origin',
@@ -14,12 +27,13 @@ const httpLink = createUploadLink({
 let isConnected = true;
 let retryCount = 0;
 let lastConnectionTime = Date.now();
+let shouldStopRetrying = false;
 
 const wsClient = createClient({
   url: `ws://${import.meta.env.VITE_API_HOST || 'localhost:8000'}/graphql`,
   connectionParams: {
   },
-  shouldRetry: () => true,
+  shouldRetry: () => !shouldStopRetrying,
   retryAttempts: Infinity,
   retryWait: async (retryCount) => {
     const waitTime = Math.min(1000 * Math.pow(2, retryCount) + Math.random() * 1000, 30000);
@@ -31,6 +45,7 @@ const wsClient = createClient({
       const wasDisconnected = !isConnected;
       isConnected = true;
       lastConnectionTime = Date.now();
+      shouldStopRetrying = false;
 
       if (wasDisconnected && retryCount > 0) {
         console.log(`[GraphQL WS] Reconnected to server after ${retryCount} attempts`);
@@ -56,10 +71,15 @@ const wsClient = createClient({
       if (wasConnected) {
         if (event instanceof CloseEvent) {
           if (event.code === 1000) {
-            console.log('[GraphQL WS] Normal closure');
+            console.log('[GraphQL WS] Normal closure - server shutdown gracefully');
+            shouldStopRetrying = true;
+            toast.info('Server stopped - monitoring session ended');
+            notifyWSLifecycle({ type: 'shutdown' });
           } else if (event.code === 1001) {
-            console.log('[GraphQL WS] Client or server going away');
-            toast.warning('WebSocket disconnected - Server may be restarting');
+            console.log('[GraphQL WS] Server going away - likely CLI execution finished');
+            shouldStopRetrying = true;
+            toast.info('CLI execution finished - server stopped');
+            notifyWSLifecycle({ type: 'shutdown' });
           } else if (event.code === 1006) {
             console.log('[GraphQL WS] Abnormal closure (network error or timeout)');
             toast.error('WebSocket connection lost - Attempting to reconnect...');
@@ -98,8 +118,16 @@ const splitLink = split(
 export const getConnectionStatus = () => ({
   isConnected,
   retryCount,
-  lastConnectionTime
+  lastConnectionTime,
+  shouldStopRetrying
 });
+
+// Allow components to manually reconnect (resets the stop flag)
+export const resetConnectionRetry = () => {
+  console.log('[GraphQL WS] Manually resetting connection retry flag');
+  shouldStopRetrying = false;
+  wsClient.dispose();
+};
 
 // Add ping/pong keep-alive to detect timeouts faster
 setInterval(() => {
