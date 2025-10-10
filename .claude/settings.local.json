@@ -44,7 +44,13 @@
       "Bash(npx tsc:*)",
       "Bash(npx tsx:*)",
       "Bash(mypy:*)",
-      "Bash(ruff check:*)"
+      "Bash(ruff check:*)",
+      "Bash(curl -s http://localhost:8000/graphql -H \"Content-Type: application/json\" -d '{\"\"\"\"query\"\"\"\": \"\"\"\"{ __schema { subscriptionType { name fields { name type { name kind ofType { name kind } } args { name type { name kind ofType { name } } } } } } }\"\"\"\"}')",
+      "Bash(pnpm --filter web exec graphql-codegen --version)",
+      "WebFetch(domain:strawberry.rocks)",
+      "WebFetch(domain:github.com)",
+      "Bash(do echo \"=== Checking $file ===\")",
+      "Bash(pnpm:*)"
     ],
     "deny": [],
     "ask": []

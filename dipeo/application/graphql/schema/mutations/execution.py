@@ -133,22 +133,35 @@ async def update_node_state(
         state_store = registry.resolve(STATE_STORE)
         message_router = registry.resolve(MESSAGE_ROUTER)
 
+        # Convert string status to Status enum
+        status_map = {
+            "RUNNING": Status.RUNNING,
+            "COMPLETED": Status.COMPLETED,
+            "FAILED": Status.FAILED,
+        }
+        status_enum = status_map.get(input.status.upper(), Status.RUNNING)
+
+        # Update node status (execution should already exist from register_cli_session)
         await state_store.update_node_status(
             execution_id=input.execution_id,
             node_id=input.node_id,
-            status=input.status,
-            output=input.output,
+            status=status_enum,
             error=input.error,
         )
+
+        # Determine event type based on status (case-insensitive)
+        status_upper = input.status.upper()
+        if status_upper == "COMPLETED":
+            event_type = EventType.NODE_COMPLETED
+        elif status_upper == "FAILED" or input.error:
+            event_type = EventType.NODE_ERROR
+        else:  # RUNNING or other
+            event_type = EventType.NODE_STARTED
 
         await message_router.broadcast_to_execution(
             execution_id=input.execution_id,
             message={
-                "type": EventType.NODE_COMPLETED
-                if input.status == "completed"
-                else EventType.NODE_ERROR
-                if input.error
-                else EventType.NODE_STARTED,
+                "type": event_type,
                 "node_id": input.node_id,
                 "status": input.status,
                 "output": input.output,
@@ -184,6 +197,7 @@ async def control_execution(
             "pause": Status.PAUSED,
             "resume": Status.RUNNING,
             "abort": Status.ABORTED,
+            "complete": Status.COMPLETED,
         }
 
         new_status = status_map.get(input.action)
@@ -192,17 +206,21 @@ async def control_execution(
 
         await state_store.update_status(input.execution_id, new_status)
 
+        # Determine event type based on status
+        event_type_map = {
+            Status.COMPLETED: EventType.EXECUTION_COMPLETED,
+            Status.FAILED: EventType.EXECUTION_ERROR,
+            Status.ABORTED: EventType.EXECUTION_ERROR,
+        }
+        event_type = event_type_map.get(new_status, EventType.EXECUTION_LOG)
+
         await message_router.broadcast_to_execution(
             execution_id=input.execution_id,
             message={
-                "type": EventType.EXECUTION_COMPLETED
-                if new_status == "completed"
-                else EventType.EXECUTION_ERROR
-                if new_status == "failed"
-                else EventType.EXECUTION_LOG,
+                "type": event_type,
                 "action": input.action,
                 "reason": input.reason,
-                "status": new_status,
+                "status": new_status.value,
             },
         )
 
@@ -250,3 +268,57 @@ async def send_interactive_response(
     except Exception as e:
         logger.error(f"Failed to send interactive response: {e}")
         return ExecutionResult.error_result(error=f"Failed to send interactive response: {e!s}")
+
+
+async def update_execution_status(
+    registry: ServiceRegistry, execution_id: str, status: str, error: str | None = None
+) -> ExecutionResult:
+    """
+    Update execution status (for CLI event forwarding).
+    Simpler than ControlExecution - just updates the status without control actions.
+    """
+    try:
+        state_store = registry.resolve(STATE_STORE)
+        message_router = registry.resolve(MESSAGE_ROUTER)
+
+        # Convert string status to Status enum
+        status_map = {
+            "COMPLETED": Status.COMPLETED,
+            "FAILED": Status.FAILED,
+            "ABORTED": Status.ABORTED,
+        }
+        status_enum = status_map.get(status.upper())
+        if not status_enum:
+            raise ValueError(f"Invalid status: {status}")
+
+        # Update execution status
+        await state_store.update_status(execution_id, status_enum, error)
+
+        # Broadcast event
+        event_type_map = {
+            "COMPLETED": EventType.EXECUTION_COMPLETED,
+            "FAILED": EventType.EXECUTION_ERROR,
+            "ABORTED": EventType.EXECUTION_ERROR,
+        }
+        event_type = event_type_map.get(status.upper(), EventType.EXECUTION_COMPLETED)
+
+        await message_router.broadcast_to_execution(
+            execution_id=execution_id,
+            message={
+                "type": event_type,
+                "status": status,
+                "error": error,
+            },
+        )
+
+        execution = await state_store.get_state(execution_id)
+        result = ExecutionResult.success_result(
+            data=ExecutionStateType.from_pydantic(execution),
+            message=f"Execution status updated to {status}",
+        )
+        result.execution = ExecutionStateType.from_pydantic(execution)
+        return result
+
+    except Exception as e:
+        logger.error(f"Failed to update execution status: {e}")
+        return ExecutionResult.error_result(error=f"Failed to update execution status: {e!s}")

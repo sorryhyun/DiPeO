@@ -106,6 +106,30 @@ async def register_cli_session(
         format_python = convert_diagramformat_from_graphql(input.diagram_format)
         diagram_format_str = format_python.value if format_python else "native"
 
+        # Create execution in state store for the background server
+        from dipeo.application.registry.keys import STATE_STORE
+        from dipeo.diagram_generated.enums import Status
+
+        state_store = registry.get(STATE_STORE)
+        if state_store:
+            try:
+                # Check if execution already exists
+                existing_execution = await state_store.get_state(input.execution_id)
+                if not existing_execution:
+                    # Create the execution in the background server's state store
+                    await state_store.create_execution(
+                        execution_id=input.execution_id,
+                        diagram_id=None,  # CLI doesn't provide diagram_id
+                        variables={},
+                    )
+                    # Set status to RUNNING since CLI is executing
+                    await state_store.update_status(input.execution_id, Status.RUNNING)
+                    logger.info(
+                        f"Created execution {input.execution_id} in background server state store"
+                    )
+            except Exception as e:
+                logger.warning(f"Could not create execution in state store: {e}")
+
         # Register the session
         await cli_session_service.start_cli_session(
             execution_id=input.execution_id,

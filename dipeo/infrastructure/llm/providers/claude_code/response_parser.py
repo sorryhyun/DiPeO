@@ -63,7 +63,7 @@ class ClaudeCodeResponseParser:
                 if "message_ids" in data or "decision" in data:
                     return data
         except (json.JSONDecodeError, ValueError) as e:
-            logger.debug(f"[ClaudeCode] Response is not valid JSON: {e}")
+            pass
 
         # Fallback: Look for JSON objects in the text
         json_pattern = r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}"
