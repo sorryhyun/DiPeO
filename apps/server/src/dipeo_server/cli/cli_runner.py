@@ -17,6 +17,7 @@ from dipeo.diagram_generated.domain_models import ExecutionID
 from dipeo.diagram_generated.enums import Status
 from dipeo_server.cli.diagram_loader import DiagramLoader
 from dipeo_server.cli.display import DisplayManager
+from dipeo_server.cli.interactive_handler import cli_interactive_handler
 from dipeo_server.cli.session_manager import SessionManager
 
 logger = get_module_logger(__name__)
@@ -42,6 +43,7 @@ class CLIRunner:
         input_variables: dict[str, Any] | None = None,
         use_unified: bool = True,
         simple: bool = False,
+        interactive: bool = True,
     ) -> bool:
         """Execute a diagram using direct service calls."""
         try:
@@ -149,6 +151,7 @@ class CLIRunner:
                     diagram=domain_diagram,
                     options=options,
                     execution_id=str(execution_id),
+                    interactive_handler=cli_interactive_handler if interactive else None,
                 ):
                     last_update = update
                     if not simple:

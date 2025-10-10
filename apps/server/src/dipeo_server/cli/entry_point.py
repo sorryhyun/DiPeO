@@ -96,6 +96,7 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
                 input_variables=input_variables,
                 use_unified=True,
                 simple=hasattr(args, "simple") and args.simple,
+                interactive=not (hasattr(args, "no_interactive") and args.no_interactive),
             )
 
         elif args.command == "convert":
@@ -221,6 +222,11 @@ def create_parser() -> argparse.ArgumentParser:
     run_parser.add_argument("--timing", action="store_true", help="Enable timing collection + logs")
     run_parser.add_argument("--timeout", type=int, default=300, help="Execution timeout in seconds")
     run_parser.add_argument("--simple", action="store_true", help="Use simple text display")
+    run_parser.add_argument(
+        "--no-interactive",
+        action="store_true",
+        help="Disable interactive user input (user_response nodes return empty)",
+    )
 
     # Input data options
     input_group = run_parser.add_mutually_exclusive_group()
