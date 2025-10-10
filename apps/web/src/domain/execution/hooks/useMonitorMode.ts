@@ -16,6 +16,7 @@ import { nodeId } from '@/infrastructure/types';
 import { Status } from '@dipeo/models';
 import { GETACTIVECLISESSION_QUERY, GETEXECUTION_QUERY } from '@/__generated__/queries/all-queries';
 import { addWSLifecycleListener } from '@/lib/graphql/client';
+import { useExecutionSubscriptionHandler } from './useExecutionSubscriptionHandler';
 
 export interface UseMonitorModeOptions {
   pollCliSessions?: boolean;
@@ -61,6 +62,9 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
   });
 
   const activeSession = cliSessionData?.getActiveCliSession;
+
+  // Subscribe to execution updates for real-time node highlighting
+  useExecutionSubscriptionHandler(activeSession?.execution_id || null);
 
   // CLI session monitoring handles all execution now
   // No need for URL-based execution logic

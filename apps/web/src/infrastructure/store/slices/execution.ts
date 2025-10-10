@@ -72,6 +72,7 @@ const clearRunningNode = (state: UnifiedStore, nodeId: NodeID) => {
 
 // Helper to update node state
 const updateNodeState = (state: UnifiedStore, nodeId: NodeID, nodeState: StoreNodeState) => {
+  // With Immer middleware, we can mutate directly - Immer handles immutability
   state.execution.nodeStates.set(nodeId, nodeState);
 
   if (nodeState.status === Status.RUNNING) {
@@ -159,7 +160,6 @@ export const createExecutionSlice = (
 
   // Node state management
   updateNodeExecution: (nodeId, nodeState) => set((state: UnifiedStore) => {
-    console.log('[ExecutionSlice] Updating node execution:', nodeId, nodeState);
     updateNodeState(state, nodeId, nodeState);
   }),
 

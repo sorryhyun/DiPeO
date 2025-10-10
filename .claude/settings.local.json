@@ -50,7 +50,9 @@
       "WebFetch(domain:strawberry.rocks)",
       "WebFetch(domain:github.com)",
       "Bash(do echo \"=== Checking $file ===\")",
-      "Bash(pnpm:*)"
+      "Bash(pnpm:*)",
+      "Bash(do [ -f \"$db\" ])",
+      "Bash(echo \"=== $db ===\")"
     ],
     "deny": [],
     "ask": []

@@ -2,13 +2,15 @@
 
 import asyncio
 import contextlib
-from typing import Any
 
 import httpx
 
 from dipeo.config.base_logger import get_module_logger
-from dipeo.diagram_generated.graphql.inputs import UpdateNodeStateInput
-from dipeo.diagram_generated.graphql.operations import UpdateNodeStateOperation
+from dipeo.diagram_generated.graphql.inputs import ExecutionControlInput, UpdateNodeStateInput
+from dipeo.diagram_generated.graphql.operations import (
+    ControlExecutionOperation,
+    UpdateNodeStateOperation,
+)
 from dipeo.domain.events import DomainEvent, EventType
 
 logger = get_module_logger(__name__)
@@ -29,7 +31,6 @@ class EventForwarder:
         """Start the event forwarder."""
         self._running = True
         self._forward_task = asyncio.create_task(self._process_event_queue())
-        logger.debug(f"EventForwarder started for execution {self.execution_id}")
 
     async def stop(self) -> None:
         """Stop the event forwarder and wait for pending events."""
@@ -40,7 +41,6 @@ class EventForwarder:
             self._forward_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await self._forward_task
-        logger.debug(f"EventForwarder stopped for execution {self.execution_id}")
 
     async def handle(self, event: DomainEvent) -> None:
         """Handle an event from the event bus (callback for EventBus subscription)."""
@@ -99,28 +99,15 @@ class EventForwarder:
                 logger.warning(f"Unknown event type {event.type}, skipping forward")
                 return
 
-            # Extract output and error from Pydantic payload
-            output = getattr(event.payload, "output", None) if event.payload else None
+            # Extract error from payload
             error = getattr(event.payload, "error_message", None) if event.payload else None
 
-            # Serialize output if it's a complex object
-            if output is not None:
-                if hasattr(output, "model_dump"):
-                    # Pydantic model
-                    output = output.model_dump()
-                elif hasattr(output, "to_dict"):
-                    # Custom object with to_dict method
-                    output = output.to_dict()
-                elif not isinstance(output, str | int | float | bool | dict | list | type(None)):
-                    # Other complex objects - convert to string
-                    output = str(output)
-
-            # Build mutation input (skip output for now - it's not used by update_node_status)
+            # Build mutation input
             input_data = UpdateNodeStateInput(
                 execution_id=self.execution_id,
                 node_id=node_id,
                 status=status,
-                output=None,  # Skip output - it causes serialization issues and isn't used
+                output=None,
                 error=error,
             )
 
@@ -134,24 +121,15 @@ class EventForwarder:
             for attempt in range(max_retries):
                 try:
                     async with httpx.AsyncClient(timeout=2.0) as client:
-                        logger.debug(
-                            f"Sending mutation to {self.graphql_endpoint}: status={status}, node={node_id}, exec={self.execution_id}"
-                        )
                         response = await client.post(
                             self.graphql_endpoint,
                             json={"query": query, "variables": variables},
                         )
                         result = response.json()
-                        logger.debug(f"Response status: {response.status_code}, result: {result}")
-
                         if response.status_code == 200:
                             if result.get("errors"):
                                 logger.error(
                                     f"GraphQL errors forwarding event {event.type} for node {node_id}: {result['errors']}"
-                                )
-                            else:
-                                logger.debug(
-                                    f"Forwarded {event.type} for node {node_id} to server (SUCCESS)"
                                 )
                             return
                         else:
@@ -194,23 +172,13 @@ class EventForwarder:
                 f"Forwarding execution {event.type}: exec={self.execution_id}, action={action}"
             )
 
-            # Use ControlExecution mutation for both COMPLETED and FAILED
-            mutation_query = """
-                mutation ControlExecution($input: ExecutionControlInput!) {
-                    controlExecution(input: $input) {
-                        success
-                        message
-                        execution {
-                            id
-                            status
-                        }
-                    }
-                }
-            """
+            # Build mutation input using generated types
+            input_data = ExecutionControlInput(
+                execution_id=self.execution_id, action=action, reason=reason
+            )
 
-            variables = {
-                "input": {"execution_id": self.execution_id, "action": action, "reason": reason}
-            }
+            variables = ControlExecutionOperation.get_variables_dict(input=input_data)
+            query = ControlExecutionOperation.get_query()
 
             # Send the mutation with retry logic
             max_retries = 3
@@ -219,10 +187,9 @@ class EventForwarder:
             for attempt in range(max_retries):
                 try:
                     async with httpx.AsyncClient(timeout=2.0) as client:
-                        logger.debug(f"Sending execution {action} to {self.graphql_endpoint}")
                         response = await client.post(
                             self.graphql_endpoint,
-                            json={"query": mutation_query, "variables": variables},
+                            json={"query": query, "variables": variables},
                         )
                         result = response.json()
 

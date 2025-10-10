@@ -130,9 +130,6 @@ class CLIRunner:
                     ]
                     await event_bus.subscribe(forward_events, event_forwarder)
                     await event_forwarder.start()
-                    logger.info(
-                        "EventForwarder started - events will be forwarded to background server"
-                    )
 
             # Register CLI session for monitor mode support
             await self.session_manager.register_cli_session(
