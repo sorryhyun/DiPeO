@@ -8,10 +8,20 @@ Generated at: {{ generated_at }}
 from __future__ import annotations
 
 import strawberry
-from typing import Optional, Dict, Any, List, Union, Literal
-from strawberry.scalars import JSON as JSONScalar
-from .inputs import Float, String, Boolean
+from typing import Optional, Dict, Any, List, Union, Literal, TypeAlias, TYPE_CHECKING
+from strawberry.scalars import JSON
 from dipeo.domain.type_defs import JsonValue, JsonDict
+
+# Type aliases for Strawberry
+# JSON from strawberry.scalars is used directly for runtime
+# For type checking, we treat it as Any since it's a ScalarWrapper
+if TYPE_CHECKING:
+    JSONScalar = Any
+else:
+    JSONScalar = JSON
+
+DefaultValue: TypeAlias = Union[str, float, bool, None, Dict[str, Any], List[Any]]
+ValidationSeverity: TypeAlias = Literal["error", "warning"]
 
 # Import the Pydantic domain models
 from ..domain_models import (

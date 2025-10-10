@@ -37,9 +37,6 @@ async def select_memory_messages(args: dict[str, Any]) -> dict[str, Any]:
         Structured output with selected message IDs
     """
     message_ids = args.get("message_ids", [])
-    logger.info(
-        f"[MCP Tool] select_memory_messages invoked with {len(message_ids)} message IDs: {message_ids}"
-    )
 
     # Return structured data directly - let SDK handle formatting
     result = {
@@ -52,7 +49,6 @@ async def select_memory_messages(args: dict[str, Any]) -> dict[str, Any]:
         "data": {"message_ids": message_ids},
     }
 
-    logger.debug(f"[MCP Tool] select_memory_messages returning: {result}")
     return result
 
 
@@ -103,9 +99,6 @@ async def make_decision(args: dict[str, Any]) -> dict[str, Any]:
 
 def create_dipeo_mcp_server():
     """Create an MCP server with DiPeO structured output tools."""
-    logger.debug(
-        "[MCP Tool] Creating DiPeO MCP server with tools: " "select_memory_messages, make_decision"
-    )
     return create_sdk_mcp_server(
         name="dipeo_structured_output",
         version="1.0.0",

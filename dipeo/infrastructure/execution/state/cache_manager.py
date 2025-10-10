@@ -133,9 +133,6 @@ class CacheManager:
                 self._cache[exec_id] = entry
                 self._warm_cache_ids.add(exec_id)
 
-        if states:
-            logger.info(f"Warmed cache with {len(states)} frequently accessed executions")
-
     async def evict_if_needed(self, persist_callback: Callable | None = None) -> None:
         """Evict cache entries if cache is full."""
         async with self._cache_lock:
@@ -201,18 +198,6 @@ class CacheManager:
         async with self._cache_lock:
             return [(exec_id, entry) for exec_id, entry in self._cache.items() if entry.is_dirty]
 
-    def log_metrics(self) -> None:
-        """Log current metrics."""
-        logger.info(
-            f"Cache Metrics - "
-            f"Hits: {self._metrics.cache_hits}, "
-            f"Misses: {self._metrics.cache_misses}, "
-            f"Hit rate: {self._metrics.cache_hit_rate:.1f}%, "
-            f"Warm hits: {self._metrics.warm_cache_hits}, "
-            f"Evictions: {self._metrics.cache_evictions}, "
-            f"Size: {len(self._cache)}/{self._cache_size}"
-        )
-
     async def start_background_tasks(self) -> tuple[asyncio.Task, asyncio.Task]:
         """Start background tasks for cache management."""
         self._running = True
@@ -232,7 +217,6 @@ class CacheManager:
             try:
                 await asyncio.sleep(30)  # Check every 30 seconds
                 await self.evict_if_needed()
-                self.log_metrics()
             except asyncio.CancelledError:
                 break
             except Exception as e:

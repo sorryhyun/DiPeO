@@ -159,6 +159,9 @@ def suppress_noisy_loggers(log_level: str = "INFO"):
         "requests",
         "strawberry",
         "watchfiles",
+        "mcp.server",
+        "mcp.client",
+        "claude_agent_sdk._internal.query",
     ]
 
     for logger_name in noisy_loggers:

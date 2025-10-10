@@ -1,6 +1,7 @@
 // Auto-generated TypeScript model for condition node
 import { z } from 'zod';
 import { PersonID } from '@dipeo/models';
+import { PersonID } from '@dipeo/models';
 
 export interface ConditionNodeData {
   condition_type?: string | undefined;

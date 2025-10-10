@@ -1,6 +1,7 @@
 // Auto-generated TypeScript model for person_job node
 import { z } from 'zod';
 import { PersonID } from '@dipeo/models';
+import { PersonID } from '@dipeo/models';
 
 export interface PersonJobNodeData {
   person?: PersonID | undefined;

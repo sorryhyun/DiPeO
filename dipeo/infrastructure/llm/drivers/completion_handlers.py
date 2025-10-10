@@ -111,7 +111,6 @@ class CompletionHandlers(LoggingMixin):
         with time_phase(trace_id, node_id, "memory_selection__parsing"):
             ids = []
             if result.text:
-                self.log_debug(f"Memory selection raw LLM response: {result.text[:500]}")
                 try:
                     # First try to parse as JSON
                     parsed = json.loads(result.text)
@@ -149,9 +148,10 @@ class CompletionHandlers(LoggingMixin):
                 self.log_warning("Memory selection result.text is empty")
 
         output = MemorySelectionOutput(message_ids=ids)
-        self.log_info(
-            f"Memory selection extracted {len(output.message_ids)} message IDs from {len(candidate_messages)} candidates (showing first 3): {[msg.id for msg in candidate_messages[:3]]}"
-        )
+        if output.message_ids:
+            self.log_info(
+                f"Memory selection: selected {len(output.message_ids)} message IDs from {len(candidate_messages)} candidates: {output.message_ids}"
+            )
         return output
 
     async def complete_decision(

@@ -54,8 +54,13 @@ class ServerManager:
             ]
 
             import tempfile
-            self._stdout_file = tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='_server_stdout.log')
-            self._stderr_file = tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='_server_stderr.log')
+
+            self._stdout_file = tempfile.NamedTemporaryFile(  # noqa: SIM115
+                mode="w+", delete=False, suffix="_server_stdout.log"
+            )
+            self._stderr_file = tempfile.NamedTemporaryFile(  # noqa: SIM115
+                mode="w+", delete=False, suffix="_server_stderr.log"
+            )
 
             self.process = subprocess.Popen(
                 cmd,
@@ -63,8 +68,6 @@ class ServerManager:
                 stderr=self._stderr_file,
                 start_new_session=True,
             )
-
-            logger.info(f"Started background server (PID: {self.process.pid}) - will be ready shortly")
 
         except Exception as e:
             logger.error(f"Failed to start server: {e}")
@@ -104,8 +107,13 @@ class ServerManager:
 
             # Start process with output captured for debugging
             import tempfile
-            self._stdout_file = tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='_server_stdout.log')
-            self._stderr_file = tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='_server_stderr.log')
+
+            self._stdout_file = tempfile.NamedTemporaryFile(  # noqa: SIM115
+                mode="w+", delete=False, suffix="_server_stdout.log"
+            )
+            self._stderr_file = tempfile.NamedTemporaryFile(  # noqa: SIM115
+                mode="w+", delete=False, suffix="_server_stderr.log"
+            )
 
             self.process = subprocess.Popen(
                 cmd,
@@ -173,6 +181,7 @@ class ServerManager:
                 try:
                     self._stdout_file.close()
                     import os
+
                     os.unlink(self._stdout_file.name)
                 except Exception:
                     pass
@@ -180,6 +189,7 @@ class ServerManager:
                 try:
                     self._stderr_file.close()
                     import os
+
                     os.unlink(self._stderr_file.name)
                 except Exception:
                     pass

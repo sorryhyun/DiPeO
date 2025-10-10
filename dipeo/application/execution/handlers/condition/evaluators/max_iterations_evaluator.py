@@ -52,11 +52,6 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
         result = found_executed and all_reached_max
         output_data = inputs
 
-        logger.debug(
-            f"MaxIterationsEvaluator: found_executed={found_executed}, "
-            f"all_reached_max={all_reached_max}, result={result}"
-        )
-
         if (
             hasattr(node, "expose_index_as")
             and node.expose_index_as

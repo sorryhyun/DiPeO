@@ -34,7 +34,6 @@ class PromptBuilder:
 
             # Check cache first
             if cache_key in self._template_cache:
-                logger.debug("Using cached template result")
                 return self._template_cache[cache_key]
 
             # Process template

@@ -125,7 +125,6 @@ class MetricsObserver(EventBus):
 
         self._running = True
         self._cleanup_task = asyncio.create_task(self._cleanup_loop())
-        logger.debug("MetricsObserver started")
 
     async def stop(self) -> None:
         """Stop the metrics observer and cleanup loop."""

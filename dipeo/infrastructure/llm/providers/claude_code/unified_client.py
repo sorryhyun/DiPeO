@@ -38,10 +38,6 @@ FORK_SESSION_ENABLED = (
     FORK_SESSION_SUPPORTED and os.getenv("DIPEO_CLAUDE_FORK_SESSION", "true").lower() == "true"
 )
 
-logger.info(
-    f"[ClaudeCode] Fork session supported: {FORK_SESSION_SUPPORTED}, enabled: {FORK_SESSION_ENABLED}"
-)
-
 
 class UnifiedClaudeCodeClient:
     """Unified Claude Code client with efficient template-based session management.
@@ -83,11 +79,6 @@ class UnifiedClaudeCodeClient:
         # Track active forked sessions for cleanup
         self._active_sessions: list[ClaudeSDKClient] = []
         self._session_lock = asyncio.Lock()
-
-        logger.info(
-            "[ClaudeCode] Initialized with template-based session management (fork enabled: %s)",
-            FORK_SESSION_ENABLED,
-        )
 
     def _get_capabilities(self) -> ProviderCapabilities:
         """Get Claude Code provider capabilities."""
@@ -137,8 +128,6 @@ class UnifiedClaudeCodeClient:
             if self._template_sessions.get(execution_phase):
                 return self._template_sessions[execution_phase]
 
-            logger.info(f"[ClaudeCode] Creating template session for phase '{execution_phase}'")
-
             # Enable fork_session for the template if supported
             if FORK_SESSION_ENABLED:
                 options.fork_session = True
@@ -181,10 +170,6 @@ class UnifiedClaudeCodeClient:
 
                 # Create a forked session from the template
                 # The fork will inherit the template's configuration but have its own state
-                logger.debug(
-                    f"[ClaudeCode] Forking session from template for phase '{execution_phase}'"
-                )
-
                 # Create new session with resume from template (this creates a fork)
                 async with atime_phase(
                     trace_id,
@@ -270,19 +255,12 @@ class UnifiedClaudeCodeClient:
                         for block in message.content:
                             if hasattr(block, "name") and hasattr(block, "input"):
                                 if block.name.startswith("mcp__dipeo_structured_output__"):
-                                    logger.debug(
-                                        f"[ClaudeCode] Found MCP tool invocation: {block.name} "
-                                        f"with input: {block.input}"
-                                    )
                                     tool_invocation_data = block.input
                                     break
 
                     # Process ResultMessage (final message, iterator auto-terminates after this)
                     if hasattr(message, "result"):
                         result_text = str(message.result)
-                        # Log if session was forked
-                        if hasattr(message, "session_id") and message.session_id != session_id:
-                            logger.debug("[ClaudeCode] Session forked! ")
                         # No need to break - receive_response() auto-terminates
 
             # Parse response
@@ -331,11 +309,6 @@ class UnifiedClaudeCodeClient:
         trace_id = kwargs.get("trace_id", "")
 
         # Prepare messages for Claude SDK
-        logger.debug(
-            "[ClaudeCode] Preparing %d messages for phase %s",
-            len(messages),
-            execution_phase,
-        )
         async with atime_phase(trace_id, "claude_code", "request__prepare_messages"):
             system_message, formatted_messages = self._processor.prepare_message(messages)
 
@@ -541,7 +514,6 @@ class UnifiedClaudeCodeClient:
             ]:  # Copy list to avoid modification during iteration
                 try:
                     await session.disconnect()
-                    logger.debug("[ClaudeCode] Disconnected active forked session")
                 except Exception as e:
                     logger.warning(f"[ClaudeCode] Error disconnecting forked session: {e}")
             self._active_sessions.clear()
@@ -552,9 +524,6 @@ class UnifiedClaudeCodeClient:
                 if template:
                     try:
                         await template.disconnect()
-                        logger.debug(
-                            f"[ClaudeCode] Disconnected template session for phase '{phase}'"
-                        )
                     except Exception as e:
                         logger.warning(
                             f"[ClaudeCode] Error disconnecting template for phase '{phase}': {e}"

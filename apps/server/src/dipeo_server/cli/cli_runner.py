@@ -112,7 +112,6 @@ class CLIRunner:
 
                 # Start the metrics observer
                 await metrics_observer.start()
-                logger.debug("MetricsObserver started for CLI execution")
 
             # Register CLI session for monitor mode support
             await self.session_manager.register_cli_session(
