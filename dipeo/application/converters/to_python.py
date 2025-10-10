@@ -95,6 +95,12 @@ class PythonExporter:
 
             # Find outgoing arrows
             outgoing = [a for a in diagram.arrows if a.source == node.id]
+
+            # For condition nodes, also check conditional connectors
+            if node.type == "condition":
+                outgoing.extend([a for a in diagram.arrows if a.source == f"{node.id}_condtrue"])
+                outgoing.extend([a for a in diagram.arrows if a.source == f"{node.id}_condfalse"])
+
             for arrow in outgoing:
                 target_node = next((n for n in diagram.nodes if n.id == arrow.target), None)
                 if target_node and target_node.id not in visited:
