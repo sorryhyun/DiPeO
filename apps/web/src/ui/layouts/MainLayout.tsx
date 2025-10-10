@@ -16,7 +16,6 @@ export function MainLayout({ children }: MainLayoutProps) {
   const { activeCanvas } = useCanvasState();
   const { executionOps } = useCanvasOperations();
   const { isMonitorMode } = useUIState();
-  const { isMonitorBoard, isSingleMonitor } = useMonitorBoardMode();
 
   return (
     <div className="h-screen flex flex-col">
@@ -31,15 +30,7 @@ export function MainLayout({ children }: MainLayoutProps) {
 
         <div className="flex-1 flex flex-col">
           {children || (
-            isMonitorBoard ? (
-              <Suspense fallback={
-                <div className="h-full bg-gray-950 flex items-center justify-center">
-                  <div className="text-gray-400 animate-pulse">Loading monitor board...</div>
-                </div>
-              }>
-                <LazyExecutionBoardView />
-              </Suspense>
-            ) : isSingleMonitor || activeCanvas === 'execution' ? (
+            activeCanvas === 'execution' ? (
               <Suspense fallback={
                 <div className="h-full bg-black flex items-center justify-center">
                   <div className="text-gray-400 animate-pulse">Loading execution view...</div>
