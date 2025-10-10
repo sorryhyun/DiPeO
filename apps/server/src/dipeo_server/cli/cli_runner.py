@@ -599,3 +599,34 @@ class CLIRunner:
         except Exception as e:
             logger.error(f"Claude Code management failed: {e}")
             return False
+
+    async def export_diagram(
+        self,
+        diagram_path: str,
+        output_path: str,
+        format_type: str | None = None,
+    ) -> bool:
+        """Export diagram to Python script."""
+        try:
+            from dipeo.application.converters import PythonExporter
+
+            # Load diagram
+            (
+                domain_diagram,
+                diagram_data,
+                diagram_file_path,
+            ) = await self.diagram_loader.load_and_deserialize(diagram_path, format_type)
+
+            if not domain_diagram:
+                print(f"❌ Failed to load diagram: {diagram_path}")
+                return False
+
+            # Export to Python
+            exporter = PythonExporter()
+            return exporter.export(domain_diagram, output_path)
+
+        except Exception as e:
+            logger.error(f"Diagram export failed: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
