@@ -49,7 +49,8 @@
       "Bash(pnpm --filter web exec graphql-codegen --version)",
       "WebFetch(domain:strawberry.rocks)",
       "WebFetch(domain:github.com)",
-      "Bash(do echo \"=== Checking $file ===\")"
+      "Bash(do echo \"=== Checking $file ===\")",
+      "Bash(pnpm:*)"
     ],
     "deny": [],
     "ask": []

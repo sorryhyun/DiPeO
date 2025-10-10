@@ -262,7 +262,9 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
       }
     });
 
-    return cleanup;
+    return () => {
+      cleanup();
+    };
   }, [isMonitorMode, setActiveCanvas]);
 
   // Cleanup timeout on unmount or when monitor mode changes
