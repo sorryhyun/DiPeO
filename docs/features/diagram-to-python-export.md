@@ -9,6 +9,7 @@ The export feature converts DiPeO diagrams into self-contained Python scripts fo
 - ✅ **DB read/write** (db nodes) → File I/O operations
 - ✅ **Code execution** (code_job nodes) → Inline Python code
 - ✅ **Control flow** (condition, start, endpoint) → Native Python control structures
+- ✅ **Sub-diagrams** (sub_diagram nodes) → Separate Python modules or inline functions
 
 **Not included**: DB state management, monitor logic, or advanced runtime features.
 
@@ -118,6 +119,55 @@ output_path = Path("files/results/output.txt")
 output_path.parent.mkdir(parents=True, exist_ok=True)
 output_path.write_text(str(result))
 print(f"✅ Saved output to {output_path}")
+```
+
+### Sub-Diagram Node
+Executes other diagrams as reusable components.
+
+**Named Diagram (separate module):**
+```python
+# Import sub-diagram as module
+from codegen_node_ui import main as run_codegen_node_ui
+
+# Map inputs for sub-diagram
+sub_inputs = {
+    'spec_path': node_specification,
+    'output_dir': output_directory,
+}
+
+# Execute sub-diagram
+sub_diagram_output = await run_codegen_node_ui(**sub_inputs)
+
+# Map outputs
+processed_spec = sub_diagram_output.get('processed_spec')
+```
+
+**Batch Mode:**
+```python
+# Batch mode: processing multiple items
+batch_results = []
+for item in inputs.get('items', []):
+    # Map inputs for sub-diagram
+    sub_inputs = {
+        'data': item,
+    }
+
+    sub_diagram_output = await run_processor(**sub_inputs)
+    batch_results.append(sub_diagram_output)
+
+print(f'Batch processing complete: {len(batch_results)} items')
+```
+
+**Note**: When using named sub-diagrams, you must export each sub-diagram separately:
+
+```bash
+# Export the main diagram
+dipeo export main_diagram.light.yaml main.py --light
+
+# Export each sub-diagram
+dipeo export codegen/node_ui.light.yaml codegen_node_ui.py --light
+
+# Ensure sub-diagram modules are in the same directory or PYTHONPATH
 ```
 
 ## Complete Example
@@ -236,13 +286,13 @@ pip install openai anthropic
 ## Limitations
 
 - Complex control flow may require manual adjustment
-- Sub-diagrams are not yet supported
-- Batch execution needs manual implementation
+- Inline sub-diagrams (diagram_data) require manual conversion to functions
+- Named sub-diagrams must be exported separately before the main diagram
 - Some advanced node types may generate TODO comments
 
 ## Future Enhancements
 
-- Sub-diagram support via function calls
-- Batch processing patterns
+- Automatic recursive export of sub-diagrams
+- Full inline sub-diagram support with auto-generated functions
 - More sophisticated control flow detection
 - Error handling and retry logic

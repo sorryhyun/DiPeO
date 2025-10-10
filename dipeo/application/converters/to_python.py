@@ -12,6 +12,7 @@ from dipeo.diagram_generated.unified_nodes import (
     EndpointNode,
     PersonJobNode,
     StartNode,
+    SubDiagramNode,
 )
 
 
@@ -118,6 +119,8 @@ class PythonExporter:
             self._generate_endpoint(node)
         elif node_type == "db":
             self._generate_db(node)
+        elif node_type == "sub_diagram":
+            self._generate_sub_diagram(node, diagram)
         else:
             self.main_code.append(f"    # TODO: Unsupported node type: {node_type}")
 
@@ -298,6 +301,85 @@ class PythonExporter:
 
                 self.main_code.append(f'    with open("{file_path}", "a") as f:')
                 self.main_code.append(f"        f.write(str({content_var}))")
+
+        self.main_code.append("")
+
+    def _generate_sub_diagram(self, node: SubDiagramNode, diagram: DomainDiagram):
+        """Generate code for sub_diagram node.
+
+        Supports:
+        - Named diagrams (diagram_name) → Import from separate module
+        - Inline diagrams (diagram_data) → Generate as local function
+        - Batch mode → Loop over inputs
+        """
+        label = getattr(node, "label", "Sub-Diagram")
+        diagram_name = node.diagram_name
+        diagram_data = node.diagram_data
+        batch_mode = node.batch
+
+        self.main_code.append(f"    # {label}")
+
+        # Handle batch mode
+        if batch_mode:
+            batch_input_key = node.batch_input_key or "items"
+            self.main_code.append(f"    # Batch mode: processing multiple items")
+            self.main_code.append(f"    batch_results = []")
+            self.main_code.append(f"    for item in inputs.get('{batch_input_key}', []):")
+            indent = "    "
+        else:
+            indent = ""
+
+        # Named diagram: Generate import and call
+        if diagram_name:
+            # Convert diagram name to module name (e.g., "codegen/node_ui" → "codegen_node_ui")
+            module_name = diagram_name.replace("/", "_").replace("-", "_")
+            function_name = f"run_{module_name}"
+
+            # Add import
+            self.imports.add(f"from {module_name} import main as {function_name}")
+
+            # Prepare inputs
+            input_mapping = node.input_mapping or {}
+            if input_mapping:
+                self.main_code.append(f"{indent}    # Map inputs for sub-diagram")
+                self.main_code.append(f"{indent}    sub_inputs = {{")
+                for target_key, source_key in input_mapping.items():
+                    self.main_code.append(f"{indent}        '{target_key}': {source_key},")
+                self.main_code.append(f"{indent}    }}")
+            else:
+                self.main_code.append(f"{indent}    sub_inputs = {{}}")
+
+            # Call sub-diagram
+            var_name = self._node_var_name(node)
+            self.main_code.append(f"{indent}    {var_name} = await {function_name}(**sub_inputs)")
+
+            # Handle output mapping
+            output_mapping = node.output_mapping or {}
+            if output_mapping:
+                self.main_code.append(f"{indent}    # Map outputs from sub-diagram")
+                for source_key, target_key in output_mapping.items():
+                    self.main_code.append(f"{indent}    {target_key} = {var_name}.get('{source_key}')")
+
+            if batch_mode:
+                self.main_code.append(f"        batch_results.append({var_name})")
+                self.node_outputs[node.id] = "batch_results"
+            else:
+                self.node_outputs[node.id] = var_name
+
+        # Inline diagram: Generate as function call
+        elif diagram_data:
+            self.main_code.append(f"{indent}    # TODO: Inline sub-diagram not yet fully supported")
+            self.main_code.append(f"{indent}    # You can manually convert the inline diagram to a function")
+            self.main_code.append(f"{indent}    # Diagram data: {json.dumps(diagram_data, indent=2)}")
+            var_name = self._node_var_name(node)
+            self.main_code.append(f"{indent}    {var_name} = {{}}")
+            self.node_outputs[node.id] = var_name
+
+        else:
+            self.main_code.append(f"{indent}    # ERROR: No diagram_name or diagram_data specified")
+
+        if batch_mode:
+            self.main_code.append(f"    print(f'Batch processing complete: {{len(batch_results)}} items')")
 
         self.main_code.append("")
 

@@ -1,0 +1,19 @@
+version: light
+nodes:
+  - label: Start
+    type: start
+  - label: Code Job
+    type: code_job
+    props:
+      code: |
+        # Simple processing function
+        result = f"Processed: {input_data}"
+  - label: Endpoint
+    type: endpoint
+    props:
+      save_to_file: false
+connections:
+  - from: Start
+    to: Code Job
+  - from: Code Job
+    to: Endpoint

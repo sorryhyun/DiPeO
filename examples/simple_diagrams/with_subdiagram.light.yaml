@@ -1,0 +1,36 @@
+version: light
+nodes:
+  - label: Start
+    type: start
+  - label: Prepare Data
+    type: code_job
+    props:
+      code: |
+        input_data = "Hello from main diagram"
+  - label: Process Data
+    type: sub_diagram
+    props:
+      diagram_name: "examples/simple_diagrams/sub_processor"
+      input_mapping:
+        input_data: input_data
+      output_mapping:
+        result: processed_result
+      batch: false
+  - label: Show Result
+    type: code_job
+    props:
+      code: |
+        print(f"Final result: {processed_result}")
+  - label: Endpoint
+    type: endpoint
+    props:
+      save_to_file: false
+connections:
+  - from: Start
+    to: Prepare Data
+  - from: Prepare Data
+    to: Process Data
+  - from: Process Data
+    to: Show Result
+  - from: Show Result
+    to: Endpoint
