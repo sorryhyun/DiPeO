@@ -85,17 +85,22 @@ class UserResponseNodeHandler(TypedNodeHandler[UserResponseNode]):
 
         # Get execution context from ServiceRegistry
         exec_context = self._execution_context
-        if (
-            exec_context
-            and hasattr(exec_context, "interactive_handler")
-            and exec_context.interactive_handler
-        ):
+
+        # Support both dict-based and object-based execution context
+        interactive_handler = None
+        if exec_context:
+            if isinstance(exec_context, dict):
+                interactive_handler = exec_context.get("interactive_handler")
+            elif hasattr(exec_context, "interactive_handler"):
+                interactive_handler = exec_context.interactive_handler
+
+        if interactive_handler:
             message = node.prompt
             if input_context:
                 input_str = str(input_context)
                 message = f"{message}\n\nContext: {input_str}"
 
-            response = await exec_context.interactive_handler(
+            response = await interactive_handler(
                 {
                     "type": "user_input_required",
                     "node_id": getattr(context, "current_node_id", "unknown"),
