@@ -106,6 +106,21 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
                 to_format=getattr(args, "to_format", None),
             )
 
+        elif args.command == "export":
+            format_type = None
+            if hasattr(args, "light") and args.light:
+                format_type = "light"
+            elif hasattr(args, "native") and args.native:
+                format_type = "native"
+            elif hasattr(args, "readable") and args.readable:
+                format_type = "readable"
+
+            return await cli.export_diagram(
+                diagram_path=args.diagram,
+                output_path=args.output,
+                format_type=format_type,
+            )
+
         elif args.command == "stats":
             return await cli.show_stats(args.diagram)
 
@@ -247,6 +262,17 @@ def create_parser() -> argparse.ArgumentParser:
     convert_parser.add_argument(
         "--to-format", choices=["native", "light", "readable"], help="Target format"
     )
+
+    # Export command
+    export_parser = subparsers.add_parser("export", help="Export diagram to Python script")
+    export_parser.add_argument("diagram", help="Path to diagram file")
+    export_parser.add_argument("output", help="Output Python file path")
+
+    # Format options
+    export_format_group = export_parser.add_mutually_exclusive_group()
+    export_format_group.add_argument("--light", action="store_true", help="Input is light format (YAML)")
+    export_format_group.add_argument("--native", action="store_true", help="Input is native format (JSON)")
+    export_format_group.add_argument("--readable", action="store_true", help="Input is readable format (YAML)")
 
     # Stats command
     stats_parser = subparsers.add_parser("stats", help="Show diagram statistics")
