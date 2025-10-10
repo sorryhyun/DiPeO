@@ -42,20 +42,38 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
   const currentExecutionId = providedExecutionId || (execution?.executionId ? executionId(execution.executionId) : undefined);
   const [executionOrder, setExecutionOrder] = useState<ExecutionOrderData | null>(null);
 
+  // Debug: Log component mount and execution ID changes
+  useEffect(() => {
+    console.log('🎬 ExecutionOrderView mounted/updated');
+    console.log(`   Execution ID: ${currentExecutionId || 'none'}`);
+    console.log(`   Has execution order: ${executionOrder ? 'yes' : 'no'}`);
+    if (executionOrder) {
+      console.log(`   Current status: ${executionOrder.status}`);
+      console.log(`   Node count: ${executionOrder.nodes.length}`);
+    }
+  }, [currentExecutionId, executionOrder?.status, executionOrder?.nodes.length]);
+
   // Determine if we should poll based on execution status
-  const shouldPoll = executionOrder ? isExecutionActive(executionOrder.status as any) : true;
+  // Note: Status is normalized to lowercase in onCompleted handler
+  const shouldPoll = executionOrder
+    ? isExecutionActive(executionOrder.status as Status)
+    : true;
 
   // Dynamic poll interval based on execution status
   const pollInterval = useMemo(() => {
     if (!currentExecutionId) return 0;
-    return shouldPoll ? 1000 : 0;  // Reduced from 2000ms to 1000ms for more responsive updates
-  }, [currentExecutionId, shouldPoll]);
+    const interval = shouldPoll ? 1000 : 0;
+    const statusLower = executionOrder?.status ? executionOrder.status.toLowerCase() : 'unknown';
+    console.log(`🔄 Poll interval: ${interval}ms (shouldPoll: ${shouldPoll}, status: ${executionOrder?.status || 'unknown'} -> ${statusLower})`);
+    return interval;
+  }, [currentExecutionId, shouldPoll, executionOrder?.status]);
 
   const { data, loading, error, refetch } = useGetExecutionOrderQuery({
     variables: { execution_id: currentExecutionId! },
     skip: !currentExecutionId,
     pollInterval,
     onCompleted: (data: GetExecutionOrderQuery) => {
+      console.log('✅ Query completed for execution:', currentExecutionId);
       if (data?.getExecutionOrder) {
         // Debug: log raw data structure
         console.log('Raw execution order data:', data.getExecutionOrder);
@@ -74,17 +92,61 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
         // Debug: log parsed data
         console.log('Parsed execution order data:', parsedData);
 
-        // Ensure nodes is an array
+        // Normalize status to lowercase and ensure nodes array
+        // Note: Apollo freezes objects, so we must create a new object
         if (parsedData && typeof parsedData === 'object') {
-          if (!parsedData.nodes) {
-            parsedData.nodes = [];
-          } else if (!Array.isArray(parsedData.nodes)) {
-            console.warn('Nodes is not an array, converting:', parsedData.nodes);
-            parsedData.nodes = [];
+          // Ensure nodes is an array before processing
+          let nodes = parsedData.nodes;
+          if (!nodes || !Array.isArray(nodes)) {
+            if (nodes) {
+              console.warn('Nodes is not an array, converting:', nodes);
+            }
+            nodes = [];
           }
+
+          // Create new object with normalized statuses
+          const originalStatus = parsedData.status;
+          parsedData = {
+            ...parsedData,
+            status: typeof parsedData.status === 'string' ? parsedData.status.toLowerCase() : parsedData.status,
+            nodes: nodes.map((node: ExecutionStep) => ({
+              ...node,
+              status: typeof node.status === 'string' ? node.status.toLowerCase() : node.status
+            }))
+          };
+          console.log(`✨ Status normalized: ${originalStatus} -> ${parsedData.status}`);
+        }
+
+        // Validate final data structure
+        if (parsedData && typeof parsedData === 'object') {
 
           // Debug: log final nodes array
           console.log('Final nodes array:', parsedData.nodes);
+
+          // Debug: log each node in detail
+          if (parsedData.nodes.length > 0) {
+            console.log(`📊 Execution Order Details (${parsedData.nodes.length} nodes):`);
+            parsedData.nodes.forEach((node: ExecutionStep, idx: number) => {
+              console.log(`  [${idx + 1}] Node: ${node.nodeId} (${node.nodeName})`);
+              console.log(`      Status: ${node.status}`);
+              console.log(`      Started: ${node.startedAt || 'N/A'}`);
+              console.log(`      Ended: ${node.endedAt || 'N/A'}`);
+              console.log(`      Duration: ${node.duration ? `${node.duration}ms` : 'N/A'}`);
+              if (node.tokenUsage) {
+                console.log(`      Tokens: ${node.tokenUsage.total} (in: ${node.tokenUsage.input}, out: ${node.tokenUsage.output})`);
+              }
+              if (node.error) {
+                console.log(`      ❌ Error: ${node.error}`);
+              }
+            });
+            console.log(`  Execution Status: ${parsedData.status}`);
+            console.log(`  Started At: ${parsedData.startedAt || 'N/A'}`);
+            console.log(`  Ended At: ${parsedData.endedAt || 'N/A'}`);
+          } else {
+            console.log('⚠️ No nodes in execution order yet');
+            console.log(`   Execution Status: ${parsedData.status}`);
+            console.log(`   Total Nodes Expected: ${parsedData.totalNodes}`);
+          }
         }
 
         setExecutionOrder(parsedData);

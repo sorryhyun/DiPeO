@@ -523,7 +523,9 @@ class CacheFirstStateStore(StateStorePort, ExecutionStateService, ExecutionCache
         async with self._cache_manager.cache_lock:
             now = datetime.now().isoformat()
 
-            if status == Status.RUNNING and node_id not in entry.state.executed_nodes:
+            # Add node to executed_nodes list if not already there
+            # This ensures nodes appear in execution order even if events arrive out of order
+            if node_id not in entry.state.executed_nodes:
                 entry.state.executed_nodes.append(node_id)
 
             if node_id not in entry.state.node_states:

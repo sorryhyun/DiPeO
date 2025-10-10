@@ -2,12 +2,10 @@ import React, { Suspense } from 'react';
 import { TopBar, Sidebar } from '../components/common/layout';
 import { useCanvasState, useCanvasOperations } from '../../domain/diagram/contexts';
 import { useUIState } from '../../infrastructure/store/hooks';
-import { useMonitorBoardMode } from '../components/monitor-board/useMonitorBoardMode';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
 
 const LazyDiagramCanvas = React.lazy(() => import('../components/diagram/DiagramCanvas'));
 const LazyExecutionView = React.lazy(() => import('../components/execution/ExecutionView'));
-const LazyExecutionBoardView = React.lazy(() => import('../components/monitor-board/ExecutionBoardView'));
 const LazyInteractivePromptModal = React.lazy(() => import('../components/execution/InteractivePromptModal'));
 
 interface MainLayoutProps {
