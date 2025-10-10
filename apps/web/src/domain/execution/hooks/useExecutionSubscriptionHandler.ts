@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useExecutionUpdatesSubscription, useGetExecutionQuery } from '@/__generated__/graphql';
+import { useExecutionUpdatesSubscription, useGetExecutionQuery, EventType } from '@/__generated__/graphql';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
 import { Status, nodeId } from '@/infrastructure/types';
 
@@ -86,29 +86,29 @@ export function useExecutionSubscriptionHandler(executionIdParam: string | null)
     const eventData = update.data || {};
 
     // Handle node events
-    if (eventType === 'node_started' && eventData.node_id) {
-      const nId = nodeId(eventData.node_id);
+    if (eventType === EventType.NODE_STARTED && eventData.node_id) {
+      const nId = nodeId(String(eventData.node_id));
       executionActions.updateNodeExecution(nId, {
         status: Status.RUNNING,
         timestamp: Date.now()
       });
     }
-    else if (eventType === 'node_completed' && eventData.node_id) {
-      const nId = nodeId(eventData.node_id);
+    else if (eventType === EventType.NODE_COMPLETED && eventData.node_id) {
+      const nId = nodeId(String(eventData.node_id));
       executionActions.updateNodeExecution(nId, {
         status: Status.COMPLETED,
         timestamp: Date.now()
       });
     }
-    else if (eventType === 'node_error' && eventData.node_id) {
-      const nId = nodeId(eventData.node_id);
+    else if (eventType === EventType.NODE_ERROR && eventData.node_id) {
+      const nId = nodeId(String(eventData.node_id));
       executionActions.updateNodeExecution(nId, {
         status: Status.FAILED,
         timestamp: Date.now(),
-        error: eventData.error
+        error: eventData.error ? String(eventData.error) : undefined
       });
     }
-    else if (eventType === 'execution_completed') {
+    else if (eventType === EventType.EXECUTION_COMPLETED) {
       executionActions.stopExecution();
     }
   }, [data, executionIdParam, executionActions]);
