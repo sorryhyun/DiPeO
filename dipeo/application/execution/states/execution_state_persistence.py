@@ -10,12 +10,12 @@ from dipeo.diagram_generated import (
     NodeState,
     Status,
 )
+from dipeo.diagram_generated.enums import CompletionStatus
 from dipeo.domain.execution.messaging.envelope import deserialize_protocol, serialize_protocol
-from dipeo.domain.execution.state.execution_tracker import CompletionStatus
 
 if TYPE_CHECKING:
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
-    from dipeo.domain.execution.state.execution_tracker import ExecutionTracker
+    from dipeo.domain.execution.state import UnifiedStateTracker
 
 
 class ExecutionStatePersistence:
@@ -23,7 +23,7 @@ class ExecutionStatePersistence:
 
     @staticmethod
     def load_from_state(
-        state: ExecutionState, node_states: dict[NodeID, NodeState], tracker: "ExecutionTracker"
+        state: ExecutionState, node_states: dict[NodeID, NodeState], tracker: "UnifiedStateTracker"
     ) -> None:
         """Load runtime state from persisted ExecutionState."""
         # Load node states
@@ -53,7 +53,7 @@ class ExecutionStatePersistence:
         diagram_id: str,
         diagram: "ExecutableDiagram",
         node_states: dict[NodeID, NodeState],
-        tracker: "ExecutionTracker",
+        tracker: "UnifiedStateTracker",
     ) -> ExecutionState:
         """Convert runtime state to ExecutionState for persistence."""
         # Calculate aggregate LLM usage

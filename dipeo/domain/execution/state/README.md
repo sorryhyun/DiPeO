@@ -1,473 +1,403 @@
-# State Management
+# State Management - Unified State Tracker
 
 ## Overview
 
-The `state/` module manages node execution states and history. It separates concerns into:
+The `state/` module provides a **unified state tracking system** that consolidates UI state, execution history, and iteration limits into a single source of truth.
 
-1. **StateTracker**: Node states for UI visualization and iteration limits
-2. **ExecutionTracker**: Immutable execution history for reporting and analysis
-3. **Ports**: Domain ports for persistence (future)
-
-**Key Principle:** State tracking is for **UI visualization and reporting only**. Execution flow is driven by **tokens**, not status.
+**Key Change (2025-10-11):** The previous `ExecutionTracker` and `StateTracker` classes have been unified into `UnifiedStateTracker` to eliminate redundancy and prevent state divergence.
 
 ## Architecture
 
 ```
-┌─────────────────────────────────┐
-│       StateTracker              │
-│  - Node states (UI)             │
-│  - Iteration counts             │
-│  - Metadata                     │
-│  - Thread-safe                  │
-└─────────────────────────────────┘
-            │ uses
-            ▼
-┌─────────────────────────────────┐
-│     ExecutionTracker            │
-│  - Immutable history            │
-│  - Execution records            │
-│  - Runtime state                │
-│  - Summaries                    │
-└─────────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│       UnifiedStateTracker                   │
+│  Single Source of Truth                     │
+│                                              │
+│  ┌────────────────────────────────────┐    │
+│  │ UI State                           │    │
+│  │ - Node states (PENDING, RUNNING...)│    │
+│  └────────────────────────────────────┘    │
+│                                              │
+│  ┌────────────────────────────────────┐    │
+│  │ Execution History                  │    │
+│  │ - Immutable execution records      │    │
+│  │ - Execution counts                 │    │
+│  │ - Last outputs                     │    │
+│  └────────────────────────────────────┘    │
+│                                              │
+│  ┌────────────────────────────────────┐    │
+│  │ Iteration Limits                   │    │
+│  │ - Per-epoch tracking               │    │
+│  │ - Max iteration enforcement        │    │
+│  └────────────────────────────────────┘    │
+│                                              │
+│  ┌────────────────────────────────────┐    │
+│  │ Metadata                           │    │
+│  │ - Arbitrary key-value storage      │    │
+│  └────────────────────────────────────┘    │
+│                                              │
+│  Thread-safe with internal lock             │
+└─────────────────────────────────────────────┘
 ```
 
-## StateTracker
+## UnifiedStateTracker
 
-**Location:** `dipeo/domain/execution/state/state_tracker.py:20`
+**Location:** `dipeo/domain/execution/state/unified_state_tracker.py`
 
-Tracks node execution states, primarily for UI visualization.
+The unified tracker consolidates all state tracking responsibilities:
+- UI state tracking (for visualization)
+- Execution history (for reporting)
+- Iteration limits (for safety)
+- Node metadata (for arbitrary storage)
+- Thread safety (for concurrent access)
 
-### Responsibilities
+### Key Features
 
-1. **Node State Transitions**: PENDING → RUNNING → COMPLETED/FAILED/MAXITER/SKIPPED
-2. **Execution Counting**: Track how many times each node has executed
-3. **Iteration Limits**: Enforce max iterations per epoch
-4. **Result Storage**: Store and retrieve node outputs
-5. **Thread Safety**: Lock-based synchronization
+1. **Single Source of Truth**: No duplication, no divergence
+2. **Thread-Safe**: All operations protected by internal lock
+3. **Clear Separation**: Internal structure separates concerns
+4. **Backward Compatible**: Aliases for old class names
+5. **Comprehensive**: All features from both previous trackers
 
-### Key Operations
+### Core Data Structures
 
-#### State Transitions
+#### NodeState
+```python
+@dataclass
+class NodeState:
+    """Current state of a node for UI visualization."""
+    status: Status  # PENDING, RUNNING, COMPLETED, FAILED, etc.
+    error: str | None = None
+```
+
+#### NodeExecutionRecord
+```python
+@dataclass
+class NodeExecutionRecord:
+    """Immutable record of a single node execution."""
+    node_id: NodeID
+    execution_number: int
+    started_at: datetime
+    ended_at: datetime | None
+    status: CompletionStatus  # SUCCESS, FAILED, MAX_ITER, SKIPPED
+    output: Envelope | None
+    error: str | None
+    token_usage: dict[str, int] | None = None
+    duration: float = 0.0
+```
+
+## Usage
+
+### Basic Usage
 
 ```python
-from dipeo.domain.execution.state import StateTracker
+from dipeo.domain.execution.state import UnifiedStateTracker
+from dipeo.domain.execution.messaging import EnvelopeFactory
 
-tracker = StateTracker()
+tracker = UnifiedStateTracker()
 
-# Initialize
-tracker.initialize_node(node_id)
-# State: PENDING
+# Initialize node
+tracker.initialize_node("node-1")
 
 # Start execution
-exec_count = tracker.transition_to_running(node_id, epoch=0)
-# State: RUNNING, returns execution count
+exec_count = tracker.transition_to_running("node-1", epoch=0)
+print(f"Execution #{exec_count}")
 
-# Success
-tracker.transition_to_completed(node_id, output=envelope)
-# State: COMPLETED
+# Complete execution
+output = EnvelopeFactory.create(body="result")
+tracker.transition_to_completed("node-1", output=output, token_usage={"input": 100})
 
-# Failure
-tracker.transition_to_failed(node_id, error="Error message")
-# State: FAILED
+# Query state
+state = tracker.get_node_state("node-1")
+print(f"Status: {state.status}")  # COMPLETED
 
-# Max iterations reached
-tracker.transition_to_maxiter(node_id, output=envelope)
-# State: MAXITER_REACHED
-
-# Skipped (conditional branch not taken)
-tracker.transition_to_skipped(node_id)
-# State: SKIPPED
-
-# Reset for next iteration
-tracker.reset_node(node_id)
-# State: PENDING (execution count NOT reset)
+# Get result
+result = tracker.get_node_result("node-1")
+print(f"Result: {result['value']}")  # "result"
 ```
 
-#### State Queries
+### State Transitions
 
 ```python
-# Get node state
-state = tracker.get_node_state(node_id)
-# Returns: NodeState(status=Status.COMPLETED, error=None)
+# Initialize to PENDING
+tracker.initialize_node(node_id)
 
-# Get all states
-all_states = tracker.get_all_node_states()
-# Returns: {node_id: NodeState, ...}
+# Transition to RUNNING
+exec_count = tracker.transition_to_running(node_id, epoch=0)
 
-# Query by status
-completed = tracker.get_completed_nodes()  # [node_id, ...]
-running = tracker.get_running_nodes()      # [node_id, ...]
-failed = tracker.get_failed_nodes()        # [node_id, ...]
+# Transition to COMPLETED (success)
+tracker.transition_to_completed(node_id, output=envelope, token_usage=tokens)
 
-# Check if any nodes are running
-has_running = tracker.has_running_nodes()  # bool
+# Transition to FAILED
+tracker.transition_to_failed(node_id, error="Error message")
+
+# Transition to MAXITER_REACHED
+tracker.transition_to_maxiter(node_id, output=envelope)
+
+# Transition to SKIPPED (conditional branch not taken)
+tracker.transition_to_skipped(node_id)
+
+# Reset to PENDING (for next iteration)
+tracker.reset_node(node_id)
 ```
 
-#### Execution Counts
+### State Queries
+
+```python
+# Get single node state
+state = tracker.get_node_state(node_id)
+
+# Get all node states
+all_states = tracker.get_all_node_states()
+
+# Query by status
+completed = tracker.get_completed_nodes()
+running = tracker.get_running_nodes()
+failed = tracker.get_failed_nodes()
+
+# Check if any nodes are running
+has_running = tracker.has_running_nodes()
+```
+
+### Execution History
 
 ```python
 # Get execution count (cumulative)
-count = tracker.get_node_execution_count(node_id)
+count = tracker.get_execution_count(node_id)
 
-# Check iteration limit
-can_run = tracker.can_execute_in_loop(
-    node_id,
-    epoch=0,
-    max_iteration=10  # Node-specific limit (e.g., PersonJob)
-)
+# Check if ever executed
+has_run = tracker.has_executed(node_id)
+
+# Get last output
+output = tracker.get_last_output(node_id)
+
+# Get node result (body + metadata)
+result = tracker.get_node_result(node_id)
+
+# Get full execution history
+history = tracker.get_node_execution_history(node_id)
+for record in history:
+    print(f"Execution #{record.execution_number}: {record.status}")
+
+# Get execution summary
+summary = tracker.get_execution_summary()
+print(f"Total: {summary['total_executions']}")
+print(f"Success rate: {summary['success_rate']:.2%}")
+print(f"Tokens: {summary['total_tokens']}")
+```
+
+### Iteration Limits
+
+```python
+# Check if node can execute (default limit: 100 per epoch)
+can_run = tracker.can_execute_in_loop(node_id, epoch=0)
+
+# Check with custom limit
+can_run = tracker.can_execute_in_loop(node_id, epoch=0, max_iteration=10)
 
 # Get iterations in specific epoch
 iterations = tracker.get_iterations_in_epoch(node_id, epoch=0)
 ```
 
-#### Result Access
-
-```python
-# Get node result
-result = tracker.get_node_result(node_id)
-# Returns: {"value": ..., "metadata": {...}} or None
-
-# Get node output (Envelope)
-output = tracker.get_node_output(node_id)
-# Returns: Envelope or None
-```
-
-#### Metadata
+### Metadata
 
 ```python
 # Set metadata
 tracker.set_node_metadata(node_id, "key", "value")
 
-# Get metadata
+# Get metadata (returns copy)
 metadata = tracker.get_node_metadata(node_id)
-# Returns: {"key": "value"}
 ```
 
-### Thread Safety
-
-StateTracker uses a `threading.Lock` for thread-safe operations:
+### Persistence
 
 ```python
-with self._lock:
-    self._node_states[node_id] = NodeState(status=Status.RUNNING)
-```
-
-All public methods are thread-safe.
-
-### Iteration Limits
-
-StateTracker tracks iterations per epoch:
-
-```python
-# Internal structure
-self._node_iterations_per_epoch: dict[tuple[NodeID, int], int]
-
-# Example: node "A" has executed 3 times in epoch 0
-# {("A", 0): 3}
-```
-
-**Default max iterations per epoch:** 100
-
-**Node-specific limits:** PersonJobNode has `max_iteration` field
-
-```python
-# Check if node can execute
-can_run = tracker.can_execute_in_loop(
-    node_id="person-job-1",
-    epoch=0,
-    max_iteration=5  # PersonJob-specific limit
+# Load persisted states
+tracker.load_states(
+    node_states=persisted_states,
+    execution_records=persisted_records,
+    execution_counts=persisted_counts,
+    last_outputs=persisted_outputs
 )
-# Returns False if node has executed 5+ times in epoch 0
-```
 
-### Persistence (Future)
-
-StateTracker supports loading persisted state:
-
-```python
-# Load from persistence
-tracker.load_states(node_states, execution_tracker)
-```
-
-This will be used when implementing execution resume.
-
-## ExecutionTracker
-
-**Location:** `dipeo/domain/execution/state/execution_tracker.py:54`
-
-Separates immutable execution history from mutable runtime state.
-
-### Responsibilities
-
-1. **Immutable History**: Record of all node executions
-2. **Runtime State**: Current flow status (READY, RUNNING, WAITING, BLOCKED)
-3. **Execution Counting**: Track execution attempts
-4. **Summaries**: Aggregate execution metrics
-
-### Core Types
-
-#### NodeExecutionRecord
-
-**Location:** `dipeo/domain/execution/state/execution_tracker.py:23`
-
-```python
-@dataclass
-class NodeExecutionRecord:
-    node_id: NodeID
-    execution_number: int        # 1st, 2nd, 3rd execution
-    started_at: datetime
-    ended_at: datetime | None
-    status: CompletionStatus     # SUCCESS, FAILED, MAX_ITER, SKIPPED
-    output: Envelope | None
-    error: str | None
-    token_usage: dict[str, int] | None
-    duration: float              # Seconds
-
-    def is_complete(self) -> bool: ...
-    def was_successful(self) -> bool: ...
-```
-
-Immutable record of a single node execution.
-
-#### NodeRuntimeState
-
-**Location:** `dipeo/domain/execution/state/execution_tracker.py:42`
-
-```python
-@dataclass
-class NodeRuntimeState:
-    node_id: NodeID
-    flow_status: FlowStatus      # READY, RUNNING, WAITING, BLOCKED
-    is_active: bool
-    dependencies_met: bool
-    last_check: datetime
-
-    def can_execute(self) -> bool: ...
-```
-
-Mutable runtime state for flow control (not used by execution engine - tokens handle this).
-
-### Key Operations
-
-#### Execution Lifecycle
-
-```python
-from dipeo.domain.execution.state import ExecutionTracker, CompletionStatus
-
-tracker = ExecutionTracker()
-
-# Start execution
-exec_num = tracker.start_execution(node_id)
-# Returns: 1 (first execution)
-# Creates: NodeExecutionRecord with started_at
-
-# Complete execution
-tracker.complete_execution(
-    node_id,
-    status=CompletionStatus.SUCCESS,
-    output=envelope,
-    token_usage={"input": 100, "output": 50}
-)
-# Updates: Record with ended_at, status, output, duration
-
-# Failed execution
-tracker.complete_execution(
-    node_id,
-    status=CompletionStatus.FAILED,
-    error="Connection timeout"
-)
-```
-
-#### History Queries
-
-```python
-# Get execution count
-count = tracker.get_execution_count(node_id)  # int
-
-# Check if ever executed
-has_run = tracker.has_executed(node_id)  # bool
-
-# Get last output
-output = tracker.get_last_output(node_id)  # Envelope or None
-
-# Get all execution records for a node
-records = tracker.get_node_execution_history(node_id)
-# Returns: list[NodeExecutionRecord]
-
-# Get execution summary
-summary = tracker.get_execution_summary()
-# Returns: {
-#     "total_executions": 42,
-#     "successful_executions": 40,
-#     "failed_executions": 2,
-#     "success_rate": 0.95,
-#     "total_duration": 125.5,
-#     "total_tokens": {"input": 5000, "output": 3000, "cached": 1000},
-#     "nodes_executed": 10,
-#     "execution_order": [node_id, ...]
-# }
-```
-
-#### Runtime State (Not Used by Execution Engine)
-
-```python
-# Get runtime state
-state = tracker.get_runtime_state(node_id)
-# Returns: NodeRuntimeState
-
-# Update runtime state
-tracker.update_runtime_state(node_id, FlowStatus.RUNNING)
-
-# Reset for iteration
-tracker.reset_for_iteration(node_id)
-# Sets: flow_status=READY, dependencies_met=True, is_active=True
-```
-
-**Note:** Runtime state is maintained but **not used** by the execution engine. Token flow controls execution.
-
-#### Clear History
-
-```python
 # Clear all history (for testing)
 tracker.clear_history()
 ```
 
-### Execution vs Iteration
+## Backward Compatibility
 
-**Execution Count**: Cumulative count across all iterations
+The unified tracker maintains backward compatibility with old code:
+
 ```python
-# Node executes 3 times in epoch 0, 2 times in epoch 1
-execution_count = 5  # Total
+# Old imports still work (aliases)
+from dipeo.domain.execution.state import StateTracker, ExecutionTracker
+
+# Both are now aliases for UnifiedStateTracker
+tracker1 = StateTracker()  # UnifiedStateTracker
+tracker2 = ExecutionTracker()  # UnifiedStateTracker
+
+# Old method names still work
+tracker.get_node_execution_count(node_id)  # Alias for get_execution_count()
+tracker.get_node_output(node_id)  # Alias for get_last_output()
+tracker.get_tracker()  # Returns self
 ```
 
-**Iteration Count**: Per-epoch count (tracked by StateTracker)
+## Migration from Old System
+
+If you have code using the old `StateTracker` or `ExecutionTracker`:
+
+### No Changes Required
+Most code will work without changes due to backward compatibility:
 ```python
-# StateTracker
-iterations_epoch_0 = 3
-iterations_epoch_1 = 2
-```
+# Old code (still works)
+from dipeo.domain.execution.state import StateTracker
 
-### CompletionStatus
-
-**From:** `dipeo.diagram_generated.enums.CompletionStatus`
-
-```python
-class CompletionStatus(Enum):
-    SUCCESS = "success"          # Completed successfully
-    FAILED = "failed"            # Execution failed
-    MAX_ITER = "max_iter"        # Max iterations reached
-    SKIPPED = "skipped"          # Skipped (condition branch)
-```
-
-### FlowStatus
-
-**From:** `dipeo.diagram_generated.enums.FlowStatus`
-
-```python
-class FlowStatus(Enum):
-    READY = "ready"              # Ready to execute
-    RUNNING = "running"          # Currently executing
-    WAITING = "waiting"          # Waiting for dependencies
-    BLOCKED = "blocked"          # Blocked (failed dependency)
-```
-
-## Ports
-
-**Location:** `dipeo/domain/execution/state/ports.py`
-
-Domain ports for state persistence (future implementation).
-
-### ExecutionStateRepository
-
-```python
-@runtime_checkable
-class ExecutionStateRepository(Protocol):
-    """Repository for execution state persistence."""
-
-    async def create_execution(
-        self, execution_id: ExecutionID, diagram_id: DiagramID | None = None, ...
-    ) -> ExecutionState: ...
-
-    async def get_execution(self, execution_id: str) -> ExecutionState | None: ...
-
-    async def save_execution(self, state: ExecutionState) -> None: ...
-
-    async def update_status(self, execution_id: str, status: Status, ...) -> None: ...
-
-    async def get_node_output(self, execution_id: str, node_id: str) -> dict | None: ...
-
-    async def update_node_output(self, execution_id: str, node_id: str, ...) -> None: ...
-
-    # ... more methods
-```
-
-Used for:
-- Persisting execution state to database
-- Loading execution state for resume
-- Querying historical executions
-
-### ExecutionStateService
-
-```python
-@runtime_checkable
-class ExecutionStateService(Protocol):
-    """High-level service for execution state management."""
-
-    async def start_execution(...) -> ExecutionState: ...
-    async def finish_execution(...) -> None: ...
-    async def update_node_execution(...) -> None: ...
-    async def append_token_usage(...) -> None: ...
-    async def get_execution_state(...) -> ExecutionState | None: ...
-```
-
-Higher-level abstractions over the repository.
-
-### ExecutionCachePort
-
-```python
-@runtime_checkable
-class ExecutionCachePort(Protocol):
-    """Optional cache layer for execution state."""
-
-    async def get_state_from_cache(...) -> ExecutionState | None: ...
-    async def create_execution_in_cache(...) -> ExecutionState: ...
-    async def persist_final_state(...) -> None: ...
-```
-
-For caching execution state in memory or Redis.
-
-**Note:** These are domain ports (protocols). Implementations live in the infrastructure layer.
-
-## Usage Patterns
-
-### Basic Node Execution
-
-```python
-# 1. Initialize
 tracker = StateTracker()
 tracker.initialize_node(node_id)
-
-# 2. Start execution
-exec_count = tracker.transition_to_running(node_id, epoch=0)
-print(f"Execution #{exec_count}")
-
-# 3. Execute node
-result = execute_node(node)
-
-# 4. Complete
-output = EnvelopeFactory.create(body=result)
-tracker.transition_to_completed(node_id, output=output)
-
-# 5. Query
-state = tracker.get_node_state(node_id)
-assert state.status == Status.COMPLETED
+tracker.transition_to_running(node_id, epoch=0)
+# ... etc
 ```
+
+### Recommended Updates
+For new code, use the unified tracker directly:
+```python
+# New code (recommended)
+from dipeo.domain.execution.state import UnifiedStateTracker
+
+tracker = UnifiedStateTracker()
+tracker.initialize_node(node_id)
+tracker.transition_to_running(node_id, epoch=0)
+# ... etc
+```
+
+### Removed Features
+The following features were removed as they were never used:
+- `NodeRuntimeState` (kept for import compatibility only)
+- `FlowStatus` enum (token-based flow control is used instead)
+- `update_runtime_state()` method (not used by execution engine)
+- `reset_for_iteration()` method (use `reset_node()` instead)
+
+## Design Rationale
+
+### Why Unify?
+
+**Previous System:**
+- `ExecutionTracker`: Tracked execution history
+- `StateTracker`: Wrapped ExecutionTracker, added UI state and iteration limits
+
+**Problems:**
+1. Two sources of truth → risk of divergence
+2. Leaky abstraction → `get_tracker()` exposed internal tracker
+3. Thread safety inconsistency → StateTracker was thread-safe, ExecutionTracker wasn't
+4. Maintenance burden → changes required in both classes
+
+**Unified System:**
+1. Single source of truth → no divergence possible
+2. Encapsulation → all state internal, clean API
+3. Consistent thread safety → lock protects all operations
+4. Easy maintenance → changes in one place
+
+### Internal Structure
+
+The unified tracker separates concerns internally:
+
+```python
+class UnifiedStateTracker:
+    # UI State
+    self._node_states: dict[NodeID, NodeState]
+
+    # Execution History
+    self._execution_records: dict[NodeID, list[NodeExecutionRecord]]
+    self._execution_counts: dict[NodeID, int]
+    self._last_outputs: dict[NodeID, Envelope]
+    self._execution_order: list[NodeID]
+
+    # Iteration Limits
+    self._node_iterations_per_epoch: dict[tuple[NodeID, int], int]
+    self._max_iterations_per_epoch: int
+
+    # Metadata
+    self._node_metadata: dict[NodeID, dict[str, Any]]
+
+    # Thread Safety
+    self._lock: threading.Lock
+```
+
+## Thread Safety
+
+All public methods are thread-safe:
+
+```python
+# Safe concurrent access
+def worker(thread_id: int):
+    node_id = NodeID(f"node-{thread_id}")
+    tracker.initialize_node(node_id)
+    for i in range(10):
+        tracker.transition_to_running(node_id, epoch=0)
+        tracker.transition_to_completed(node_id)
+        tracker.reset_node(node_id)
+
+threads = [Thread(target=worker, args=(i,)) for i in range(5)]
+for t in threads: t.start()
+for t in threads: t.join()
+
+# All operations are protected by internal lock
+```
+
+## Testing
+
+See `tests/domain/execution/state/test_unified_state_tracker.py` for comprehensive test coverage:
+- State transitions (10 tests)
+- State queries (6 tests)
+- Execution history (8 tests)
+- Iteration limits (4 tests)
+- Metadata (4 tests)
+- Thread safety (3 tests)
+- Persistence (2 tests)
+- Backward compatibility (3 tests)
+- Edge cases (4 tests)
+
+**Total: 44 tests, all passing**
+
+## Performance
+
+- **Thread Safety**: Single lock per tracker (potential contention)
+- **Memory**: O(N) where N is number of execution records
+- **State Queries**: O(1) for single node, O(N) for all nodes
+- **Iteration Lookup**: O(1) per (node, epoch) key
+
+For long-running executions:
+- Consider periodic cleanup of old records
+- Use persistence for historical data
+- Monitor memory usage
+
+## Related Components
+
+- **ExecutionContext** (`context/execution_context.py`): Uses UnifiedStateTracker
+- **TokenManager** (`tokens/token_manager.py`): Queries execution counts
+- **EventPipeline** (`events/pipeline.py`): Uses states for event building
+- **Envelope** (`messaging/envelope.py`): Stores node outputs
+
+## Future Enhancements
+
+1. **Persistence**: Implement ports for database storage
+2. **Caching**: Redis-based state cache
+3. **Resume**: Load persisted state to resume execution
+4. **Streaming**: Stream state updates to UI via WebSocket
+5. **Metrics**: Prometheus-style metrics export
+6. **Cleanup**: Automatic cleanup of old execution records
+
+## Examples
 
 ### Loop with Iteration Limits
 
 ```python
+tracker = UnifiedStateTracker()
+node_id = NodeID("loop-node")
 epoch = 0
 max_iterations = 10
+
+tracker.initialize_node(node_id)
 
 while True:
     # Check iteration limit
@@ -475,14 +405,14 @@ while True:
         tracker.transition_to_maxiter(node_id)
         break
 
-    # Execute
+    # Execute node
     tracker.transition_to_running(node_id, epoch)
-    result = execute_node(node)
-    output = EnvelopeFactory.create(body=result)
-    tracker.transition_to_completed(node_id, output=output)
+    output = execute_node(node)
+    envelope = EnvelopeFactory.create(body=output)
+    tracker.transition_to_completed(node_id, output=envelope)
 
     # Check exit condition
-    if should_exit(result):
+    if should_exit(output):
         break
 
     # Reset for next iteration
@@ -492,8 +422,10 @@ while True:
 ### Error Handling
 
 ```python
+tracker.initialize_node(node_id)
+tracker.transition_to_running(node_id, epoch=0)
+
 try:
-    tracker.transition_to_running(node_id, epoch)
     result = execute_node(node)
     output = EnvelopeFactory.create(body=result)
     tracker.transition_to_completed(node_id, output=output)
@@ -505,120 +437,56 @@ except Exception as e:
 
 ```python
 # After execution completes
-summary = tracker.get_tracker().get_execution_summary()
+summary = tracker.get_execution_summary()
 
 print(f"Total executions: {summary['total_executions']}")
 print(f"Success rate: {summary['success_rate']:.2%}")
 print(f"Total duration: {summary['total_duration']:.2f}s")
 print(f"Tokens used: {summary['total_tokens']}")
+print(f"Execution order: {summary['execution_order']}")
 ```
 
-## Design Rationale
+## API Reference
 
-### Why Separate StateTracker and ExecutionTracker?
+### State Transitions
+- `initialize_node(node_id)`: Initialize to PENDING
+- `transition_to_running(node_id, epoch) -> int`: Start execution
+- `transition_to_completed(node_id, output, token_usage)`: Mark success
+- `transition_to_failed(node_id, error)`: Mark failed
+- `transition_to_maxiter(node_id, output)`: Mark max iterations
+- `transition_to_skipped(node_id)`: Mark skipped
+- `reset_node(node_id)`: Reset to PENDING
 
-**StateTracker:**
-- Mutable, UI-focused
-- Tracks current status (PENDING, RUNNING, COMPLETED)
-- Manages iteration limits
-- Thread-safe for concurrent access
+### State Queries
+- `get_node_state(node_id) -> NodeState | None`: Get state
+- `get_all_node_states() -> dict`: Get all states
+- `get_completed_nodes() -> list[NodeID]`: Get completed
+- `get_running_nodes() -> list[NodeID]`: Get running
+- `get_failed_nodes() -> list[NodeID]`: Get failed
+- `has_running_nodes() -> bool`: Check if any running
 
-**ExecutionTracker:**
-- Immutable history
-- Records all executions
-- Used for reporting, analysis, conditions
-- Single-threaded (called from StateTracker)
+### Execution History
+- `get_execution_count(node_id) -> int`: Cumulative count
+- `has_executed(node_id) -> bool`: Check if ever executed
+- `get_last_output(node_id) -> Envelope | None`: Last output
+- `get_node_result(node_id) -> dict | None`: Result with metadata
+- `get_node_execution_history(node_id) -> list`: Full history
+- `get_execution_summary() -> dict`: Aggregate metrics
+- `get_execution_order() -> list[NodeID]`: Execution sequence
 
-This separation allows:
-- Clear ownership (StateTracker owns ExecutionTracker)
-- Different concerns (UI vs history)
-- Easier testing (mock ExecutionTracker independently)
+### Iteration Limits
+- `can_execute_in_loop(node_id, epoch, max_iteration) -> bool`: Check limit
+- `get_iterations_in_epoch(node_id, epoch) -> int`: Count in epoch
 
-### Why Track State if Tokens Drive Execution?
+### Metadata
+- `get_node_metadata(node_id) -> dict`: Get metadata
+- `set_node_metadata(node_id, key, value)`: Set metadata
 
-**State is for UI and reporting, NOT execution logic.**
+### Persistence
+- `load_states(node_states, ...)`: Load persisted state
+- `clear_history()`: Clear all history
 
-```python
-# Execution engine uses tokens
-if ctx.tokens.has_new_inputs(node_id):
-    execute_node(node)
-
-# State tracking is parallel (for UI)
-ctx.state.transition_to_running(node_id, epoch)
-```
-
-Benefits:
-- UI can show status without affecting execution
-- Execution logic stays simple (tokens only)
-- State can be added/removed without changing execution flow
-
-### Why Iteration Limits in StateTracker?
-
-Iteration limits are a **safety mechanism**, not execution logic:
-
-```python
-# Check limit before executing
-if not tracker.can_execute_in_loop(node_id, epoch, max_iteration):
-    # Safety: prevent infinite loops
-    tracker.transition_to_maxiter(node_id)
-    break
-```
-
-It's a domain rule separate from token flow.
-
-## Performance Considerations
-
-- **Thread Safety**: StateTracker uses locks (potential contention)
-- **Execution Records**: Stored in memory (grows with execution count)
-- **Iteration Tracking**: O(1) lookup per (node, epoch) key
-- **State Queries**: O(1) for single node, O(N) for all nodes
-
-For long-running executions, consider:
-- Periodic cleanup of old records
-- Disk-based persistence (future)
-- Separate service for historical queries
-
-## Testing
-
-```python
-def test_state_transitions():
-    tracker = StateTracker()
-    tracker.initialize_node("node-1")
-
-    # Test transition
-    tracker.transition_to_running("node-1", epoch=0)
-    state = tracker.get_node_state("node-1")
-    assert state.status == Status.RUNNING
-
-    # Test completion
-    output = EnvelopeFactory.create(body="result")
-    tracker.transition_to_completed("node-1", output=output)
-    assert tracker.get_node_result("node-1")["value"] == "result"
-
-def test_iteration_limits():
-    tracker = StateTracker()
-
-    # Execute 10 times
-    for i in range(10):
-        assert tracker.can_execute_in_loop("node-1", epoch=0, max_iteration=10)
-        tracker.transition_to_running("node-1", epoch=0)
-        tracker.transition_to_completed("node-1")
-        tracker.reset_node("node-1")
-
-    # 11th should fail
-    assert not tracker.can_execute_in_loop("node-1", epoch=0, max_iteration=10)
-```
-
-## Related Components
-
-- **ExecutionContext** (`context/execution_context.py`): Uses StateTracker
-- **TokenManager** (`tokens/token_manager.py`): Drives execution (not state)
-- **Envelope** (`messaging/envelope.py`): Stores outputs
-
-## Future Enhancements
-
-1. **Persistence**: Implement ports for database storage
-2. **Caching**: Redis-based state cache
-3. **Resume**: Load persisted state to resume execution
-4. **Streaming**: Stream state updates to UI via WebSocket
-5. **Metrics**: Prometheus-style metrics export
+### Backward Compatibility
+- `get_tracker() -> UnifiedStateTracker`: Returns self
+- `get_node_execution_count(node_id) -> int`: Alias
+- `get_node_output(node_id) -> Envelope | None`: Alias

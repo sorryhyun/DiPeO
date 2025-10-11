@@ -15,7 +15,7 @@ from dipeo.domain.execution.context.execution_context import (
     ExecutionContext as ExecutionContextProtocol,
 )
 from dipeo.domain.execution.messaging.envelope import Envelope
-from dipeo.domain.execution.state.state_tracker import StateTracker
+from dipeo.domain.execution.state import UnifiedStateTracker as StateTracker
 from dipeo.domain.execution.tokens.token_manager import TokenManager
 
 if TYPE_CHECKING:
@@ -240,4 +240,4 @@ class TypedExecutionContext(ExecutionContextProtocol):
         return merged
 
     def get_tracker(self) -> Any:
-        return self._state_tracker._tracker
+        return self._state_tracker.get_tracker()

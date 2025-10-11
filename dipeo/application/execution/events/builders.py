@@ -7,7 +7,7 @@ from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
 
 if TYPE_CHECKING:
     from dipeo.domain.execution.messaging.envelope import Envelope
-    from dipeo.domain.execution.state.state_tracker import StateTracker
+    from dipeo.domain.execution.state import UnifiedStateTracker as StateTracker
 
 
 def get_node_state(
