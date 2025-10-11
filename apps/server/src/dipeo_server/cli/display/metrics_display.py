@@ -6,7 +6,11 @@ from typing import Any
 class MetricsDisplayManager:
     """Handles metrics display formatting."""
 
-    PROMOTED_PHASES = {"llm_response", "memory_selection", "direct_execution"}
+    PROMOTED_PHASES = {"memory_selection", "direct_execution"}
+    # Container phases that wrap other operations (these are the true top-level phases)
+    CONTAINER_PHASES = {"person_complete_with_memory", "complete_with_memory"}
+    # Component phases that run inside containers (these are nested, not top-level)
+    COMPONENT_PHASES = {"memory_selection", "direct_execution"}
 
     @staticmethod
     async def display_metrics(
@@ -280,6 +284,9 @@ class MetricsDisplayManager:
         MetricsDisplayManager._display_hierarchical_phases(hierarchical_stats, total_duration)
         MetricsDisplayManager._display_flat_phases(flat_stats, total_duration)
 
+        # Display summary of top-level phase accounting
+        MetricsDisplayManager._display_phase_summary(hierarchical_stats, flat_stats, total_duration)
+
     @staticmethod
     def _display_hierarchical_phases(hierarchical_stats: dict, total_duration: float) -> None:
         """Display hierarchical phases."""
@@ -297,14 +304,20 @@ class MetricsDisplayManager:
                 parent_avg = parent_data.get("avg", 0)
                 parent_max = parent_data.get("max", 0)
 
+                # Check if this is a component phase (nested inside containers)
+                is_component = parent in MetricsDisplayManager.COMPONENT_PHASES
+
                 print(f"\n  📦 {parent}:")
                 if parent_avg > 0 or parent_max > 0:
+                    # For component phases, add a note that they're part of other operations
+                    note = " [component - nested in container phases]" if is_component else ""
                     print(
-                        f"    Total: {int(parent_total):7d}ms ({parent_pct:5.1f}%) "
+                        f"    Total: {int(parent_total):7d}ms ({parent_pct:5.1f}%){note} "
                         f"Avg: {int(parent_avg):6d}ms Max: {int(parent_max):6d}ms Count: {parent_count}"
                     )
                 else:
-                    print(f"    Total: {int(parent_total):7d}ms ({parent_pct:5.1f}%)")
+                    note = " [component - nested in container phases]" if is_component else ""
+                    print(f"    Total: {int(parent_total):7d}ms ({parent_pct:5.1f}%){note}")
 
                 if has_children:
                     children_total = 0
@@ -368,10 +381,77 @@ class MetricsDisplayManager:
             print("\n  📋 Other Phases:")
             for stat in sorted(flat_stats.values(), key=lambda x: x["total"], reverse=True)[:10]:
                 pct = (stat["total"] / total_duration * 100) if total_duration > 0 else 0
+                # Mark container phases
+                is_container = stat["phase"] in MetricsDisplayManager.CONTAINER_PHASES
+                note = " [container - wraps components]" if is_container else ""
                 print(
-                    f"    {stat['phase']:28s} Total: {int(stat['total']):7d}ms ({pct:5.1f}%) "
+                    f"    {stat['phase']:28s} Total: {int(stat['total']):7d}ms ({pct:5.1f}%){note} "
                     f"Avg: {int(stat['avg']):6d}ms Max: {int(stat['max']):6d}ms Count: {stat['count']}"
                 )
+
+    @staticmethod
+    def _display_phase_summary(
+        hierarchical_stats: dict, flat_stats: dict, total_duration: float
+    ) -> None:
+        """Display summary of top-level phase time accounting.
+
+        This helps users understand which phases are truly independent and how they
+        sum to the total execution time. Component phases (memory_selection,
+        direct_execution) are nested inside container phases and shouldn't be
+        counted separately in the total.
+        """
+        top_level_total = 0.0
+        top_level_phases = []
+
+        # Check if we have both complete_with_memory variants (they measure the same thing)
+        has_person_complete = "person_complete_with_memory" in flat_stats
+        has_complete = "complete_with_memory" in flat_stats
+
+        # Collect container phases from flat_stats
+        for phase, stat in flat_stats.items():
+            if phase in MetricsDisplayManager.CONTAINER_PHASES:
+                # If we have both variants, only count one (prefer person_complete_with_memory)
+                if phase == "complete_with_memory" and has_person_complete:
+                    continue  # Skip this one, we'll count person_complete_with_memory instead
+                top_level_total += stat["total"]
+                top_level_phases.append((phase, stat["total"]))
+
+        # Collect non-container, non-component phases from flat_stats
+        for phase, stat in flat_stats.items():
+            if (
+                phase not in MetricsDisplayManager.CONTAINER_PHASES
+                and phase not in MetricsDisplayManager.COMPONENT_PHASES
+            ):
+                top_level_total += stat["total"]
+                top_level_phases.append((phase, stat["total"]))
+
+        # Collect non-promoted hierarchical phases (these are truly top-level)
+        for phase, phase_data in hierarchical_stats.items():
+            if not phase_data.get("is_promoted", False):
+                top_level_total += phase_data["total"]
+                top_level_phases.append((phase, phase_data["total"]))
+
+        if top_level_phases:
+            top_level_pct = (top_level_total / total_duration * 100) if total_duration > 0 else 0
+
+            print("\n  📊 Top-Level Phase Summary:")
+            print(
+                f"    Total accounted time: {int(top_level_total):7d}ms ({top_level_pct:5.1f}% of execution)"
+            )
+            print("    Note: Component phases (memory_selection, direct_execution) are nested")
+            print("          inside container phases and not counted separately.")
+
+            # Explain if we deduplicated container phases
+            if has_person_complete and has_complete:
+                print(
+                    "          Container phase variants (complete_with_memory, person_complete_with_memory)"
+                )
+                print("          measure the same operation and are counted only once.")
+
+            # Show warning if percentage is way over 100%
+            if top_level_pct > 150:
+                print("    ⚠️  Warning: Top-level phases exceed 150% of total time.")
+                print("               This may indicate timing overlap or measurement issues.")
 
     @staticmethod
     def _display_per_node_breakdown(node_breakdown: list[dict], total_duration: float) -> None:

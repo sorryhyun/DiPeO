@@ -39,6 +39,6 @@ async def cli_interactive_handler(event: dict[str, Any]) -> str:
             loop.run_in_executor(None, sys.stdin.readline), timeout=timeout
         )
         return response.strip()
-    except asyncio.TimeoutError:
+    except TimeoutError:
         print(f"\n⏰ Timeout after {timeout} seconds - using empty response")
         return ""

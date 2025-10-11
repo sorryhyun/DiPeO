@@ -73,7 +73,6 @@ out/
 *.log
 execution_runner.cjs
 notion.md
-server.log
 dipeo_events.db
 dipeo/models/dist/
 dipeo/models/node_modules/

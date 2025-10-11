@@ -64,7 +64,7 @@ logger = setup_logging(
     component="server",
     log_level=log_level,
     log_to_file=True,
-    log_dir=".logs",
+    log_dir=".dipeo/logs",
     console_output=True,
 )
 

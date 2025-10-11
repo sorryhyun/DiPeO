@@ -11,7 +11,6 @@ from .base import BaseCodeExecutor
 
 
 class TypeScriptExecutor(BaseCodeExecutor):
-
     async def execute_file(
         self, file_path: Path, inputs: dict[str, Any], timeout: int, function_name: str = "main"
     ) -> Any:
@@ -19,7 +18,9 @@ class TypeScriptExecutor(BaseCodeExecutor):
 
         tsx_cmd = "tsx"
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".ts", delete=False) as wrapper:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".ts", delete=False, encoding="utf-8"
+        ) as wrapper:
             wrapper_content = f"""
 import * as codeModule from '{file_path.absolute()}';
 
@@ -100,7 +101,9 @@ run();
     return (typeof result !== 'undefined') ? result : null;
 }}"""
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".ts", delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".ts", delete=False, encoding="utf-8"
+        ) as temp_file:
             temp_file.write(module_code)
             temp_file_path = temp_file.name
 
