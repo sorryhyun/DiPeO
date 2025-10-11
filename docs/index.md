@@ -8,8 +8,13 @@
 > System design, architecture patterns, and technical specifications
 
 - [Overall Architecture](architecture/overall_architecture.md) - System architecture and technology stack
+- [Domain Layer Architecture](architecture/domain-layer.md) - Domain-driven design and bounded contexts
+- [Diagram Compilation Architecture](architecture/diagram-compilation.md) - Multi-phase compilation pipeline and configuration-driven approaches
+- [Application Layer Architecture](architecture/application-layer.md) - Use cases and application services
+- [Infrastructure Layer Architecture](architecture/infrastructure-layer.md) - Adapters and infrastructure services
+- [Diagram Execution](architecture/diagram-execution.md) - Runtime execution and state management
 - [GraphQL Layer Architecture](architecture/graphql-layer.md) - Complete GraphQL implementation with 3-tier architecture
-- [Memory System Design](architecture/memory_system_design.md) - Conversation memory architecture  
+- [Memory System Design](architecture/memory_system_design.md) - Conversation memory architecture
 - [GraphQL Subscriptions](architecture/graphql-subscriptions.md) - Real-time updates implementation
 
 ### Korean Translations
@@ -47,6 +52,11 @@
 - [Code Auditing](agents/code-auditing.md) - Targeted audits (codebase-auditor)
 - [Comment Cleanup](agents/comment-cleanup.md) - Comment optimization (comment-cleaner)
 - [ChatGPT Integration](agents/chatgpt-integration.md) - ChatGPT management (chatgpt-dipeo-project-manager)
+
+## Developer Guides
+> Practical guides for developers working with DiPeO
+
+- [Working with Diagrams](guides/developer-guide-diagrams.md) - Complete guide for adding node types, formats, and working with compilation
 
 ## Features
 > Core DiPeO capabilities and features
