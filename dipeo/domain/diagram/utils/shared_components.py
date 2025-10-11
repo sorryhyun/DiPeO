@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING, Any
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import DataType, HandleDirection, HandleLabel, NodeID, NodeType
 
-from .arrow_builder import ArrowBuilder
-from .handle_operations import HandleIdOperations
+from .core.arrow_operations import ArrowBuilder
+from .core.handle_operations import HandleIdOperations
 
 logger = get_module_logger(__name__)
 

@@ -4,7 +4,7 @@ from typing import Any
 
 from dipeo.diagram_generated import DomainArrow
 
-from .handle_operations import HandleIdOperations
+from ..core.handle_operations import HandleIdOperations
 
 
 def find_edges_from(

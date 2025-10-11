@@ -8,7 +8,7 @@ from typing import Any
 from dipeo.diagram_generated import DomainDiagram
 from dipeo.domain.diagram.compilation.prompt_compiler import PromptFileCompiler
 from dipeo.domain.diagram.utils import _YamlMixin
-from dipeo.domain.diagram.utils.conversion_utils import diagram_maps_to_arrays
+from dipeo.domain.diagram.utils.conversion import diagram_maps_to_arrays
 
 from ..base_strategy import BaseConversionStrategy
 from .parser import LightDiagramParser
