@@ -2,6 +2,7 @@
 
 from dipeo.diagram_generated import NodeID, NodeType
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
+from dipeo.domain.execution.tokens.policies import JoinPolicyEvaluator, JoinPolicyType, TokenCounter
 from dipeo.domain.execution.tokens.token_types import EdgeRef
 
 
@@ -19,8 +20,7 @@ class TokenReadinessEvaluator:
         self,
         diagram: ExecutableDiagram,
         in_edges: dict[NodeID, list[EdgeRef]],
-        edge_seq: dict[tuple[EdgeRef, int], int],
-        last_consumed: dict[tuple[NodeID, EdgeRef, int], int],
+        token_counter: TokenCounter,
         branch_decisions: dict[NodeID, str],
     ):
         """Initialize evaluator with token manager state.
@@ -28,15 +28,14 @@ class TokenReadinessEvaluator:
         Args:
             diagram: The executable diagram
             in_edges: Map of node ID to incoming edges
-            edge_seq: Map of (edge, epoch) to sequence number
-            last_consumed: Map of (node, edge, epoch) to last consumed sequence
+            token_counter: Token counter for checking sequence state
             branch_decisions: Map of condition node ID to branch taken
         """
         self.diagram = diagram
         self._in_edges = in_edges
-        self._edge_seq = edge_seq
-        self._last_consumed = last_consumed
+        self._token_counter = token_counter
         self._branch_decisions = branch_decisions
+        self._policy_evaluator = JoinPolicyEvaluator(token_checker=self)
 
     def has_new_inputs(
         self,
@@ -186,22 +185,17 @@ class TokenReadinessEvaluator:
         Returns:
             True if join policy is satisfied
         """
-        if not edges:
-            return False
+        return self._policy_evaluator.is_ready(
+            policy_type=join_policy,
+            edges=edges,
+            node_id=node_id,
+            epoch=epoch,
+        )
 
-        if join_policy == "all":
-            # All edges must have unconsumed tokens
-            return all(self._has_unconsumed_token(edge, node_id, epoch) for edge in edges)
-
-        elif join_policy == "any":
-            # At least one edge must have unconsumed tokens
-            return any(self._has_unconsumed_token(edge, node_id, epoch) for edge in edges)
-
-        # Default: treat as "all"
-        return all(self._has_unconsumed_token(edge, node_id, epoch) for edge in edges)
-
-    def _has_unconsumed_token(self, edge: EdgeRef, node_id: NodeID, epoch: int) -> bool:
+    def has_unconsumed_token(self, edge: EdgeRef, node_id: NodeID, epoch: int) -> bool:
         """Check if an edge has an unconsumed token.
+
+        Implements TokenAvailabilityChecker protocol for JoinPolicyEvaluator.
 
         Args:
             edge: The edge to check
@@ -211,6 +205,4 @@ class TokenReadinessEvaluator:
         Returns:
             True if there's an unconsumed token on this edge
         """
-        seq = self._edge_seq.get((edge, epoch), 0)
-        last_consumed = self._last_consumed.get((node_id, edge, epoch), 0)
-        return seq > last_consumed
+        return self._token_counter.has_unconsumed(node_id, edge, epoch)

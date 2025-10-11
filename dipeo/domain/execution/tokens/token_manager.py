@@ -5,12 +5,12 @@ management from other execution concerns.
 """
 
 import logging
-from collections import defaultdict
 
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import NodeID, NodeType
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 from dipeo.domain.execution.messaging.envelope import Envelope
+from dipeo.domain.execution.tokens.policies import TokenCounter
 from dipeo.domain.execution.tokens.readiness_evaluator import TokenReadinessEvaluator
 from dipeo.domain.execution.tokens.token_types import EdgeRef, Token
 
@@ -39,13 +39,17 @@ class TokenManager:
 
         self._epoch: int = 0
 
-        self._edge_seq: dict[tuple[EdgeRef, int], int] = defaultdict(int)
-        self._edge_tokens: dict[tuple[EdgeRef, int, int], Envelope] = {}
-        self._last_consumed: dict[tuple[NodeID, EdgeRef, int], int] = defaultdict(int)
+        # Token counting and consumption tracking
+        self._token_counter = TokenCounter()
 
+        # Token storage: (edge, epoch, seq) -> Envelope
+        self._edge_tokens: dict[tuple[EdgeRef, int, int], Envelope] = {}
+
+        # Edge topology maps
         self._in_edges: dict[NodeID, list[EdgeRef]] = {}
         self._out_edges: dict[NodeID, list[EdgeRef]] = {}
 
+        # Condition branch tracking
         self._branch_decisions: dict[NodeID, str] = {}
 
         self._build_edge_maps()
@@ -54,8 +58,7 @@ class TokenManager:
         self._readiness_evaluator = TokenReadinessEvaluator(
             diagram=self.diagram,
             in_edges=self._in_edges,
-            edge_seq=self._edge_seq,
-            last_consumed=self._last_consumed,
+            token_counter=self._token_counter,
             branch_decisions=self._branch_decisions,
         )
 
@@ -102,12 +105,8 @@ class TokenManager:
         if epoch is None:
             epoch = self._epoch
 
-        seq_key = (edge, epoch)
-        self._edge_seq[seq_key] += 1
-        seq = self._edge_seq[seq_key]
-
+        seq = self._token_counter.increment_sequence(edge, epoch)
         token = Token(epoch=epoch, seq=seq, content=payload)
-
         self._edge_tokens[(edge, epoch, seq)] = payload
 
         return token
@@ -174,13 +173,13 @@ class TokenManager:
         inputs: dict[str, Envelope] = {}
 
         for edge in self._in_edges.get(node_id, []):
-            seq = self._edge_seq.get((edge, epoch), 0)
-            last_consumed = self._last_consumed.get((node_id, edge, epoch), 0)
+            seq = self._token_counter.get_sequence(edge, epoch)
+            last_consumed = self._token_counter.get_last_consumed(node_id, edge, epoch)
 
             if seq <= last_consumed:
                 continue
 
-            self._last_consumed[(node_id, edge, epoch)] = seq
+            self._token_counter.mark_consumed(node_id, edge, epoch, seq)
 
             payload = self._edge_tokens.get((edge, epoch, seq))
             if payload is not None:
