@@ -1,7 +1,7 @@
 """Application execution services."""
 
 from dipeo.diagram_generated import ExecutionOptions
-from dipeo.domain.execution.execution_context import ExecutionContext
+from dipeo.domain.execution.context.execution_context import ExecutionContext
 
 from .engine import TypedExecutionEngine
 from .handlers.core.base import TypedNodeHandler

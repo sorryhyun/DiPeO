@@ -10,12 +10,12 @@ from dipeo.diagram_generated import (
     NodeState,
     Status,
 )
-from dipeo.domain.execution.envelope import deserialize_protocol, serialize_protocol
-from dipeo.domain.execution.execution_tracker import CompletionStatus
+from dipeo.domain.execution.messaging.envelope import deserialize_protocol, serialize_protocol
+from dipeo.domain.execution.state.execution_tracker import CompletionStatus
 
 if TYPE_CHECKING:
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
-    from dipeo.domain.execution.execution_tracker import ExecutionTracker
+    from dipeo.domain.execution.state.execution_tracker import ExecutionTracker
 
 
 class ExecutionStatePersistence:

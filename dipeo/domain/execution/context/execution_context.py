@@ -7,9 +7,9 @@ from dipeo.diagram_generated import NodeID
 
 if TYPE_CHECKING:
     from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
-    from dipeo.domain.execution.envelope import Envelope
-    from dipeo.domain.execution.state_tracker import StateTracker
-    from dipeo.domain.execution.token_manager import TokenManager
+    from dipeo.domain.execution.messaging.envelope import Envelope
+    from dipeo.domain.execution.state.state_tracker import StateTracker
+    from dipeo.domain.execution.tokens.token_manager import TokenManager
 
 
 class ExecutionContext(Protocol):

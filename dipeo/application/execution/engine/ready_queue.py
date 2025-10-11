@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import NodeID
-from dipeo.domain.execution.token_types import ConcurrencyPolicy, EdgeRef
+from dipeo.domain.execution.tokens.token_types import ConcurrencyPolicy, EdgeRef
 
 if TYPE_CHECKING:
     from dipeo.application.execution.engine.context import TypedExecutionContext

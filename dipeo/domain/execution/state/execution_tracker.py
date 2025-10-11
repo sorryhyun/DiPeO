@@ -17,7 +17,7 @@ from dipeo.diagram_generated.enums import CompletionStatus, FlowStatus
 
 if TYPE_CHECKING:
     from dipeo.diagram_generated import NodeID
-    from dipeo.domain.execution.envelope import Envelope
+    from dipeo.domain.execution.messaging.envelope import Envelope
 
 
 @dataclass

@@ -9,7 +9,7 @@ Generated at: 2025-10-10T14:03:06.740326
 import strawberry
 from typing import Optional, Any
 from strawberry.scalars import JSON
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 # Import all domain types that results may reference
 from dipeo.diagram_generated.graphql.domain_types import (

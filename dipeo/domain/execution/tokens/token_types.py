@@ -6,7 +6,7 @@ from typing import Any
 from uuid import uuid4
 
 from dipeo.diagram_generated import NodeID
-from dipeo.domain.execution.envelope import Envelope
+from dipeo.domain.execution.messaging.envelope import Envelope
 
 
 @dataclass(frozen=True)

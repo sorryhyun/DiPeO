@@ -19,7 +19,7 @@ from dipeo.diagram_generated import (
     Status,
 )
 from dipeo.domain.events import DomainEvent, EventType
-from dipeo.domain.execution.envelope import serialize_protocol
+from dipeo.domain.execution.messaging.envelope import serialize_protocol
 from dipeo.domain.execution.state.ports import (
     ExecutionCachePort,
     ExecutionStateService,
@@ -472,7 +472,7 @@ class CacheFirstStateStore(StateStorePort, ExecutionStateService, ExecutionCache
         ):
             serialized_output = output
         else:
-            from dipeo.domain.execution.envelope import EnvelopeFactory
+            from dipeo.domain.execution.messaging.envelope import EnvelopeFactory
 
             if is_exception:
                 wrapped_output = EnvelopeFactory.create(

@@ -10,8 +10,9 @@ from collections import defaultdict
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import NodeID, NodeType
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
-from dipeo.domain.execution.envelope import Envelope
-from dipeo.domain.execution.token_types import EdgeRef, Token
+from dipeo.domain.execution.messaging.envelope import Envelope
+from dipeo.domain.execution.tokens.readiness_evaluator import TokenReadinessEvaluator
+from dipeo.domain.execution.tokens.token_types import EdgeRef, Token
 
 logger = get_module_logger(__name__)
 
@@ -48,6 +49,15 @@ class TokenManager:
         self._branch_decisions: dict[NodeID, str] = {}
 
         self._build_edge_maps()
+
+        # Initialize readiness evaluator
+        self._readiness_evaluator = TokenReadinessEvaluator(
+            diagram=self.diagram,
+            in_edges=self._in_edges,
+            edge_seq=self._edge_seq,
+            last_consumed=self._last_consumed,
+            branch_decisions=self._branch_decisions,
+        )
 
     def _build_edge_maps(self) -> None:
         for edge in self.diagram.edges:
@@ -195,83 +205,15 @@ class TokenManager:
         if epoch is None:
             epoch = self._epoch
 
-        edges = self._in_edges.get(node_id, [])
-        if not edges:
-            return True
-
         node_exec_count = 0
         if self._execution_tracker:
             node_exec_count = self._execution_tracker.get_node_execution_count(node_id)
 
-        relevant_edges = []
-        for edge in edges:
-            source_node = self.diagram.get_node(edge.source_node_id)
-
-            if source_node and hasattr(source_node, "type") and source_node.type == NodeType.START:
-                if node_exec_count > 0:
-                    continue
-
-            relevant_edges.append(edge)
-
-        active_edges = []
-        skippable_edges = []
-
-        for edge in relevant_edges:
-            source_node = self.diagram.get_node(edge.source_node_id)
-
-            if (
-                source_node
-                and hasattr(source_node, "type")
-                and source_node.type == NodeType.CONDITION
-            ):
-                is_skippable = getattr(source_node, "skippable", False)
-
-                if is_skippable:
-                    unique_sources = set(e.source_node_id for e in relevant_edges)
-
-                    if len(unique_sources) > 1:
-                        skippable_edges.append(edge)
-                        continue
-            active_edges.append(edge)
-
-        if not active_edges and skippable_edges:
-            active_edges = skippable_edges
-            skippable_edges = []
-
-        required_edges = []
-
-        for edge in active_edges:
-            if edge.source_output in ["condtrue", "condfalse"]:
-                branch_decision = self._branch_decisions.get(edge.source_node_id)
-
-                if branch_decision and branch_decision != edge.source_output:
-                    continue
-            required_edges.append(edge)
-
-        if join_policy == "all":
-            for edge in required_edges:
-                seq = self._edge_seq.get((edge, epoch), 0)
-                last_consumed = self._last_consumed.get((node_id, edge, epoch), 0)
-                if seq <= last_consumed:
-                    return False
-            return len(required_edges) > 0
-
-        elif join_policy == "any":
-            for edge in required_edges:
-                seq = self._edge_seq.get((edge, epoch), 0)
-                last_consumed = self._last_consumed.get((node_id, edge, epoch), 0)
-                if seq > last_consumed:
-                    return True
-            return False
-
-        return (
-            all(
-                self._edge_seq.get((edge, epoch), 0)
-                > self._last_consumed.get((node_id, edge, epoch), 0)
-                for edge in required_edges
-            )
-            if required_edges
-            else False
+        return self._readiness_evaluator.has_new_inputs(
+            node_id=node_id,
+            epoch=epoch,
+            join_policy=join_policy,
+            node_exec_count=node_exec_count,
         )
 
     def get_branch_decision(self, node_id: NodeID) -> str | None:

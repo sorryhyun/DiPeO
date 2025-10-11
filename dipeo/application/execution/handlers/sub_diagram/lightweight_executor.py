@@ -17,7 +17,7 @@ from dipeo.application.execution.engine.typed_engine import TypedExecutionEngine
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import ExecutionID, ExecutionState, LLMUsage, NodeState, Status
 from dipeo.diagram_generated.unified_nodes.sub_diagram_node import SubDiagramNode
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 from dipeo.infrastructure.events.adapters import InMemoryEventBus
 
 from .base_executor import BaseSubDiagramExecutor

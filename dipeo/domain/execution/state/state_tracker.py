@@ -11,8 +11,8 @@ from typing import Any
 
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import NodeID, NodeState, Status
-from dipeo.domain.execution.envelope import Envelope
-from dipeo.domain.execution.execution_tracker import CompletionStatus, ExecutionTracker
+from dipeo.domain.execution.messaging.envelope import Envelope
+from dipeo.domain.execution.state.execution_tracker import CompletionStatus, ExecutionTracker
 
 logger = get_module_logger(__name__)
 

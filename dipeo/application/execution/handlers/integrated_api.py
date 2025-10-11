@@ -10,7 +10,7 @@ from dipeo.application.execution.handlers.core.decorators import requires_servic
 from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.registry import API_KEY_SERVICE, INTEGRATED_API_SERVICE
 from dipeo.diagram_generated.unified_nodes.integrated_api_node import IntegratedApiNode, NodeType
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
     pass

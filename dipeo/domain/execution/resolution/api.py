@@ -11,9 +11,9 @@ from typing import Any
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import ContentType
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
-from dipeo.domain.execution.execution_context import ExecutionContext
-from dipeo.domain.execution.transform_rules import DataTransformRules
+from dipeo.domain.execution.context.execution_context import ExecutionContext
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.rules.transform_rules import DataTransformRules
 
 from .defaults import apply_defaults
 from .errors import TransformationError

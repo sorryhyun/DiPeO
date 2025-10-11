@@ -24,7 +24,7 @@ from dipeo.application.registry import (
 )
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.unified_nodes.sub_diagram_node import NodeType, SubDiagramNode
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 from .base_executor import BaseSubDiagramExecutor
 from .batch_executor import BatchSubDiagramExecutor
