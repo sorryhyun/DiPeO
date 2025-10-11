@@ -35,8 +35,7 @@ from .graph import (
     is_dag,
 )
 from .node_field_mapper import NodeFieldMapper
-from .person_extractor import PersonExtractor
-from .person_resolver import PersonReferenceResolver
+from .person import PersonExtractor, PersonReferenceResolver, PersonValidator
 from .shared_components import (
     build_node,
     coerce_to_dict,
@@ -63,6 +62,7 @@ __all__ = [
     # Person operations
     "PersonExtractor",
     "PersonReferenceResolver",
+    "PersonValidator",
     # Format converters
     "_JsonMixin",
     "_YamlMixin",

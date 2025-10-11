@@ -61,18 +61,6 @@ class SerializeDiagramUseCase:
         diagram = self.deserialize(content, source_format)
         return self.serialize(diagram, target_format)
 
-    def validate_content(self, content: str, format: str | None = None) -> tuple[bool, list[str]]:
-        """Validate that content can be deserialized.
-
-        Args:
-            content: Content to validate
-            format: Optional format hint
-
-        Returns:
-            Tuple of (is_valid, list of error messages)
-        """
-        return self.diagram_serializer.validate(content)
-
     def serialize_to_formats(self, diagram: DomainDiagram, formats: list[str]) -> dict[str, str]:
         """Serialize a diagram to multiple formats.
 
