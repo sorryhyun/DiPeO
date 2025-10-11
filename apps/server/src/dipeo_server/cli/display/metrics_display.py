@@ -26,7 +26,7 @@ class MetricsDisplayManager:
 
         print("\n📊 Execution Metrics")
         print(f"  Execution ID: {metrics.get('execution_id')}")
-        print(f"  Total Duration: {total_duration:.0f}ms ({total_duration/1000:.2f}s)")
+        print(f"  Total Duration: {total_duration:.0f}ms ({total_duration / 1000:.2f}s)")
         print(f"  Nodes Executed: {node_count}")
         if node_count > 0:
             avg_duration = total_duration / node_count

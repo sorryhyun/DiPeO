@@ -2,263 +2,340 @@
 
 Last updated: 2025-10-11
 
-## Completed (Recent)
+## Overview
 
-### Loop/Cycle Detection ✅ (Completed: 2025-10-11)
-**All 4 tasks completed** - Implemented full cycle detection and while loop generation
-- [x] Implement graph cycle detection in `_build_execution_order()` (2025-10-11)
-  - Added `_detect_loops()` method with DFS and back-edge detection
-  - Identifies arrows that create loops
-  - Marks nodes that are part of loop bodies
+This TODO list focuses on refactoring the `dipeo/domain/diagram/` directory to improve maintainability and match the code quality of the execution domain. Tasks are organized by priority and timeline.
 
-- [x] Generate proper `while` loop structures for detected cycles (2025-10-11)
-  - Implemented `_generate_with_loops()` for while loop generation
-  - Dynamic indentation system for nested code (2-level indent for loop body)
-  - Proper loop body wrapping with condition checks
-
-- [x] Handle condition node integration with loops (2025-10-11)
-  - Detects condfalse back-edges (loop continue)
-  - Detects condtrue exits (post-loop nodes)
-  - Reads max_iteration from person_job nodes in loop
-
-- [x] Add test cases for loop export (2025-10-11)
-  - Successfully exported `simple_iter.light.yaml` with correct loop structure
-  - Verified iteration counter logic (initialization and increment)
-  - Post-loop nodes (ask → endpoint) generated after loop exits
-
-### detect_max_iterations Condition Support ✅ (Completed: 2025-10-11)
-**All 4 tasks completed** - Full support for iteration limiting
-- [x] Study `detect_max_iterations` condition behavior (2025-10-11)
-  - Condition checks iteration count against max limit
-  - Reads max_iteration property from nodes in loop
-  - Documented in code implementation
-
-- [x] Implement max iteration tracking in exported code (2025-10-11)
-  - Generates `iteration_count = 0` initialization
-  - Increments counter at end of loop body
-  - Tracks counter in node outputs
-
-- [x] Generate condition checks for max iterations (2025-10-11)
-  - Generates `while iteration_count < {max_iterations}:` condition
-  - Extracts max_iteration from person_job node config
-  - Proper loop exit based on counter
-
-- [x] Add test cases for detect_max_iterations (2025-10-11)
-  - Verified with `simple_iter.light.yaml` (3 iterations)
-  - Correct loop structure with counter logic
-  - Test output: `/home/soryhyun/DiPeO/examples/exported/simple_iter_with_loops.py`
-
-### user_response Node Support ✅ (Completed: 2025-10-11)
-**All 5 tasks completed** - Interactive user input node export fully functional
-- [x] Study user_response node implementation (2025-10-11)
-  - Reviewed handler code in `/dipeo/application/execution/handlers/user_response.py`
-  - Understood prompt interpolation with `{{variable}}` patterns
-  - Documented timeout property usage and edge label mapping
-  - Analyzed example diagram: `user_input_demo.light.yaml`
-
-- [x] Implement basic user_response export (2025-10-11)
-  - Added `_generate_user_response()` method to `PythonDiagramCompiler`
-  - Generates `input()` calls with prompts from node config
-  - Creates variables for user responses
-  - Tracks outputs in `node_outputs` dict
-
-- [x] Add prompt interpolation support (2025-10-11)
-  - Implemented `_interpolate_prompt()` for `{{variable}}` pattern detection
-  - Replaces patterns with f-string formatting
-  - References upstream node outputs via edge labels
-  - Handles missing variables gracefully with fallback values
-
-- [x] Handle timeout property (2025-10-11)
-  - Added timeout documentation in generated code comments
-  - Noted that timeouts require interactive runtime support
-  - Documented limitation in exported Python scripts
-
-- [x] Add test cases for user_response nodes (2025-10-11)
-  - Successfully exported `user_input_demo.light.yaml`
-  - Tested basic input prompt generation
-  - Verified variable interpolation with `{{variable}}` patterns
-  - Validated syntactically correct Python output
+**Total workload**: 6 major refactoring tasks across 1-2 months
+- Quick Wins: 2 tasks (Week 1-2)
+- High-Value Refactors: 4 tasks (Month 1-2)
+- Optional Improvements: Included in task 6
 
 ---
 
-## High Priority
+## High Priority - Quick Wins (Week 1-2)
 
-### Metrics Persistence Bug Fix
-**Priority: HIGH** | **Estimated effort: Medium**
-Critical bug causing metrics data loss despite successful save operations. Race conditions in async checkpoint processing cause database to end up with NULL metrics even when MetricsObserver successfully persists them.
+### Task 1: Split strategy_common.py into separate files ✓
+**Estimated effort: Small** | **Completed: 2025-10-11**
 
-**Problem Summary**:
-- `dipeo metrics --latest` shows "No metrics available" even after running with `--timing` or `--debug`
-- Logs show successful metrics creation (16 nodes) and persistence
-- Database ends up with NULL metrics column due to race conditions
+The `dipeo/domain/diagram/utils/strategy_common.py` file contains multiple utility classes that should be separated for better organization and maintainability.
 
-**Root Cause**:
-Multiple final checkpoints being created/processed asynchronously. Early checkpoints persist state WITHOUT metrics (before MetricsObserver runs), then later checkpoints or async persistence may overwrite with old cached state that has NULL metrics.
+- [x] Move NodeFieldMapper to `utils/node_field_mapper.py`
+  - Extract class definition and related functions
+  - Add appropriate module docstring
 
-**Evidence from logs**:
-```
-[PERSIST] exec_47d... NO metrics (metrics=None)  # Multiple times
-[MetricsObserver] Created updated_state with metrics: True, node_count=16
-[PERSIST] exec_47d... HAS metrics: 16 nodes  # Multiple times
-# But database has: metrics = NULL
-```
+- [x] Move HandleParser to `utils/handle_parser.py`
+  - Extract class definition and related functions
+  - Add appropriate module docstring
 
-**Files Involved**:
-- `/home/soryhyun/DiPeO/dipeo/infrastructure/execution/state/cache_first_state_store.py` - EXECUTION_COMPLETED event handling creates duplicate checkpoints
-- `/home/soryhyun/DiPeO/dipeo/application/execution/observers/metrics_observer.py` - Metrics persistence timing
-- `/home/soryhyun/DiPeO/dipeo/infrastructure/execution/state/persistence_manager.py` - Database persistence
+- [x] Move PersonExtractor to `utils/person_extractor.py`
+  - Extract class definition and related functions
+  - Add appropriate module docstring
 
-**Tasks**:
-- [ ] Verify attempted fix resolves the issue completely (test with simple_iter diagram)
-  - Run: `dipeo run examples/simple_diagrams/simple_iter --light --debug --timing --timeout=40`
-  - Verify: `dipeo metrics --latest --breakdown` shows metrics (not "No metrics available")
-  - Estimated effort: Small
+- [x] Move ArrowDataProcessor to `utils/arrow_data_processor.py`
+  - Extract class definition and related functions
+  - Add appropriate module docstring
 
-- [ ] Investigate event subscription ordering and async checkpoint processing
-  - Review EventBus subscription priorities
-  - Check if checkpoint queue processes in order
-  - Identify all places that create final checkpoints
-  - Estimated effort: Medium
+- [x] Update imports in all strategy files
+  - Update `strategies/readable_strategy.py`
+  - Update `strategies/light_strategy.py`
+  - Update any other files that import from strategy_common
 
-- [ ] Consider making MetricsObserver run with CRITICAL priority
-  - Ensure MetricsObserver runs last before final checkpoint
-  - Update event subscription priority if needed
-  - Test priority changes don't break other observers
-  - Estimated effort: Small
+- [x] Run tests to verify no regressions
+  - Run: `make lint-server`
+  - Test diagram parsing with both formats
+  - Verify no import errors
 
-- [ ] Add integration tests for metrics persistence
-  - Test that metrics persist correctly after execution
-  - Test concurrent checkpoint scenarios
-  - Verify database state matches final cached state
-  - Estimated effort: Medium
+**Files to modify**:
+- `/home/soryhyun/DiPeO/dipeo/domain/diagram/utils/strategy_common.py`
+- New files: `node_field_mapper.py`, `handle_parser.py`, `person_extractor.py`, `arrow_data_processor.py`
+- All files in `/home/soryhyun/DiPeO/dipeo/domain/diagram/strategies/`
 
-- [ ] Clean up debug logging added during investigation
-  - Remove temporary [PERSIST] debug logs
-  - Keep useful logging for production debugging
-  - Estimated effort: Small
+---
 
-**Testing Command**:
+### Task 2: Extract flow parsing from readable_strategy.py ✓
+**Estimated effort: Small** | **Completed: 2025-10-11**
+
+The `readable_strategy.py` file handles both old and new format parsing. Extract flow parsing logic to a dedicated module.
+
+- [x] Create `strategies/readable/flow_parser.py`
+  - Create new subdirectory if needed
+  - Add module for flow parsing logic
+
+- [x] Move old format parsing methods
+  - Extract methods that handle legacy flow format
+  - Maintain backward compatibility
+
+- [x] Move new format parsing methods
+  - Extract methods that handle current flow format
+  - Ensure consistent interface
+
+- [x] Update main strategy to use the new parser
+  - Import and instantiate FlowParser
+  - Delegate flow parsing calls
+  - Keep strategy class focused on orchestration
+
+- [x] Add tests for flow parser
+  - Test old format parsing
+  - Test new format parsing
+  - Test format detection
+
+**Files modified**:
+- `/home/soryhyun/DiPeO/dipeo/domain/diagram/strategies/readable_strategy.py` (removed 259 lines)
+- New file: `/home/soryhyun/DiPeO/dipeo/domain/diagram/strategies/readable/flow_parser.py` (13KB)
+- New file: `/home/soryhyun/DiPeO/dipeo/domain/diagram/strategies/readable/__init__.py`
+
+---
+
+## Medium Priority - High-Value Refactors (Month 1-2)
+
+### Task 3: Complete refactor of readable_strategy.py ✓
+**Estimated effort: Large** | **Completed: 2025-10-11**
+
+Transform `readable_strategy.py` into a well-organized subdirectory structure with clear separation of concerns.
+
+- [x] Create subdirectory structure `strategies/readable/`
+  - Create directory if not exists
+  - Plan file organization
+
+- [x] Create `strategies/readable/strategy.py`
+  - Main orchestration class
+  - High-level parse/serialize methods
+  - Delegates to specialized modules
+
+- [x] Create `strategies/readable/parser.py`
+  - Node parsing logic
+  - Connection parsing logic
+  - Data extraction methods
+
+- [x] Create `strategies/readable/flow_parser.py`
+  - Old format flow parsing (from Task 2)
+  - New format flow parsing
+  - Format detection logic
+
+- [x] Create `strategies/readable/serializer.py`
+  - Diagram serialization logic
+  - Output formatting
+  - Data structuring methods
+
+- [x] Create `strategies/readable/transformer.py`
+  - Data transformation logic
+  - Format conversion methods
+  - Validation logic
+
+- [x] Update all imports and references
+  - Update strategy registry
+  - Update tests
+  - Update documentation
+
+- [x] Maintain backward compatibility
+  - Ensure existing diagrams still parse
+  - Test with various diagram formats
+
+- [x] Add comprehensive tests
+  - Unit tests for each module
+  - Integration tests for full flow
+  - Test edge cases and error handling
+
+**Files modified**:
+- `/home/soryhyun/DiPeO/dipeo/domain/diagram/strategies/readable_strategy.py` (converted to forwarding module)
+- New directory: `/home/soryhyun/DiPeO/dipeo/domain/diagram/strategies/readable/`
+- New files: `strategy.py`, `parser.py`, `flow_parser.py`, `serializer.py`, `transformer.py`, `__init__.py`
+
+---
+
+### Task 4: Refactor light_strategy.py ✓
+**Estimated effort: Large** | **Completed: 2025-10-11**
+
+Applied similar subdirectory structure to `light_strategy.py` for consistency and maintainability.
+
+- [x] Create subdirectory structure `strategies/light/`
+- [x] Create `strategies/light/strategy.py` - Main orchestration class
+- [x] Create `strategies/light/parser.py` - Node parsing logic and data extraction
+- [x] Create `strategies/light/connection_processor.py` - Connection parsing and handle resolution
+- [x] Create `strategies/light/serializer.py` - Diagram serialization to light format
+- [x] Update all imports and references
+- [x] Add comprehensive tests
+
+**Files modified**:
+- `/home/soryhyun/DiPeO/dipeo/domain/diagram/strategies/light_strategy.py` (converted to forwarding module)
+- New directory: `/home/soryhyun/DiPeO/dipeo/domain/diagram/strategies/light/`
+- New files: `strategy.py`, `parser.py`, `connection_processor.py`, `serializer.py`, `__init__.py`
+
+**Completion notes**:
+- All linting and type checks pass
+- Tested successfully with example diagrams (`simple_iter`)
+- Export functionality validated (`dipeo export`)
+- Backward compatibility maintained via forwarding module
+
+---
+
+### Task 5: Extract compilation phases from domain_compiler.py
+**Estimated effort: Large**
+
+Break down the compilation process into distinct, testable phases for better maintainability and extensibility.
+
+- [ ] Create `compilation/phases/` directory
+  - Create directory structure
+  - Plan phase organization
+
+- [ ] Create ValidationPhase class
+  - Diagram structure validation
+  - Node validation
+  - Connection validation
+  - Return validation results
+
+- [ ] Create NodeTransformationPhase class
+  - Node data transformation
+  - Type conversion
+  - Property mapping
+
+- [ ] Create ConnectionResolutionPhase class
+  - Resolve handle connections
+  - Build connection graph
+  - Validate connection integrity
+
+- [ ] Create additional phase classes as needed
+  - Identify other compilation phases
+  - Create phase classes with clear interfaces
+  - Document phase responsibilities
+
+- [ ] Update domain_compiler to orchestrate phases
+  - Refactor main compilation method
+  - Call phases in sequence
+  - Handle phase errors appropriately
+
+- [ ] Add phase-specific tests
+  - Unit tests for each phase
+  - Test phase isolation
+  - Test phase composition
+
+- [ ] Document compilation pipeline
+  - Document phase order
+  - Document phase dependencies
+  - Document error handling
+
+**Files to modify**:
+- `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/domain_compiler.py`
+- New directory: `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/phases/`
+- New files: `validation_phase.py`, `node_transformation_phase.py`, `connection_resolution_phase.py`, etc.
+
+---
+
+### Task 6: Simplify python_compiler.py
+**Estimated effort: Medium** (Optional Improvement)
+
+Extract complex logic from `python_compiler.py` to improve readability and testability.
+
+- [ ] Extract loop detection to separate file
+  - Create `compilation/python_export/loop_detector.py`
+  - Move loop detection algorithms
+  - Move cycle detection logic
+
+- [ ] Extract code generation logic
+  - Create `compilation/python_export/code_generator.py`
+  - Move code generation methods
+  - Move output formatting logic
+
+- [ ] Create `compilation/python_export/` subdirectory
+  - Organize python export functionality
+  - Group related modules
+  - Improve discoverability
+
+- [ ] Refactor main python_compiler.py
+  - Keep as orchestration layer
+  - Delegate to specialized modules
+  - Simplify main compilation flow
+
+- [ ] Add tests for extracted modules
+  - Test loop detection independently
+  - Test code generation independently
+  - Test integration with main compiler
+
+**Files to modify**:
+- `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/python_compiler.py`
+- New directory: `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/python_export/`
+- New files: `loop_detector.py`, `code_generator.py`
+
+---
+
+## Testing Strategy
+
+For all refactoring tasks, follow this testing approach:
+
+1. **Before refactoring**: Run existing tests to establish baseline
+   - `make lint-server`
+   - Test diagram parsing: `dipeo run examples/simple_diagrams/simple_iter --light --debug`
+
+2. **During refactoring**: Run tests frequently
+   - After each file split
+   - After each import update
+
+3. **After refactoring**: Comprehensive validation
+   - All existing tests pass
+   - No regressions in functionality
+   - Code quality improves (lint, type checking)
+
+**Test commands**:
 ```bash
-dipeo run examples/simple_diagrams/simple_iter --light --debug --timing --timeout=40
-dipeo metrics --latest --breakdown  # Should show metrics
+# Lint and format
+make lint-server
+make format
+
+# Type checking
+pnpm typecheck
+
+# Test diagram execution
+dipeo run examples/simple_diagrams/simple_iter --light --debug --timeout=40
+dipeo export examples/simple_diagrams/simple_iter.light.yaml output.py --light
+
+# GraphQL schema validation
+make graphql-schema
 ```
 
 ---
 
-## High Priority: Diagram-to-Python Export Enhancements
+## Goal
 
-### Sub-diagram Support
-**Priority: Low** | **Estimated effort: Large**
-Complex feature for modular diagrams. Lower priority due to complexity.
-
-- [ ] Research sub-diagram implementation in DiPeO
-  - Find examples in `projects/codegen/diagrams/`
-  - Understand how sub-diagrams are referenced
-  - Check parameter passing mechanisms
-  - Document return value handling
-  - Estimated effort: Medium
-
-- [ ] Design function-based export strategy
-  - Each sub-diagram becomes a Python function
-  - Generate function signatures from inputs/outputs
-  - Handle nested sub-diagram calls
-  - Plan module structure for multi-diagram exports
-  - Estimated effort: Medium
-
-- [ ] Implement sub-diagram function generation
-  - Create separate functions for each sub-diagram
-  - Generate parameter lists from input handles
-  - Generate return statements from output handles
-  - Handle async/await properly
-  - Estimated effort: Large
-
-- [ ] Implement sub-diagram call sites
-  - Generate function calls in parent diagram
-  - Pass arguments from parent context
-  - Capture return values
-  - Update `node_outputs` tracking
-  - Estimated effort: Medium
-
-- [ ] Add test cases for sub-diagrams
-  - Simple sub-diagram with single input/output
-  - Sub-diagram with multiple parameters
-  - Nested sub-diagram calls
-  - Sub-diagram with shared state
-  - Estimated effort: Large
-
-## Code Quality & Testing
-
-### Export Feature Testing
-**Priority: Medium** | **Estimated effort: Medium**
-
-- [ ] Create test suite for export functionality
-  - Unit tests for `PythonDiagramCompiler` class
-  - Integration tests for complete diagram exports
-  - Test fixtures for various diagram patterns
-  - Estimated effort: Large
-
-- [ ] Add validation for exported scripts
-  - Syntax validation (compile exported code)
-  - Static analysis with pylint/ruff
-  - Test execution in isolated environment
-  - Estimated effort: Medium
-
-- [ ] Create example gallery
-  - Export all examples from `examples/simple_diagrams/`
-  - Document expected vs actual behavior
-  - Add to documentation with before/after code
-  - Estimated effort: Small
-
-## Documentation Updates
-
-### Export Feature Documentation
-**Priority: Low** | **Estimated effort: Small**
-
-- [ ] Update `docs/features/diagram-to-python-export.md`
-  - Add loop/cycle detection section
-  - Document detect_max_iterations support
-  - Add user_response examples
-  - Update limitations section
-  - Estimated effort: Small
-
-- [ ] Add troubleshooting guide
-  - Common export issues and solutions
-  - Manual adjustments that may be needed
-  - Debugging tips for exported scripts
-  - Estimated effort: Small
-
-- [ ] Create export best practices guide
-  - Which diagram patterns export well
-  - Patterns that need manual adjustment
-  - How to structure diagrams for clean export
-  - Estimated effort: Medium
+Improve maintainability of the diagram domain to match the quality of the execution domain (which needs no refactoring). Focus on:
+- Clear separation of concerns
+- Better module organization
+- Improved testability
+- Reduced complexity in individual files
+- Consistent architecture patterns
 
 ---
 
-## Notes
+## Progress Summary
 
-- **Test as you go**: Each feature should have test cases before marking complete
-- **Backward compatibility**: Not a priority per project guidelines
-- **Code comments**: Avoid excessive comments, keep code self-documenting
-- **Generated files**: Don't edit directly, modify generation logic
+- **Completed**: 4 tasks (Tasks 1-4) - 27 action items ✓
+- **High Priority (Quick Wins)**: 0 tasks remaining - All quick wins completed! 🎉
+- **Medium Priority (High-Value)**: 2 tasks remaining (Tasks 5-6) - 22 action items
+- **Total**: 6 major tasks (67% complete) - 49 total action items (27 completed, 22 remaining)
 
-## Quick Reference
+**Current Status**: Tasks 1-4 completed successfully on 2025-10-11. Both strategy files (`readable_strategy.py` and `light_strategy.py`) have been completely refactored into modular subdirectory structures with clear separation of concerns:
 
-- **Export implementation**: `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/python_compiler.py`
-- **Export command**: `dipeo export <diagram> <output.py> [--light]`
-- **Test command**: `dipeo run examples/simple_diagrams/simple_iter --light --debug --timeout=40`
-- **Documentation**: `/home/soryhyun/DiPeO/docs/features/diagram-to-python-export.md`
-- **Example diagrams**: `/home/soryhyun/DiPeO/examples/simple_diagrams/`
+**Readable Strategy** (Task 3):
+- **Parser**: Node and connection parsing
+- **Transformer**: Data transformations between formats
+- **Serializer**: Diagram export and serialization
+- **Strategy**: Main orchestrator
+- **Flow Parser**: Legacy and current flow format handling
 
-## Total Tasks Summary
+**Light Strategy** (Task 4):
+- **Parser**: Node parsing and data extraction
+- **Connection Processor**: Connection parsing and handle resolution
+- **Serializer**: Light format serialization
+- **Strategy**: Main orchestrator
 
-- **Completed**: 13 tasks ✅
-  - 4 loop/cycle detection
-  - 4 detect_max_iterations
-  - 5 user_response node support
-- **High Priority**: 7 tasks (5 metrics bug fix + 2 quality/testing)
-- **Low Priority**: 7 tasks (5 sub-diagram + 2 documentation)
+All modules are well-organized, maintainable, and pass linting checks. Backward compatibility is maintained via forwarding modules.
 
-**Total**: 14 remaining tasks | 13 completed | 27 total across 5 major feature areas
+**Next Recommended Task**: Task 5 - Extract compilation phases from domain_compiler.py (Large effort, will improve compilation pipeline maintainability)
 
-**Recent progress**: Added critical metrics persistence bug fix (2025-10-11) - race conditions causing database to have NULL metrics despite successful MetricsObserver saves
+**Timeline**: 1-2 months for complete refactoring
+- Week 1-2: Quick wins (Tasks 1-2) ✓ COMPLETE
+- Week 3-4: Complete readable strategy refactor (Task 3) ✓ COMPLETE
+- Week 5-6: Complete light strategy refactor (Task 4) ✓ COMPLETE
+- Week 7-8: High-value refactors (Tasks 5-6)
+
+**Note**: Tasks can be worked on incrementally. Each completed subtask improves the codebase immediately.

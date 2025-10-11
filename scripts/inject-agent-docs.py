@@ -58,7 +58,6 @@ AGENT_DOCS_MAP = {
         "docs/agents/import-refactoring.md",
         "docs/architecture/overall_architecture.md",
     ],
-    "chatgpt-DiPeO-project-manager": "docs/agents/chatgpt-integration.md",
 }
 
 
