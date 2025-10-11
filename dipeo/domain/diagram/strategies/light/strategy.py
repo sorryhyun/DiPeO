@@ -1,3 +1,5 @@
+"""Light YAML strategy - main orchestrator for simplified workflow format."""
+
 from __future__ import annotations
 
 import os
@@ -5,23 +7,24 @@ from typing import Any
 
 from dipeo.diagram_generated import DomainDiagram
 from dipeo.domain.diagram.compilation.prompt_compiler import PromptFileCompiler
-from dipeo.domain.diagram.utils import (
-    PersonReferenceResolver,
-    _YamlMixin,
-    arrows_list_to_dict,
-    create_node_id,
-    nodes_list_to_dict,
-)
+from dipeo.domain.diagram.utils import _YamlMixin
 from dipeo.domain.diagram.utils.conversion_utils import diagram_maps_to_arrays
 
 from ..base_strategy import BaseConversionStrategy
-from .connection_processor import LightConnectionProcessor
 from .parser import LightDiagramParser
 from .serializer import LightDiagramSerializer
+from .transformer import LightTransformer
 
 
 class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
-    """Simplified YAML that uses labels instead of IDs."""
+    """Simplified YAML strategy that uses labels instead of IDs.
+
+    This strategy orchestrates the parsing, transformation, and serialization
+    of light format diagrams using specialized modules:
+    - parser: Parses raw YAML into LightDiagram
+    - transformer: Transforms between LightDiagram and DomainDiagram
+    - serializer: Serializes LightDiagram to export format
+    """
 
     format_id = "light"
     format_info = {
@@ -34,6 +37,11 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
 
     def __init__(self) -> None:
         super().__init__()
+        self.parser = LightDiagramParser()
+        self.transformer = LightTransformer()
+        self.serializer = LightDiagramSerializer()
+
+        # Initialize prompt compiler if enabled
         self._prompt_compiler: PromptFileCompiler | None = None
         self._enable_prompt_compilation = (
             os.getenv("DIPEO_COMPILE_PROMPTS", "true").lower() == "true"
@@ -42,11 +50,21 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             self._prompt_compiler = PromptFileCompiler()
 
     def deserialize_to_domain(self, content: str, diagram_path: str | None = None) -> DomainDiagram:
+        """Deserialize light YAML content to DomainDiagram."""
+        # Parse YAML content
         data = self.parse(content)
         data = self._clean_graphql_fields(data)
-        light_diagram = LightDiagramParser.parse_to_light_diagram(data)
-        diagram_dict = self._light_diagram_to_dict(light_diagram, data, diagram_path)
-        diagram_dict = self._apply_format_transformations(diagram_dict, data)
+
+        # Parse to intermediate LightDiagram
+        light_diagram = self.parser.parse_to_light_diagram(data)
+
+        # Transform to DomainDiagram dictionary
+        diagram_dict = self.transformer.light_diagram_to_dict(
+            light_diagram, data, diagram_path, self._prompt_compiler
+        )
+        diagram_dict = self.transformer.apply_format_transformations(diagram_dict, data)
+
+        # Convert to array-based format and validate
         array_based_dict = diagram_maps_to_arrays(diagram_dict)
 
         if "metadata" in diagram_dict:
@@ -54,64 +72,15 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
 
         return DomainDiagram.model_validate(array_based_dict)
 
-    def _light_diagram_to_dict(
-        self,
-        light_diagram: Any,
-        original_data: dict[str, Any],
-        diagram_path: str | None = None,
-    ) -> dict[str, Any]:
-        nodes_list = []
-        for index, node in enumerate(light_diagram.nodes):
-            node_dict = node.model_dump(exclude_none=True)
-
-            props = LightDiagramParser.extract_node_props_from_light(node_dict)
-
-            if node.label:
-                props["label"] = node.label
-
-            processed_node = {
-                "id": create_node_id(index),
-                "type": node.type.lower() if isinstance(node.type, str) else node.type,
-                "position": node.position or {"x": 0, "y": 0},
-                "data": props,
-            }
-            nodes_list.append(processed_node)
-
-        if self._prompt_compiler and self._enable_prompt_compilation:
-            effective_path = diagram_path or original_data.get("metadata", {}).get("diagram_id")
-            nodes_list = self._prompt_compiler.resolve_prompt_files(nodes_list, effective_path)
-
-        nodes_dict = nodes_list_to_dict(nodes_list)
-
-        arrows_list = LightConnectionProcessor.process_light_connections(light_diagram, nodes_list)
-        arrows_dict = arrows_list_to_dict(arrows_list)
-
-        handles_dict = LightDiagramParser.extract_handles_dict(original_data)
-        persons_dict = LightDiagramParser.extract_persons_dict(original_data)
-
-        return {
-            "nodes": nodes_dict,
-            "arrows": arrows_dict,
-            "handles": handles_dict,
-            "persons": persons_dict,
-            "metadata": light_diagram.metadata,
-        }
-
-    def _apply_format_transformations(
-        self, diagram_dict: dict[str, Any], original_data: dict[str, Any]
-    ) -> dict[str, Any]:
-        person_label_to_id = PersonReferenceResolver.build_label_to_id_map(diagram_dict["persons"])
-        PersonReferenceResolver.resolve_persons_in_nodes(diagram_dict["nodes"], person_label_to_id)
-
-        LightConnectionProcessor.generate_missing_handles(diagram_dict)
-        LightConnectionProcessor.create_arrow_handles(diagram_dict)
-        LightConnectionProcessor.preserve_condition_content_types(diagram_dict)
-
-        return diagram_dict
-
     def serialize_from_domain(self, diagram: DomainDiagram) -> str:
-        light_diagram = LightDiagramSerializer.domain_to_light_diagram(diagram)
-        data = LightDiagramSerializer.light_diagram_to_export_dict(light_diagram)
+        """Serialize DomainDiagram to light YAML format."""
+        # Transform DomainDiagram to LightDiagram
+        light_diagram = self.transformer.domain_to_light_diagram(diagram)
+
+        # Serialize to export dictionary
+        data = self.serializer.light_diagram_to_export_dict(light_diagram)
+
+        # Format as YAML
         return self.format(data)
 
     def detect_confidence(self, data: dict[str, Any]) -> float:
