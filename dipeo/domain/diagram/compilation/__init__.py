@@ -15,6 +15,7 @@ from .domain_compiler import (
 )
 from .edge_builder import EdgeBuilder, TransformationMetadata
 from .node_factory import NodeFactory
+from .python_compiler import PythonDiagramCompiler
 
 __all__ = [
     "CompilationContext",
@@ -27,6 +28,7 @@ __all__ = [
     "DomainDiagramCompiler",
     "EdgeBuilder",
     "NodeFactory",
+    "PythonDiagramCompiler",
     "ResolvedConnection",
     "TransformRules",
     "TransformationMetadata",

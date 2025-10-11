@@ -26,6 +26,13 @@ dipeo run [diagram] --input-data '{"key": "value"}' --light --debug
 dipeo metrics --latest --breakdown  # Profile latest execution
 ```
 
+### Export to Python
+```bash
+dipeo export <diagram> <output.py> --light  # Export diagram to standalone Python script
+dipeo export examples/simple_diagrams/simple_iter.light.yaml output.py --light
+```
+See [Diagram-to-Python Export Guide](docs/features/diagram-to-python-export.md)
+
 ### Code Generation
 ```bash
 cd dipeo/models && pnpm build      # Build TypeScript specs

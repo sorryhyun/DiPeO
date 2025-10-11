@@ -48,6 +48,11 @@
 - [Comment Cleanup](agents/comment-cleanup.md) - Comment optimization (comment-cleaner)
 - [ChatGPT Integration](agents/chatgpt-integration.md) - ChatGPT management (chatgpt-dipeo-project-manager)
 
+## Features
+> Core DiPeO capabilities and features
+
+- [Diagram-to-Python Export](features/diagram-to-python-export.md) - Export diagrams to standalone Python scripts
+
 ## Project Guides
 > Specific workflows and feature implementation guides
 

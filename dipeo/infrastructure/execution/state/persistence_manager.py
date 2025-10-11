@@ -136,6 +136,15 @@ class PersistenceManager:
 
         async with atime_phase(str(execution_id), "system", "db_serialize"):
             state_dict = entry.state.model_dump()
+            # DEBUG: Check if metrics are in the dump
+            if state_dict.get("metrics"):
+                logger.info(
+                    f"[PERSIST] {execution_id[:8]}... HAS metrics: {len(state_dict['metrics'].get('node_metrics', {})) if isinstance(state_dict['metrics'], dict) else 'N/A'} nodes"
+                )
+            else:
+                logger.warning(
+                    f"[PERSIST] {execution_id[:8]}... NO metrics (metrics={state_dict.get('metrics')})"
+                )
 
         # Use enhanced durability for critical writes
         if use_full_sync:

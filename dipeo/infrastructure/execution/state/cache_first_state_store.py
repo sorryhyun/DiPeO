@@ -200,21 +200,20 @@ class CacheFirstStateStore(StateStorePort, ExecutionStateService, ExecutionCache
             if hasattr(event, "payload") and hasattr(event.payload, "status"):
                 status = event.payload.status
 
-            # Update execution status
-            await self.update_status(execution_id, status)
-
-            # Set ended_at timestamp
-            entry = await self._cache_manager.get_entry(execution_id)
-            if entry:
-                async with self._cache_manager.cache_lock:
-                    entry.state.ended_at = datetime.now().isoformat()
-                    entry.is_dirty = True
+            # Update execution status IN CACHE ONLY (don't queue checkpoint yet)
+            state = await self.get_state(execution_id)
+            if state:
+                state.status = status
+                state.ended_at = datetime.now().isoformat()
+                await self.save_state(state)
 
             # Handle critical persistence or normal checkpoint
+            # This is the ONLY place we should persist for EXECUTION_COMPLETED
             if self._write_through_critical:
                 await self._persist_critical_event(execution_id)
             else:
                 # Create final checkpoint
+                entry = await self._cache_manager.get_entry(execution_id)
                 checkpoint = PersistenceCheckpoint(
                     execution_id=execution_id,
                     checkpoint_time=time.time(),

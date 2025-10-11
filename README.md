@@ -245,6 +245,25 @@ dipeocc stats <session_id>
 
 This feature enables you to automatically transform your Claude Code interactions into reusable DiPeO diagrams, making your AI workflows reproducible and shareable.
 
+#### Export Diagrams to Standalone Python Scripts
+```bash
+# Export a diagram to a Python script that runs without DiPeO
+dipeo export examples/simple_diagrams/simple_iter.light.yaml output.py --light
+
+# Run the exported script directly
+python output.py
+```
+
+**Supported Features:**
+- LLM calls (person_job nodes) → Direct OpenAI/Anthropic API calls
+- Database operations → File I/O
+- Code execution → Inline Python
+- Control flow → Native Python structures
+
+The exported scripts are self-contained and only require Python 3.10+ and the `openai`/`anthropic` packages. Perfect for deploying DiPeO workflows as standalone applications.
+
+For detailed usage and examples, see [Diagram-to-Python Export Guide](docs/features/diagram-to-python-export.md).
+
 ## Requirements
 - **Python 3.13+** (required for uv support)
 - **Node.js 22+** with **pnpm 10+** (not npm/yarn)
