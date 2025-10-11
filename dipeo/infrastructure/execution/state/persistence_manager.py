@@ -132,19 +132,12 @@ class PersistenceManager:
         self, execution_id: str, entry: CacheEntry, use_full_sync: bool = False
     ) -> None:
         """Persist a cache entry to database with optional enhanced durability."""
+        import traceback
+
         from dipeo.infrastructure.timing import atime_phase
 
         async with atime_phase(str(execution_id), "system", "db_serialize"):
             state_dict = entry.state.model_dump()
-            # DEBUG: Check if metrics are in the dump
-            if state_dict.get("metrics"):
-                logger.info(
-                    f"[PERSIST] {execution_id[:8]}... HAS metrics: {len(state_dict['metrics'].get('node_metrics', {})) if isinstance(state_dict['metrics'], dict) else 'N/A'} nodes"
-                )
-            else:
-                logger.warning(
-                    f"[PERSIST] {execution_id[:8]}... NO metrics (metrics={state_dict.get('metrics')})"
-                )
 
         # Use enhanced durability for critical writes
         if use_full_sync:
@@ -155,6 +148,10 @@ class PersistenceManager:
 
         try:
             async with atime_phase(str(execution_id), "system", "db_write"):
+                metrics_json = (
+                    json.dumps(state_dict.get("metrics")) if state_dict.get("metrics") else None
+                )
+
                 await self.execute(
                     """
                     INSERT INTO executions
@@ -189,9 +186,7 @@ class PersistenceManager:
                         json.dumps(state_dict["variables"]),
                         json.dumps(state_dict["exec_counts"]),
                         json.dumps(state_dict["executed_nodes"]),
-                        json.dumps(state_dict.get("metrics"))
-                        if state_dict.get("metrics")
-                        else None,
+                        metrics_json,
                         entry.access_count,
                         datetime.now().isoformat(),
                     ),

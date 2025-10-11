@@ -14,13 +14,10 @@ from dipeo.application.registry.keys import DIAGRAM_PORT, MESSAGE_ROUTER, STATE_
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.domain_models import ExecutionID
 from dipeo.diagram_generated.enums import Status
-from dipeo_server.cli.claude_code_manager import ClaudeCodeCommandManager
-from dipeo_server.cli.diagram_loader import DiagramLoader
-from dipeo_server.cli.display import DisplayManager
-from dipeo_server.cli.integration_manager import IntegrationCommandManager
-from dipeo_server.cli.interactive_handler import cli_interactive_handler
-from dipeo_server.cli.metrics_manager import MetricsManager
-from dipeo_server.cli.session_manager import SessionManager
+from dipeo_server.cli.commands import ClaudeCodeCommandManager, IntegrationCommandManager
+from dipeo_server.cli.core import DiagramLoader, SessionManager
+from dipeo_server.cli.display import DisplayManager, MetricsManager
+from dipeo_server.cli.handlers import cli_interactive_handler
 
 logger = get_module_logger(__name__)
 
@@ -125,7 +122,7 @@ class CLIRunner:
 
                 # Create EventForwarder to forward events to background server if available
                 if await self.session_manager.is_server_available():
-                    from dipeo_server.cli.event_forwarder import EventForwarder
+                    from dipeo_server.cli.handlers import EventForwarder
 
                     event_forwarder = EventForwarder(execution_id=str(execution_id))
 

@@ -38,7 +38,6 @@ dipeo/diagram_generated_staged/
 dipeo/diagram_generated_active_backup/
 .backups/
 **/.ruff_cache/
-.logs
 apps/server/.import_linter_cache
 docs/part1.md
 part1.md
@@ -124,7 +123,6 @@ Thumbs.db
 
 # Logs
 logs/
-.logs/
 *.log
 execution.log
 server.log

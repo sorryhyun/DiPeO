@@ -109,8 +109,10 @@ class CacheFirstStateStore(StateStorePort, ExecutionStateService, ExecutionCache
         """Cleanup resources."""
         self._running = False
 
+        logger.info("[CLEANUP] Starting cleanup - persisting all dirty entries")
         # Persist all dirty cache entries
         await self._persist_all_dirty()
+        logger.info("[CLEANUP] Finished persisting all dirty entries")
 
         # Stop cache manager background tasks
         await self._cache_manager.stop_background_tasks()
@@ -193,34 +195,26 @@ class CacheFirstStateStore(StateStorePort, ExecutionStateService, ExecutionCache
             EventType.EXECUTION_COMPLETED,
         ]
 
-        # For EXECUTION_COMPLETED, update status and persist immediately
+        # For EXECUTION_COMPLETED, update status in cache only
+        # DO NOT persist here - MetricsObserver will handle final persistence with metrics
         if event_type == EventType.EXECUTION_COMPLETED:
             # Extract status from event payload (defaults to COMPLETED)
             status = Status.COMPLETED
             if hasattr(event, "payload") and hasattr(event.payload, "status"):
                 status = event.payload.status
 
-            # Update execution status IN CACHE ONLY (don't queue checkpoint yet)
-            state = await self.get_state(execution_id)
-            if state:
-                state.status = status
-                state.ended_at = datetime.now().isoformat()
-                await self.save_state(state)
+            # Update execution status directly in cache entry to avoid race conditions
+            # DO NOT use get_state() + save_state() as that can overwrite metrics
+            entry = await self._cache_manager.get_entry(execution_id)
+            if entry:
+                async with self._cache_manager.cache_lock:
+                    entry.state.status = status
+                    entry.state.ended_at = datetime.now().isoformat()
+                    entry.mark_dirty()
 
-            # Handle critical persistence or normal checkpoint
-            # This is the ONLY place we should persist for EXECUTION_COMPLETED
-            if self._write_through_critical:
-                await self._persist_critical_event(execution_id)
-            else:
-                # Create final checkpoint
-                entry = await self._cache_manager.get_entry(execution_id)
-                checkpoint = PersistenceCheckpoint(
-                    execution_id=execution_id,
-                    checkpoint_time=time.time(),
-                    node_count=len(entry.state.executed_nodes) if entry else 0,
-                    is_final=True,
-                )
-                await self._checkpoint_queue.put(checkpoint)
+            # NOTE: Do NOT queue checkpoint or persist here
+            # MetricsObserver handles EXECUTION_COMPLETED and persists with metrics
+            # Queueing another checkpoint here causes race condition that loses metrics
             return
 
         # For other events, update cache and let checkpoint system handle persistence
@@ -443,14 +437,13 @@ class CacheFirstStateStore(StateStorePort, ExecutionStateService, ExecutionCache
         if status in [Status.COMPLETED, Status.FAILED, Status.ABORTED]:
             state.ended_at = datetime.now().isoformat()
 
-            # Final checkpoint
-            checkpoint = PersistenceCheckpoint(
-                execution_id=execution_id,
-                checkpoint_time=time.time(),
-                node_count=len(state.executed_nodes),
-                is_final=True,
-            )
-            await self._checkpoint_queue.put(checkpoint)
+            # DON'T queue final checkpoint here!
+            # For CLI executions, the CLI's MetricsObserver will persist final state WITH metrics.
+            # Queueing a checkpoint here causes the server's state_store (without metrics) to
+            # overwrite the CLI's persisted metrics.
+            #
+            # For server-initiated executions, the execution completion logic will handle
+            # final persistence separately.
 
         await self.save_state(state)
 

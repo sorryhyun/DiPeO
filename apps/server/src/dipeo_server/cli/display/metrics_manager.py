@@ -6,7 +6,8 @@ from typing import Any
 from dipeo.application.bootstrap import Container
 from dipeo.application.registry.keys import STATE_STORE
 from dipeo.config.base_logger import get_module_logger
-from dipeo_server.cli.display import DisplayManager
+
+from .display import DisplayManager
 
 logger = get_module_logger(__name__)
 
@@ -190,7 +191,7 @@ class MetricsManager:
             True if stats displayed successfully, False otherwise
         """
         try:
-            from dipeo_server.cli.diagram_loader import DiagramLoader
+            from ..core.diagram_loader import DiagramLoader
 
             loader = DiagramLoader()
             diagram_data, _ = await loader.load_diagram(diagram_path, None)

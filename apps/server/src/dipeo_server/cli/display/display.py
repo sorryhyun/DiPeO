@@ -3,7 +3,8 @@
 from typing import Any
 
 from dipeo.diagram_generated.enums import Status
-from dipeo_server.cli.metrics_display import MetricsDisplayManager
+
+from .metrics_display import MetricsDisplayManager
 
 
 class DisplayManager:

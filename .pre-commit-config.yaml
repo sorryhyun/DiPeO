@@ -118,7 +118,7 @@ exclude: |
     node_modules/|
     build/|
     dist/|
-    \.logs/|
+    \.dipeo/logs/|
     temp/|
     projects/.*/generated/|
     dipeo/diagram_generated/|

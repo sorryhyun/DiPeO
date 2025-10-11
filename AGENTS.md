@@ -100,7 +100,7 @@ See [Overall Architecture](docs/architecture/overall_architecture.md) for comple
 - **uv** for Python, **pnpm** for JavaScript (not npm/yarn)
 - Default LLM: `gpt-5-nano-2025-08-07`
 - Backend: port 8000, Frontend: port 3000
-- Debug with `--debug` flag, check `.logs/cli.log`
+- Debug with `--debug` flag, check `.dipeo/logs/cli.log`
 - Formal test suite under development
 
 ## Common Issues & Solutions
@@ -110,7 +110,7 @@ See [Overall Architecture](docs/architecture/overall_architecture.md) for comple
 | Import errors | `make install` (uv auto-manages env) | |
 | Generated code sync | Run codegen workflow | |
 | TypeScript errors | `make graphql-schema` | |
-| Need debugging | Add `--debug`, check `.logs/` | |
+| Need debugging | Add `--debug`, check `.dipeo/logs/` | |
 | Claude Code sessions | Use `dipeocc convert` | |
 
 ## Quick Debug Reference
@@ -118,7 +118,7 @@ See [Overall Architecture](docs/architecture/overall_architecture.md) for comple
 - **Run diagrams**: `dipeo run [diagram] --light --debug`
 - **Monitor UI**: `http://localhost:3000/?monitor=true`
 - **GraphQL playground**: `http://localhost:8000/graphql`
-- **Logs**: `.logs/cli.log` for detailed output
+- **Logs**: `.dipeo/logs/cli.log` for detailed output
 
 ---
 
