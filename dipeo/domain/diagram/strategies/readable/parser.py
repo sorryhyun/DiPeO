@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from dipeo.domain.diagram.models.format_models import ReadableDiagram, ReadableNode
+from dipeo.domain.diagram.utils import create_node_id
 
 from .flow_parser import FlowParser
 
@@ -60,7 +61,7 @@ class ReadableParser:
             props = {k: v for k, v in cfg.items() if k not in {"position", "type"}}
 
             node = ReadableNode(
-                id=self._create_node_id(index),
+                id=create_node_id(index),
                 type=node_type,
                 label=clean_name,
                 position=position if position else {"x": 0, "y": 0},
@@ -69,7 +70,3 @@ class ReadableParser:
             nodes.append(node)
 
         return nodes
-
-    def _create_node_id(self, index: int, prefix: str = "node") -> str:
-        """Generate a unique node ID."""
-        return f"{prefix}_{index}"

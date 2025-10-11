@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from dipeo.diagram_generated import ContentType, DomainArrow, DomainNode, NodeID, NodeType
+from dipeo.domain.diagram.compilation.connection_resolver import ResolvedConnection
 from dipeo.domain.diagram.models.executable_diagram import ExecutableEdgeV2
 
 
@@ -17,17 +18,6 @@ class TransformationMetadata:
     def __post_init__(self):
         if self.transformation_rules is None:
             self.transformation_rules = {}
-
-
-@dataclass
-class ResolvedConnection:
-    """Represents a resolved connection between nodes."""
-
-    arrow_id: str
-    source_node_id: NodeID
-    target_node_id: NodeID
-    source_handle_label: str | None = None
-    target_handle_label: str | None = None
 
 
 class EdgeBuilder:

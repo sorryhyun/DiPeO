@@ -1,8 +1,15 @@
-"""Parses and creates handle references."""
+"""Parses and creates handle references.
+
+.. deprecated:: 2025-10-11
+   This module is deprecated. Use `handle_operations.HandleLabelParser` and
+   `handle_operations.HandleValidator` instead. This module will be removed
+   in a future release.
+"""
 
 from __future__ import annotations
 
 import logging
+import warnings
 from typing import Any
 
 from dipeo.config.base_logger import get_module_logger
@@ -14,6 +21,13 @@ from dipeo.diagram_generated import (
 )
 
 from .handle_utils import create_handle_id
+
+warnings.warn(
+    "handle_parser is deprecated. Use HandleLabelParser and HandleValidator from "
+    "handle_operations instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 logger = get_module_logger(__name__)
 

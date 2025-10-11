@@ -5,7 +5,13 @@ from typing import Any
 
 from dipeo.diagram_generated import DomainDiagram
 from dipeo.domain.diagram.compilation.prompt_compiler import PromptFileCompiler
-from dipeo.domain.diagram.utils import _YamlMixin
+from dipeo.domain.diagram.utils import (
+    PersonReferenceResolver,
+    _YamlMixin,
+    arrows_list_to_dict,
+    create_node_id,
+    nodes_list_to_dict,
+)
 from dipeo.domain.diagram.utils.conversion_utils import diagram_maps_to_arrays
 
 from ..base_strategy import BaseConversionStrategy
@@ -64,7 +70,7 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
                 props["label"] = node.label
 
             processed_node = {
-                "id": LightDiagramParser.create_node_id(index),
+                "id": create_node_id(index),
                 "type": node.type.lower() if isinstance(node.type, str) else node.type,
                 "position": node.position or {"x": 0, "y": 0},
                 "data": props,
@@ -75,10 +81,10 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
             effective_path = diagram_path or original_data.get("metadata", {}).get("diagram_id")
             nodes_list = self._prompt_compiler.resolve_prompt_files(nodes_list, effective_path)
 
-        nodes_dict = LightDiagramParser.build_nodes_dict(nodes_list)
+        nodes_dict = nodes_list_to_dict(nodes_list)
 
         arrows_list = LightConnectionProcessor.process_light_connections(light_diagram, nodes_list)
-        arrows_dict = LightDiagramParser.build_arrows_dict(arrows_list)
+        arrows_dict = arrows_list_to_dict(arrows_list)
 
         handles_dict = LightDiagramParser.extract_handles_dict(original_data)
         persons_dict = LightDiagramParser.extract_persons_dict(original_data)
@@ -94,36 +100,8 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
     def _apply_format_transformations(
         self, diagram_dict: dict[str, Any], original_data: dict[str, Any]
     ) -> dict[str, Any]:
-        person_label_to_id: dict[str, str] = {}
-        if diagram_dict["persons"]:
-            for person_id, person_data in diagram_dict["persons"].items():
-                label = person_data.get("label", person_id)
-                person_label_to_id[label] = person_id
-
-        if person_label_to_id:
-            for _node_id, node in diagram_dict["nodes"].items():
-                if node.get("type") == "person_job":
-                    person_ref = None
-                    if "person" in node:
-                        person_ref = node["person"]
-                        if person_ref in person_label_to_id:
-                            node["person"] = person_label_to_id[person_ref]
-                    elif (
-                        "props" in node
-                        and isinstance(node["props"], dict)
-                        and "person" in node["props"]
-                    ):
-                        person_ref = node["props"]["person"]
-                        if person_ref in person_label_to_id:
-                            node["props"]["person"] = person_label_to_id[person_ref]
-                    elif (
-                        "data" in node
-                        and isinstance(node["data"], dict)
-                        and "person" in node["data"]
-                    ):
-                        person_ref = node["data"]["person"]
-                        if person_ref in person_label_to_id:
-                            node["data"]["person"] = person_label_to_id[person_ref]
+        person_label_to_id = PersonReferenceResolver.build_label_to_id_map(diagram_dict["persons"])
+        PersonReferenceResolver.resolve_persons_in_nodes(diagram_dict["nodes"], person_label_to_id)
 
         LightConnectionProcessor.generate_missing_handles(diagram_dict)
         LightConnectionProcessor.create_arrow_handles(diagram_dict)

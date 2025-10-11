@@ -4,8 +4,9 @@ from typing import Any
 
 from dipeo.domain.diagram.models.format_models import LightConnection, LightDiagram, LightNode
 from dipeo.domain.diagram.utils import (
+    DiagramDataExtractor,
     NodeFieldMapper,
-    PersonExtractor,
+    create_node_id,
     process_dotted_keys,
 )
 
@@ -81,27 +82,9 @@ class LightDiagramParser:
         return props
 
     @staticmethod
-    def build_nodes_dict(nodes_list: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-        return {node["id"]: node for node in nodes_list}
-
-    @staticmethod
-    def build_arrows_dict(arrows_list: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-        return {arrow["id"]: arrow for arrow in arrows_list}
-
-    @staticmethod
     def extract_handles_dict(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
-        handles = data.get("handles", {})
-        if isinstance(handles, list):
-            return {h.get("id", f"handle_{i}"): h for i, h in enumerate(handles)}
-        return handles if isinstance(handles, dict) else {}
+        return DiagramDataExtractor.extract_handles(data, format_type="light")
 
     @staticmethod
     def extract_persons_dict(data: dict[str, Any]) -> dict[str, Any]:
-        persons_data = data.get("persons", {})
-        if isinstance(persons_data, dict):
-            return PersonExtractor.extract_from_dict(persons_data, is_light_format=True)
-        return {}
-
-    @staticmethod
-    def create_node_id(index: int, prefix: str = "node") -> str:
-        return f"{prefix}_{index}"
+        return DiagramDataExtractor.extract_persons(data, format_type="light")

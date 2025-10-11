@@ -8,8 +8,9 @@ from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import DomainDiagram, HandleDirection
 from dipeo.domain.diagram.models.format_models import ReadableArrow, ReadableDiagram, ReadableNode
 from dipeo.domain.diagram.utils import (
+    DiagramDataExtractor,
+    NodeDictionaryBuilder,
     NodeFieldMapper,
-    PersonExtractor,
     build_node,
     create_handle_id,
     parse_handle_id,
@@ -65,44 +66,7 @@ class ReadableTransformer:
 
     def _build_nodes_dict(self, nodes_list: list[dict[str, Any]]) -> dict[str, Any]:
         """Build nodes dictionary from list of node data."""
-        from dipeo.diagram_generated.conversions import node_kind_to_domain_type
-        from dipeo.domain.diagram.utils.shared_components import PositionCalculator
-
-        position_calculator = PositionCalculator()
-        nodes_dict = {}
-
-        for index, node_data in enumerate(nodes_list):
-            if "id" not in node_data:
-                continue
-
-            node_id = node_data["id"]
-            node_type_str = node_data.get("type", "person_job")
-
-            # Handle 'job' as alias for 'person_job'
-            if node_type_str == "job":
-                node_type_str = "person_job"
-
-            try:
-                node_kind_to_domain_type(node_type_str)
-            except ValueError:
-                logger.warning(f"Unknown node type '{node_type_str}', defaulting to 'person_job'")
-                node_kind_to_domain_type("person_job")
-
-            position = node_data.get("position")
-            if not position:
-                position = position_calculator.calculate_grid_position(index)
-
-            exclude_fields = {"id", "type", "position", "handles", "arrows"}
-            properties = {k: v for k, v in node_data.items() if k not in exclude_fields}
-
-            nodes_dict[node_id] = {
-                "id": node_id,
-                "type": node_type_str.lower(),
-                "position": position,
-                "data": properties,
-            }
-
-        return nodes_dict
+        return NodeDictionaryBuilder.build_with_enrichment(nodes_list)
 
     def domain_to_readable_diagram(self, diagram: DomainDiagram) -> ReadableDiagram:
         """Convert DomainDiagram to ReadableDiagram for export."""
@@ -164,16 +128,11 @@ class ReadableTransformer:
 
     def _extract_handles_dict(self, data: dict[str, Any]) -> dict[str, Any]:
         """Extract handles dictionary from original data."""
-        return data.get("handles", {})
+        return DiagramDataExtractor.extract_handles(data, format_type="readable")
 
     def _extract_persons_dict(self, data: dict[str, Any]) -> dict[str, Any]:
         """Extract persons dictionary from original data."""
-        persons_data = data.get("persons", [])
-        if isinstance(persons_data, list):
-            return PersonExtractor.extract_from_list(persons_data)
-        elif isinstance(persons_data, dict):
-            return persons_data
-        return {}
+        return DiagramDataExtractor.extract_persons(data, format_type="readable")
 
     def apply_format_transformations(
         self, diagram_dict: dict[str, Any], original_data: dict[str, Any]

@@ -4,7 +4,7 @@ from typing import Any
 
 from dipeo.diagram_generated import DomainArrow
 
-from .handle_utils import extract_node_id_from_handle
+from .handle_operations import HandleIdOperations
 
 
 def find_edges_from(
@@ -14,7 +14,7 @@ def find_edges_from(
     for edge in edges:
         source = edge.get("source") if isinstance(edge, dict) else edge.source
         if source:
-            edge_node_id = extract_node_id_from_handle(source)
+            edge_node_id = HandleIdOperations.extract_node_id_from_handle(source)
             if edge_node_id == node_id:
                 result.append(edge)
     return result
@@ -27,7 +27,7 @@ def find_edges_to(
     for edge in edges:
         target = edge.get("target") if isinstance(edge, dict) else edge.target
         if target:
-            edge_node_id = extract_node_id_from_handle(target)
+            edge_node_id = HandleIdOperations.extract_node_id_from_handle(target)
             if edge_node_id == node_id:
                 result.append(edge)
     return result
@@ -44,15 +44,15 @@ def find_connected_nodes(
         target = edge.get("target") if isinstance(edge, dict) else edge.target
 
         if source:
-            source_node_id = extract_node_id_from_handle(source)
+            source_node_id = HandleIdOperations.extract_node_id_from_handle(source)
             if source_node_id == node_id and target:
-                target_node_id = extract_node_id_from_handle(target)
+                target_node_id = HandleIdOperations.extract_node_id_from_handle(target)
                 outgoing.append(target_node_id)
 
         if target:
-            target_node_id = extract_node_id_from_handle(target)
+            target_node_id = HandleIdOperations.extract_node_id_from_handle(target)
             if target_node_id == node_id and source:
-                source_node_id = extract_node_id_from_handle(source)
+                source_node_id = HandleIdOperations.extract_node_id_from_handle(source)
                 incoming.append(source_node_id)
 
     return {"incoming": incoming, "outgoing": outgoing}
@@ -66,13 +66,13 @@ def count_node_connections(edges: list[dict[str, Any] | DomainArrow]) -> dict[st
         target = edge.get("target") if isinstance(edge, dict) else edge.target
 
         if source:
-            source_node_id = extract_node_id_from_handle(source)
+            source_node_id = HandleIdOperations.extract_node_id_from_handle(source)
             if source_node_id not in connection_counts:
                 connection_counts[source_node_id] = {"incoming": 0, "outgoing": 0}
             connection_counts[source_node_id]["outgoing"] += 1
 
         if target:
-            target_node_id = extract_node_id_from_handle(target)
+            target_node_id = HandleIdOperations.extract_node_id_from_handle(target)
             if target_node_id not in connection_counts:
                 connection_counts[target_node_id] = {"incoming": 0, "outgoing": 0}
             connection_counts[target_node_id]["incoming"] += 1
@@ -107,8 +107,8 @@ def is_dag(nodes: list[dict[str, Any] | Any], edges: list[dict[str, Any] | Domai
         target = edge.get("target") if isinstance(edge, dict) else edge.target
 
         if source and target:
-            source_node_id = extract_node_id_from_handle(source)
-            target_node_id = extract_node_id_from_handle(target)
+            source_node_id = HandleIdOperations.extract_node_id_from_handle(source)
+            target_node_id = HandleIdOperations.extract_node_id_from_handle(target)
 
             if source_node_id not in adjacency:
                 adjacency[source_node_id] = []

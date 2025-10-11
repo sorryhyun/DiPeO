@@ -3,12 +3,25 @@ Handle ID utilities for managing handle IDs.
 This is a manually maintained file, not auto-generated.
 
 Provides a single source of truth for handle ID parsing and creation.
+
+.. deprecated:: 2025-10-11
+   This module is deprecated. Use `handle_operations.HandleIdOperations` and
+   `handle_operations.HandleReference` instead. This module will be removed
+   in a future release.
 """
 
+import warnings
 from typing import NamedTuple
 
 from dipeo.diagram_generated.domain_models import HandleID, NodeID
 from dipeo.diagram_generated.enums import HandleDirection, HandleLabel
+
+warnings.warn(
+    "handle_utils is deprecated. Use HandleIdOperations and HandleReference from "
+    "handle_operations instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 class ParsedHandle(NamedTuple):

@@ -1,14 +1,24 @@
-"""Processes arrow data for import/export."""
+"""Processes arrow data for import/export.
+
+DEPRECATED: This module is deprecated. Use arrow_builder module instead:
+- Use create_arrow_dict() instead of ArrowDataProcessor.build_arrow_dict()
+- Use ArrowBuilder for arrow creation utilities
+- Use ArrowIdGenerator for ID generation strategies
+"""
 
 from __future__ import annotations
 
+import warnings
 from typing import Any
 
 from dipeo.diagram_generated import ContentType
 
 
 class ArrowDataProcessor:
-    """Processes arrow data for import/export."""
+    """Processes arrow data for import/export.
+
+    DEPRECATED: Use arrow_builder.create_arrow_dict() instead.
+    """
 
     @staticmethod
     def build_arrow_dict(
@@ -19,7 +29,16 @@ class ArrowDataProcessor:
         content_type: str | None = None,
         label: str | None = None,
     ) -> dict[str, Any]:
-        """Build arrow dictionary."""
+        """Build arrow dictionary.
+
+        DEPRECATED: Use arrow_builder.create_arrow_dict() instead.
+        """
+        warnings.warn(
+            "ArrowDataProcessor.build_arrow_dict() is deprecated. "
+            "Use arrow_builder.create_arrow_dict() instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         arrow_dict = {
             "id": arrow_id,
             "source": source_handle_id,

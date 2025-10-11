@@ -4,7 +4,12 @@ from typing import Any
 
 from dipeo.diagram_generated import DomainDiagram
 from dipeo.domain.diagram.models.format_models import LightConnection, LightDiagram, LightNode
-from dipeo.domain.diagram.utils import ArrowDataProcessor, NodeFieldMapper, parse_handle_id
+from dipeo.domain.diagram.utils import (
+    ArrowDataProcessor,
+    HandleIdOperations,
+    NodeFieldMapper,
+    PersonReferenceResolver,
+)
 
 
 class LightDiagramSerializer:
@@ -15,9 +20,7 @@ class LightDiagramSerializer:
         id_to_label: dict[str, str] = {}
         label_counts: dict[str, int] = {}
 
-        person_id_to_label: dict[str, str] = {}
-        for p in diagram.persons:
-            person_id_to_label[p.id] = p.label
+        person_id_to_label = PersonReferenceResolver.build_id_to_label_map(diagram.persons)
 
         def _unique(base: str) -> str:
             cnt = label_counts.get(base, 0)
@@ -56,8 +59,8 @@ class LightDiagramSerializer:
 
         connections = []
         for a in diagram.arrows:
-            s_node_id, s_handle, _ = parse_handle_id(a.source)
-            t_node_id, t_handle, _ = parse_handle_id(a.target)
+            s_node_id, s_handle, _ = HandleIdOperations.parse_handle_id(a.source)
+            t_node_id, t_handle, _ = HandleIdOperations.parse_handle_id(a.target)
 
             from_str = f"{id_to_label[s_node_id]}{'_' + s_handle if s_handle != 'default' else ''}"
             to_str = f"{id_to_label[t_node_id]}{'_' + t_handle if t_handle != 'default' else ''}"

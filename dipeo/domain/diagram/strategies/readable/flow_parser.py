@@ -6,8 +6,8 @@ from typing import Any
 from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.diagram.models.format_models import ReadableArrow, ReadableNode
 from dipeo.domain.diagram.utils import (
-    ArrowDataProcessor,
     HandleParser,
+    create_arrow_dict,
 )
 
 logger = get_module_logger(__name__)
@@ -349,7 +349,7 @@ class FlowParser:
                 src_id, dst_id, src_handle, dst_handle
             )
 
-            arrow_dict = ArrowDataProcessor.build_arrow_dict(
+            arrow_dict = create_arrow_dict(
                 f"arrow_{idx}",
                 source_handle_id,
                 target_handle_id,
