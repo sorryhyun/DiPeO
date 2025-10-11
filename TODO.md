@@ -4,42 +4,229 @@ Last updated: 2025-10-11
 
 ## Overview
 
-Refactoring `dipeo/domain/diagram/` for better maintainability, consistency, and architectural clarity.
+This document tracks active refactoring tasks for DiPeO's domain layer.
 
 **Current Status:**
-- Phase 1 (Foundation): COMPLETE (4/4 tasks)
-- Phase 2 (Structural): COMPLETE (4/4 tasks)
-- Phase 3 (Polish): COMPLETE (7/7 tasks)
-- Phase 4 (Future): Not started (0/6 tasks)
+- Diagram Module Refactoring (Phases 1-3): COMPLETE
+- Execution Module Refactoring (Phase 5): In Progress (3/11 tasks - Sprint 1 COMPLETE)
+- Optional Future Improvements (Phase 4): Not started (0/6 tasks)
 
 **Recent Achievement:**
-- Phase 3 completed all architectural polish tasks:
-  - Consolidated validation architecture (structural vs business separation)
-  - Unified person-related logic into organized subdirectory
-  - Reviewed and fixed port interface consistency (removed SRP violations)
-  - Added comprehensive documentation (validation/README.md, PORT_ARCHITECTURE.md)
-- Phases 1-3 eliminated ~571 lines of code and removed 5 deprecated modules
-- Introduced configuration-driven design patterns (HandleSpec, FIELD_MAPPINGS)
-- Extracted compilation into 6-phase pipeline
-- Standardized strategy patterns across formats
-- Reorganized utility module into structured subdirectories (core/, conversion/, graph/, person/)
+- **Sprint 1 COMPLETE (2025-10-11):** Execution module foundation refactored
+  - Reorganized into 5 subdirectories (state/, tokens/, rules/, messaging/, context/)
+  - Fixed README documentation mismatches (448 lines + 3,043 lines in subdirectories)
+  - Extracted TokenReadinessEvaluator from 94-line TokenManager method
+  - All tests passing, 50+ imports updated
+- Diagram module (dipeo/domain/diagram/) fully refactored with ~571 lines eliminated
+- Configuration-driven design patterns implemented (HandleSpec, FIELD_MAPPINGS)
+- 6-phase compilation pipeline extracted
 
-**Status:**
-- All core refactoring complete (Phases 1-3)
-- Architecture is clean, consistent, and well-documented
-- Ready for Phase 4 (optional future improvements)
+**Next Focus:**
+- Sprint 2-3: Complete TokenManager refactoring, implement ExecutionRuleRegistry, unify state tracking
+- Based on comprehensive audit report (report.md, 2025-10-11)
 
 ---
 
 ## Active Tasks
 
-### Phase 3: Polish & Consistency (COMPLETE)
+### Phase 5: Execution Module Refactoring
 
-All Phase 3 tasks have been completed successfully!
+Based on audit report findings, the execution module requires moderate-to-substantial refactoring to achieve consistency with the diagram module's architecture.
 
-### Phase 4: Future Improvements (Low Priority)
+---
 
-#### Task 18: Convert YAML/JSON Mixins to Base Classes (Issue #10)
+#### Sprint 2-3: High Priority Improvements
+
+---
+
+##### Task 30: Complete TokenManager Refactoring (HIGH-1, Part 2)
+**Priority:** HIGH | **Effort:** Medium (4-6 hours)
+
+Continue TokenManager refactoring by extracting additional responsibilities.
+
+**Actions:**
+- [ ] Extract token policy logic into `tokens/policies.py`
+- [ ] Create JoinPolicy enum/dataclass for "all", "any", "first" policies
+- [ ] Extract token counting logic into separate methods
+- [ ] Refactor token placement logic for better testability
+- [ ] Add comprehensive docstrings to all token-related classes
+- [ ] Review and optimize token storage data structures
+
+**Files:** `/home/soryhyun/DiPeO/dipeo/domain/execution/token_manager.py`
+
+---
+
+##### Task 31: Implement ExecutionRuleRegistry Pattern (HIGH-2)
+**Priority:** HIGH | **Effort:** Large (12-16 hours)
+
+Create a registry pattern for connection rules and transform rules to enable extensibility.
+
+**Current Issue:**
+- Rules are static methods, not pluggable
+- No clear pattern for adding new transformation types
+- Cannot test with custom rules without modifying production code
+
+**Actions:**
+- [ ] Create `rules/rule_registry.py` with ExecutionRuleRegistry class
+- [ ] Define ConnectionRule protocol/base class
+- [ ] Define TransformRule protocol/base class
+- [ ] Implement registry methods: register_connection_rule, register_transform_rule
+- [ ] Implement get_applicable_transforms method
+- [ ] Refactor NodeConnectionRules to use registry
+- [ ] Refactor DataTransformRules to use registry
+- [ ] Update resolution module to query registry
+- [ ] Add plugin-style registration examples in docs
+
+**Files:**
+- NEW: `/home/soryhyun/DiPeO/dipeo/domain/execution/rules/rule_registry.py`
+- MODIFY: `/home/soryhyun/DiPeO/dipeo/domain/execution/rules/connection_rules.py`
+- MODIFY: `/home/soryhyun/DiPeO/dipeo/domain/execution/rules/transform_rules.py`
+
+---
+
+##### Task 32: Unify State Tracking (HIGH-3)
+**Priority:** HIGH | **Effort:** Large (16-20 hours)
+
+Merge ExecutionTracker and StateTracker to eliminate redundant state tracking and synchronization risks.
+
+**Current Issue:**
+- ExecutionTracker and StateTracker have overlapping responsibilities
+- Execution count tracked in two places
+- Two sources of truth can diverge
+- Unclear ownership of state data
+
+**Actions:**
+- [ ] Design unified ExecutionState architecture:
+  - ExecutionHistory (immutable append-only log)
+  - RuntimeState (mutable state machine)
+  - UIStateProjection (computed view for UI)
+- [ ] Create `state/execution_state.py` with unified ExecutionState class
+- [ ] Create `state/execution_history.py` for immutable history tracking
+- [ ] Create `state/runtime_state.py` for current runtime state
+- [ ] Migrate ExecutionTracker logic to ExecutionHistory
+- [ ] Migrate StateTracker logic to RuntimeState
+- [ ] Update all references to use unified ExecutionState
+- [ ] Remove old ExecutionTracker and StateTracker classes
+- [ ] Update ExecutionContext protocol
+- [ ] Run comprehensive integration tests
+
+**Files:**
+- NEW: `/home/soryhyun/DiPeO/dipeo/domain/execution/state/execution_state.py`
+- NEW: `/home/soryhyun/DiPeO/dipeo/domain/execution/state/execution_history.py`
+- NEW: `/home/soryhyun/DiPeO/dipeo/domain/execution/state/runtime_state.py`
+- REMOVE: `/home/soryhyun/DiPeO/dipeo/domain/execution/execution_tracker.py`
+- REMOVE: `/home/soryhyun/DiPeO/dipeo/domain/execution/state_tracker.py`
+
+---
+
+##### Task 33: Expand ExecutionContext Protocol (MED-1)
+**Priority:** MEDIUM | **Effort:** Small (4-6 hours)
+
+Expand ExecutionContext protocol to provide complete abstraction and reduce direct manager access.
+
+**Current Issue:**
+- Protocol exists but most code directly accesses `ctx.state` and `ctx.tokens`
+- Abstraction benefits underutilized
+
+**Actions:**
+- [ ] Add convenience methods to ExecutionContext protocol:
+  - get_node_output()
+  - get_node_status()
+  - has_completed()
+  - mark_node_completed()
+- [ ] Update protocol implementations
+- [ ] Refactor resolution module to use protocol methods instead of direct access
+- [ ] Update documentation with protocol usage examples
+
+**Files:**
+- `/home/soryhyun/DiPeO/dipeo/domain/execution/execution_context.py`
+- `/home/soryhyun/DiPeO/dipeo/domain/execution/resolution/` (various files)
+
+---
+
+#### Sprint 4+: Long-term Improvements
+
+---
+
+##### Task 34: Implement Domain Events System (MED-3)
+**Priority:** MEDIUM | **Effort:** Medium (8-12 hours)
+
+Add domain events for state transitions to enable audit trails, monitoring, and decoupled side effects.
+
+**Actions:**
+- [ ] Create `events/execution_events.py` with domain event classes:
+  - NodeExecutionStarted
+  - NodeExecutionCompleted
+  - NodeExecutionFailed
+  - TokenProduced
+  - TokenConsumed
+- [ ] Add EventBus integration to StateTracker
+- [ ] Emit events on all state transitions
+- [ ] Update documentation with event patterns
+- [ ] Add event-based testing examples
+
+**Files:**
+- NEW: `/home/soryhyun/DiPeO/dipeo/domain/execution/events/execution_events.py`
+- MODIFY: `/home/soryhyun/DiPeO/dipeo/domain/execution/state/` (state management files)
+
+---
+
+##### Task 35: Improve Type Discipline (MED-4)
+**Priority:** MEDIUM | **Effort:** Small (6-8 hours)
+
+Replace liberal use of `Any` with precise type hints.
+
+**Actions:**
+- [ ] Define TransformRules TypedDict or protocol
+- [ ] Replace `Any` in transform_rules.py with specific types
+- [ ] Replace `Any` in resolution/api.py extract_edge_value() signature
+- [ ] Add missing return type hints
+- [ ] Create types.py for common type definitions
+- [ ] Run `pnpm typecheck` to verify improvements
+
+**Files:** Multiple files in `/home/soryhyun/DiPeO/dipeo/domain/execution/`
+
+---
+
+##### Task 36: Modernize EnvelopeFactory API (MED-2)
+**Priority:** LOW | **Effort:** Small (3-4 hours)
+
+Refactor EnvelopeFactory to use explicit class methods instead of auto-detection.
+
+**Actions:**
+- [ ] Add class methods: from_text(), from_json(), from_binary(), from_conversation()
+- [ ] Add from_error() class method for error envelopes
+- [ ] Keep auto_detect() for backward compatibility
+- [ ] Update call sites to use explicit methods
+- [ ] Add docstrings with usage examples
+
+**Files:** `/home/soryhyun/DiPeO/dipeo/domain/execution/envelope.py:130-175`
+
+---
+
+##### Task 37: Performance Optimizations
+**Priority:** LOW | **Effort:** Medium (8-10 hours)
+
+Optimize token management and state tracking performance.
+
+**Actions:**
+- [ ] Add `slots=True` to Token dataclass for memory efficiency
+- [ ] Profile token placement and retrieval operations
+- [ ] Optimize token storage data structures if needed
+- [ ] Add benchmarking tests for large diagram executions
+- [ ] Document performance characteristics in README
+
+**Files:** `/home/soryhyun/DiPeO/dipeo/domain/execution/token_types.py`
+
+---
+
+### Phase 4: Diagram Module Future Improvements (Low Priority)
+
+These tasks are optional enhancements for the diagram module. Can be prioritized based on development needs.
+
+---
+
+#### Task 18: Convert YAML/JSON Mixins to Base Classes
 **Priority:** LOW | **Effort:** Small (2-3 hours)
 
 `_JsonMixin` and `_YamlMixin` should be explicit base classes rather than mixins.
@@ -52,186 +239,82 @@ All Phase 3 tasks have been completed successfully!
 
 ---
 
-#### Task 19: Add Testing Utilities (Issue #26)
+#### Task 19: Add Testing Utilities for Diagram Module
 **Priority:** LOW | **Effort:** Medium (3-4 hours)
 
-No test utilities or factories visible in the diagram module.
+Create test factories and fixtures for diagram module.
 
 **Actions:**
 - [ ] Create `/home/soryhyun/DiPeO/dipeo/domain/diagram/testing/` directory
 - [ ] Create `factories.py` with `DiagramFactory` class
 - [ ] Create `fixtures.py` with common test fixtures
-- [ ] Create `assertions.py` with custom assertions for diagrams
-- [ ] Add factory methods for common test diagrams
+- [ ] Create `assertions.py` with custom assertions
 - [ ] Document usage in developer guide
 
 ---
 
-#### Task 20: Improve Type Hints Consistency (Issue #23)
+#### Task 20: Improve Type Hints Consistency for Diagram Module
 **Priority:** LOW | **Effort:** Small (2-3 hours)
 
-Some functions use `Any` excessively, others have precise types.
+Create TypedDict types for common diagram structures.
 
 **Actions:**
 - [ ] Create `/home/soryhyun/DiPeO/dipeo/domain/diagram/models/types.py`
-- [ ] Define TypedDict types for common structures (NodeDict, ArrowDict, HandleDict, PersonDict)
-- [ ] Update function signatures across module to use TypedDict
-- [ ] Run type checking: `pnpm typecheck`
+- [ ] Define TypedDict types: NodeDict, ArrowDict, HandleDict, PersonDict
+- [ ] Update function signatures to use TypedDict
+- [ ] Run `pnpm typecheck`
 
 ---
 
-#### Task 21: Eliminate Magic Strings for Node Types (Issue #24)
+#### Task 21: Eliminate Magic Strings for Node Types
 **Priority:** LOW | **Effort:** Small (1-2 hours)
 
-Node type checking uses string comparisons: `if node_type == "person_job":`
+Replace string comparisons with enum usage.
 
 **Actions:**
 - [ ] Create `NodeTypeChecker` helper class
-- [ ] Replace string comparisons with enum usage
 - [ ] Search for all magic string comparisons
 - [ ] Update to use `NodeType` enum
 - [ ] Run tests
 
 ---
 
-#### Task 22: Automate Strategy Registration (Issue #25)
+#### Task 22: Automate Strategy Registration
 **Priority:** LOW | **Effort:** Small (2-3 hours)
 
-Strategies are manually registered. Use a registry pattern with auto-discovery.
+Use registry pattern with auto-discovery for diagram strategies.
 
 **Actions:**
 - [ ] Create `/home/soryhyun/DiPeO/dipeo/domain/diagram/strategies/registry.py`
 - [ ] Create `StrategyRegistry` class with auto-discovery
-- [ ] Add `@StrategyRegistry.register` decorator to strategies
+- [ ] Add `@StrategyRegistry.register` decorator
 - [ ] Implement auto-discovery using importlib
-- [ ] Update strategy instantiation to use registry
-
----
-
-## Completed Work Archive
-
-### Phase 1: Foundation & High Priority (COMPLETE)
-
-**Completed Tasks:**
-- **Task 6** (2025-10-11): Created unified data extractors (~15 lines eliminated)
-  - NEW: `utils/data_extractors.py` (DiagramDataExtractor class)
-  - Eliminated duplicate extraction logic across parsers
-
-- **Task 14** (2025-10-11): Extracted person resolution logic (~30-35 lines eliminated)
-  - NEW: `utils/person_resolver.py` (PersonReferenceResolver class)
-  - Unified bidirectional person reference mapping
-
-- **Task 15** (2025-10-11): Modularized connection processing (~43 lines improved structure)
-  - Main method reduced from 58 lines to 15 lines (74% reduction)
-  - Improved readability and testability
-
-- **Task 17** (2025-10-11): Consolidated validation error conversion (~20 lines eliminated)
-  - Unified to_validation_result() method with parameter
-  - Eliminated duplicate field name computation
-
-**Results:** ~110 lines eliminated/restructured, improved code organization
-
----
-
-### Phase 2: Structural Improvements (COMPLETE)
-
-**Completed Tasks:**
-- **Task 8** (2025-10-11): Refactored handle generation to configuration-driven (~52 lines eliminated)
-  - Created HandleSpec dataclass and HANDLE_SPECS mapping
-  - Reduced from 87 lines to 35 lines (60% reduction)
-  - Configuration-driven approach for all 8 node types
-
-- **Task 9** (2025-10-11): Made node field mapping table-driven (~46 lines eliminated)
-  - Created FIELD_MAPPINGS configuration
-  - Reduced from 86 lines to 40 lines (53% reduction)
-  - Eliminated if-elif chains
-
-- **Task 10** (2025-10-11): Extracted compilation phases to separate classes (~341 lines eliminated)
-  - Created 6 phase classes (ValidationPhase, NodeTransformationPhase, etc.)
-  - Compiler reduced from 561 lines to 220 lines (60.9% reduction)
-  - Clear separation of concerns with PhaseInterface
-
-- **Task 16** (2025-10-11): Simplified prompt path resolution (~20 lines eliminated)
-  - Strategy pattern with ordered path resolvers
-  - Reduced from 35 lines to 15 lines (57% reduction)
-
-**Results:** ~461 lines eliminated, configuration-driven design, 6-phase compilation pipeline
-
----
-
-### Phase 3: Polish & Consistency (COMPLETE)
-
-**Completed Tasks:**
-- **Task 11** (2025-10-11): Standardized strategy module patterns (~5 hours)
-  - NEW: `strategies/light/transformer.py` (LightDiagramTransformer)
-  - Unified both strategies to consistent 4-module structure
-  - Both strategies now follow: parser → transformer → serializer → strategy
-
-- **Task 13** (2025-10-11): Updated documentation (~4-5 hours)
-  - NEW: `docs/architecture/diagram-compilation.md`
-  - NEW: `docs/guides/developer-guide-diagrams.md`
-  - Comprehensive architecture and developer guides
-
-- **Task 23** (2025-10-11): Removed deprecated utilities and forwarding modules (~2-3 hours)
-  - REMOVED: 2 forwarding modules (light_strategy.py, readable_strategy.py)
-  - REMOVED: 3 deprecated utilities (handle_parser.py, arrow_data_processor.py, handle_utils.py)
-  - Cleaned up exports
-
-- **Task 12** (2025-10-11): Reorganized utility module structure (~3-4 hours)
-  - Created organized subdirectory structure: core/, conversion/, graph/
-  - Moved and renamed 6 files to new locations
-  - Created __init__.py files with proper exports
-  - Updated all imports across codebase
-  - Maintained backward compatibility in main utils/__init__.py
-
-- **Task 24** (2025-10-11): Consolidated validation architecture (~4-5 hours)
-  - NEW: `validation/business_validators.py` (PersonReferenceValidator, APIKeyValidator, BusinessValidatorRegistry)
-  - NEW: `validation/README.md` (comprehensive architecture documentation)
-  - UPDATED: `validation/diagram_validator.py` (clean separation: structural via compiler, business via registry)
-  - UPDATED: `application/diagram/use_cases/validate_diagram.py` (simplified to delegate to DiagramValidator)
-  - REMOVED: Person/API key validation logic from DiagramValidator (moved to business validators)
-  - Clear separation: structural validation (compiler) vs business validation (domain rules)
-
-- **Task 25** (2025-10-11): Unified person-related logic (~2-3 hours)
-  - NEW: `utils/person/` subdirectory with organized modules:
-    - `operations.py` (PersonExtractor, PersonReferenceResolver)
-    - `validation.py` (PersonValidator)
-    - `__init__.py` (clean exports)
-  - REMOVED: `utils/person_extractor.py` and `utils/person_resolver.py` (consolidated)
-  - UPDATED: `utils/__init__.py` and `utils/conversion/data_extractors.py` (imports from new person module)
-  - All person operations now in single location with clear API boundaries
-
-- **Task 26** (2025-10-11): Reviewed port interface consistency (~1-2 hours)
-  - NEW: `PORT_ARCHITECTURE.md` (comprehensive port architecture documentation)
-  - REMOVED: `validate()` method from DiagramStorageSerializer in `ports.py` (violated SRP, was dead code)
-  - REMOVED: `validate_content()` from SerializeDiagramUseCase in `serialize_diagram.py` (redundant)
-  - Documented SRP principles and when validation belongs in ports (almost never)
-  - All ports now follow single responsibility principle
-
-**Results:** Complete architectural consistency, clear validation boundaries, unified person logic, SRP-compliant ports
+- [ ] Update strategy instantiation
 
 ---
 
 ## Progress Summary
 
-**Overall:** 15/21 tasks complete (~71%)
+**Overall:** 3/20 active tasks complete (15%)
 
 **By Phase:**
-- Phase 1 (Foundation): 4/4 (100%) ✓ COMPLETE
-- Phase 2 (Structural): 4/4 (100%) ✓ COMPLETE
-- Phase 3 (Polish): 7/7 (100%) ✓ COMPLETE
-- Phase 4 (Future): 0/6 (0%) - Not started (optional)
+- Phase 4 (Diagram Optional): 0/6 (0%) - Not started
+- Phase 5 (Execution Sprint 1): 3/3 (100%) - **COMPLETE**
+- Phase 5 (Execution Sprint 2-3): 0/4 (0%) - Not started
+- Phase 5 (Execution Sprint 4+): 0/4 (0%) - Not started
 
-**Core Refactoring:** COMPLETE
+**Priority Breakdown:**
+- CRITICAL: 0 tasks (Sprint 1 complete)
+- HIGH: 4 tasks (Tasks 30-32, plus Task 33)
+- MEDIUM: 2 tasks (Tasks 34-35)
+- LOW: 11 tasks (Tasks 18-22, 36-37)
 
-**Remaining Effort:** Phase 4 tasks are optional future improvements (~2 weeks part-time if pursued)
-
-**Code Quality Improvements:**
-- ~571 lines eliminated
-- 5 deprecated modules removed
-- 3 new documentation files added (validation/README.md, PORT_ARCHITECTURE.md, and earlier docs)
-- Organized utils structure (core/, conversion/, graph/, person/ subdirectories)
-- Clear architectural boundaries (validation: structural vs business; ports: SRP compliance)
+**Estimated Effort:**
+- Sprint 1 (Immediate): COMPLETE (~12 hours actual)
+- Sprint 2-3 (Short-term): 36-48 hours
+- Sprint 4+ (Long-term): 25-34 hours
+- Phase 4 (Optional): 13-18 hours
+- **Remaining:** ~74-100 hours (9-13 days full-time)
 
 ---
 
@@ -245,8 +328,9 @@ dipeo run examples/simple_diagrams/simple_iter --light --debug --timeout=40
 
 ### During Refactoring
 - Run tests after each file modification
-- Commit after each completed subtask
+- Commit after each completed task
 - Test incrementally
+- Check `.dipeo/logs/cli.log` for execution details
 
 ### After Refactoring
 ```bash
@@ -261,63 +345,124 @@ dipeo run examples/simple_diagrams/simple_iter --light --debug
 ## Success Metrics
 
 **Quantitative:**
-- Core refactoring: 15/15 tasks complete (Phases 1-3) ✓
-- Phases 1 & 2: ~571 lines eliminated ✓
-- Configuration-driven design for handles and field mapping ✓
-- 6-phase modular compiler ✓
-- Standardized strategy patterns ✓
-- Organized utility module structure ✓
-- Clear validation architecture (structural vs business) ✓
-- Unified person-related logic ✓
-- SRP-compliant port interfaces ✓
-- All linting/type checks pass ✓
+- All Sprint 1-3 tasks complete (7/11 execution tasks)
+- Execution module organized into subdirectories (state/, tokens/, rules/, messaging/, context/)
+- Token manager decomposed from 1 complex method to 5+ focused methods
+- State tracking unified into single ExecutionState class
+- ExecutionRuleRegistry implemented for extensibility
 
 **Qualitative:**
-- Clearer module boundaries ✓
-- Easier to add new node types ✓ (configuration-driven)
-- Easier to add new format strategies ✓ (standardized pattern)
-- Clear validation responsibilities ✓ (compiler for structural, validators for business)
-- Person operations centralized ✓ (utils/person/ subdirectory)
-- Better test coverage (in progress)
-- More maintainable codebase ✓
-- Consistent patterns ✓
-- Comprehensive documentation ✓
+- Execution module matches diagram module's organizational quality
+- Clear separation of concerns (state management, token control, business rules)
+- Improved testability through smaller, focused components
+- Extensible architecture via registry patterns
+- Documentation accurate and comprehensive
+- Type safety improved with reduced `Any` usage
+- Consistent patterns across domain layer
+
+---
+
+## Completed Work Archive
+
+### Phase 5, Sprint 1: Execution Module Foundation (COMPLETE - 2025-10-11)
+
+**Summary:**
+- 3/3 tasks completed (Tasks 27-29)
+- Execution module reorganized into 5 subdirectories
+- Documentation rewritten from scratch (448 → 3,491 total lines)
+- TokenManager method extracted into focused TokenReadinessEvaluator class
+- All tests passing, backward compatibility maintained
+
+**Key Achievements:**
+- **Task 27:** Created subdirectories: state/, tokens/, rules/, messaging/, context/
+  - Moved 8 files using git mv (preserved history)
+  - Created 5 __init__.py files with proper exports
+  - Updated 50+ import statements across codebase
+- **Task 28:** Fixed README documentation mismatches
+  - Rewrote main README.md (554 → 448 lines)
+  - Created 5 subdirectory READMEs (3,043 lines total)
+  - Removed aspirational features, documented actual implementation
+- **Task 29:** Refactored TokenManager.has_new_inputs() method
+  - Extracted 94-line method into TokenReadinessEvaluator class
+  - Created 4 focused methods: _get_relevant_edges, _filter_by_conditions, _evaluate_join_policy, has_new_inputs
+  - Improved testability and SRP compliance
+
+**Verification:**
+- All linting/type checks passing
+- Integration tests passing: `dipeo run examples/simple_diagrams/simple_iter --light --debug`
+- Backward compatibility maintained through __init__.py exports
+
+---
+
+### Phase 1-3: Diagram Module Refactoring (COMPLETE - 2025-10-11)
+
+**Summary:**
+- 15/15 tasks completed
+- ~571 lines eliminated across diagram module
+- Configuration-driven design patterns implemented
+- 6-phase modular compilation pipeline extracted
+- Validation architecture consolidated (structural vs business)
+- Utility module reorganized into subdirectories
+- Comprehensive documentation added
+
+**Key Achievements:**
+- HandleSpec dataclass and HANDLE_SPECS mapping created
+- FIELD_MAPPINGS configuration for table-driven field mapping
+- Phase classes extracted: ValidationPhase, NodeTransformationPhase, EdgeBuildingPhase, etc.
+- Strategies standardized: parser → transformer → serializer → strategy
+- Person-related logic unified into utils/person/ subdirectory
+- Port interfaces cleaned to follow SRP
+- 5 deprecated modules removed
+
+**Verification:**
+- All linting/type checks passing
+- Example diagrams run successfully
+- Architecture documented in docs/architecture/
+- Developer guide updated
+
+**Based on:** Comprehensive codebase audit (2025-10-11), 54 Python files in `dipeo/domain/diagram/`
 
 ---
 
 ## Notes
 
-- **Status:** Phase 3 COMPLETE - All core refactoring tasks finished! (2025-10-11)
-- **Based on:** Comprehensive codebase audit (2025-10-11)
-- **Audit scope:** 54 Python files in `dipeo/domain/diagram/`
-- **Risk level:** Low - All changes tested and working
-- **ROI:** High (faster development, fewer bugs, easier onboarding)
+- **Status:** Execution module refactoring in progress (Phase 5)
+- **Based on:** Comprehensive audit report (report.md, 2025-10-11)
+- **Audit scope:** 20 Python files in `dipeo/domain/execution/`
+- **Risk level:** Low - Changes follow established patterns from diagram module
+- **ROI:** High (improved maintainability, extensibility, consistency)
+- **Backward Compatibility:** Maintain through careful __init__.py exports
 
-**Important:** Core refactoring (Phases 1-3) is complete. Phase 4 tasks are optional future improvements that can be prioritized based on development needs.
+**Important:** Sprint 1 tasks (Tasks 27-29) should be completed first as they set the foundation for all subsequent work. Sprint 2-3 tasks build on Sprint 1. Sprint 4+ tasks are long-term improvements that can be prioritized based on needs.
 
 ---
 
-## Final Status (2025-10-11)
+## Sprint Plan for Execution Module (Phase 5)
 
-**PHASES 1-3 COMPLETE! 🎉**
+**Sprint 1 (Immediate):** **COMPLETE (2025-10-11, ~12 hours actual)**
+- Task 27: Directory reorganization ✓
+- Task 28: README.md documentation fix ✓
+- Task 29: TokenManager refactoring (Part 1) ✓
 
-All core refactoring objectives achieved:
-- ✅ Configuration-driven design (HandleSpec, FIELD_MAPPINGS)
-- ✅ Modular 6-phase compilation pipeline
-- ✅ Standardized strategy patterns (light, readable)
-- ✅ Organized utility structure (core/, conversion/, graph/, person/)
-- ✅ Clear validation architecture (structural via compiler, business via validators)
-- ✅ Unified person operations (utils/person/)
-- ✅ SRP-compliant port interfaces
-- ✅ Comprehensive documentation
+**Sprint 2-3 (Short-term - 36-48 hours):**
+Priority: HIGH/MEDIUM
+- Task 30: Complete TokenManager refactoring
+- Task 31: Implement ExecutionRuleRegistry
+- Task 32: Unify state tracking
+- Task 33: Expand ExecutionContext protocol
 
-**Changes verified:**
-- Example diagram runs successfully
-- Linting passes (minor unrelated warnings exist)
-- All imports updated correctly
-- Architecture documented
+**Sprint 4+ (Long-term - 25-34 hours):**
+Priority: MEDIUM/LOW
+- Task 34: Domain events system
+- Task 35: Type discipline improvements
+- Task 36: EnvelopeFactory modernization
+- Task 37: Performance optimizations
 
-**Next steps:**
-- Phase 4 tasks are optional improvements (can be prioritized later)
-- Current architecture is production-ready
-- Focus can shift to feature development
+**Phase 4 (Optional - 13-18 hours):**
+Priority: LOW
+- Tasks 18-22: Diagram module optional improvements
+
+---
+
+**Last updated:** 2025-10-11
+**Next review:** After Sprint 2-3 completion

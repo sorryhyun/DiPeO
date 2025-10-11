@@ -1,34 +1,49 @@
-# Codebase Audit Report: Diagram Domain Module
+# Codebase Audit Report: dipeo/domain/execution/
 
-**Audit Date:** 2025-10-11
-**Scope:** `/home/soryhyun/DiPeO/dipeo/domain/diagram/`
-**Total Files Analyzed:** 54 Python files
+**Date:** 2025-10-11
+**Auditor:** Claude Code
+**Module:** `dipeo/domain/execution/`
+**Context:** Post-refactoring of `dipeo/domain/diagram/` module
+
+---
 
 ## Executive Summary
 
-The diagram domain module exhibits solid architectural foundations with clear separation between compilation, validation, and format conversion concerns. However, the codebase suffers from significant code duplication, scattered utility functions, and inconsistent patterns across similar components. Consolidation opportunities exist that could reduce the codebase by an estimated 20-30% while improving maintainability and reducing the risk of divergent implementations.
+The `dipeo/domain/execution/` module implements the runtime execution logic for DiPeO diagrams, including token-based flow control, state tracking, and input resolution. While the **resolution submodule** demonstrates excellent architecture with clear separation of concerns, the **root-level module organization** requires significant refactoring to match the quality standards established by the recently refactored `dipeo/domain/diagram/` module.
 
-**Key Statistics:**
-- **High Priority Issues:** 8 duplications requiring immediate attention
-- **Medium Priority Issues:** 12 structural improvements identified
-- **Low Priority Issues:** 6 minor refinements suggested
-- **Estimated Refactoring Impact:** 15-20 files affected, ~500-800 lines can be consolidated
+**Key Findings:**
+- **Critical Gap:** Flat root-level organization lacks the structured subdirectory approach used in the diagram module
+- **High Priority:** Token manager contains complex, deeply nested logic that needs decomposition
+- **High Priority:** Connection and transform rules are minimal stubs, contradicting extensive README documentation
+- **Medium Priority:** Inconsistent use of domain patterns and missing registries for extensibility
+- **Positive:** The `resolution/` submodule is well-architected and can serve as a model for refactoring
+
+**Overall Assessment:** The module requires moderate-to-substantial refactoring to achieve consistency with the diagram module's architecture and to improve maintainability.
+
+---
 
 ## Audit Scope
 
+### Request Analysis
+- Examine the `dipeo/domain/execution/` module for improvement opportunities
+- Compare against the recently refactored `dipeo/domain/diagram/` module
+- Identify technical debt, code quality issues, and modernization opportunities
+- Provide actionable recommendations with priority ratings
+
 ### Areas Examined
-1. **Compilation Module** (`compilation/`) - Node factory, edge building, connection resolution
-2. **Strategies Module** (`strategies/`) - Light, Readable, and Native format handlers
-3. **Validation Module** (`validation/`) - Diagram validation utilities
-4. **Utils Module** (`utils/`) - Shared utilities and helpers
-5. **Models Module** (`models/`) - Core domain models
+- Module structure and file organization (20 Python files)
+- Architecture patterns and design decisions
+- Code quality, type hints, and error handling
+- Documentation accuracy and completeness
+- Dependencies and coupling with other modules
+- Comparison with `dipeo/domain/diagram/` patterns
 
 ### Methodology
-- Line-by-line code review of all 54 Python files
-- Pattern matching for duplicate implementations
-- Architectural consistency analysis
-- Complexity metrics evaluation
-- Import dependency analysis
+- Static code analysis of all files in the module
+- Pattern comparison with the diagram module
+- Documentation review (README.md vs. actual implementation)
+- Dependency analysis
+- Best practices assessment against modern Python 3.13+ standards
 
 ---
 
@@ -36,1430 +51,1126 @@ The diagram domain module exhibits solid architectural foundations with clear se
 
 ### Critical Issues
 
-#### 1. Duplicate `ResolvedConnection` Class Definition
-**Severity:** Critical
-**Location:**
-- `/dipeo/domain/diagram/compilation/connection_resolver.py:14`
-- `/dipeo/domain/diagram/compilation/edge_builder.py:23`
+#### CRIT-1: Flat Root-Level Organization
+
+**Location:** `/dipeo/domain/execution/` (root level)
 
 **Description:**
-The `ResolvedConnection` dataclass is defined identically in two separate files within the same module. This creates maintenance burden and potential for divergence.
+The root level of the execution module contains 10+ files in a flat structure, lacking the organized subdirectory approach used in the diagram module. This makes navigation difficult and violates the principle of cohesive module organization.
 
-```python
-# connection_resolver.py:14
-@dataclass
-class ResolvedConnection:
-    arrow_id: str
-    source_node_id: NodeID
-    target_node_id: NodeID
-    source_handle_label: HandleLabel | None = None
-    target_handle_label: HandleLabel | None = None
+**Current Structure:**
+```
+dipeo/domain/execution/
+├── connection_rules.py
+├── envelope.py
+├── execution_context.py
+├── execution_tracker.py
+├── state_tracker.py
+├── token_manager.py
+├── token_types.py
+├── transform_rules.py
+├── resolution/          # Well-organized submodule
+└── state/               # Minimal submodule with only ports.py
+```
 
-# edge_builder.py:23
-@dataclass
-class ResolvedConnection:  # DUPLICATE!
-    arrow_id: str
-    source_node_id: NodeID
-    target_node_id: NodeID
-    source_handle_label: str | None = None  # Note: different type!
-    target_handle_label: str | None = None
+**Diagram Module Comparison:**
+```
+dipeo/domain/diagram/
+├── compilation/         # Complete subdirectory with 15+ files
+├── models/
+├── strategies/
+├── services/
+└── utils/
 ```
 
 **Impact:**
-- Type inconsistency (HandleLabel vs str)
-- Risk of divergent behavior
-- Import confusion
+- Poor discoverability: Developers must scan 10+ files to find relevant code
+- Lack of cohesion: Related concerns are not grouped together
+- Inconsistent with established patterns in the diagram module
+- Difficult to enforce module boundaries and responsibilities
+
+**Evidence:**
+- Files like `execution_tracker.py`, `state_tracker.py`, `token_manager.py` are all related to state management but not grouped
+- `connection_rules.py` and `transform_rules.py` are business rules but not in a dedicated subdirectory
+- Compare with diagram module's clear separation: `compilation/`, `strategies/`, `services/`
 
 **Recommendation:**
-Create a shared `compilation/models.py` file and define `ResolvedConnection` once:
-
-```python
-# dipeo/domain/diagram/compilation/models.py
-from dataclasses import dataclass
-from dipeo.diagram_generated import HandleLabel, NodeID
-
-@dataclass
-class ResolvedConnection:
-    """Represents a resolved connection between nodes."""
-    arrow_id: str
-    source_node_id: NodeID
-    target_node_id: NodeID
-    source_handle_label: HandleLabel | None = None
-    target_handle_label: HandleLabel | None = None
+Reorganize into logical subdirectories:
 ```
+dipeo/domain/execution/
+├── state/              # State management
+│   ├── execution_tracker.py
+│   ├── state_tracker.py
+│   └── ports.py (existing)
+├── tokens/             # Token-based flow control
+│   ├── token_manager.py
+│   ├── token_types.py
+│   └── policies.py (extract from token_types.py)
+├── rules/              # Business rules
+│   ├── connection_rules.py
+│   ├── transform_rules.py
+│   └── validation_rules.py (new)
+├── messaging/          # Message envelope system
+│   ├── envelope.py
+│   └── factory.py (extract EnvelopeFactory)
+├── context/            # Execution context
+│   └── execution_context.py
+└── resolution/         # (existing, already well-organized)
+```
+
+**Priority:** CRITICAL - Foundational organizational issue affecting all future work
+
+---
+
+#### CRIT-2: Minimal Rule Implementations vs. Extensive README
+
+**Location:** `connection_rules.py` (48 lines), `transform_rules.py` (26 lines)
+
+**Description:**
+The README.md contains 554 lines of documentation describing elaborate rule systems with examples, business logic, and patterns. However, the actual implementations are minimal stubs:
+
+- `NodeConnectionRules`: Simple boolean checks with hardcoded node types
+- `DataTransformRules`: Barely functional, only handles PersonJob tool extraction
+
+**README Promises (Lines 38-153):**
+```python
+class TransformationRules:
+    @dataclass
+    class TransformRule:
+        source_type: NodeType
+        target_type: NodeType
+        source_field: str | None = None
+        target_field: str | None = None
+        transform_fn: Callable[[Any], Any] | None = None
+
+    RULES = [
+        TransformRule(...),  # Multiple sophisticated rules
+        ...
+    ]
+```
+
+**Actual Implementation:**
+```python
+class DataTransformRules:
+    @staticmethod
+    def get_data_transform(source: ExecutableNode, target: ExecutableNode) -> dict[str, Any]:
+        transforms = {}
+        if isinstance(source, PersonJobNode) and source.tools:
+            transforms["extract_tool_results"] = True
+        return transforms
+```
+
+**Impact:**
+- **Critical Documentation Mismatch:** Developers reading README expect sophisticated rule systems that don't exist
+- **Missing Business Logic:** Transform rules are hardcoded in `resolution/api.py` instead of declarative rules
+- **Violation of SRP:** Transformation logic scattered across multiple files instead of centralized in transform_rules.py
+- **Loss of Extensibility:** No clear pattern for adding new transformation types
+
+**Evidence:**
+- `resolution/api.py:117-119` contains actual transform logic using `DataTransformRules`
+- `resolution/transformation_engine.py` implements transformations but doesn't use the documented rule structure
+- README examples (lines 115-143) describe a rich rule system with different transformation types (EXTRACT, FORMAT, AGGREGATE, etc.) that are not implemented
+
+**Recommendation:**
+1. **Option A (Implement):** Build out the rule systems as documented in README
+2. **Option B (Simplify):** Drastically reduce README to match minimal implementation
+3. **Option C (Hybrid - RECOMMENDED):**
+   - Document the actual transformation engine in `resolution/transformation_engine.py`
+   - Implement a simplified rule registry for common transformations
+   - Mark advanced features as "Future Enhancements" in README
+
+**Priority:** CRITICAL - Major documentation/implementation mismatch causing confusion
 
 ---
 
 ### High Priority Issues
 
-#### 2. Duplicate Node Dictionary Building Logic
-**Severity:** High
-**Locations:**
-- `/dipeo/domain/diagram/strategies/light/parser.py:84` - `build_nodes_dict()`
-- `/dipeo/domain/diagram/strategies/readable/transformer.py:66` - `_build_nodes_dict()`
+#### HIGH-1: Complex Token Manager Logic
+
+**Location:** `token_manager.py:182-275` (has_new_inputs method)
 
 **Description:**
-Both implementations convert a list of nodes to a dictionary, but with different logic and complexity levels.
+The `has_new_inputs` method contains deeply nested conditional logic with 94 lines of complexity handling join policies, condition branches, start nodes, and skippable edges. This violates SRP and makes the code difficult to test and maintain.
 
+**Code Excerpt:**
 ```python
-# Light parser (simple):
-@staticmethod
-def build_nodes_dict(nodes_list: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    return {node["id"]: node for node in nodes_list}
+def has_new_inputs(self, node_id: NodeID, epoch: int | None = None, join_policy: str = "all") -> bool:
+    if epoch is None:
+        epoch = self._epoch
 
-# Readable transformer (complex, 40 lines):
-def _build_nodes_dict(self, nodes_list: list[dict[str, Any]]) -> dict[str, Any]:
-    # ... 40 lines of complex logic with position calculation,
-    # type conversion, field exclusion, etc.
+    edges = self._in_edges.get(node_id, [])
+    if not edges:
+        return True
+
+    node_exec_count = 0
+    if self._execution_tracker:
+        node_exec_count = self._execution_tracker.get_node_execution_count(node_id)
+
+    relevant_edges = []
+    for edge in edges:
+        source_node = self.diagram.get_node(edge.source_node_id)
+        if source_node and hasattr(source_node, "type") and source_node.type == NodeType.START:
+            if node_exec_count > 0:
+                continue
+        relevant_edges.append(edge)
+
+    # ... 50+ more lines of nested conditions
 ```
 
-**Impact:**
-- Inconsistent behavior between formats
-- Complex logic in readable transformer not shared
-- Harder to maintain and test
+**Problems:**
+1. **Multiple Responsibilities:** Handles edge filtering, join policy evaluation, condition branching, and start node special cases
+2. **Poor Testability:** Complex nested conditions are difficult to unit test comprehensively
+3. **Code Duplication:** Similar edge filtering logic appears in multiple places
+4. **Hidden Dependencies:** Direct access to `self.diagram` and `self._execution_tracker` couples concerns
+5. **Cognitive Load:** Developers must understand 5+ different edge cases simultaneously
 
-**Recommendation:**
-Create a unified builder in `utils/node_builder.py`:
-
+**Recommended Refactoring:**
 ```python
-# dipeo/domain/diagram/utils/node_builder.py
-class NodeDictionaryBuilder:
-    """Unified node dictionary building with configurable strategies."""
+# tokens/readiness_evaluator.py
+class TokenReadinessEvaluator:
+    """Evaluates whether a node has sufficient tokens to execute."""
 
-    @staticmethod
-    def simple_build(nodes_list: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-        """Simple ID-based dictionary (for light format)."""
-        return {node["id"]: node for node in nodes_list}
+    def __init__(self, diagram: ExecutableDiagram, token_state: TokenState):
+        self.diagram = diagram
+        self.token_state = token_state
 
-    def build_with_defaults(
+    def has_new_inputs(
         self,
-        nodes_list: list[dict[str, Any]],
-        position_calculator: PositionCalculator | None = None,
-        validate_types: bool = True
-    ) -> dict[str, Any]:
-        """Build with position calculation and type validation (for readable)."""
-        # Consolidate the complex logic here
+        node_id: NodeID,
+        epoch: int,
+        join_policy: JoinPolicy
+    ) -> bool:
+        edges = self._get_relevant_edges(node_id, epoch)
+        required_edges = self._filter_by_conditions(edges, node_id)
+        return self._evaluate_join_policy(required_edges, join_policy, epoch)
+
+    def _get_relevant_edges(self, node_id: NodeID, epoch: int) -> list[EdgeRef]:
+        """Filter edges based on start node and execution state."""
+        ...
+
+    def _filter_by_conditions(self, edges: list[EdgeRef], node_id: NodeID) -> list[EdgeRef]:
+        """Apply condition branch filtering and skippable logic."""
+        ...
+
+    def _evaluate_join_policy(
+        self,
+        edges: list[EdgeRef],
+        policy: JoinPolicy,
+        epoch: int
+    ) -> bool:
+        """Check if join policy is satisfied."""
         ...
 ```
 
-#### 3. Duplicate Node ID Creation Methods
-**Severity:** High
-**Locations:**
-- `/dipeo/domain/diagram/strategies/light/parser.py:106` - `create_node_id()`
-- `/dipeo/domain/diagram/strategies/readable/parser.py:73` - `_create_node_id()`
+**Benefits:**
+- Single responsibility per method
+- Testable in isolation
+- Clear intent through method names
+- Easier to extend with new join policies or edge filtering rules
+
+**Priority:** HIGH - Significant complexity impacting maintainability
+
+---
+
+#### HIGH-2: Missing Registry Pattern for Extensibility
+
+**Location:** Multiple files (especially `resolution/node_strategies.py`)
 
 **Description:**
-Identical implementations in both parsers:
+While `resolution/node_strategies.py` implements a `NodeTypeStrategyRegistry`, it's not used consistently throughout the module. The diagram module demonstrates extensive use of registry patterns for phases, generators, and strategies, making it highly extensible.
 
+**Current State:**
+- `NodeTypeStrategyRegistry` exists but is underutilized
+- No registry for transformation rules
+- No registry for validation rules
+- Connection rules are static methods, not pluggable
+
+**Diagram Module Example:**
 ```python
-# Light parser:
-@staticmethod
-def create_node_id(index: int, prefix: str = "node") -> str:
-    return f"{prefix}_{index}"
+# dipeo/domain/diagram/compilation/phases/base.py
+class PhaseRegistry:
+    def __init__(self):
+        self._phases: dict[str, PhaseInterface] = {}
 
-# Readable parser:
-def _create_node_id(self, index: int, prefix: str = "node") -> str:
-    return f"{prefix}_{index}"
+    def register(self, name: str, phase: PhaseInterface):
+        self._phases[name] = phase
+
+    def get_phase(self, name: str) -> PhaseInterface:
+        return self._phases[name]
 ```
 
-**Recommendation:**
-Move to `utils/shared_components.py` as it already contains node building utilities:
-
+**Recommended Implementation:**
 ```python
-# utils/shared_components.py
-def create_node_id(index: int, prefix: str = "node") -> str:
-    """Generate a sequential node ID."""
-    return f"{prefix}_{index}"
+# rules/rule_registry.py
+class ExecutionRuleRegistry:
+    """Central registry for execution rules and validators."""
+
+    def __init__(self):
+        self._connection_rules: dict[str, ConnectionRule] = {}
+        self._transform_rules: dict[str, TransformRule] = {}
+        self._validators: dict[str, Validator] = {}
+
+    def register_connection_rule(self, name: str, rule: ConnectionRule):
+        self._connection_rules[name] = rule
+
+    def register_transform_rule(self, name: str, rule: TransformRule):
+        self._transform_rules[name] = rule
+
+    def get_applicable_transforms(
+        self,
+        source_type: NodeType,
+        target_type: NodeType
+    ) -> list[TransformRule]:
+        return [
+            rule for rule in self._transform_rules.values()
+            if rule.applies_to(source_type, target_type)
+        ]
+
+# Allow plugin-style extensions
+registry = ExecutionRuleRegistry()
+registry.register_transform_rule("person_to_condition", PersonToConditionTransform())
+registry.register_transform_rule("code_to_person", CodeToPersonTransform())
 ```
 
-#### 4. Duplicate Handles/Persons Dictionary Extraction
-**Severity:** High
-**Locations:**
-- `/dipeo/domain/diagram/strategies/light/parser.py:92-103` - `extract_handles_dict()`, `extract_persons_dict()`
-- `/dipeo/domain/diagram/strategies/readable/transformer.py:165-176` - `_extract_handles_dict()`, `_extract_persons_dict()`
+**Impact:**
+- Difficult to add new node types or transformation rules
+- Plugin architecture not possible
+- Testing requires modifying production code
+- Extension violates Open/Closed Principle
+
+**Priority:** HIGH - Limits extensibility and testability
+
+---
+
+#### HIGH-3: State Tracking Duplication
+
+**Location:** `execution_tracker.py` and `state_tracker.py`
 
 **Description:**
-Nearly identical extraction logic repeated across parsers.
+Two separate classes track overlapping state information with unclear boundaries:
 
-**Recommendation:**
-Create a shared `DiagramDataExtractor` utility class:
+**ExecutionTracker:**
+- `_execution_records`: Complete history of executions
+- `_execution_counts`: How many times each node executed
+- `_last_outputs`: Most recent output per node
+- `_runtime_states`: Current runtime state per node
 
+**StateTracker:**
+- `_node_states`: Current node states (for UI)
+- Contains its own `ExecutionTracker` instance
+- `_node_iterations_per_epoch`: Iteration tracking per epoch
+- `_node_metadata`: Arbitrary metadata storage
+
+**Problems:**
+1. **Unclear Ownership:** Who owns execution count? Both have it.
+2. **Redundant Data:** Execution state tracked in two places
+3. **Synchronization Risk:** Two sources of truth can diverge
+4. **Cognitive Load:** Developers must understand which tracker to use when
+
+**Current Pattern in Application Layer:**
 ```python
-# dipeo/domain/diagram/utils/data_extractors.py
-class DiagramDataExtractor:
-    """Extract common diagram data structures."""
-
-    @staticmethod
-    def extract_handles(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
-        """Extract and normalize handles dict from any format."""
-        handles = data.get("handles", {})
-        if isinstance(handles, list):
-            return {h.get("id", f"handle_{i}"): h for i, h in enumerate(handles)}
-        return handles if isinstance(handles, dict) else {}
-
-    @staticmethod
-    def extract_persons(data: dict[str, Any], is_light_format: bool = False) -> dict[str, Any]:
-        """Extract persons with format-specific handling."""
-        persons_data = data.get("persons", {} if is_light_format else [])
-        if isinstance(persons_data, dict):
-            return PersonExtractor.extract_from_dict(persons_data, is_light_format)
-        elif isinstance(persons_data, list):
-            return PersonExtractor.extract_from_list(persons_data)
-        return {}
+# From dipeo/application/execution/engine/standard_executor.py (inferred)
+ctx.state.transition_to_running(node_id, epoch)  # StateTracker
+count = ctx.state.get_node_execution_count(node_id)  # Delegates to ExecutionTracker
 ```
 
-#### 5. Handle Parsing Logic Scattered Across Multiple Files
-**Severity:** High
-**Locations:**
-- `/dipeo/domain/diagram/utils/handle_parser.py` (185 lines)
-- `/dipeo/domain/diagram/utils/handle_utils.py` (173 lines)
-- `/dipeo/domain/diagram/strategies/light/connection_processor.py` - uses both
-
-**Description:**
-Handle-related functionality is split between `HandleParser` (parsing labels with handles) and `handle_utils` (parsing handle IDs), creating confusion about which to use when.
-
-**Issues:**
-- `HandleParser.parse_label_with_handle()` - splits "label_handle" format
-- `handle_utils.parse_handle_id()` - parses "nodeId_label_direction" format
-- `HandleParser.ensure_handle_exists()` - large 70-line method
-- Overlapping responsibilities
-
-**Recommendation:**
-Consolidate into a single `handle_operations.py` module with clear separation:
-
+**Recommended Refactoring:**
 ```python
-# dipeo/domain/diagram/utils/handle_operations.py
-class HandleIdOperations:
-    """Operations on handle IDs (nodeId_label_direction format)."""
-    # Move parse_handle_id, create_handle_id, etc. here
+# state/execution_state.py
+class ExecutionState:
+    """Unified state management for execution.
 
-class HandleLabelParser:
-    """Parse user-facing label references (label_handle format)."""
-    # Move parse_label_with_handle, determine_handle_name here
+    Separates concerns clearly:
+    - History: Immutable record of what happened (ExecutionHistory)
+    - Runtime: Mutable current state (RuntimeState)
+    - UI: Projection for visualization (UIStateProjection)
+    """
 
-class HandleGenerator:
-    """Generate handles for nodes based on type."""
-    # Move from shared_components.py
+    def __init__(self):
+        self.history = ExecutionHistory()      # Immutable append-only log
+        self.runtime = RuntimeState()          # Current state machine
+        self.ui = UIStateProjection(self)      # Computed view for UI
+
+    def start_node(self, node_id: NodeID, epoch: int) -> int:
+        execution_num = self.history.record_start(node_id)
+        self.runtime.transition_to_running(node_id)
+        return execution_num
+
+    def complete_node(self, node_id: NodeID, result: Envelope):
+        self.history.record_completion(node_id, result)
+        self.runtime.transition_to_completed(node_id)
+
+# state/execution_history.py (immutable)
+class ExecutionHistory:
+    """Append-only execution log for debugging and analysis."""
+
+    def record_start(self, node_id: NodeID) -> int: ...
+    def record_completion(self, node_id: NodeID, result: Envelope): ...
+    def get_execution_count(self, node_id: NodeID) -> int: ...
+    def get_timeline(self) -> list[ExecutionRecord]: ...
+
+# state/runtime_state.py (mutable state machine)
+class RuntimeState:
+    """Current runtime state for flow control decisions."""
+
+    def transition_to_running(self, node_id: NodeID): ...
+    def transition_to_completed(self, node_id: NodeID): ...
+    def is_ready(self, node_id: NodeID) -> bool: ...
+    def get_status(self, node_id: NodeID) -> Status: ...
 ```
 
-#### 6. Arrow Dictionary Building Duplicated
-**Severity:** High
-**Locations:**
-- `/dipeo/domain/diagram/strategies/light/parser.py:88` - `build_arrows_dict()`
-- `/dipeo/domain/diagram/utils/arrow_data_processor.py:14` - `build_arrow_dict()`
+**Benefits:**
+- Clear separation of concerns
+- Single source of truth per concern
+- Easier to test each component
+- No synchronization issues
 
-**Description:**
-Two different "build arrow dict" functions with different purposes but similar names:
-
-```python
-# Light parser - converts list to dict by ID:
-@staticmethod
-def build_arrows_dict(arrows_list: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    return {arrow["id"]: arrow for arrow in arrows_list}
-
-# Arrow data processor - builds single arrow dict:
-@staticmethod
-def build_arrow_dict(
-    arrow_id: str,
-    source_handle_id: str,
-    target_handle_id: str,
-    arrow_data: dict[str, Any] | None = None,
-    content_type: str | None = None,
-    label: str | None = None,
-) -> dict[str, Any]:
-    # ... builds structure
-```
-
-**Recommendation:**
-Rename to clarify intent:
-- `build_arrows_dict` → `arrows_list_to_dict`
-- `build_arrow_dict` → `create_arrow_dict`
-
-Move both to a new `utils/arrow_builder.py` module.
-
-#### 7. Dictionary Coercion Pattern Repeated
-**Severity:** Medium-High
-**Locations:**
-- `/dipeo/domain/diagram/utils/shared_components.py:204` - `coerce_to_dict()`
-- Implicit pattern in multiple parsers/transformers
-
-**Description:**
-The pattern of converting list-or-dict to dict appears multiple times:
-
-```python
-# Shared components version (general):
-def coerce_to_dict(seq_or_map, id_key="id", prefix="obj"):
-    if isinstance(seq_or_map, dict):
-        return dict(seq_or_map)
-    if isinstance(seq_or_map, list | tuple):
-        return {item.get(id_key, f"{prefix}_{i}"): item for i, item in enumerate(seq_or_map)}
-    return {}
-
-# Pattern repeated in parsers:
-if isinstance(persons, dict):
-    persons = list(persons.values())
-```
-
-**Recommendation:**
-- Keep `coerce_to_dict()` but document it better
-- Add specialized versions: `normalize_persons()`, `normalize_handles()`, etc.
-- Use consistently across all parsers
-
-#### 8. Validation Logic Split Between Two Locations
-**Severity:** High
-**Locations:**
-- `/dipeo/domain/diagram/validation/` - Validation utilities and validator
-- `/dipeo/domain/diagram/compilation/domain_compiler.py` - Validation phase
-
-**Description:**
-Validation logic is performed in two places:
-1. `validation/utils.py` - Contains validation functions
-2. `domain_compiler.py._validation_phase()` - Calls validation utilities but also has inline validation
-
-**Issues:**
-- `DiagramValidator` delegates to domain compiler (line 35)
-- But compiler uses validation utils
-- Circular conceptual dependency
-
-**Current flow:**
-```
-DiagramValidator → DomainCompiler → validation/utils
-```
-
-**Recommendation:**
-Establish clear ownership:
-
-**Option A: Compiler owns validation**
-```python
-# Make validation/ a thin facade over compiler
-class DiagramValidator:
-    def validate(self, diagram):
-        return self.compiler.compile_with_diagnostics(diagram)
-```
-
-**Option B: Separate validation from compilation**
-```python
-# Extract validation logic to separate validator
-class DiagramStructuralValidator:
-    """Validates structure without compilation."""
-    # All validation logic here
-
-class DomainDiagramCompiler:
-    def __init__(self, validator):
-        self.validator = validator
-
-    def compile(self, diagram):
-        # Use validator, then compile
-```
-
-Recommend **Option A** - it's simpler and validation is inherently part of compilation.
+**Priority:** HIGH - Risk of state inconsistencies and bugs
 
 ---
 
 ### Medium Priority Issues
 
-#### 9. Inconsistent Parser/Serializer Patterns
-**Severity:** Medium
-**Locations:**
-- Light strategy: `parser.py` + `serializer.py` + `connection_processor.py`
-- Readable strategy: `parser.py` + `serializer.py` + `transformer.py` + `flow_parser.py`
+#### MED-1: ExecutionContext Protocol Underutilized
+
+**Location:** `execution_context.py`
 
 **Description:**
-The two strategies have different internal organization:
-- Light: 3 modules (parser, serializer, connection_processor)
-- Readable: 4 modules (parser, serializer, transformer, flow_parser)
+The `ExecutionContext` protocol is well-defined but minimally utilized. Most code directly accesses `ctx.state` and `ctx.tokens` instead of using protocol methods, reducing abstraction benefits.
 
-The `transformer` in readable does work that `connection_processor` does in light.
-
-**Recommendation:**
-Standardize to a consistent pattern:
-
-```
-strategies/
-  {format}/
-    parser.py         # Raw data → format-specific model
-    transformer.py    # Format model ↔ DomainDiagram dict
-    serializer.py     # Format model → export dict
-    strategy.py       # Orchestrator
-```
-
-Refactor light to add `transformer.py` and move transformation logic there.
-
-#### 10. YAML/JSON Mixins Could Be Base Classes
-**Severity:** Medium
-**Location:** `/dipeo/domain/diagram/utils/conversion_utils.py:13-69`
-
-**Description:**
-`_JsonMixin` and `_YamlMixin` are mixed in via multiple inheritance, but they only provide `parse()` and `format()` methods.
-
+**Current Usage Pattern:**
 ```python
-class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
-    ...
+# In resolution/api.py and other files
+ctx.state.get_node_output(edge.source_node_id)  # Direct access to state
+ctx.state.get_node_state(src_id)                # Bypasses protocol
+```
+
+**Protocol Definition:**
+```python
+class ExecutionContext(Protocol):
+    state: "StateTracker"
+    tokens: "TokenManager"
+
+    @abstractmethod
+    def consume_inbound(self, node_id: NodeID) -> dict[str, "Envelope"]: ...
+
+    @abstractmethod
+    def emit_outputs_as_tokens(self, node_id: NodeID, outputs: dict[str, "Envelope"]) -> None: ...
 ```
 
 **Recommendation:**
-Make them explicit base classes in the strategy hierarchy:
+Expand the protocol to provide complete abstraction:
 
 ```python
-# strategies/base_strategy.py
-class YamlConversionStrategy(BaseConversionStrategy):
-    """Base for YAML-based strategies."""
+class ExecutionContext(Protocol):
+    """Complete execution context abstraction."""
 
-    def parse(self, content: str) -> dict[str, Any]:
-        return yaml.safe_load(content) or {}
+    # Keep manager references for advanced use
+    state: "StateTracker"
+    tokens: "TokenManager"
 
-    def format(self, data: dict[str, Any]) -> str:
-        # Custom YAML dumper
+    # Add convenience methods that delegate to managers
+    @abstractmethod
+    def get_node_output(self, node_id: NodeID) -> Envelope | None:
+        """Get output from a completed node."""
         ...
 
-class JsonConversionStrategy(BaseConversionStrategy):
-    """Base for JSON-based strategies."""
-    # ... similar
+    @abstractmethod
+    def get_node_status(self, node_id: NodeID) -> Status:
+        """Get current status of a node."""
+        ...
 
-# Then:
-class LightYamlStrategy(YamlConversionStrategy):
-    ...
+    @abstractmethod
+    def has_completed(self, node_id: NodeID) -> bool:
+        """Check if node has completed execution."""
+        ...
+
+    @abstractmethod
+    def mark_node_completed(self, node_id: NodeID, output: Envelope) -> None:
+        """Mark node as completed with output."""
+        ...
 ```
 
-#### 11. Person Label-to-ID Mapping Logic Duplicated
-**Severity:** Medium
-**Locations:**
-- `/dipeo/domain/diagram/strategies/light/strategy.py:97-127`
-- `/dipeo/domain/diagram/strategies/light/serializer.py:18-20`
+**Benefits:**
+- Cleaner client code
+- Better encapsulation
+- Easier to mock for testing
+- Future-proof for different execution contexts
+
+**Priority:** MEDIUM - Improves API design but not critical
+
+---
+
+#### MED-2: Envelope Factory Could Be More Pythonic
+
+**Location:** `envelope.py:130-175`
 
 **Description:**
-Both files build `person_id_to_label` mappings and perform conversions.
+The `EnvelopeFactory` uses a static factory method with type detection, which is functional but not idiomatic Python. Consider using `__init__` overloading or class methods for clarity.
 
-**Recommendation:**
-Create a `PersonReferenceResolver` utility:
-
+**Current Implementation:**
 ```python
-# utils/person_resolver.py
-class PersonReferenceResolver:
-    """Resolve person references between ID and label forms."""
+class EnvelopeFactory:
+    @staticmethod
+    def create(
+        body: Any,
+        content_type: ContentType | None = None,
+        node_id: str | None = None,
+        error: str | None = None,
+        **kwargs,
+    ) -> Envelope:
+        # Auto-detection logic
+        if content_type is None:
+            if isinstance(body, str):
+                content_type = ContentType.RAW_TEXT
+            elif isinstance(body, bytes | bytearray | memoryview):
+                content_type = ContentType.BINARY
+            elif isinstance(body, dict | list):
+                content_type = ContentType.OBJECT
 
-    def __init__(self, persons: list):
-        self.id_to_label = {p.id: p.label for p in persons}
-        self.label_to_id = {p.label: p.id for p in persons}
-
-    def resolve_in_nodes(self, nodes: dict, direction: str = "to_id"):
-        """Convert person references in nodes."""
-        # Consolidate conversion logic
+        return Envelope(content_type=content_type, body=body, meta=meta, **kwargs)
 ```
 
-#### 12. Position Calculation Duplicated
-**Severity:** Medium
-**Locations:**
-- `/dipeo/domain/diagram/utils/shared_components.py:158` - `PositionCalculator` class
-- Inline calculations in multiple transformers
-
-**Description:**
-`PositionCalculator` exists but isn't used consistently. Some places have inline position calculations.
-
-**Recommendation:**
-- Mandate use of `PositionCalculator` everywhere
-- Remove inline position calculations
-- Add to standard imports in `utils/__init__.py`
-
-#### 13. Handle Generation Logic in `shared_components.py` is Too Long
-**Severity:** Medium
-**Location:** `/dipeo/domain/diagram/utils/shared_components.py:69-156`
-
-**Description:**
-The `HandleGenerator.generate_for_node()` method is 87 lines with repetitive handle creation code for each node type.
-
-**Complexity Metrics:**
-- 87 lines
-- 8 node type branches
-- Repetitive `_push_handle()` calls
-
-**Recommendation:**
-Extract to a configuration-driven approach:
-
+**Recommended Pattern:**
 ```python
-# utils/handle_generator.py
-@dataclass
-class HandleConfig:
-    """Configuration for node handle generation."""
-    inputs: list[HandleLabel]
-    outputs: list[HandleLabel]
+class EnvelopeFactory:
+    """Factory for creating envelopes with type-specific constructors."""
 
-class HandleGenerator:
-    # Configuration map
-    NODE_HANDLES = {
-        NodeType.START: HandleConfig(inputs=[], outputs=[HandleLabel.DEFAULT]),
-        NodeType.ENDPOINT: HandleConfig(inputs=[HandleLabel.DEFAULT], outputs=[]),
-        NodeType.CONDITION: HandleConfig(
-            inputs=[HandleLabel.DEFAULT],
-            outputs=[HandleLabel.CONDTRUE, HandleLabel.CONDFALSE]
-        ),
-        NodeType.PERSON_JOB: HandleConfig(
-            inputs=[HandleLabel.FIRST, HandleLabel.DEFAULT],
-            outputs=[HandleLabel.DEFAULT]
-        ),
-        # ... etc
-    }
+    @classmethod
+    def from_text(cls, text: str, **kwargs) -> Envelope:
+        """Create envelope from text content."""
+        return Envelope(content_type=ContentType.RAW_TEXT, body=text, **kwargs)
 
-    def generate_for_node(self, diagram, node_id: str, node_type: NodeType):
-        config = self.NODE_HANDLES.get(node_type, self._default_config())
-        for label in config.inputs:
-            self._create_handle(diagram, node_id, label, HandleDirection.INPUT)
-        for label in config.outputs:
-            self._create_handle(diagram, node_id, label, HandleDirection.OUTPUT)
-```
+    @classmethod
+    def from_json(cls, data: dict | list, **kwargs) -> Envelope:
+        """Create envelope from JSON-serializable data."""
+        return Envelope(content_type=ContentType.OBJECT, body=data, **kwargs)
 
-This reduces 87 lines to ~30 lines + configuration.
+    @classmethod
+    def from_binary(cls, data: bytes, **kwargs) -> Envelope:
+        """Create envelope from binary data."""
+        return Envelope(content_type=ContentType.BINARY, body=data, **kwargs)
 
-#### 14. Node Field Mapping Logic Could Be Table-Driven
-**Severity:** Medium
-**Location:** `/dipeo/domain/diagram/utils/node_field_mapper.py`
+    @classmethod
+    def from_conversation(cls, messages: list, **kwargs) -> Envelope:
+        """Create envelope from conversation state."""
+        return Envelope(
+            content_type=ContentType.CONVERSATION_STATE,
+            body={"messages": messages, "context": {}},
+            **kwargs
+        )
 
-**Description:**
-`map_import_fields()` and `map_export_fields()` use long if-elif chains (86 lines total).
+    @classmethod
+    def from_error(cls, error: str, error_type: str = "error", **kwargs) -> Envelope:
+        """Create error envelope."""
+        meta = kwargs.pop("meta", {})
+        meta.update({"is_error": True, "error": error, "error_type": error_type})
+        return Envelope(
+            content_type=ContentType.RAW_TEXT,
+            body=error,
+            meta=meta,
+            **kwargs
+        )
 
-**Current approach:**
-```python
-def map_import_fields(node_type: str, props: dict[str, Any]):
-    if node_type == NodeType.START.value:
-        # ... 4 lines
-    elif node_type == NodeType.ENDPOINT.value:
-        # ... 3 lines
-    elif node_type == "job":
-        # ... 5 lines
-    # ... 8 more branches
-```
-
-**Recommendation:**
-Use a mapping table:
-
-```python
-# Field mapping rules: (old_name, new_name, direction)
-FIELD_MAPPINGS = {
-    NodeType.ENDPOINT.value: {
-        "import": [("file_path", "file_name")],
-        "export": [("file_name", "file_path")],
-    },
-    NodeType.CODE_JOB.value: {
-        "import": [("code_type", "language")],
-        "export": [("language", "code_type")],
-    },
-    # ...
-}
-
-def map_import_fields(node_type: str, props: dict[str, Any]):
-    rules = FIELD_MAPPINGS.get(node_type, {}).get("import", [])
-    for old, new in rules:
-        if old in props and new not in props:
-            props[new] = props.pop(old)
-    return props
-```
-
-#### 15. Connection Processing Could Be More Modular
-**Severity:** Medium
-**Location:** `/dipeo/domain/diagram/strategies/light/connection_processor.py`
-
-**Description:**
-`LightConnectionProcessor.process_light_connections()` is 82 lines with multiple responsibilities:
-1. Parse connection labels
-2. Determine handle names
-3. Build arrow data
-4. Handle conditional branches
-
-**Recommendation:**
-Extract sub-methods:
-
-```python
-class LightConnectionProcessor:
-    def process_light_connections(self, light_diagram, nodes):
-        arrows = []
-        label2id = _node_id_map(nodes)
-
-        for idx, conn in enumerate(light_diagram.connections):
-            arrow = self._process_single_connection(conn, idx, label2id)
-            if arrow:
-                arrows.append(arrow)
-        return arrows
-
-    def _process_single_connection(self, conn, idx, label2id):
-        # Parse source and target
-        source = self._parse_connection_endpoint(conn.from_, label2id)
-        target = self._parse_connection_endpoint(conn.to, label2id)
-        if not source or not target:
-            return None
-
-        # Build arrow data
-        arrow_data = self._build_arrow_data(conn, source, target)
-
-        # Create arrow dict
-        return self._create_arrow_dict(conn, idx, source, target, arrow_data)
-```
-
-#### 16. Prompt Compilation Has Duplicated Path Resolution
-**Severity:** Medium
-**Location:** `/dipeo/domain/diagram/compilation/prompt_compiler.py:107-142`
-
-**Description:**
-`_resolve_prompt_path()` has 35 lines with multiple similar path resolution attempts.
-
-**Recommendation:**
-Use a strategy pattern with ordered path resolvers:
-
-```python
-class PromptPathResolver:
-    def __init__(self, base_dir: Path, diagram_dir: Path | None):
-        self.resolvers = [
-            self._try_absolute_project_path,
-            self._try_diagram_dir_direct,
-            self._try_diagram_dir_prompts,
-            self._try_global_prompts,
-            self._try_absolute_path,
-        ]
-
-    def resolve(self, filename: str) -> Path | None:
-        for resolver in self.resolvers:
-            path = resolver(filename)
-            if path and path.exists():
-                return path
-        return None
-```
-
-#### 17. Format Detection Logic Could Be Unified
-**Severity:** Medium
-**Locations:**
-- `/dipeo/domain/diagram/models/format_models.py:103` - `detect_diagram_format()`
-- Each strategy's `detect_confidence()` method
-
-**Description:**
-Format detection happens in two places with different approaches.
-
-**Recommendation:**
-Create a unified `FormatDetector` service:
-
-```python
-# services/format_detector.py
-class FormatDetector:
-    """Unified format detection service."""
-
-    def __init__(self, strategies: list[FormatStrategy]):
-        self.strategies = strategies
-
-    def detect(self, data: dict[str, Any]) -> tuple[FormatStrategy, float]:
-        """Return best matching strategy with confidence score."""
-        scores = [(s, s.detect_confidence(data)) for s in self.strategies]
-        return max(scores, key=lambda x: x[1])
-```
-
-#### 18. Validation Error Conversion is Repetitive
-**Severity:** Medium
-**Location:** `/dipeo/domain/diagram/compilation/domain_compiler.py:53-75`
-
-**Description:**
-`CompilationError` has two conversion methods (`to_validation_error()` and `to_validation_warning()`) with nearly identical logic.
-
-**Recommendation:**
-Consolidate with a parameter:
-
-```python
-@dataclass
-class CompilationError:
-    # ... fields
-
-    def to_validation_result(self, as_warning: bool = False):
-        """Convert to ValidationError or ValidationWarning."""
-        field_name = self._compute_field_name()
-
-        if as_warning:
-            from dipeo.domain.base.validator import ValidationWarning
-            return ValidationWarning(self.message, field_name=field_name)
+    @classmethod
+    def auto_detect(cls, body: Any, **kwargs) -> Envelope:
+        """Auto-detect content type (legacy compatibility)."""
+        if isinstance(body, str):
+            return cls.from_text(body, **kwargs)
+        elif isinstance(body, bytes | bytearray):
+            return cls.from_binary(bytes(body), **kwargs)
+        elif isinstance(body, dict | list):
+            return cls.from_json(body, **kwargs)
         else:
-            from dipeo.domain.base.exceptions import ValidationError
-            return ValidationError(self.message, field_name=field_name)
-
-    def _compute_field_name(self) -> str | None:
-        if self.field_name:
-            return self.field_name
-        if self.node_id:
-            return f"node.{self.node_id}"
-        if self.arrow_id:
-            return f"arrow.{self.arrow_id}"
-        return None
+            return cls.from_json(body, **kwargs)
 ```
 
-#### 19. Arrow ID Creation Pattern Inconsistent
-**Severity:** Medium
-**Locations:**
-- `/dipeo/domain/diagram/utils/shared_components.py:189` - `ArrowBuilder.create_arrow_id()`
-- Inline string concatenation in connection processors
+**Benefits:**
+- Explicit intent through method names
+- Type checker can verify usage
+- Easier to discover available creation methods
+- Follows Python's "explicit is better than implicit" principle
+
+**Priority:** MEDIUM - Improves code clarity but not critical
+
+---
+
+#### MED-3: Missing Domain Events for State Transitions
+
+**Location:** Throughout state management files
 
 **Description:**
-Some places use `ArrowBuilder.create_arrow_id()`, others do `f"arrow_{idx}"` inline.
+State transitions (node started, completed, failed) are tracked but don't emit domain events. The diagram module uses event-driven patterns; execution should too for consistency.
 
-**Recommendation:**
-Always use `ArrowBuilder` or extract to a dedicated `ArrowIdGenerator`:
-
+**Current Pattern:**
 ```python
-class ArrowIdGenerator:
-    """Generates unique arrow IDs."""
-
-    @staticmethod
-    def from_handles(source: str, target: str) -> str:
-        """Generate from handle IDs."""
-        return f"{source}->{target}"
-
-    @staticmethod
-    def from_index(index: int, prefix: str = "arrow") -> str:
-        """Generate from sequential index."""
-        return f"{prefix}_{index}"
-
-    @staticmethod
-    def from_connection(source_node: str, target_node: str, index: int = 0) -> str:
-        """Generate from node connection."""
-        return f"{source_node}_to_{target_node}_{index}"
+def transition_to_completed(self, node_id: NodeID, output: Envelope | None = None):
+    with self._lock:
+        self._node_states[node_id] = NodeState(status=Status.COMPLETED)
+        self._tracker.complete_execution(node_id, CompletionStatus.SUCCESS, output=output)
+    # No event emitted
 ```
 
-#### 20. Compilation Phase Methods Could Be Extracted
-**Severity:** Medium
-**Location:** `/dipeo/domain/diagram/compilation/domain_compiler.py`
+**Recommended Pattern:**
+```python
+# events/execution_events.py
+@dataclass(frozen=True)
+class NodeExecutionStarted(DomainEvent):
+    node_id: NodeID
+    execution_id: str
+    execution_number: int
+    started_at: datetime
+
+@dataclass(frozen=True)
+class NodeExecutionCompleted(DomainEvent):
+    node_id: NodeID
+    execution_id: str
+    execution_number: int
+    status: CompletionStatus
+    output: Envelope | None
+    duration: float
+
+# state/state_tracker.py
+def transition_to_completed(self, node_id: NodeID, output: Envelope | None = None):
+    with self._lock:
+        self._node_states[node_id] = NodeState(status=Status.COMPLETED)
+        exec_num = self._tracker.complete_execution(
+            node_id, CompletionStatus.SUCCESS, output=output
+        )
+
+    # Emit domain event
+    event = NodeExecutionCompleted(
+        node_id=node_id,
+        execution_id=self.execution_id,
+        execution_number=exec_num,
+        status=CompletionStatus.SUCCESS,
+        output=output,
+        duration=self._tracker.get_last_record(node_id).duration
+    )
+    self.event_bus.publish(event)
+```
+
+**Benefits:**
+- Decouples state tracking from side effects (logging, metrics, UI updates)
+- Enables audit trails and replays
+- Consistent with diagram module's event patterns
+- Testable through event assertions
+
+**Priority:** MEDIUM - Improves architecture but not urgent
+
+---
+
+#### MED-4: Type Hints Incomplete
+
+**Location:** Multiple files
 
 **Description:**
-The compiler has 6 phase methods as private methods of `DomainDiagramCompiler`. These are complex and could be separate classes.
+While most functions have type hints, some are missing or use `Any` too liberally. The diagram module demonstrates more rigorous type discipline.
 
-**Recommendation:**
-Extract each phase to its own class:
-
+**Examples:**
 ```python
-# compilation/phases/
-#   validation_phase.py
-#   node_transformation_phase.py
-#   connection_resolution_phase.py
-#   edge_building_phase.py
-#   optimization_phase.py
-#   assembly_phase.py
+# connection_rules.py
+def get_connection_constraints(node_type: NodeType) -> dict[str, list[NodeType]]:
+    # Return type is dict[str, list[NodeType]] - good
+    ...
 
-class ValidationPhase:
-    def execute(self, context: CompilationContext) -> None:
-        # Current _validation_phase logic
-        ...
+# transform_rules.py
+def get_data_transform(source: ExecutableNode, target: ExecutableNode) -> dict[str, Any]:
+    # dict[str, Any] is too loose - what keys? what value types?
+    ...
 
-class DomainDiagramCompiler:
-    def __init__(self):
-        self.phases = [
-            ValidationPhase(),
-            NodeTransformationPhase(),
-            ConnectionResolutionPhase(),
-            EdgeBuildingPhase(),
-            OptimizationPhase(),
-            AssemblyPhase(),
-        ]
-
-    def compile_with_diagnostics(self, diagram):
-        context = CompilationContext(diagram)
-        for phase in self.phases:
-            phase.execute(context)
-            if context.result.errors:
-                break
-        return context.result
+# resolution/api.py
+def extract_edge_value(source_output: Any, edge: Any) -> Any:
+    # Three "Any" types reduce type safety
+    ...
 ```
+
+**Recommended Improvements:**
+```python
+# Define precise types
+TransformRules = dict[str, bool | str | dict[str, Any]]  # Or use TypedDict
+
+def get_data_transform(
+    source: ExecutableNode,
+    target: ExecutableNode
+) -> TransformRules:
+    ...
+
+# Use protocols for edge parameter
+def extract_edge_value(
+    source_output: Envelope | dict[str, Any],
+    edge: ExecutableEdgeV2
+) -> Any:  # Return type could be Union[str, dict, bytes]
+    ...
+```
+
+**Priority:** MEDIUM - Improves type safety but not urgent
 
 ---
 
 ### Low Priority & Suggestions
 
-#### 21. Utility Module Organization
-**Severity:** Low
-**Location:** `/dipeo/domain/diagram/utils/`
+#### LOW-1: Thread Safety Inconsistency
+
+**Location:** `state_tracker.py` uses locks, but `token_manager.py` and `execution_tracker.py` do not
 
 **Description:**
-The utils module has 12 files, some very small (e.g., `strategy_common.py` has 1 function).
+`StateTracker` uses `threading.Lock` for thread safety, but `TokenManager` and `ExecutionTracker` don't. This suggests either:
+1. Those classes are expected to be single-threaded
+2. Thread safety is inconsistently applied
 
-**Suggestion:**
-Consolidate related utilities:
+**Recommendation:**
+- Document thread-safety expectations in docstrings
+- Add locks to `TokenManager` if concurrent access is possible
+- Consider using immutable data structures (e.g., `frozendict`) where possible
+- If single-threaded, add warnings in docstrings
 
-```
-utils/
-  core/
-    handle_operations.py     # Merge handle_parser + handle_utils
-    node_operations.py        # Merge node_field_mapper + shared_components node functions
-    arrow_operations.py       # Merge arrow_data_processor + shared_components arrow functions
+**Priority:** LOW - Only relevant if concurrent execution is planned
 
-  conversion/
-    format_converters.py      # Keep conversion_utils
-    data_extractors.py        # New: extract_handles, extract_persons, etc.
+---
 
-  graph/
-    graph_utils.py            # Keep as is
+#### LOW-2: Duplicate Envelope Conversion Patterns
 
-  __init__.py                 # Clean public API
-```
-
-#### 22. Import Organization
-**Severity:** Low
-**Location:** Multiple files
-
-**Description:**
-Some files have `from dipeo.domain.diagram.utils import parse_handle_id_safe` scattered throughout.
-
-**Suggestion:**
-Standardize imports in `utils/__init__.py` to provide a clean API:
-
-```python
-# utils/__init__.py
-# Public API for diagram utilities
-
-# Handle operations
-from .handle_operations import (
-    parse_handle_id,
-    parse_handle_id_safe,
-    create_handle_id,
-    HandleReference,
-)
-
-# Node operations
-from .node_operations import (
-    NodeFieldMapper,
-    create_node_id,
-    build_node,
-)
-
-# Arrow operations
-from .arrow_operations import (
-    ArrowDataProcessor,
-    ArrowBuilder,
-)
-
-__all__ = [
-    "parse_handle_id",
-    "parse_handle_id_safe",
-    # ... all exports
-]
-```
-
-#### 23. Type Hints Consistency
-**Severity:** Low
-**Location:** Various
-
-**Description:**
-Some functions use `Any` excessively, others have precise types.
+**Location:** Multiple files convert values to Envelopes using similar patterns
 
 **Examples:**
-- `build_node(id: str, type_: str, pos: dict[str, float] | None = None, **data) -> dict[str, Any]`
-  - Could be more specific about return type structure
-
-**Suggestion:**
-Define TypedDict types for common structures:
-
 ```python
-# models/types.py
-from typing import TypedDict
+# resolution/api.py:58-60
+if isinstance(value, str):
+    transformed.setdefault(key, EnvelopeFactory.create(body=value))
+else:
+    transformed.setdefault(key, EnvelopeFactory.create(body=value))
 
-class NodeDict(TypedDict, total=False):
-    id: str
-    type: str
-    position: dict[str, float]
-    data: dict[str, Any]
-
-class ArrowDict(TypedDict, total=False):
-    id: str
-    source: str
-    target: str
-    data: dict[str, Any]
-    content_type: str
-    label: str
+# resolution/defaults.py:44-47
+if isinstance(default_value, str):
+    final_inputs[required_input] = EnvelopeFactory.create(body=default_value)
+else:
+    final_inputs[required_input] = EnvelopeFactory.create(body=default_value)
 ```
 
-#### 24. Magic Strings for Node Types
-**Severity:** Low
-**Location:** Multiple files
-
-**Description:**
-Node type checking uses string comparisons: `if node_type == "person_job":`
-
-**Suggestion:**
-Always use the enum:
-
+**Recommendation:**
+Create utility functions:
 ```python
-# Instead of:
-if node_type == "person_job":
+# messaging/utils.py
+def ensure_envelope(value: Any, **kwargs) -> Envelope:
+    """Convert value to Envelope if not already."""
+    if isinstance(value, Envelope):
+        return value
+    return EnvelopeFactory.create(body=value, **kwargs)
 
-# Use:
-if node_type == NodeType.PERSON_JOB.value:
-
-# Or better, create a helper:
-class NodeTypeChecker:
-    @staticmethod
-    def is_person_job(node_type: str | NodeType) -> bool:
-        if isinstance(node_type, NodeType):
-            return node_type == NodeType.PERSON_JOB
-        return node_type.lower() in ["person_job", "personjob"]
+def envelopes_from_dict(values: dict[str, Any], **kwargs) -> dict[str, Envelope]:
+    """Convert dict values to Envelopes."""
+    return {k: ensure_envelope(v, **kwargs) for k, v in values.items()}
 ```
 
-#### 25. Strategy Registration Could Be Automated
-**Severity:** Low
-**Location:** Strategy instantiation
+**Priority:** LOW - Minor code duplication
+
+---
+
+#### LOW-3: Magic Strings for Port Names
+
+**Location:** Throughout resolution module
 
 **Description:**
-Strategies are manually registered somewhere (not visible in diagram module).
+Port names like `"default"`, `"first"`, `"condtrue"`, `"condfalse"` are string literals scattered throughout code.
 
-**Suggestion:**
-Use a registry pattern with auto-discovery:
-
+**Recommendation:**
 ```python
-# strategies/registry.py
-class StrategyRegistry:
-    """Auto-discovery and registration of format strategies."""
+# constants.py
+class PortNames:
+    DEFAULT = "default"
+    FIRST = "first"
+    CONDITION_TRUE = "condtrue"
+    CONDITION_FALSE = "condfalse"
 
-    _strategies: dict[str, FormatStrategy] = {}
-
-    @classmethod
-    def register(cls, strategy: FormatStrategy):
-        cls._strategies[strategy.format_id] = strategy
-
-    @classmethod
-    def get(cls, format_id: str) -> FormatStrategy:
-        return cls._strategies[format_id]
-
-    @classmethod
-    def discover(cls):
-        """Auto-discover all strategy classes."""
-        # Use importlib to find all FormatStrategy subclasses
-        ...
-
-# In each strategy file:
-@StrategyRegistry.register
-class LightYamlStrategy(YamlConversionStrategy):
+# Usage
+if edge.target_input == PortNames.FIRST:
     ...
 ```
 
-#### 26. Testing Utilities Missing
-**Severity:** Low
-**Location:** N/A
+**Priority:** LOW - Minor maintainability improvement
 
-**Description:**
-No test utilities or factories visible in the diagram module.
+---
 
-**Suggestion:**
-Add testing utilities:
+## Detailed Analysis by Category
 
+### 1. Architecture & Design Patterns
+
+#### Current State
+The execution module exhibits a **split personality**:
+
+**Well-Architected (resolution submodule):**
+- Clear separation: `api.py` (orchestration) → `selectors.py` (edge selection) → `transformation_engine.py` (transformation) → `defaults.py` (defaults)
+- Pure functions for business logic (e.g., `edge_is_ready`, `compute_special_inputs`)
+- Strategy pattern for node-type-specific behavior
+- Protocol-based abstractions
+
+**Poorly-Architected (root level):**
+- Flat file structure with 10+ files in root
+- Mixed concerns (tokens, state, rules all at same level)
+- No clear subdirectory organization
+- Inconsistent use of design patterns
+
+#### Comparison with Diagram Module
+
+| Aspect | Diagram Module | Execution Module | Gap |
+|--------|----------------|------------------|-----|
+| **Organization** | Subdirectories (compilation/, strategies/, services/, utils/) | Flat root + 2 subdirs | Large |
+| **Patterns** | Phase pipeline, Registry pattern, Strategy pattern | Some strategies, no registries | Medium |
+| **Extensibility** | Plugin architecture via registries | Hardcoded node types | Large |
+| **Documentation** | Accurate READMEs per subdirectory | Extensive but outdated README | Large |
+| **Type Discipline** | Comprehensive type hints | Partial, many "Any" types | Medium |
+
+#### Architectural Recommendations
+
+1. **Adopt Diagram Module's Organizational Structure**
+   - Create subdirectories for major concerns (state/, tokens/, rules/, messaging/)
+   - Move related files into cohesive modules
+   - Add READMEs to each subdirectory
+
+2. **Implement Registry Patterns**
+   - `ExecutionRuleRegistry` for connection and transform rules
+   - `NodeStrategyRegistry` (already exists but underutilized)
+   - `ValidatorRegistry` for input validation rules
+
+3. **Separate Pure Business Logic from Infrastructure**
+   - Domain logic should not depend on threading, logging, or other infrastructure
+   - Use dependency injection for cross-cutting concerns
+
+4. **Event-Driven Architecture**
+   - Emit domain events for state transitions
+   - Decouple monitoring, logging, and UI updates from core logic
+
+---
+
+### 2. Code Quality
+
+#### Type Safety
+- **Score: 6/10**
+- Most functions have type hints, but liberal use of `Any` reduces benefits
+- Missing return type hints in some methods
+- Protocol usage is good but underutilized
+
+**Improvements:**
+- Replace `Any` with specific union types or protocols
+- Use `TypedDict` for structured dictionaries
+- Add type hints to all public methods
+
+#### Documentation
+- **Score: 4/10**
+- README.md is extensive but outdated (mentions DynamicOrderCalculator which moved to application layer)
+- Code contains promise of features not implemented (elaborate rule systems)
+- Docstrings are present but inconsistent
+
+**Improvements:**
+- Sync README with actual implementation
+- Remove or mark "Future Enhancements" clearly
+- Standardize docstring format (use Google or NumPy style consistently)
+
+#### Error Handling
+- **Score: 7/10**
+- Custom exception hierarchy in `resolution/errors.py` is good
+- Some functions raise generic exceptions instead of domain-specific ones
+- No distinction between recoverable and fatal errors
+
+**Improvements:**
+- Use custom exceptions consistently
+- Add error codes for programmatic handling
+- Distinguish between `ValidationError`, `ExecutionError`, and `SystemError`
+
+#### Testing Friendliness
+- **Score: 6/10**
+- Resolution module with pure functions is highly testable
+- Token manager and state tracker are harder to test due to tight coupling
+- No clear test fixture patterns
+
+**Improvements:**
+- Extract complex logic into pure functions
+- Use dependency injection for external dependencies
+- Provide test builders/factories for common test scenarios
+
+---
+
+### 3. Modernization Opportunities
+
+#### Python 3.13+ Features
+
+**Pattern Matching (Python 3.10+)**
 ```python
-# testing/
-#   factories.py      # Factory functions for test diagrams
-#   fixtures.py       # Common test fixtures
-#   assertions.py     # Custom assertions for diagrams
+# Current (resolution/transformation_engine.py:104)
+rule_type = rule.get("type")
+if rule_type == "extract":
+    if isinstance(value, dict):
+        field = rule.get("field")
+        if field:
+            return value.get(field)
+elif rule_type == "wrap":
+    key = rule.get("key", "value")
+    return {key: value}
+# ...
 
-# Example:
-class DiagramFactory:
-    """Factory for creating test diagrams."""
+# Modernized with pattern matching
+match rule:
+    case {"type": "extract", "field": field} if isinstance(value, dict):
+        return value.get(field)
+    case {"type": "wrap", "key": key}:
+        return {key: value}
+    case {"type": "wrap"}:
+        return {"value": value}
+    case {"type": "map", "mapping": mapping}:
+        return mapping.get(value, value)
+    case {"type": "template", "template": template}:
+        return template.format(**value) if isinstance(value, dict) else template.format(value=value)
+    case _:
+        return value
+```
 
-    @staticmethod
-    def create_simple_workflow() -> DomainDiagram:
-        """Create a simple start -> job -> endpoint workflow."""
-        ...
+**Dataclasses with slots (Python 3.10+)**
+```python
+# Current (token_types.py)
+@dataclass(frozen=True)
+class Token:
+    epoch: int
+    seq: int
+    content: Envelope
+    # ...
 
-    @staticmethod
-    def create_conditional_workflow() -> DomainDiagram:
-        """Create workflow with condition node."""
-        ...
+# Optimized with slots
+@dataclass(frozen=True, slots=True)
+class Token:
+    epoch: int
+    seq: int
+    content: Envelope
+    # Reduces memory footprint by ~40%
+```
+
+**Type Unions with `|` (Python 3.10+)**
+```python
+# Current
+from typing import Union, Optional
+def get_output(node_id: NodeID) -> Union[Envelope, None]:
+    ...
+
+# Modern
+def get_output(node_id: NodeID) -> Envelope | None:
+    ...
+```
+
+**Generic TypeVars with Self (Python 3.11+)**
+```python
+from typing import Self
+
+class Envelope:
+    def with_meta(self, **kwargs) -> Self:
+        # Type checker knows this returns Envelope
+        new_meta = {**self.meta, **kwargs}
+        return replace(self, meta=new_meta)
 ```
 
 ---
 
-## Detailed Refactoring Recommendations
+### 4. Consistency Analysis
 
-### Phase 1: Critical Fixes (Immediate)
-**Time Estimate:** 4-6 hours
+#### Naming Conventions
+- **Score: 8/10**
+- Generally consistent use of snake_case for functions/variables
+- Class names follow PascalCase
+- Some inconsistency in private method naming (`_method` vs `__method`)
 
-1. **Consolidate `ResolvedConnection`** (Issue #1)
-   - Create `compilation/models.py`
-   - Move class definition
-   - Update imports in 2 files
-   - Run tests
+#### Module Boundaries
+- **Score: 5/10**
+- `resolution/` submodule has clear boundaries
+- Root level has leaky abstractions (e.g., `token_manager.py` directly accesses `diagram.get_node()`)
+- Unclear separation between domain and application concerns
 
-2. **Fix handle type inconsistency** (Related to #1)
-   - Standardize on `HandleLabel` type
-   - Update edge_builder.py
-
-### Phase 2: High Priority Consolidation (1-2 weeks)
-**Time Estimate:** 16-24 hours
-
-3. **Unify node dictionary building** (Issue #2)
-   - Create `utils/node_builder.py`
-   - Extract complex logic from readable transformer
-   - Update both parsers to use unified builder
-   - Test both light and readable formats
-
-4. **Consolidate ID generation** (Issue #3)
-   - Move to `shared_components.py`
-   - Update 2 parsers
-   - Search for other inline ID generation
-
-5. **Unify data extraction** (Issue #4)
-   - Create `utils/data_extractors.py`
-   - Move extract methods from parsers/transformers
-   - Update 3+ files
-
-6. **Merge handle utilities** (Issue #5)
-   - Create `utils/handle_operations.py`
-   - Merge `handle_parser.py` and `handle_utils.py`
-   - Careful migration of imports (10+ files affected)
-   - Update `utils/__init__.py`
-
-7. **Refactor arrow building** (Issue #6)
-   - Create `utils/arrow_builder.py`
-   - Consolidate arrow creation logic
-   - Standardize naming
-
-8. **Clarify validation ownership** (Issue #8)
-   - Document validation flow
-   - Refactor DiagramValidator as thin facade
-   - Update documentation
-
-### Phase 3: Medium Priority Improvements (2-3 weeks)
-**Time Estimate:** 24-32 hours
-
-9. **Standardize strategy structure** (Issue #9)
-   - Add `transformer.py` to light strategy
-   - Move transformation logic from connection_processor
-   - Update documentation
-
-10. **Convert mixins to base classes** (Issue #10)
-    - Refactor `_YamlMixin` / `_JsonMixin`
-    - Update strategy hierarchy
-    - Test all strategies
-
-11. **Extract person resolution** (Issue #11)
-    - Create `utils/person_resolver.py`
-    - Consolidate mapping logic
-
-12. **Simplify handle generation** (Issue #13)
-    - Create configuration-driven approach
-    - Reduce from 87 lines to ~30 lines
-
-13. **Make field mapping table-driven** (Issue #14)
-    - Convert if-elif chains to mapping tables
-    - Reduce code by ~50%
-
-14. **Modularize connection processing** (Issue #15)
-    - Extract sub-methods
-    - Improve readability
-
-### Phase 4: Refinements (Ongoing)
-**Time Estimate:** 8-16 hours
-
-15-26. Address low-priority issues as time permits during other work
+#### Error Patterns
+- **Score: 6/10**
+- Resolution submodule has consistent custom exceptions
+- Root level uses mix of custom and built-in exceptions
+- No standard error handling pattern across the module
 
 ---
 
-## Before/After Examples
+### 5. Dependencies
 
-### Example 1: Consolidated Handle Operations
-
-**Before** (scattered across 2 files):
-```python
-# handle_utils.py
-def parse_handle_id(handle_id: HandleID) -> tuple[NodeID, HandleLabel, HandleDirection]:
-    parts = handle_id.split("_")
-    # ... 15 lines
-
-# handle_parser.py
-class HandleParser:
-    @staticmethod
-    def parse_label_with_handle(label_raw: str, label2id: dict):
-        # ... 20 lines
-
-    @staticmethod
-    def create_handle_ids(source_node_id, target_node_id, ...):
-        # ... 18 lines
+#### Internal Dependencies
+```
+execution/
+  ├─→ diagram_generated/ (generated node types)
+  ├─→ domain/diagram/models/ (ExecutableDiagram, ExecutableNode)
+  ├─→ domain/diagram/compilation/ (TransformRules type)
+  └─→ config/base_logger (logging)
 ```
 
-**After** (unified in one module):
-```python
-# handle_operations.py
-class HandleOperations:
-    """Unified handle operations."""
+**Analysis:**
+- Dependency on `diagram_generated` is expected and appropriate
+- Dependency on `domain/diagram/models` is appropriate (execution operates on diagrams)
+- Dependency on `domain/diagram/compilation` (TransformRules) creates coupling between compilation and execution
+  - **Recommendation:** Define `TransformRules` in execution module or shared types module
 
-    # Handle ID operations (nodeId_label_direction format)
-    @staticmethod
-    def parse_id(handle_id: HandleID) -> ParsedHandle:
-        """Parse nodeId_label_direction format."""
-        # Consolidated logic
+#### External Dependencies
+- Minimal external dependencies (only standard library)
+- Good for maintainability
 
-    @staticmethod
-    def create_id(node_id: NodeID, label: HandleLabel, direction: HandleDirection) -> HandleID:
-        """Create handle ID."""
-        # Consolidated logic
-
-    # Label reference operations (user-facing label_handle format)
-    @staticmethod
-    def parse_label_reference(label_raw: str, label2id: dict) -> tuple[str, str]:
-        """Parse label_handle format."""
-        # Consolidated logic
-
-    @staticmethod
-    def create_handle_pair(source_node_id, target_node_id, ...) -> tuple[HandleID, HandleID]:
-        """Create source and target handle IDs."""
-        # Consolidated logic
-
-# Clear API in utils/__init__.py
-from .handle_operations import HandleOperations
-
-__all__ = ["HandleOperations"]
-```
-
-**Impact:**
-- 2 files → 1 file
-- Clearer API with single import point
-- 15% reduction in code (removed redundant logic)
-
-### Example 2: Configuration-Driven Handle Generation
-
-**Before** (87 lines of if-elif):
-```python
-class HandleGenerator:
-    def generate_for_node(self, diagram, node_id: str, node_type: str):
-        if node_type == NodeType.START:
-            _push_handle(diagram, _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.OUTPUT))
-            return
-
-        if node_type == NodeType.ENDPOINT.value:
-            _push_handle(diagram, _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.INPUT))
-            return
-
-        if node_type == NodeType.CONDITION.value:
-            _push_handle(diagram, _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.INPUT))
-            _push_handle(diagram, _make_handle(node_id, HandleLabel.CONDTRUE, HandleDirection.OUTPUT))
-            _push_handle(diagram, _make_handle(node_id, HandleLabel.CONDFALSE, HandleDirection.OUTPUT))
-            return
-
-        # ... 5 more branches
-```
-
-**After** (configuration-driven):
-```python
-@dataclass
-class HandleSpec:
-    """Specification for node handles."""
-    inputs: list[HandleLabel]
-    outputs: list[HandleLabel]
-
-# Configuration
-HANDLE_SPECS = {
-    NodeType.START: HandleSpec(inputs=[], outputs=[HandleLabel.DEFAULT]),
-    NodeType.ENDPOINT: HandleSpec(inputs=[HandleLabel.DEFAULT], outputs=[]),
-    NodeType.CONDITION: HandleSpec(
-        inputs=[HandleLabel.DEFAULT],
-        outputs=[HandleLabel.CONDTRUE, HandleLabel.CONDFALSE]
-    ),
-    NodeType.PERSON_JOB: HandleSpec(
-        inputs=[HandleLabel.FIRST, HandleLabel.DEFAULT],
-        outputs=[HandleLabel.DEFAULT]
-    ),
-    # Default for unknown types
-    "DEFAULT": HandleSpec(
-        inputs=[HandleLabel.DEFAULT],
-        outputs=[HandleLabel.DEFAULT]
-    ),
-}
-
-class HandleGenerator:
-    def generate_for_node(self, diagram, node_id: str, node_type: NodeType):
-        """Generate handles based on node type configuration."""
-        spec = HANDLE_SPECS.get(node_type, HANDLE_SPECS["DEFAULT"])
-
-        for label in spec.inputs:
-            self._add_handle(diagram, node_id, label, HandleDirection.INPUT)
-
-        for label in spec.outputs:
-            self._add_handle(diagram, node_id, label, HandleDirection.OUTPUT)
-
-    def _add_handle(self, diagram, node_id: str, label: HandleLabel, direction: HandleDirection):
-        handle = self._create_handle(node_id, label, direction)
-        self._push_to_diagram(diagram, handle)
-```
-
-**Impact:**
-- 87 lines → ~35 lines (60% reduction)
-- Easier to add new node types (just add config)
-- More testable (configuration is data, not code)
-- Clearer intent
-
-### Example 3: Unified Node Dictionary Builder
-
-**Before** (2 different implementations):
-```python
-# Light parser (simple, 1 line):
-def build_nodes_dict(nodes_list):
-    return {node["id"]: node for node in nodes_list}
-
-# Readable transformer (complex, 40 lines with inline position calc, type validation):
-def _build_nodes_dict(self, nodes_list):
-    position_calculator = PositionCalculator()
-    nodes_dict = {}
-    for index, node_data in enumerate(nodes_list):
-        # ... 35 lines of complex logic
-    return nodes_dict
-```
-
-**After** (unified builder with strategies):
-```python
-# utils/node_builder.py
-class NodeDictionaryBuilder:
-    """Unified node dictionary building."""
-
-    @staticmethod
-    def build_simple(nodes_list: list[dict]) -> dict[str, dict]:
-        """Simple ID-based dict (for light format)."""
-        return {node["id"]: node for node in nodes_list}
-
-    @staticmethod
-    def build_with_enrichment(
-        nodes_list: list[dict],
-        position_calculator: PositionCalculator | None = None,
-        validate_types: bool = True,
-        type_mapper: Callable | None = None
-    ) -> dict[str, dict]:
-        """Build with position calculation and validation (for readable)."""
-        calc = position_calculator or PositionCalculator()
-        type_mapper = type_mapper or (lambda t: t)
-
-        nodes_dict = {}
-        for index, node_data in enumerate(nodes_list):
-            node_dict = NodeDictionaryBuilder._enrich_node(
-                node_data, index, calc, type_mapper, validate_types
-            )
-            nodes_dict[node_dict["id"]] = node_dict
-
-        return nodes_dict
-
-    @staticmethod
-    def _enrich_node(node_data, index, calc, type_mapper, validate):
-        """Enrich a single node with defaults."""
-        # Consolidated enrichment logic
-        ...
-
-# Usage in light parser:
-nodes_dict = NodeDictionaryBuilder.build_simple(nodes_list)
-
-# Usage in readable transformer:
-nodes_dict = NodeDictionaryBuilder.build_with_enrichment(
-    nodes_list,
-    position_calculator=self.position_calc,
-    validate_types=True
-)
-```
-
-**Impact:**
-- 2 implementations → 1 with clear options
-- Shared logic reduces bugs
-- Easy to add new enrichment options
-- Better testability (test one builder, not two)
+#### Circular Dependencies
+- None detected
+- Good module boundaries in this respect
 
 ---
 
-## Priority Matrix
+## Recommendations
 
-| Issue | Severity | Impact | Effort | Priority Score |
-|-------|----------|--------|--------|----------------|
-| #1 - Duplicate ResolvedConnection | Critical | High | Low | 10/10 |
-| #5 - Handle parsing scattered | High | High | High | 9/10 |
-| #8 - Validation split | High | High | Medium | 8/10 |
-| #2 - Node dict building | High | Medium | Medium | 7/10 |
-| #3 - Node ID creation | High | Low | Low | 7/10 |
-| #4 - Data extraction | High | Medium | Medium | 7/10 |
-| #6 - Arrow building | High | Low | Low | 6/10 |
-| #13 - Handle generation | Medium | High | Medium | 6/10 |
-| #14 - Field mapping | Medium | Medium | Medium | 5/10 |
-| #9 - Strategy patterns | Medium | Medium | High | 5/10 |
-| ... | | | | |
+### Immediate Actions (Sprint 1)
 
-**Priority Score** = (Severity * 3 + Impact * 2 + (4 - Effort)) / 3
+#### 1. Create Directory Structure [CRITICAL]
+**Effort:** 2-4 hours
+**Impact:** High - Improves navigation and sets foundation for future work
 
----
+```bash
+# Create new subdirectories
+mkdir -p dipeo/domain/execution/state
+mkdir -p dipeo/domain/execution/tokens
+mkdir -p dipeo/domain/execution/rules
+mkdir -p dipeo/domain/execution/messaging
+mkdir -p dipeo/domain/execution/context
 
-## Testing Strategy
+# Move files (with git mv to preserve history)
+git mv dipeo/domain/execution/execution_tracker.py dipeo/domain/execution/state/
+git mv dipeo/domain/execution/state_tracker.py dipeo/domain/execution/state/
+git mv dipeo/domain/execution/token_manager.py dipeo/domain/execution/tokens/
+git mv dipeo/domain/execution/token_types.py dipeo/domain/execution/tokens/
+git mv dipeo/domain/execution/connection_rules.py dipeo/domain/execution/rules/
+git mv dipeo/domain/execution/transform_rules.py dipeo/domain/execution/rules/
+git mv dipeo/domain/execution/envelope.py dipeo/domain/execution/messaging/
+git mv dipeo/domain/execution/execution_context.py dipeo/domain/execution/context/
 
-### Unit Tests Required
-1. **Handle operations consolidation** (#5)
-   - Test parse_handle_id edge cases
-   - Test create_handle_id
-   - Test label parsing with various formats
-   - Test handle pair creation
+# Update __init__.py files to maintain backward compatibility
+```
 
-2. **Node dictionary builder** (#2)
-   - Test simple building
-   - Test with position calculator
-   - Test type validation
-   - Test field exclusion
+**Backward Compatibility:**
+```python
+# dipeo/domain/execution/__init__.py (updated)
+# Maintain backward compatibility with existing imports
+from .rules.connection_rules import NodeConnectionRules
+from .rules.transform_rules import DataTransformRules
+# ... etc
 
-3. **Handle generator** (#13)
-   - Test each node type configuration
-   - Test default fallback
-   - Ensure correct handle labels per type
-
-### Integration Tests Required
-1. **Format conversion end-to-end**
-   - Light → Domain → Light (round trip)
-   - Readable → Domain → Readable (round trip)
-   - Light → Domain → Readable (cross format)
-
-2. **Compilation pipeline**
-   - All phases execute correctly
-   - Error handling in each phase
-   - Warning propagation
-
-3. **Validation integration**
-   - Validator → Compiler → Validation utils flow
-   - Error message consistency
+__all__ = [
+    "DataTransformRules",
+    "NodeConnectionRules",
+    # ... maintain existing exports
+]
+```
 
 ---
 
-## Documentation Updates Required
+#### 2. Fix Documentation Mismatch [CRITICAL]
+**Effort:** 4-6 hours
+**Impact:** High - Eliminates confusion for developers
 
-1. **Architecture documentation**
-   - Update diagram showing module organization
-   - Document handle operations clearly
-   - Explain validation flow
-
-2. **API documentation**
-   - Document new consolidated APIs
-   - Mark deprecated functions
-   - Provide migration guide
-
-3. **Developer guide**
-   - How to add new node types (handle config)
-   - How to add new formats (strategy pattern)
-   - Testing guidelines
+**Tasks:**
+1. Review README.md line by line against actual implementation
+2. Remove or clearly mark "Future Enhancement" sections
+3. Add accurate examples of how to use the actual API
+4. Document the resolution module's architecture
+5. Add section on token-based flow control
 
 ---
 
-## Metrics & Impact Summary
+#### 3. Refactor Token Manager [HIGH]
+**Effort:** 8-12 hours
+**Impact:** High - Improves maintainability and testability
 
-### Current State
-- **Total Files:** 54
-- **Total Lines:** ~8,500
-- **Duplicated Code:** ~15-20% (estimated)
-- **Average File Size:** 157 lines
-- **Longest File:** 542 lines (domain_compiler.py)
-- **Utility Files:** 12 small files
-
-### After Refactoring (Projected)
-- **Total Files:** 48 (-6 files, 11% reduction)
-- **Total Lines:** ~7,200 (-1,300 lines, 15% reduction)
-- **Duplicated Code:** <5%
-- **Average File Size:** 150 lines
-- **Longest File:** ~400 lines (phases extracted)
-- **Utility Files:** 8 organized files
-
-### Maintenance Benefits
-- **Reduced Bug Surface:** Less duplicated logic = fewer places for bugs
-- **Easier Onboarding:** Clearer organization and fewer files
-- **Better Testability:** Consolidated logic is easier to test
-- **Faster Feature Development:** Shared utilities speed up new features
+See detailed implementation plan in HIGH-1 above.
 
 ---
 
-## Recommended Execution Plan
+### Short-term Improvements (Sprint 2-3)
 
-### Sprint 1: Critical Fixes (Week 1)
-**Goal:** Eliminate critical duplications
-- [ ] Fix ResolvedConnection duplication (#1)
-- [ ] Consolidate node ID creation (#3)
-- [ ] Document validation flow (#8)
-- **Deliverable:** 3 critical issues resolved
+#### 4. Implement Rule Registry Pattern [HIGH]
+**Effort:** 12-16 hours
+**Impact:** Medium-High - Enables extensibility
 
-### Sprint 2: Handle Consolidation (Week 2-3)
-**Goal:** Unify all handle operations
-- [ ] Create handle_operations.py module
-- [ ] Migrate handle_parser.py functions
-- [ ] Migrate handle_utils.py functions
-- [ ] Update all imports (10+ files)
-- [ ] Update tests
-- **Deliverable:** 1 unified handle module, 2 old modules deprecated
+See detailed implementation plan in HIGH-2 above.
 
-### Sprint 3: Data Operations (Week 4-5)
-**Goal:** Consolidate data extraction and building
-- [ ] Create node_builder.py (#2)
-- [ ] Create data_extractors.py (#4)
-- [ ] Create arrow_builder.py (#6)
-- [ ] Update parsers and transformers
-- **Deliverable:** 3 new utility modules, reduced duplication by 15%
+---
 
-### Sprint 4: Configuration-Driven (Week 6-7)
-**Goal:** Simplify complex logic
-- [ ] Refactor HandleGenerator (#13)
-- [ ] Make NodeFieldMapper table-driven (#14)
-- [ ] Extract compilation phases (#20)
-- **Deliverable:** 200+ lines of code eliminated
+#### 5. Unify State Tracking [HIGH]
+**Effort:** 16-20 hours
+**Impact:** High - Eliminates state inconsistencies
 
-### Sprint 5: Polish & Documentation (Week 8)
-**Goal:** Clean up and document
-- [ ] Standardize strategy patterns (#9)
-- [ ] Update utils organization (#21)
-- [ ] Write migration guide
-- [ ] Update architecture docs
-- **Deliverable:** Complete refactoring with documentation
+See detailed plan in HIGH-3 above.
+
+---
+
+#### 6. Expand ExecutionContext Protocol [MEDIUM]
+**Effort:** 4-6 hours
+**Impact:** Medium - Improves API ergonomics
+
+See detailed implementation in MED-1 above.
+
+---
+
+### Long-term Considerations (Future Sprints)
+
+#### 7. Implement Domain Events System [MEDIUM]
+**Effort:** 8-12 hours
+**Impact:** Medium - Improves architecture and observability
+
+See detailed implementation in MED-3 above.
+
+---
+
+#### 8. Improve Type Discipline [MEDIUM]
+**Effort:** 6-8 hours
+**Impact:** Medium - Better IDE support and type safety
+
+See examples in MED-4 above.
 
 ---
 
 ## Conclusion
 
-The diagram domain module is architecturally sound but suffers from organic growth patterns common in evolving codebases. The primary issues are:
+The `dipeo/domain/execution/` module requires **moderate-to-substantial refactoring** to match the quality and organizational standards of the recently refactored `dipeo/domain/diagram/` module. The good news is that the `resolution/` submodule demonstrates that the team is capable of excellent domain-driven design when focused on a specific subsystem.
 
-1. **Duplication:** ~15-20% of code is duplicated across different modules
-2. **Scattered Utilities:** 12 utility files with unclear boundaries
-3. **Inconsistent Patterns:** Similar components use different structures
+### Strengths to Preserve
+1. **Resolution submodule architecture** - Pure functions, clear separation of concerns, well-documented
+2. **Token-based flow control** - Solid foundation for execution semantics
+3. **Protocol-based abstractions** - Good use of Python protocols for flexibility
+4. **Minimal external dependencies** - Keeps the module portable and maintainable
 
-**The recommended refactoring will:**
-- Reduce codebase by 15% (~1,300 lines)
-- Eliminate 90% of code duplication
-- Improve maintainability significantly
-- Establish clear patterns for future development
+### Critical Improvements Needed
+1. **Reorganize root-level files into subdirectories** (state/, tokens/, rules/, messaging/)
+2. **Fix documentation/implementation mismatch** in README vs. actual code
+3. **Decompose complex TokenManager logic** into smaller, testable components
+4. **Unify state tracking** to eliminate redundant StateTracker/ExecutionTracker
 
-**Estimated Total Effort:** 6-8 weeks (1 developer, part-time)
+### Success Metrics
+- **Discoverability:** New developers can find relevant code in < 2 minutes
+- **Testability:** Complex logic is decomposed into pure functions with < 20 lines each
+- **Consistency:** Execution module follows same patterns as diagram module (subdirectories, registries, events)
+- **Extensibility:** Adding a new node type or transformation rule requires < 30 lines of code
 
-**ROI:** High - The investment in refactoring will pay dividends in:
-- Faster feature development
-- Fewer bugs from duplicated logic
-- Easier onboarding for new developers
-- More comprehensive test coverage
+### Recommended Sprint Plan
 
-**Risk Level:** Medium - The changes affect many files but are well-isolated to the diagram module, with clear testing boundaries.
+**Sprint 1 (Immediate):**
+- Directory reorganization (CRIT-1)
+- README.md fix (CRIT-2)
+- Start TokenManager refactoring (HIGH-1)
 
----
+**Sprint 2-3 (Short-term):**
+- Complete TokenManager refactoring (HIGH-1)
+- Implement rule registry pattern (HIGH-2)
+- Unify state tracking (HIGH-3)
 
-## Appendix: File Change Matrix
+**Sprint 4+ (Long-term):**
+- Domain events system (MED-3)
+- Type discipline improvements (MED-4)
+- Validation layer
+- Performance optimizations
 
-| File | Phase 1 | Phase 2 | Phase 3 | Total Changes |
-|------|---------|---------|---------|---------------|
-| compilation/connection_resolver.py | Import | - | - | Minor |
-| compilation/edge_builder.py | Major | - | - | Major |
-| compilation/domain_compiler.py | - | - | Major | Major |
-| strategies/light/parser.py | - | Major | Minor | Major |
-| strategies/light/serializer.py | - | Major | - | Major |
-| strategies/light/connection_processor.py | - | Major | Minor | Major |
-| strategies/readable/parser.py | - | Major | - | Major |
-| strategies/readable/transformer.py | - | Major | Minor | Major |
-| strategies/readable/serializer.py | - | - | Minor | Minor |
-| utils/handle_parser.py | - | Deprecate | Delete | Major |
-| utils/handle_utils.py | - | Merge | Delete | Major |
-| utils/shared_components.py | - | - | Major | Major |
-| utils/node_field_mapper.py | - | - | Major | Major |
-| **NEW** utils/handle_operations.py | - | Create | - | New |
-| **NEW** utils/node_builder.py | - | Create | - | New |
-| **NEW** utils/data_extractors.py | - | Create | - | New |
-| **NEW** utils/arrow_builder.py | - | Create | - | New |
-| **NEW** compilation/models.py | Create | - | - | New |
-
-**Legend:**
-- Minor: <20 lines changed
-- Major: 20-100 lines changed
-- Create: New file
-- Deprecate: Mark as deprecated, maintain temporarily
-- Delete: Remove after migration
-- Merge: Consolidate into another file
+By following this plan, the execution module can achieve parity with the diagram module's quality while maintaining backward compatibility and enabling future extensibility.
 
 ---
 
-**Report Generated:** 2025-10-11
-**Auditor:** Claude Code (Sonnet 4.5)
-**Methodology:** Comprehensive line-by-line analysis with pattern matching
-**Confidence Level:** High (100% file coverage, detailed examples provided)
+**End of Report**
