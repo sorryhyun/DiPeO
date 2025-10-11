@@ -9,18 +9,18 @@ from dipeo.diagram_generated import (
     NodeID,
     NodeType,
 )
-from dipeo.domain.diagram.utils import parse_handle_id_safe
+from dipeo.domain.diagram.utils import HandleIdOperations
 
 
 def validate_arrow_handles(arrow: DomainArrow, node_ids: set[NodeID]) -> list[str]:
     errors = []
 
-    source_parsed = parse_handle_id_safe(arrow.source)
+    source_parsed = HandleIdOperations.parse_handle_id_safe(arrow.source)
     if not source_parsed:
         errors.append(f"Arrow {arrow.id}: Invalid source handle format: {arrow.source}")
         return errors
 
-    target_parsed = parse_handle_id_safe(arrow.target)
+    target_parsed = HandleIdOperations.parse_handle_id_safe(arrow.target)
     if not target_parsed:
         errors.append(f"Arrow {arrow.id}: Invalid target handle format: {arrow.target}")
         return errors
@@ -84,8 +84,8 @@ def find_node_dependencies(
     dependencies: dict[NodeID, set[NodeID]] = {}
 
     for arrow in arrows:
-        source_parsed = parse_handle_id_safe(arrow.source)
-        target_parsed = parse_handle_id_safe(arrow.target)
+        source_parsed = HandleIdOperations.parse_handle_id_safe(arrow.source)
+        target_parsed = HandleIdOperations.parse_handle_id_safe(arrow.target)
 
         if not source_parsed or not target_parsed:
             continue
@@ -106,8 +106,8 @@ def find_unreachable_nodes(nodes: list[DomainNode], arrows: list[DomainArrow]) -
     graph: dict[NodeID, list[NodeID]] = {node.id: [] for node in nodes}
 
     for arrow in arrows:
-        source_parsed = parse_handle_id_safe(arrow.source)
-        target_parsed = parse_handle_id_safe(arrow.target)
+        source_parsed = HandleIdOperations.parse_handle_id_safe(arrow.source)
+        target_parsed = HandleIdOperations.parse_handle_id_safe(arrow.target)
 
         if source_parsed and target_parsed and source_parsed.node_id in graph:
             graph[source_parsed.node_id].append(target_parsed.node_id)

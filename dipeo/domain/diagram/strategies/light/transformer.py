@@ -10,7 +10,6 @@ from dipeo.diagram_generated import DomainDiagram, HandleDirection, NodeType
 from dipeo.diagram_generated.conversions import node_kind_to_domain_type
 from dipeo.domain.diagram.models.format_models import LightConnection, LightDiagram, LightNode
 from dipeo.domain.diagram.utils import (
-    ArrowDataProcessor,
     HandleIdOperations,
     HandleLabelParser,
     HandleValidator,
@@ -178,7 +177,8 @@ class LightTransformer:
                 "label": a.label,
                 "type": a.content_type if a.content_type else None,
             }
-            if a.data and ArrowDataProcessor.should_include_branch_data(s_handle, a.data):
+            # Include branch data if present and not from conditional handles
+            if a.data and "branch" in a.data and s_handle not in ["condtrue", "condfalse"]:
                 conn_kwargs["data"] = {"branch": a.data["branch"]}  # type: ignore[assignment]
 
             conn = LightConnection(**conn_kwargs)  # type: ignore[arg-type]

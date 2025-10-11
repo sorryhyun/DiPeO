@@ -6,7 +6,8 @@ from typing import Any
 from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.diagram.models.format_models import ReadableArrow, ReadableNode
 from dipeo.domain.diagram.utils import (
-    HandleParser,
+    HandleIdOperations,
+    HandleLabelParser,
     create_arrow_dict,
 )
 
@@ -334,10 +335,10 @@ class FlowParser:
                 label = clean_dst[start + 1 : end]
                 clean_dst = clean_dst[:start].strip() + clean_dst[end + 1 :].strip()
 
-        src_id, src_handle_from_split, src_label = HandleParser.parse_label_with_handle(
+        src_id, src_handle_from_split, src_label = HandleLabelParser.parse_label_with_handle(
             src.strip(), label2id
         )
-        dst_id, dst_handle_from_split, dst_label = HandleParser.parse_label_with_handle(
+        dst_id, dst_handle_from_split, dst_label = HandleLabelParser.parse_label_with_handle(
             clean_dst.strip(), label2id
         )
 
@@ -345,7 +346,7 @@ class FlowParser:
         dst_handle = dst_handle_from_split if dst_handle_from_split else "default"
 
         if src_id and dst_id:
-            source_handle_id, target_handle_id = HandleParser.create_handle_ids(
+            source_handle_id, target_handle_id = HandleIdOperations.create_handle_ids(
                 src_id, dst_id, src_handle, dst_handle
             )
 

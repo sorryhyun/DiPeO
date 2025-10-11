@@ -6,7 +6,6 @@ from .arrow_builder import (
     arrows_list_to_dict,
     create_arrow_dict,
 )
-from .arrow_data_processor import ArrowDataProcessor  # deprecated - use arrow_builder
 from .conversion_utils import (
     _JsonMixin,
     _node_id_map,
@@ -28,18 +27,6 @@ from .handle_operations import (
     HandleValidator,
     ParsedHandle,
 )
-
-# Deprecated imports for backward compatibility
-from .handle_parser import (
-    HandleParser,
-)
-from .handle_utils import (
-    create_handle_id,
-    extract_node_id_from_handle,
-    is_valid_handle_id,
-    parse_handle_id,
-    parse_handle_id_safe,
-)
 from .node_builder import (
     NodeDictionaryBuilder,
     nodes_list_to_dict,
@@ -56,23 +43,21 @@ from .shared_components import (
 from .strategy_common import create_node_id, process_dotted_keys
 
 __all__ = [
-    # Arrow operations (new unified API)
+    # Arrow operations
     "ArrowBuilder",
-    "ArrowDataProcessor",  # deprecated - use arrow_builder functions
     "ArrowIdGenerator",
     # Data extraction
     "DiagramDataExtractor",
-    # Handle operations (new unified API)
+    # Handle operations
     "HandleIdOperations",
     "HandleLabelParser",
-    # Deprecated (for backward compatibility)
-    "HandleParser",  # deprecated - use HandleLabelParser and HandleValidator
     "HandleReference",
     "HandleValidator",
-    # Node operations (new unified API)
+    # Node operations
     "NodeDictionaryBuilder",
     "NodeFieldMapper",
     "ParsedHandle",
+    # Person operations
     "PersonExtractor",
     "PersonReferenceResolver",
     # conversion_utils
@@ -83,22 +68,18 @@ __all__ = [
     # shared_components
     "build_node",
     "coerce_to_dict",
+    # graph_utils
     "count_node_connections",
     "create_arrow_dict",
-    "create_handle_id",  # deprecated - use HandleIdOperations.create_handle_id
     "create_node_id",
     "ensure_position",
     "extract_common_arrows",
-    "extract_node_id_from_handle",  # deprecated - use HandleIdOperations.extract_node_id_from_handle
     "find_connected_nodes",
-    # graph_utils
     "find_edges_from",
     "find_edges_to",
     "find_orphan_nodes",
     "is_dag",
-    "is_valid_handle_id",  # deprecated - use HandleIdOperations.is_valid_handle_id
     "nodes_list_to_dict",
-    "parse_handle_id",  # deprecated - use HandleIdOperations.parse_handle_id
-    "parse_handle_id_safe",  # deprecated - use HandleIdOperations.parse_handle_id_safe
+    # strategy_common
     "process_dotted_keys",
 ]

@@ -9,11 +9,10 @@ from dipeo.diagram_generated import DomainDiagram, HandleDirection
 from dipeo.domain.diagram.models.format_models import ReadableArrow, ReadableDiagram, ReadableNode
 from dipeo.domain.diagram.utils import (
     DiagramDataExtractor,
+    HandleIdOperations,
     NodeDictionaryBuilder,
     NodeFieldMapper,
     build_node,
-    create_handle_id,
-    parse_handle_id,
     process_dotted_keys,
 )
 
@@ -43,10 +42,10 @@ class ReadableTransformer:
         for arrow in readable_diagram.arrows:
             arrows_dict[arrow.id] = {
                 "id": arrow.id,
-                "source": create_handle_id(
+                "source": HandleIdOperations.create_handle_id(
                     arrow.source, arrow.source_handle or "default", HandleDirection.OUTPUT
                 ),
-                "target": create_handle_id(
+                "target": HandleIdOperations.create_handle_id(
                     arrow.target, arrow.target_handle or "default", HandleDirection.INPUT
                 ),
                 "data": arrow.data or {},
@@ -85,8 +84,8 @@ class ReadableTransformer:
 
         arrows = []
         for a in diagram.arrows:
-            s_node_id, s_handle, _ = parse_handle_id(a.source)
-            t_node_id, t_handle, _ = parse_handle_id(a.target)
+            s_node_id, s_handle, _ = HandleIdOperations.parse_handle_id(a.source)
+            t_node_id, t_handle, _ = HandleIdOperations.parse_handle_id(a.target)
 
             arrow = ReadableArrow(
                 id=a.id,

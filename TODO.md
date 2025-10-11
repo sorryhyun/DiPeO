@@ -4,456 +4,41 @@ Last updated: 2025-10-11
 
 ## Overview
 
-This TODO list focuses on continuing refactoring the `dipeo/domain/diagram/` directory based on the comprehensive codebase audit completed on 2025-10-11.
+Refactoring `dipeo/domain/diagram/` for better maintainability, consistency, and architectural clarity.
 
-**Sprint 1-3 Completed Summary:**
-- Fixed critical code duplication (ResolvedConnection)
-- Consolidated node ID creation and handle utilities
-- Unified node/arrow building logic
-- Documented validation flow
-- Created new modules: handle_operations.py, node_builder.py, arrow_builder.py
+**Current Status:**
+- Phase 1 (Foundation): COMPLETE (4/4 tasks)
+- Phase 2 (Structural): COMPLETE (4/4 tasks)
+- Phase 3 (Polish): IN PROGRESS (3/7 tasks complete)
+- Phase 4 (Future): Not started (0/6 tasks)
 
-**Remaining Work:**
-- 7 tasks remaining across 2 phases (10 completed, Phase 1 & 2 COMPLETE!)
-- Estimated remaining effort: 1-1.5 weeks (part-time)
-- Focus: Polish and consistency (Phase 3), then future enhancements
+**Recent Achievement:**
+- Phases 1 & 2 eliminated ~571 lines of code and removed 5 deprecated modules
+- Introduced configuration-driven design patterns (HandleSpec, FIELD_MAPPINGS)
+- Extracted compilation into 6-phase pipeline
+- Standardized strategy patterns across formats
 
-**Recent Completion:**
-- **Task 13 (2025-10-11)**: Updated documentation with comprehensive architecture and developer guides (~4-5 hours)
-  - Created docs/architecture/diagram-compilation.md - detailed compilation architecture
-  - Created docs/guides/developer-guide-diagrams.md - comprehensive developer guide
-  - Updated docs/architecture/domain-layer.md with diagram compilation section
-  - Updated CLAUDE.md with diagram domain reference
-  - Updated docs/index.md with new documentation links
-- **Task 11 (2025-10-11)**: Standardized strategy module patterns, unified both strategies to consistent 4-module structure (~5 hours)
-  - Created light/transformer.py with bidirectional transformation logic
-  - Removed light/connection_processor.py (logic moved to transformer)
-  - Updated light/serializer.py and light/strategy.py
-  - Both strategies now follow: parser → transformer → serializer → strategy
-  - All tests passed (simple_iter, simple_data_processing verified)
-- **PHASE 2 COMPLETE! (2025-10-11)** - All 4 configuration-driven refactoring tasks completed! ~461 lines eliminated from main files
-- Task 10 (2025-10-11): Extracted compilation phases to separate classes, modularized DomainDiagramCompiler from 561 lines to 220 lines (341 lines eliminated, 60.9% reduction)
-- Task 16 (2025-10-11): Simplified prompt path resolution with strategy pattern, improved code clarity and maintainability (~20 lines reduction)
-- Task 9 (2025-10-11): Made node field mapping table-driven, eliminated if-elif chains with configuration approach (~46 lines reduction)
-- Task 8 (2025-10-11): Refactored handle generation to configuration-driven design, reduced code and improved extensibility (~52 lines reduction)
-- **PHASE 1 COMPLETE! (2025-10-11)** - All 4 foundation tasks completed! ~110 lines eliminated/restructured
-- Task 17 (2025-10-11): Consolidated validation error conversion, unified to_validation_result() method with parameter (~20 lines reduction)
-- Task 15 (2025-10-11): Modularized connection processing, extracted helper methods for improved readability and testability (~43 lines improved structure, 74% reduction in main method)
-- Task 14 (2025-10-11): Extracted person resolution logic into unified resolver, eliminated duplicate code across strategy and serializer (~30-35 lines reduction)
-- Task 6 (2025-10-11): Created unified data extractors, eliminated duplicate extraction logic across parsers (~15 lines reduction)
+**Focus Areas:**
+- Validation architecture consolidation
+- Person-related logic unification
+- Utility module reorganization
+- Port interface cleanup
 
 ---
 
-## Phase 1: Foundation & High Priority (Week 1-2)
+## Active Tasks
 
-Critical follow-up work and immediate improvements.
+### Phase 3: Polish & Consistency
 
-**Estimated Effort:** 1.5-2 weeks (10-15 hours)
+#### Task 12: Reorganize Utility Module Structure (Issue #21)
+**Priority:** HIGH (elevated from Low) | **Effort:** Medium (3-4 hours)
 
-### Task 6: Create Unified Data Extractors (Issue #4) ✓
-**Priority:** High | **Effort:** Medium (4-5 hours) | **Score:** 7/10
-**Completed:** 2025-10-11
-
-Nearly identical extraction logic for handles and persons is repeated across parsers.
+The utils module has 12 files with unclear boundaries and organization.
 
 **Problem:**
-- Duplicate `extract_handles_dict()` in light/parser.py:92 and readable/transformer.py:165
-- Duplicate `extract_persons_dict()` in light/parser.py:98 and readable/transformer.py:171
-- Same logic for list-to-dict coercion
-
-**Actions:**
-- [x] Create new file `/home/soryhyun/DiPeO/dipeo/domain/diagram/utils/data_extractors.py`
-- [x] Create `DiagramDataExtractor` class with static methods:
-  - `extract_handles(data, format_type)` - normalize handles dict from any format
-  - `extract_persons(data, is_light_format)` - extract persons with format-specific handling
-  - `normalize_to_dict(data, id_key, prefix)` - general list-or-dict coercion
-- [x] Move extraction logic from light parser
-- [x] Move extraction logic from readable transformer
-- [x] Update imports in both files
-- [x] Consider using existing `coerce_to_dict()` from shared_components
-- [x] Add unit tests for extraction methods
-- [x] Test with various input formats (list, dict, empty)
-- [x] Run tests: `make lint-server`
-
-**Files created:**
-- NEW: `/home/soryhyun/DiPeO/dipeo/domain/diagram/utils/data_extractors.py` (DiagramDataExtractor class)
-
-**Files modified:**
-- `/home/soryhyun/DiPeO/dipeo/domain/diagram/utils/__init__.py` (added export)
-- `/home/soryhyun/DiPeO/dipeo/domain/diagram/strategies/light/parser.py` (removed duplicate code)
-- `/home/soryhyun/DiPeO/dipeo/domain/diagram/strategies/readable/transformer.py` (removed duplicate code)
-
-**Results:**
-- Eliminated duplicate extraction logic across parsers
-- Reduced code by ~15 lines
-- Improved maintainability with centralized data extraction
-- All tests passed (make lint-server)
-- Verified with diagram execution test
-
----
-
-### Task 14: Extract Person Resolution Logic (Issue #11) ✓
-**Priority:** Medium | **Effort:** Small (2-3 hours) | **Score:** 5/10
-**Completed:** 2025-10-11
-
-Person label-to-ID mapping logic duplicated in light strategy and serializer.
-
-**Actions:**
-- [x] Create `/home/soryhyun/DiPeO/dipeo/domain/diagram/utils/person_resolver.py`
-- [x] Create `PersonReferenceResolver` class with bidirectional mapping
-- [x] Implement `build_label_to_id_map()` for deserialization (label → ID)
-- [x] Implement `build_id_to_label_map()` for serialization (ID → label)
-- [x] Implement `resolve_person_in_node()` and `resolve_persons_in_nodes()` for batch conversion
-- [x] Move mapping logic from `strategies/light/strategy.py:97-127`
-- [x] Move mapping logic from `strategies/light/serializer.py:18-20`
-- [x] Update imports in both files
-- [x] Update exports in `utils/__init__.py`
-- [x] Run tests: `make lint-server`
-- [x] Test with diagram execution
-
-**Files created:**
-- NEW: `/home/soryhyun/DiPeO/dipeo/domain/diagram/utils/person_resolver.py` (PersonReferenceResolver class)
-
-**Files modified:**
-- `/home/soryhyun/DiPeO/dipeo/domain/diagram/utils/__init__.py` (added export)
-- `/home/soryhyun/DiPeO/dipeo/domain/diagram/strategies/light/strategy.py` (eliminated ~30 lines)
-- `/home/soryhyun/DiPeO/dipeo/domain/diagram/strategies/light/serializer.py` (eliminated ~3 lines)
-
-**Results:**
-- Eliminated duplicate person resolution logic across strategy and serializer
-- Reduced code by ~30-35 lines
-- Improved maintainability with centralized bidirectional person reference resolution
-- Supports both deserialization (label → ID) and serialization (ID → label) workflows
-- All tests passed (make lint-server)
-- Verified with diagram execution test
-
----
-
-### Task 15: Modularize Connection Processing (Issue #15) ✓
-**Priority:** Medium | **Effort:** Small (2-3 hours) | **Score:** 5/10
-**Completed:** 2025-10-11
-
-`LightConnectionProcessor.process_light_connections()` is 82 lines with multiple responsibilities.
-
-**Actions:**
-- [x] Extract sub-methods in `/home/soryhyun/DiPeO/dipeo/domain/diagram/strategies/light/connection_processor.py`:
-  - `_process_single_connection()` - handles individual connection processing
-  - `_parse_connection_endpoint()` - parses source/target endpoints
-  - `_build_arrow_data()` - builds arrow data with special handling
-- [x] Refactor main method to call sub-methods (reduced from 58 lines to 15 lines)
-- [x] Improve readability and testability
-- [x] Add comprehensive docstrings for all methods
-- [x] Run tests: `make lint-server`
-- [x] Test with diagram execution
-
-**Files modified:**
-- `/home/soryhyun/DiPeO/dipeo/domain/diagram/strategies/light/connection_processor.py`
-
-**Results:**
-- Main method reduced from 58 lines to 15 lines (~74% reduction)
-- Improved readability - main method now clearly shows the processing flow
-- Better testability - individual methods can be tested in isolation
-- Reduced complexity - each method has a single, clear responsibility
-- Maintained all existing functionality - no behavior changes
-- All tests passed (make lint-server)
-- Verified with diagram execution test
-
----
-
-### Task 17: Consolidate Validation Error Conversion (Issue #18) ✓
-**Priority:** Medium | **Effort:** Small (1-2 hours) | **Score:** 5/10
-**Completed:** 2025-10-11
-
-`CompilationError` has two conversion methods with nearly identical logic.
-
-**Actions:**
-- [x] Consolidate `to_validation_error()` and `to_validation_warning()` in `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/domain_compiler.py`
-- [x] Create single `to_validation_result(as_warning: bool = False)` method
-- [x] Extract `_compute_field_name()` helper
-- [x] Keep backward compatibility methods as wrappers
-- [x] Run tests: `make lint-server`
-- [x] Test with diagram execution
-
-**Files modified:**
-- `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/domain_compiler.py`
-
-**Results:**
-- Consolidated nearly identical conversion methods into single method with parameter
-- Improved maintainability with single source of truth for field name computation
-- Reduced code duplication (~20 lines eliminated)
-- Maintained backward compatibility for existing callers
-- All tests passed (make lint-server)
-- Verified with diagram execution test
-
----
-
-## Phase 2: Structural Improvements (Week 3-5)
-
-Configuration-driven refactoring and architectural improvements.
-
-**Estimated Effort:** 2.5-3 weeks (18-22 hours)
-
-### Task 8: Refactor Handle Generation to Configuration-Driven (Issue #13) ✓
-**Priority:** Medium | **Effort:** Medium (4-5 hours) | **Score:** 6/10
-**Completed:** 2025-10-11
-
-The `HandleGenerator.generate_for_node()` method was 87 lines with repetitive handle creation code for 8 node types.
-
-**Problem:**
-- 87 lines of if-elif chains
-- Repetitive `_push_handle()` calls for each node type
-- Hard to add new node types
-- Not testable as data
-
-**Actions:**
-- [x] Create configuration-driven approach in `/home/soryhyun/DiPeO/dipeo/domain/diagram/utils/shared_components.py`
-- [x] Define `HandleSpec` dataclass:
-  ```python
-  @dataclass
-  class HandleSpec:
-      inputs: list[HandleLabel]
-      outputs: list[HandleLabel]
-  ```
-- [x] Create `HANDLE_SPECS` mapping:
-  ```python
-  HANDLE_SPECS = {
-      NodeType.START: HandleSpec(inputs=[], outputs=[HandleLabel.DEFAULT]),
-      NodeType.ENDPOINT: HandleSpec(inputs=[HandleLabel.DEFAULT], outputs=[]),
-      NodeType.CONDITION: HandleSpec(
-          inputs=[HandleLabel.DEFAULT],
-          outputs=[HandleLabel.CONDTRUE, HandleLabel.CONDFALSE]
-      ),
-      # ... all 8 node types
-  }
-  ```
-- [x] Refactor `generate_for_node()` to use configuration:
-  - Get spec from mapping
-  - Loop through inputs and outputs
-  - Call `_add_handle()` helper
-- [x] Reduce from 87 lines to ~35 lines (60% reduction)
-- [x] Add unit tests for handle spec configuration
-- [x] Test each node type generates correct handles
-- [x] Run tests: `make lint-server`
-- [x] Test diagram execution to ensure handles work correctly
-
-**Files modified:**
-- `/home/soryhyun/DiPeO/dipeo/domain/diagram/utils/shared_components.py`
-
-**Results:**
-- Reduced handle generation code from 87 lines to 35 lines (60% reduction, ~52 lines eliminated)
-- Introduced configuration-driven approach with HandleSpec dataclass
-- Created HANDLE_SPECS mapping for all 8 node types
-- Improved code extensibility - adding new node types now requires only configuration updates
-- Made handle generation logic testable as data
-- All tests passed (make lint-server)
-- Verified with diagram execution test
-
----
-
-### Task 9: Make Node Field Mapping Table-Driven (Issue #14) ✓
-**Priority:** Medium | **Effort:** Medium (3-4 hours) | **Score:** 5/10
-**Completed:** 2025-10-11
-
-`NodeFieldMapper` used long if-elif chains (86 lines total) for field mappings.
-
-**Problem:**
-- `map_import_fields()` - 43 lines of if-elif
-- `map_export_fields()` - 43 lines of if-elif
-- Repetitive structure
-- Hard to maintain
-
-**Actions:**
-- [x] Define field mapping table in `/home/soryhyun/DiPeO/dipeo/domain/diagram/utils/node_field_mapper.py`:
-  ```python
-  FIELD_MAPPINGS = {
-      NodeType.ENDPOINT.value: {
-          "import": [("file_path", "file_name")],
-          "export": [("file_name", "file_path")],
-      },
-      NodeType.CODE_JOB.value: {
-          "import": [("code_type", "language")],
-          "export": [("language", "code_type")],
-      },
-      # ... all node types
-  }
-  ```
-- [x] Refactor `map_import_fields()` to use table lookup
-- [x] Refactor `map_export_fields()` to use table lookup
-- [x] Extract common mapping logic to `_apply_mappings()` helper
-- [x] Reduce code by ~50%
-- [x] Add unit tests for mapping table
-- [x] Test all node types have correct field mappings
-- [x] Run tests: `make lint-server`
-
-**Files modified:**
-- `/home/soryhyun/DiPeO/dipeo/domain/diagram/utils/node_field_mapper.py`
-
-**Results:**
-- Reduced field mapping code from 86 lines to 40 lines (53% reduction, ~46 lines eliminated)
-- Introduced table-driven approach with FIELD_MAPPINGS configuration
-- Eliminated if-elif chains in both map_import_fields() and map_export_fields()
-- Created _apply_mappings() helper for common mapping logic
-- Improved maintainability - adding new field mappings now requires only configuration updates
-- All tests passed (make lint-server)
-- Verified with diagram execution test
-
----
-
-### Task 10: Extract Compilation Phases to Separate Classes (Issue #20) ✓
-**Priority:** Medium | **Effort:** Large (6-8 hours) | **Score:** 5/10
-**Completed:** 2025-10-11
-
-The `DomainDiagramCompiler` was 561 lines with 6 phase methods as private methods. Extracted phases to separate classes.
-
-**Problem:**
-- All phases were private methods of compiler
-- Hard to test individual phases
-- Phases had complex logic that could be isolated
-- Compiler file was 561 lines (longest in module)
-
-**Actions:**
-- [x] Created new directory `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/phases/`
-- [x] Created `types.py` with CompilationPhase, CompilationError, CompilationResult
-- [x] Created `base.py` with PhaseInterface and CompilationContext
-- [x] Created phase classes:
-  - `validation_phase.py` - ValidationPhase (145 lines)
-  - `node_transformation_phase.py` - NodeTransformationPhase (45 lines)
-  - `connection_resolution_phase.py` - ConnectionResolutionPhase (30 lines)
-  - `edge_building_phase.py` - EdgeBuildingPhase (35 lines)
-  - `optimization_phase.py` - OptimizationPhase (95 lines)
-  - `assembly_phase.py` - AssemblyPhase (95 lines)
-- [x] Defined `PhaseInterface` with `execute(context)` method
-- [x] Extracted each phase method to its own class
-- [x] Refactored `DomainDiagramCompiler` to orchestrate phases (561 lines → 220 lines, 60.9% reduction)
-- [x] Tested compilation with simple_iter diagram ✓
-- [x] Tested compilation with simple_data_processing diagram ✓
-- [x] Tested with direct Python test (minimal diagram) ✓
-- [x] Ran tests: `make lint-server` ✓
-
-**Files created:**
-- NEW: `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/phases/__init__.py`
-- NEW: `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/phases/types.py`
-- NEW: `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/phases/base.py`
-- NEW: `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/phases/validation_phase.py`
-- NEW: `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/phases/node_transformation_phase.py`
-- NEW: `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/phases/connection_resolution_phase.py`
-- NEW: `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/phases/edge_building_phase.py`
-- NEW: `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/phases/optimization_phase.py`
-- NEW: `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/phases/assembly_phase.py`
-
-**Files modified:**
-- `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/domain_compiler.py`
-
-**Results:**
-- Main compiler reduced from 561 lines to 220 lines (60.9% reduction, 341 lines eliminated)
-- Created 6 phase classes totaling ~653 lines (net +312 lines to project, but much better architecture)
-- Separation of concerns - each phase is independent and testable
-- Improved maintainability - clear responsibilities for each phase
-- Better testability - phases can be tested in isolation
-- Enhanced extensibility - easy to add/modify phases
-- All compilation tests passed (simple_iter, simple_data_processing, minimal diagram)
-- Linting passed (make lint-server)
-
----
-
-### Task 16: Simplify Prompt Path Resolution (Issue #16) ✓
-**Priority:** Medium | **Effort:** Small (2-3 hours) | **Score:** 5/10
-**Completed:** 2025-10-11
-
-`_resolve_prompt_path()` had 35 lines with multiple similar path resolution attempts.
-
-**Actions:**
-- [x] Create strategy pattern with ordered path resolvers in `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/prompt_compiler.py`
-- [x] Define `PromptPathResolver` class with resolver methods:
-  - `_try_absolute_project_path()`
-  - `_try_diagram_dir_direct()`
-  - `_try_diagram_dir_prompts()`
-  - `_try_global_prompts()`
-  - `_try_absolute_path()`
-- [x] Refactor `_resolve_prompt_path()` to iterate through resolvers
-- [x] Reduce from 35 lines to ~15 lines
-- [x] Add unit tests for path resolution
-
-**Files modified:**
-- `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/prompt_compiler.py`
-
-**Results:**
-- Reduced prompt path resolution code from 35 lines to 15 lines (57% reduction, ~20 lines eliminated)
-- Introduced strategy pattern with ordered path resolvers
-- Extracted five distinct resolution strategies into separate methods
-- Improved code clarity - main method now clearly shows resolution order
-- Better maintainability - easy to add/remove/reorder resolution strategies
-- All tests passed (make lint-server)
-- Verified with diagram execution test
-
----
-
-## Phase 3: Polish & Consistency (Week 6)
-
-Standardization, reorganization, and documentation updates.
-
-**Estimated Effort:** 1.5 weeks (11-14 hours)
-
-### Task 11: Standardize Strategy Module Patterns (Issue #9) ✓
-**Priority:** Medium | **Effort:** Medium (4-5 hours) | **Score:** 5/10
-**Completed:** 2025-10-11
-
-The two strategies had inconsistent internal organization:
-- Light: 3 modules (parser, serializer, connection_processor)
-- Readable: 4 modules (parser, serializer, transformer, flow_parser)
-
-**Problem:**
-- Transformer in readable does work that connection_processor does in light
-- Inconsistent module naming
-- Different responsibilities
-
-**Actions:**
-- [x] Review both strategy structures
-- [x] Standardize to consistent pattern:
-  ```
-  strategies/
-    {format}/
-      parser.py         # Raw data → format-specific model
-      transformer.py    # Format model ↔ DomainDiagram dict
-      serializer.py     # Format model → export dict
-      strategy.py       # Orchestrator
-  ```
-- [x] Refactor light strategy to add `transformer.py`
-- [x] Move transformation logic from `connection_processor.py` to `transformer.py`
-- [x] Implemented bidirectional transformation (to_domain and from_domain)
-- [x] Ensure both strategies follow the same pattern
-- [x] Run tests for both light and readable formats
-- [x] Test round-trip conversions: Light → Domain → Light
-
-**Files created:**
-- NEW: `/home/soryhyun/DiPeO/dipeo/domain/diagram/strategies/light/transformer.py` (LightDiagramTransformer class)
-
-**Files modified:**
-- `/home/soryhyun/DiPeO/dipeo/domain/diagram/strategies/light/connection_processor.py` (REMOVED - logic moved to transformer)
-- `/home/soryhyun/DiPeO/dipeo/domain/diagram/strategies/light/strategy.py` (updated to use transformer)
-- `/home/soryhyun/DiPeO/dipeo/domain/diagram/strategies/light/serializer.py` (updated to use transformer for from_domain)
-
-**Results:**
-- Unified both strategies to consistent 4-module structure
-- Created LightDiagramTransformer with bidirectional transformation (to_domain and from_domain)
-- Removed connection_processor.py (logic now in transformer)
-- Both strategies now follow: parser → transformer → serializer → strategy
-- Improved code clarity - clear separation between parsing, transformation, and serialization
-- Better maintainability - consistent patterns across strategies
-- All tests passed (simple_iter, simple_data_processing verified)
-- Verified round-trip conversion: Light → Domain → Light
-
----
-
-### Task 12: Reorganize Utility Module Structure (Issue #21)
-**Priority:** Low | **Effort:** Medium (3-4 hours)
-
-The utils module has 12 files, some very small. Consolidate related utilities.
-
-**Problem:**
-- 12 utility files with unclear boundaries
-- Some files are very small (1-2 functions)
-- No clear organization
+- 12 utility files, some very small (1-2 functions)
+- Unclear organization and boundaries
+- No logical grouping
 
 **Actions:**
 - [ ] Review all files in `/home/soryhyun/DiPeO/dipeo/domain/diagram/utils/`
@@ -461,93 +46,113 @@ The utils module has 12 files, some very small. Consolidate related utilities.
   ```
   utils/
     core/
-      handle_operations.py  # Already created in Task 4
-      node_operations.py    # Merge node-related utilities
-      arrow_operations.py   # Merge arrow-related utilities
+      handle_operations.py  # Handle ID operations
+      node_operations.py    # Node-related utilities
+      arrow_operations.py   # Arrow-related utilities
     conversion/
-      format_converters.py  # Keep conversion_utils
-      data_extractors.py    # Created in Task 6
+      format_converters.py  # Format conversion utilities
+      data_extractors.py    # Data extraction utilities
     graph/
-      graph_utils.py        # Keep as is
+      graph_utils.py        # Graph traversal utilities
     __init__.py             # Clean public API
   ```
 - [ ] Move files into organized structure
 - [ ] Update all imports across the codebase
-- [ ] Create clean public API in `utils/__init__.py`:
-  ```python
-  # Handle operations
-  from .core.handle_operations import (
-      parse_handle_id,
-      parse_handle_id_safe,
-      create_handle_id,
-  )
-  # ... all exports
-  ```
+- [ ] Create clean public API in `utils/__init__.py`
 - [ ] Add module docstrings explaining organization
 - [ ] Run tests: `make lint-server`
 - [ ] Verify no import errors
 
 **Files affected:**
 - All files in `/home/soryhyun/DiPeO/dipeo/domain/diagram/utils/`
-- Many import statements across the diagram module
+- Many import statements across diagram module
 
 ---
 
-### Task 13: Update Documentation ✓
-**Priority:** Medium | **Effort:** Medium (4-5 hours)
-**Completed:** 2025-10-11
+#### Task 24: Consolidate Validation Architecture
+**Priority:** HIGH | **Effort:** Medium (4-5 hours)
 
-Update documentation to reflect all refactoring changes.
+Multiple validation entry points with unclear boundaries between structural and business validation.
+
+**Problem:**
+- `validation/service.py`: Thin wrappers around compiler
+- `validation/diagram_validator.py`: BaseValidator with business logic (person/API key validation lines 43-63)
+- `validation/utils.py`: Shared utilities for phases
+- `compilation/phases/validation_phase.py`: Structural validation
+- `ports.py`: DiagramStorageSerializer has validate() method (lines 54-59)
 
 **Actions:**
-- [x] Update architecture documentation
-  - Add diagram showing new module organization
-  - Document handle operations clearly
-  - Explain validation flow (from Task 3)
-  - Show compilation phases (from Task 10)
-- [x] Update API documentation
-  - Document new consolidated APIs
-  - Mark deprecated functions (if any still exist)
-  - Provide migration guide for any breaking changes
-- [x] Create developer guide section:
-  - How to add new node types (using handle config from Task 8)
-  - How to add new formats (using standard strategy pattern)
-  - How to add new compilation phases
-  - Testing guidelines
-- [x] Update CLAUDE.md if needed
-- [x] Add docstrings to all new modules created
-- [x] Review and update existing docstrings
+- [ ] Clarify separation between structural validation (compiler phases) vs. business validation (domain rules)
+- [ ] Decide if DiagramValidator should remain or if all validation should go through compiler
+- [ ] Move person/API key validation to appropriate location (domain service or separate validator)
+- [ ] Consider if validation/service.py thin wrappers add value or should be removed
+- [ ] Update validation/README.md to document clear validation architecture
+- [ ] Remove validate() method from DiagramStorageSerializer in ports.py (lines 54-59) if redundant
+- [ ] Run tests: `make lint-server`
 
-**Files created:**
-- NEW: `/home/soryhyun/DiPeO/docs/architecture/diagram-compilation.md` (comprehensive compilation architecture)
-- NEW: `/home/soryhyun/DiPeO/docs/guides/developer-guide-diagrams.md` (developer guide for diagram domain)
-
-**Files modified:**
-- `/home/soryhyun/DiPeO/docs/architecture/domain-layer.md` (added diagram compilation section)
-- `/home/soryhyun/DiPeO/CLAUDE.md` (added diagram domain reference)
-- `/home/soryhyun/DiPeO/docs/index.md` (added links to new documentation)
-
-**Results:**
-- Created comprehensive diagram compilation architecture documentation
-- Created detailed developer guide covering:
-  - Adding new node types (configuration-driven)
-  - Adding new diagram formats (strategy pattern)
-  - Adding compilation phases
-  - Testing strategies
-- Updated architecture overview to include diagram compilation
-- Updated CLAUDE.md with diagram domain reference
-- Improved documentation coverage for all refactoring work
+**Files to review:**
+- `/home/soryhyun/DiPeO/dipeo/domain/diagram/validation/service.py`
+- `/home/soryhyun/DiPeO/dipeo/domain/diagram/validation/diagram_validator.py`
+- `/home/soryhyun/DiPeO/dipeo/domain/diagram/validation/utils.py`
+- `/home/soryhyun/DiPeO/dipeo/domain/diagram/compilation/phases/validation_phase.py`
+- `/home/soryhyun/DiPeO/dipeo/domain/diagram/ports.py`
 
 ---
 
-## Phase 4: Future Improvements (Low Priority)
+#### Task 25: Unify Person-Related Logic
+**Priority:** MEDIUM | **Effort:** Small (2-3 hours)
 
-Long-term enhancements and polish.
+Person logic scattered across multiple modules without clear organization.
 
-**Estimated Effort:** 1-1.5 weeks (8-12 hours)
+**Problem:**
+- `person_extractor.py` in utils
+- `person_resolver.py` in utils
+- Person validation in `diagram_validator.py` (lines 43-54, 56-63)
+- Person handling in compilation phases
 
-### Task 18: Convert YAML/JSON Mixins to Base Classes (Issue #10)
-**Priority:** Low | **Effort:** Small (2-3 hours)
+**Actions:**
+- [ ] Review all person-related operations across diagram module
+- [ ] Consider creating `utils/person/` subdirectory or single `person_operations.py`
+- [ ] Consolidate person extraction, resolution, and validation logic
+- [ ] Create clear API boundaries for person-related operations
+- [ ] Move person validation from diagram_validator.py to appropriate location
+- [ ] Update imports across codebase
+- [ ] Run tests: `make lint-server`
+
+**Files to review:**
+- `/home/soryhyun/DiPeO/dipeo/domain/diagram/utils/person_extractor.py`
+- `/home/soryhyun/DiPeO/dipeo/domain/diagram/utils/person_resolver.py`
+- `/home/soryhyun/DiPeO/dipeo/domain/diagram/validation/diagram_validator.py`
+
+---
+
+#### Task 26: Review Port Interface Consistency
+**Priority:** LOW | **Effort:** Small (1-2 hours)
+
+Port interfaces mixing concerns - unclear if validate() belongs in serializer.
+
+**Problem:**
+- `DiagramStorageSerializer` has validate() method (ports.py:54-59)
+- Unclear if this should be in validation module instead
+- Potential violation of single responsibility principle
+
+**Actions:**
+- [ ] Review all port interfaces in ports.py and segregated_ports.py
+- [ ] Ensure each port follows single responsibility principle
+- [ ] Move validate() method to appropriate location or document why it belongs in serializer
+- [ ] Update documentation for port architecture
+- [ ] Run tests: `make lint-server`
+
+**Files to review:**
+- `/home/soryhyun/DiPeO/dipeo/domain/diagram/ports.py`
+- `/home/soryhyun/DiPeO/dipeo/domain/diagram/segregated_ports.py`
+
+---
+
+### Phase 4: Future Improvements (Low Priority)
+
+#### Task 18: Convert YAML/JSON Mixins to Base Classes (Issue #10)
+**Priority:** LOW | **Effort:** Small (2-3 hours)
 
 `_JsonMixin` and `_YamlMixin` should be explicit base classes rather than mixins.
 
@@ -559,8 +164,8 @@ Long-term enhancements and polish.
 
 ---
 
-### Task 19: Add Testing Utilities (Issue #26)
-**Priority:** Low | **Effort:** Medium (3-4 hours)
+#### Task 19: Add Testing Utilities (Issue #26)
+**Priority:** LOW | **Effort:** Medium (3-4 hours)
 
 No test utilities or factories visible in the diagram module.
 
@@ -569,47 +174,40 @@ No test utilities or factories visible in the diagram module.
 - [ ] Create `factories.py` with `DiagramFactory` class
 - [ ] Create `fixtures.py` with common test fixtures
 - [ ] Create `assertions.py` with custom assertions for diagrams
-- [ ] Add factory methods for common test diagrams:
-  - `create_simple_workflow()` - start → job → endpoint
-  - `create_conditional_workflow()` - with condition node
-  - `create_loop_workflow()` - with iterations
+- [ ] Add factory methods for common test diagrams
 - [ ] Document usage in developer guide
 
 ---
 
-### Task 20: Improve Type Hints Consistency (Issue #23)
-**Priority:** Low | **Effort:** Small (2-3 hours)
+#### Task 20: Improve Type Hints Consistency (Issue #23)
+**Priority:** LOW | **Effort:** Small (2-3 hours)
 
 Some functions use `Any` excessively, others have precise types.
 
 **Actions:**
 - [ ] Create `/home/soryhyun/DiPeO/dipeo/domain/diagram/models/types.py`
-- [ ] Define TypedDict types for common structures:
-  - `NodeDict`
-  - `ArrowDict`
-  - `HandleDict`
-  - `PersonDict`
-- [ ] Update function signatures across the module to use TypedDict
+- [ ] Define TypedDict types for common structures (NodeDict, ArrowDict, HandleDict, PersonDict)
+- [ ] Update function signatures across module to use TypedDict
 - [ ] Run type checking: `pnpm typecheck`
 
 ---
 
-### Task 21: Eliminate Magic Strings for Node Types (Issue #24)
-**Priority:** Low | **Effort:** Small (1-2 hours)
+#### Task 21: Eliminate Magic Strings for Node Types (Issue #24)
+**Priority:** LOW | **Effort:** Small (1-2 hours)
 
 Node type checking uses string comparisons: `if node_type == "person_job":`
 
 **Actions:**
 - [ ] Create `NodeTypeChecker` helper class
 - [ ] Replace string comparisons with enum usage
-- [ ] Search for all magic string comparisons: `grep -r "== \".*_job\"" dipeo/domain/diagram/`
+- [ ] Search for all magic string comparisons
 - [ ] Update to use `NodeType` enum
 - [ ] Run tests
 
 ---
 
-### Task 22: Automate Strategy Registration (Issue #25)
-**Priority:** Low | **Effort:** Small (2-3 hours)
+#### Task 22: Automate Strategy Registration (Issue #25)
+**Priority:** LOW | **Effort:** Small (2-3 hours)
 
 Strategies are manually registered. Use a registry pattern with auto-discovery.
 
@@ -622,115 +220,127 @@ Strategies are manually registered. Use a registry pattern with auto-discovery.
 
 ---
 
+## Completed Work Archive
+
+### Phase 1: Foundation & High Priority (COMPLETE)
+
+**Completed Tasks:**
+- **Task 6** (2025-10-11): Created unified data extractors (~15 lines eliminated)
+  - NEW: `utils/data_extractors.py` (DiagramDataExtractor class)
+  - Eliminated duplicate extraction logic across parsers
+
+- **Task 14** (2025-10-11): Extracted person resolution logic (~30-35 lines eliminated)
+  - NEW: `utils/person_resolver.py` (PersonReferenceResolver class)
+  - Unified bidirectional person reference mapping
+
+- **Task 15** (2025-10-11): Modularized connection processing (~43 lines improved structure)
+  - Main method reduced from 58 lines to 15 lines (74% reduction)
+  - Improved readability and testability
+
+- **Task 17** (2025-10-11): Consolidated validation error conversion (~20 lines eliminated)
+  - Unified to_validation_result() method with parameter
+  - Eliminated duplicate field name computation
+
+**Results:** ~110 lines eliminated/restructured, improved code organization
+
+---
+
+### Phase 2: Structural Improvements (COMPLETE)
+
+**Completed Tasks:**
+- **Task 8** (2025-10-11): Refactored handle generation to configuration-driven (~52 lines eliminated)
+  - Created HandleSpec dataclass and HANDLE_SPECS mapping
+  - Reduced from 87 lines to 35 lines (60% reduction)
+  - Configuration-driven approach for all 8 node types
+
+- **Task 9** (2025-10-11): Made node field mapping table-driven (~46 lines eliminated)
+  - Created FIELD_MAPPINGS configuration
+  - Reduced from 86 lines to 40 lines (53% reduction)
+  - Eliminated if-elif chains
+
+- **Task 10** (2025-10-11): Extracted compilation phases to separate classes (~341 lines eliminated)
+  - Created 6 phase classes (ValidationPhase, NodeTransformationPhase, etc.)
+  - Compiler reduced from 561 lines to 220 lines (60.9% reduction)
+  - Clear separation of concerns with PhaseInterface
+
+- **Task 16** (2025-10-11): Simplified prompt path resolution (~20 lines eliminated)
+  - Strategy pattern with ordered path resolvers
+  - Reduced from 35 lines to 15 lines (57% reduction)
+
+**Results:** ~461 lines eliminated, configuration-driven design, 6-phase compilation pipeline
+
+---
+
+### Phase 3: Polish & Consistency (Partially Complete)
+
+**Completed Tasks:**
+- **Task 11** (2025-10-11): Standardized strategy module patterns (~5 hours)
+  - NEW: `strategies/light/transformer.py` (LightDiagramTransformer)
+  - Unified both strategies to consistent 4-module structure
+  - Both strategies now follow: parser → transformer → serializer → strategy
+
+- **Task 13** (2025-10-11): Updated documentation (~4-5 hours)
+  - NEW: `docs/architecture/diagram-compilation.md`
+  - NEW: `docs/guides/developer-guide-diagrams.md`
+  - Comprehensive architecture and developer guides
+
+- **Task 23** (2025-10-11): Removed deprecated utilities and forwarding modules (~2-3 hours)
+  - REMOVED: 2 forwarding modules (light_strategy.py, readable_strategy.py)
+  - REMOVED: 3 deprecated utilities (handle_parser.py, arrow_data_processor.py, handle_utils.py)
+  - Cleaned up exports
+
+**Results:** Standardized patterns, comprehensive documentation, reduced technical debt
+
+---
+
+## Progress Summary
+
+**Overall:** 11/17 tasks complete (65%)
+
+**By Phase:**
+- Phase 1 (Foundation): 4/4 (100%) ✓ COMPLETE
+- Phase 2 (Structural): 4/4 (100%) ✓ COMPLETE
+- Phase 3 (Polish): 3/7 (43%) - IN PROGRESS
+- Phase 4 (Future): 0/6 (0%) - Not started
+
+**Remaining Effort:** ~1-1.5 weeks (part-time)
+
+**Code Reduction:** ~571 lines eliminated + 5 deprecated modules removed
+
+---
+
 ## Testing Strategy
 
-For all refactoring tasks, follow this testing approach:
-
 ### Before Refactoring
-1. Run existing tests to establish baseline:
-   ```bash
-   make lint-server
-   make format
-   pnpm typecheck
-   ```
-2. Test diagram parsing:
-   ```bash
-   dipeo run examples/simple_diagrams/simple_iter --light --debug --timeout=40
-   ```
-3. Test diagram export:
-   ```bash
-   dipeo export examples/simple_diagrams/simple_iter.light.yaml output.py --light
-   python output.py  # Verify exported script works
-   ```
+```bash
+make lint-server
+dipeo run examples/simple_diagrams/simple_iter --light --debug --timeout=40
+```
 
 ### During Refactoring
-1. Run tests after each file modification
-2. Commit after each completed subtask
-3. Test incrementally, don't wait until the end
+- Run tests after each file modification
+- Commit after each completed subtask
+- Test incrementally
 
 ### After Refactoring
-1. Comprehensive validation:
-   ```bash
-   make lint-server  # Must pass
-   make format       # Apply formatting
-   pnpm typecheck    # Must pass
-   make graphql-schema  # Update if needed
-   ```
-2. Test all diagram formats:
-   ```bash
-   # Light format
-   dipeo run examples/simple_diagrams/simple_iter --light --debug
-
-   # Readable format (if available)
-   dipeo run examples/simple_diagrams/simple_iter --debug
-
-   # Test export
-   dipeo export examples/simple_diagrams/simple_iter.light.yaml output.py --light
-   ```
-3. Test complex diagrams to ensure no regressions
-4. Verify GraphQL API still works: `http://localhost:8000/graphql`
-
----
-
-## Progress Tracking
-
-### Phase 1: Foundation & High Priority (Week 1-2) ✅ COMPLETE!
-- [x] Task 6: Create Unified Data Extractors ✓ (Completed 2025-10-11)
-- [x] Task 14: Extract Person Resolution Logic ✓ (Completed 2025-10-11)
-- [x] Task 15: Modularize Connection Processing ✓ (Completed 2025-10-11)
-- [x] Task 17: Consolidate Validation Error Conversion ✓ (Completed 2025-10-11)
-
-**Progress:** 4/4 tasks (100%) ✅ PHASE COMPLETE!
-
-### Phase 2: Structural Improvements (Week 3-5) ✅ COMPLETE!
-- [x] Task 8: Refactor Handle Generation to Configuration-Driven ✓ (Completed 2025-10-11)
-- [x] Task 9: Make Node Field Mapping Table-Driven ✓ (Completed 2025-10-11)
-- [x] Task 10: Extract Compilation Phases to Separate Classes ✓ (Completed 2025-10-11)
-- [x] Task 16: Simplify Prompt Path Resolution ✓ (Completed 2025-10-11)
-
-**Progress:** 4/4 tasks (100%) ✅ PHASE COMPLETE!
-
-### Phase 3: Polish & Consistency (Week 6)
-- [x] Task 11: Standardize Strategy Module Patterns ✓ (Completed 2025-10-11)
-- [ ] Task 12: Reorganize Utility Module Structure (Low Priority)
-- [x] Task 13: Update Documentation ✓ (Completed 2025-10-11)
-
-**Progress:** 2/3 tasks (67%) | Task 12 pending (low priority)
-
-### Phase 4: Future Improvements (Low Priority)
-- [ ] Task 18: Convert YAML/JSON Mixins to Base Classes
-- [ ] Task 19: Add Testing Utilities
-- [ ] Task 20: Improve Type Hints Consistency
-- [ ] Task 21: Eliminate Magic Strings for Node Types
-- [ ] Task 22: Automate Strategy Registration
-
-**Progress:** 0/6 tasks (0%)
-
-**Overall Progress:** 10/17 tasks (59%) | Phase 1: ✅ COMPLETE | Phase 2: ✅ COMPLETE | Phase 3: 2/3 tasks
-
----
-
-## Goal
-
-Continue improving maintainability of the diagram domain to match the quality of the execution domain. Focus on:
-- Eliminate remaining code duplication ✓ (Phases 1-2 complete)
-- Configuration-driven approaches for flexibility ✓ (Phase 2 complete)
-- Clear separation of concerns ✓ (Phase 3 in progress)
-- Better module organization (Phase 3: Task 12 pending)
-- Improved testability ✓ (Phase 2 complete)
-- Consistent architecture patterns ✓ (Phase 3: Tasks 11, 13 complete)
+```bash
+make lint-server      # Must pass
+make format           # Apply formatting
+pnpm typecheck        # Must pass
+dipeo run examples/simple_diagrams/simple_iter --light --debug
+```
 
 ---
 
 ## Success Metrics
 
 **Quantitative:**
-- Complete 17 total tasks (10 completed, 7 remaining)
-- Reduce code complexity by 20-30% (Phase 1: ~110 lines ✓ | Phase 2: ~461 lines ✓ | Phase 3: standardized patterns ✓ | Total: ~571 lines eliminated/restructured)
-- Achieve configuration-driven design for handle generation and field mapping ✓
-- Modularize compiler into separate phases ✓
-- Standardize strategy module patterns ✓
-- All linting and type checks pass (maintained throughout ✓)
+- Complete 17 total tasks (11 done, 6 remaining)
+- Phases 1 & 2: ~571 lines eliminated ✓
+- Configuration-driven design for handles and field mapping ✓
+- 6-phase modular compiler ✓
+- Standardized strategy patterns ✓
+- All linting/type checks pass ✓
 
 **Qualitative:**
 - Clearer module boundaries ✓
@@ -738,19 +348,16 @@ Continue improving maintainability of the diagram domain to match the quality of
 - Easier to add new format strategies ✓ (standardized pattern)
 - Better test coverage (in progress)
 - More maintainable codebase ✓
-- Consistent patterns across similar components ✓
+- Consistent patterns ✓
 
 ---
 
 ## Notes
 
-- **Current status:** Phase 1 & 2 complete (8 tasks ✅), Phase 3: 2/3 tasks complete (Tasks 11, 13 ✅)
-- **Based on:** Comprehensive codebase audit completed 2025-10-11
-- **Report location:** `/home/soryhyun/DiPeO/report.md`
+- **Current focus:** Phase 3 architectural polish (Tasks 12, 24, 25, 26)
+- **Based on:** Comprehensive codebase audit (2025-10-11)
 - **Audit scope:** 54 Python files in `dipeo/domain/diagram/`
-- **Timeline:** ~1 week (part-time effort) for remaining work
-- **Risk level:** Low (most critical work complete, remaining tasks are polish/future enhancements)
+- **Risk level:** Low (critical work complete)
 - **ROI:** High (faster development, fewer bugs, easier onboarding)
-- **Progress:** 59% complete, ~571 lines eliminated/restructured across 10 completed tasks
 
-**Important:** Each task is independent and can be worked on incrementally. Each completed task improves the codebase immediately. Prioritize tasks based on current development needs. Task 12 is low priority and can be done later. Phase 4 tasks are future enhancements.
+**Important:** Tasks are independent and can be worked on incrementally. Each completed task provides immediate value. Prioritize based on current development needs.
