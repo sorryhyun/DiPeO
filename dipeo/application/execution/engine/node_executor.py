@@ -109,7 +109,7 @@ async def _handle_max_iteration_reached(
     node: "ExecutableNode", context: "TypedExecutionContext", event_pipeline: "EventPipeline"
 ) -> dict[str, Any]:
     from dipeo.diagram_generated.enums import Status
-    from dipeo.domain.execution.envelope import EnvelopeFactory
+    from dipeo.domain.execution.messaging.envelope import EnvelopeFactory
 
     node_id = node.id
     current_count = context.state.get_node_execution_count(node_id)

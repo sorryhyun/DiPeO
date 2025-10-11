@@ -10,7 +10,7 @@ from dipeo.application.execution.handlers.core.decorators import requires_servic
 from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.registry.keys import AST_PARSER
 from dipeo.diagram_generated.unified_nodes.typescript_ast_node import NodeType, TypescriptAstNode
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
     pass

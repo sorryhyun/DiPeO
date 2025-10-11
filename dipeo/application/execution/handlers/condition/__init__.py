@@ -15,7 +15,7 @@ from dipeo.application.execution.handlers.utils import get_node_execution_count
 from dipeo.application.registry.keys import EXECUTION_ORCHESTRATOR, PROMPT_BUILDER
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.unified_nodes.condition_node import ConditionNode, NodeType
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 from .evaluators import (
     ConditionEvaluator,
@@ -26,7 +26,7 @@ from .evaluators import (
 from .evaluators.llm_decision_evaluator import LLMDecisionEvaluator
 
 if TYPE_CHECKING:
-    from dipeo.domain.execution.execution_context import ExecutionContext
+    from dipeo.domain.execution.context.execution_context import ExecutionContext
 
 logger = get_module_logger(__name__)
 

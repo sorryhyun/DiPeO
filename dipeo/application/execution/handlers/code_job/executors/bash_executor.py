@@ -12,7 +12,6 @@ from .base import BaseCodeExecutor
 
 
 class BashExecutor(BaseCodeExecutor):
-
     async def execute_file(
         self, file_path: Path, inputs: dict[str, Any], timeout: int, function_name: str = "main"
     ) -> Any:
@@ -103,7 +102,9 @@ class BashExecutor(BaseCodeExecutor):
     async def execute_inline(
         self, code: str, inputs: dict[str, Any], timeout: int, function_name: str = "main"
     ) -> Any:
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".sh", delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".sh", delete=False, encoding="utf-8"
+        ) as temp_file:
             if not code.startswith("#!"):
                 temp_file.write("#!/bin/bash\n")
             temp_file.write(code)

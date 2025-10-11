@@ -16,7 +16,7 @@ from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.registry import API_INVOKER
 from dipeo.diagram_generated.enums import HttpMethod
 from dipeo.diagram_generated.unified_nodes.api_job_node import ApiJobNode, NodeType
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 
 @register_handler

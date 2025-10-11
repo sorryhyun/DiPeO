@@ -21,13 +21,12 @@ from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.enums import HookType
 from dipeo.diagram_generated.unified_nodes.hook_node import HookNode, NodeType
 from dipeo.domain.base.exceptions import InvalidDiagramError, NodeExecutionError
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 
 @register_handler
 @requires_services(filesystem_adapter=(FILESYSTEM_ADAPTER, Optional))
 class HookNodeHandler(TypedNodeHandler[HookNode]):
-
     NODE_TYPE = NodeType.HOOK
 
     def __init__(self):

@@ -11,10 +11,12 @@ from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import NodeID, NodeType, Status
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram
 from dipeo.domain.events.unified_ports import EventBus
-from dipeo.domain.execution.envelope import Envelope
-from dipeo.domain.execution.execution_context import ExecutionContext as ExecutionContextProtocol
-from dipeo.domain.execution.state_tracker import StateTracker
-from dipeo.domain.execution.token_manager import TokenManager
+from dipeo.domain.execution.context.execution_context import (
+    ExecutionContext as ExecutionContextProtocol,
+)
+from dipeo.domain.execution.messaging.envelope import Envelope
+from dipeo.domain.execution.state import UnifiedStateTracker as StateTracker
+from dipeo.domain.execution.tokens.token_manager import TokenManager
 
 if TYPE_CHECKING:
     from dipeo.application.bootstrap import Container
@@ -238,4 +240,4 @@ class TypedExecutionContext(ExecutionContextProtocol):
         return merged
 
     def get_tracker(self) -> Any:
-        return self._state_tracker._tracker
+        return self._state_tracker.get_tracker()

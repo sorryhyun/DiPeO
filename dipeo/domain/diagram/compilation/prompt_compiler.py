@@ -18,6 +18,54 @@ from dipeo.diagram_generated import DomainNode, NodeType
 logger = get_module_logger(__name__)
 
 
+def _try_project_files_path(
+    filename: str, base_path: Path, diagram_dir: Path | None
+) -> Path | None:
+    """Try resolving paths starting with 'projects/' or 'files/'."""
+    if filename.startswith(("projects/", "files/")):
+        full_path = base_path / filename
+        if full_path.exists():
+            return full_path
+    return None
+
+
+def _try_diagram_dir_paths(filename: str, base_path: Path, diagram_dir: Path | None) -> Path | None:
+    """Try resolving paths relative to diagram directory."""
+    if not diagram_dir:
+        return None
+
+    for path_candidate in [
+        diagram_dir / filename,
+        diagram_dir / "prompts" / filename,
+        diagram_dir / "prompts" / filename.replace("prompts/", "")
+        if "prompts/" in filename
+        else None,
+    ]:
+        if path_candidate and path_candidate.exists():
+            return path_candidate
+    return None
+
+
+def _try_global_prompts(filename: str, base_path: Path, diagram_dir: Path | None) -> Path | None:
+    """Try resolving from global prompts directory."""
+    global_path = base_path / "files" / "prompts" / filename
+    return global_path if global_path.exists() else None
+
+
+def _try_absolute_path(filename: str, base_path: Path, diagram_dir: Path | None) -> Path | None:
+    """Try resolving as absolute path."""
+    abs_path = Path(filename)
+    return abs_path if abs_path.is_absolute() and abs_path.exists() else None
+
+
+PATH_RESOLVERS = [
+    _try_project_files_path,
+    _try_diagram_dir_paths,
+    _try_global_prompts,
+    _try_absolute_path,
+]
+
+
 class PromptFileCompiler:
     """Resolves prompt file references to actual content during compilation.
 
@@ -107,36 +155,9 @@ class PromptFileCompiler:
     def _resolve_prompt_path(self, prompt_filename: str, diagram_dir: Path | None) -> Path | None:
         base_path = Path(self._base_dir)
 
-        if prompt_filename.startswith(("projects/", "files/")):
-            full_path = base_path / prompt_filename
-            if full_path.exists():
-                return full_path
-
-        if diagram_dir:
-            # Try direct path in diagram directory first
-            direct_path = diagram_dir / prompt_filename
-            if direct_path.exists():
-                return direct_path
-
-            # Try prompts subdirectory
-            local_path = diagram_dir / "prompts" / prompt_filename
-            if local_path.exists():
-                return local_path
-
-            # If filename includes "prompts/", also try without it in prompts subdirectory
-            if "prompts/" in prompt_filename:
-                stripped_name = prompt_filename.replace("prompts/", "")
-                stripped_path = diagram_dir / "prompts" / stripped_name
-                if stripped_path.exists():
-                    return stripped_path
-
-        global_path = base_path / "files" / "prompts" / prompt_filename
-        if global_path.exists():
-            return global_path
-
-        abs_path = Path(prompt_filename)
-        if abs_path.is_absolute() and abs_path.exists():
-            return abs_path
+        for resolver in PATH_RESOLVERS:
+            if result := resolver(prompt_filename, base_path, diagram_dir):
+                return result
 
         logger.debug(f"[PromptCompiler] No valid path found for {prompt_filename}")
         return None

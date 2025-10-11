@@ -51,13 +51,6 @@ class DiagramStorageSerializer(ABC):
     ) -> "DomainDiagram":
         pass
 
-    def validate(self, content: str) -> tuple[bool, list[str]]:
-        try:
-            self.deserialize_from_storage(content)
-            return True, []
-        except Exception as e:
-            return False, [str(e)]
-
 
 # ============================================================================
 # Format Strategy Port

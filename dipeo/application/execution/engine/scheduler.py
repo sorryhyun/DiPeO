@@ -7,7 +7,7 @@ from dipeo.application.execution.engine.ready_queue import ReadyQueue
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import NodeID, NodeType, Status
 from dipeo.domain.diagram.models.executable_diagram import ExecutableDiagram, ExecutableNode
-from dipeo.domain.execution.token_types import ConcurrencyPolicy, EdgeRef, JoinPolicy
+from dipeo.domain.execution.tokens.token_types import ConcurrencyPolicy, EdgeRef, JoinPolicy
 
 if TYPE_CHECKING:
     from dipeo.application.execution.engine.context import TypedExecutionContext

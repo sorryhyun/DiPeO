@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from dipeo.config.base_logger import get_module_logger
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 logger = get_module_logger(__name__)
 

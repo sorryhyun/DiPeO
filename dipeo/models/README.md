@@ -661,7 +661,7 @@ pnpm build      # Rebuild
 
 ```bash
 # Check logs
-cat .logs/cli.log
+cat .dipeo/logs/cli.log
 
 # Run with debug
 make codegen --debug

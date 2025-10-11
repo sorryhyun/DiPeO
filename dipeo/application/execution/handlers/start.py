@@ -9,10 +9,10 @@ from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.registry import STATE_STORE
 from dipeo.diagram_generated.enums import HookTriggerMode, NodeType
 from dipeo.diagram_generated.unified_nodes.start_node import StartNode
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
-    from dipeo.domain.execution.execution_context import ExecutionContext
+    from dipeo.domain.execution.context.execution_context import ExecutionContext
 
 
 @register_handler

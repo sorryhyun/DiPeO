@@ -13,7 +13,7 @@ from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.unified_nodes.code_job_node import CodeJobNode, NodeType
 from dipeo.domain.base.storage_port import FileSystemPort
 from dipeo.domain.diagram.ports import TemplateProcessorPort
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 from .executors import (
     BashExecutor,

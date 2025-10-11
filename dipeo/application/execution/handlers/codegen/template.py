@@ -15,7 +15,7 @@ from dipeo.application.registry.keys import FILESYSTEM_ADAPTER, TEMPLATE_RENDERE
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.unified_nodes.template_job_node import NodeType, TemplateJobNode
 from dipeo.domain.codegen.ports import TemplateRendererPort
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
     pass

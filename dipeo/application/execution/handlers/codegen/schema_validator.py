@@ -15,7 +15,7 @@ from dipeo.diagram_generated.unified_nodes.json_schema_validator_node import (
     JsonSchemaValidatorNode,
     NodeType,
 )
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
     pass

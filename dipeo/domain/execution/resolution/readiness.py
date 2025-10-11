@@ -5,8 +5,8 @@ their values during execution, based on dependency states, branching, and iterat
 """
 
 from dipeo.domain.diagram.models.executable_diagram import ExecutableEdgeV2, ExecutableNode
-from dipeo.domain.execution.envelope import Envelope
-from dipeo.domain.execution.execution_context import ExecutionContext
+from dipeo.domain.execution.context.execution_context import ExecutionContext
+from dipeo.domain.execution.messaging.envelope import Envelope
 
 
 def edge_is_ready(edge: ExecutableEdgeV2, node: ExecutableNode, ctx: ExecutionContext) -> bool:

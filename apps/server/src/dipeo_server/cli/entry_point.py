@@ -23,7 +23,8 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
     from dipeo.application.bootstrap import init_resources, shutdown_resources
     from dipeo.infrastructure.logging_config import setup_logging
     from dipeo_server.app_context import create_server_container
-    from dipeo_server.cli import CLIRunner, ServerManager
+    from dipeo_server.cli import CLIRunner
+    from dipeo_server.cli.core import ServerManager
 
     debug = getattr(args, "debug", False)
     timing = getattr(args, "timing", False)
@@ -276,9 +277,15 @@ def create_parser() -> argparse.ArgumentParser:
 
     # Format options
     export_format_group = export_parser.add_mutually_exclusive_group()
-    export_format_group.add_argument("--light", action="store_true", help="Input is light format (YAML)")
-    export_format_group.add_argument("--native", action="store_true", help="Input is native format (JSON)")
-    export_format_group.add_argument("--readable", action="store_true", help="Input is readable format (YAML)")
+    export_format_group.add_argument(
+        "--light", action="store_true", help="Input is light format (YAML)"
+    )
+    export_format_group.add_argument(
+        "--native", action="store_true", help="Input is native format (JSON)"
+    )
+    export_format_group.add_argument(
+        "--readable", action="store_true", help="Input is readable format (YAML)"
+    )
 
     # Stats command
     stats_parser = subparsers.add_parser("stats", help="Show diagram statistics")
@@ -430,7 +437,7 @@ def main():
             component="server",
             log_level=log_level,
             log_to_file=True,
-            log_dir=".logs",
+            log_dir=".dipeo/logs",
             console_output=True,
         )
 

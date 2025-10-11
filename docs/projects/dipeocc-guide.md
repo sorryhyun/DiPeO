@@ -327,7 +327,7 @@ dipeocc list | grep "your-session-id"
 dipeocc convert --latest --debug
 
 # Check logs
-cat .logs/server.log
+cat .dipeo/logs/server.log
 ```
 
 ### Execution Issues

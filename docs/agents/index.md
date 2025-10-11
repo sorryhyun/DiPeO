@@ -66,11 +66,6 @@ This directory contains detailed development guides for DiPeO's specialized Clau
 **Domain**: Removing redundant comments while preserving valuable ones
 **Key Areas**: Code clarity, documentation quality
 
-### [ChatGPT Integration](chatgpt-integration.md)
-**Agent**: `chatgpt-project-manager`
-**Domain**: Managing DiPeO project in ChatGPT, web automation
-**Key Areas**: Project sync, AI model interaction, research automation
-
 ## How to Use These Guides
 
 Each agent guide contains:

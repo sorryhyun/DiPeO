@@ -17,7 +17,7 @@ from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
 if TYPE_CHECKING:
     from dipeo.application.bootstrap import Container
     from dipeo.application.registry import ServiceKey, ServiceRegistry
-    from dipeo.domain.execution.execution_context import ExecutionContext
+    from dipeo.domain.execution.context.execution_context import ExecutionContext
 
 T = TypeVar("T", bound=ExecutableNode)
 

@@ -27,6 +27,7 @@ from dipeo.infrastructure.llm.drivers.types import (
     ProviderCapabilities,
     ProviderType,
 )
+from dipeo.infrastructure.timing.context import atime_phase, time_phase
 
 from .prompts import LLM_DECISION_PROMPT, MEMORY_SELECTION_PROMPT
 
@@ -219,50 +220,59 @@ class UnifiedOpenAIClient:
         **kwargs,
     ) -> LLMResponse:
         """Execute async chat completion with retry logic."""
+        # Extract trace_id for timing
+        trace_id = kwargs.get("trace_id", "")
+
+        # Determine phase key for proper timing attribution
+        phase_key = execution_phase.value if execution_phase else "default"
+
         # Prepare messages with phase-specific system prompts
         # Pass person_name if available in kwargs
         person_name = kwargs.get("person_name")
-        prepared_messages = self._prepare_messages(
-            messages, execution_phase, person_name=person_name
-        )
+        async with atime_phase(trace_id, "openai", f"{phase_key}__prepare_messages"):
+            prepared_messages = self._prepare_messages(
+                messages, execution_phase, person_name=person_name
+            )
 
         # Build request parameters
-        params = {
-            "model": self.model,
-            "input": prepared_messages,  # New API uses 'input'
-        }
+        async with atime_phase(trace_id, "openai", f"{phase_key}__build_params"):
+            params = {
+                "model": self.model,
+                "input": prepared_messages,  # New API uses 'input'
+            }
 
-        # Add max tokens (new API parameter name)
-        if max_tokens:
-            params["max_output_tokens"] = max_tokens
-        else:
-            params["max_output_tokens"] = self.config.max_tokens or OPENAI_MAX_OUTPUT_TOKENS
+            # Add max tokens (new API parameter name)
+            if max_tokens:
+                params["max_output_tokens"] = max_tokens
+            else:
+                params["max_output_tokens"] = self.config.max_tokens or OPENAI_MAX_OUTPUT_TOKENS
 
-        # Add tools if provided
-        if tools:
-            params["tools"] = self._prepare_tools(tools)
+            # Add tools if provided
+            if tools:
+                params["tools"] = self._prepare_tools(tools)
 
-        # Check for text_format in kwargs (for structured output)
-        text_format = kwargs.pop("text_format", None)
+            # Check for text_format in kwargs (for structured output)
+            text_format = kwargs.pop("text_format", None)
 
-        # Set structured output for specific execution phases if not already set
-        if not text_format:
-            if execution_phase == ExecutionPhase.MEMORY_SELECTION:
-                from dipeo.infrastructure.llm.drivers.types import MemorySelectionOutput
+            # Set structured output for specific execution phases if not already set
+            if not text_format:
+                if execution_phase == ExecutionPhase.MEMORY_SELECTION:
+                    from dipeo.infrastructure.llm.drivers.types import MemorySelectionOutput
 
-                text_format = MemorySelectionOutput
-            elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
-                from dipeo.infrastructure.llm.drivers.types import DecisionOutput
+                    text_format = MemorySelectionOutput
+                elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
+                    from dipeo.infrastructure.llm.drivers.types import DecisionOutput
 
-                text_format = DecisionOutput
+                    text_format = DecisionOutput
 
-        # Add remaining kwargs
-        kwargs_without_formats = {
-            k: v
-            for k, v in kwargs.items()
-            if k not in ["text_format", "messages", "execution_phase", "trace_id", "person_name"]
-        }
-        params.update(kwargs_without_formats)
+            # Add remaining kwargs
+            kwargs_without_formats = {
+                k: v
+                for k, v in kwargs.items()
+                if k
+                not in ["text_format", "messages", "execution_phase", "trace_id", "person_name"]
+            }
+            params.update(kwargs_without_formats)
 
         # Execute with retry
         async for attempt in AsyncRetrying(
@@ -271,18 +281,22 @@ class UnifiedOpenAIClient:
             retry=retry_if_exception_type((ConnectionError, TimeoutError)),
         ):
             with attempt:
-                # Handle structured output
-                if (
-                    text_format
-                    and isinstance(text_format, type)
-                    and issubclass(text_format, BaseModel)
-                ):
-                    params["text_format"] = text_format
-                    response = await self.async_client.responses.parse(**params)
-                else:
-                    response = await self.async_client.responses.create(**params)
+                # API call
+                async with atime_phase(trace_id, "openai", f"{phase_key}__api_request"):
+                    # Handle structured output
+                    if (
+                        text_format
+                        and isinstance(text_format, type)
+                        and issubclass(text_format, BaseModel)
+                    ):
+                        params["text_format"] = text_format
+                        response = await self.async_client.responses.parse(**params)
+                    else:
+                        response = await self.async_client.responses.create(**params)
 
-                return self._parse_response(response)
+                # Parse response
+                with time_phase(trace_id, "openai", f"{phase_key}__parse_response"):
+                    return self._parse_response(response)
 
     async def stream(
         self,

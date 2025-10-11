@@ -10,7 +10,7 @@ from typing import Any, Optional
 from pydantic import BaseModel
 
 from dipeo.application.execution.handlers.core.base import TypedNodeHandler
-from dipeo.domain.execution.envelope import Envelope
+from dipeo.domain.execution.messaging.envelope import Envelope
 
 
 class BaseCodegenHandler(TypedNodeHandler):

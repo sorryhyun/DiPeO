@@ -29,12 +29,26 @@ The domain is organized into 9 bounded contexts, each representing a cohesive ar
 **Purpose**: Diagram compilation and format conversion
 
 **Core Concepts**:
-- **Compilation**: DomainCompiler, NodeFactory, ConnectionResolver, CompileTimeResolver
-- **Strategies**: Native, Readable, Light, Executable formats
-- **Models**: ExecutableDiagram, ExecutableNode/Edge
+- **Compilation Pipeline** (`compilation/`):
+  - DomainDiagramCompiler: Multi-phase compilation orchestrator
+  - Phases: 6-phase pipeline (Validation → Transformation → Resolution → Edge Building → Optimization → Assembly)
+  - Types: CompilationResult, CompilationContext, CompilationPhase enum
+  - Helpers: NodeFactory, ConnectionResolver, EdgeBuilder
+- **Format Strategies** (`strategies/`):
+  - Consistent pattern: parser → transformer → serializer → strategy
+  - Light format: YAML/JSON with simplified syntax
+  - Readable format: Markdown-based diagrams
+  - Each strategy provides bidirectional conversion to/from DomainDiagram
+- **Configuration-Driven Components** (`utils/`):
+  - HandleSpec: Declarative handle configuration (HANDLE_SPECS table)
+  - NodeFieldMapper: Table-driven field mappings (FIELD_MAPPINGS)
+  - DiagramDataExtractor: Unified data extraction
+  - PersonReferenceResolver: Person label ↔ ID resolution
+  - HandleIdOperations: Handle ID parsing and creation
+  - ArrowBuilder, NodeBuilder: Component builders
+- **Models**: ExecutableDiagram, ExecutableNode/Edge, format-specific models
 - **Services**: DiagramFormatDetector, DiagramStatisticsService
-- **Validation**: DiagramValidator and validation rules
-- **Utils**: Helper utilities for diagram processing
+- **Validation**: DiagramValidator with phase-based error reporting
 
 ### 3. Claude Code Translation (`cc_translate/`)
 **Purpose**: Converting Claude Code sessions into DiPeO diagrams

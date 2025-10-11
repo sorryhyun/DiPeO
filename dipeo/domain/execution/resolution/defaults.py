@@ -6,7 +6,7 @@ This module applies default values for missing required inputs based on node con
 from typing import Any
 
 from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 from .errors import InputResolutionError
 

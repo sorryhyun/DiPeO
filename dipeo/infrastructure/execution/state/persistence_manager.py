@@ -132,6 +132,8 @@ class PersistenceManager:
         self, execution_id: str, entry: CacheEntry, use_full_sync: bool = False
     ) -> None:
         """Persist a cache entry to database with optional enhanced durability."""
+        import traceback
+
         from dipeo.infrastructure.timing import atime_phase
 
         async with atime_phase(str(execution_id), "system", "db_serialize"):
@@ -146,6 +148,10 @@ class PersistenceManager:
 
         try:
             async with atime_phase(str(execution_id), "system", "db_write"):
+                metrics_json = (
+                    json.dumps(state_dict.get("metrics")) if state_dict.get("metrics") else None
+                )
+
                 await self.execute(
                     """
                     INSERT INTO executions
@@ -180,9 +186,7 @@ class PersistenceManager:
                         json.dumps(state_dict["variables"]),
                         json.dumps(state_dict["exec_counts"]),
                         json.dumps(state_dict["executed_nodes"]),
-                        json.dumps(state_dict.get("metrics"))
-                        if state_dict.get("metrics")
-                        else None,
+                        metrics_json,
                         entry.access_count,
                         datetime.now().isoformat(),
                     ),

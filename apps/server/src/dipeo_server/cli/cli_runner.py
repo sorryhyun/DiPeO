@@ -2,7 +2,6 @@
 
 import asyncio
 import contextlib
-import json
 import os
 import sys
 import uuid
@@ -15,10 +14,10 @@ from dipeo.application.registry.keys import DIAGRAM_PORT, MESSAGE_ROUTER, STATE_
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.domain_models import ExecutionID
 from dipeo.diagram_generated.enums import Status
-from dipeo_server.cli.diagram_loader import DiagramLoader
-from dipeo_server.cli.display import DisplayManager
-from dipeo_server.cli.interactive_handler import cli_interactive_handler
-from dipeo_server.cli.session_manager import SessionManager
+from dipeo_server.cli.commands import ClaudeCodeCommandManager, IntegrationCommandManager
+from dipeo_server.cli.core import DiagramLoader, SessionManager
+from dipeo_server.cli.display import DisplayManager, MetricsManager
+from dipeo_server.cli.handlers import cli_interactive_handler
 
 logger = get_module_logger(__name__)
 
@@ -33,6 +32,11 @@ class CLIRunner:
         self.diagram_loader = DiagramLoader()
         self.display = DisplayManager()
         self.session_manager = SessionManager()
+
+        # Initialize specialized managers
+        self.metrics_manager = MetricsManager(container)
+        self.integration_manager = IntegrationCommandManager(container)
+        self.claude_code_manager = ClaudeCodeCommandManager(container)
 
     async def run_diagram(
         self,
@@ -118,7 +122,7 @@ class CLIRunner:
 
                 # Create EventForwarder to forward events to background server if available
                 if await self.session_manager.is_server_available():
-                    from dipeo_server.cli.event_forwarder import EventForwarder
+                    from dipeo_server.cli.handlers import EventForwarder
 
                     event_forwarder = EventForwarder(execution_id=str(execution_id))
 
@@ -314,16 +318,6 @@ class CLIRunner:
             logger.error(f"Diagram conversion failed: {e}")
             return False
 
-    def _is_main_execution(self, execution_id: str) -> bool:
-        """Check if execution ID is a main execution (not lightweight or sub-diagram).
-
-        Filters out:
-        - Lightweight executions (starting with "lightweight_")
-        - Sub-diagram executions (containing "_sub_")
-        """
-        exec_id_str = str(execution_id)
-        return not (exec_id_str.startswith("lightweight_") or "_sub_" in exec_id_str)
-
     async def show_metrics(
         self,
         execution_id: str | None = None,
@@ -334,271 +328,40 @@ class CLIRunner:
         optimizations_only: bool = False,
         output_json: bool = False,
     ) -> bool:
-        """Display execution metrics from database (no server required)."""
-        try:
-            state_store = self.registry.resolve(STATE_STORE)
+        """Display execution metrics from database (no server required).
 
-            # Find the target execution
-            target_execution_id = None
-            if execution_id:
-                target_execution_id = execution_id
-            elif latest or diagram_id:
-                # Fetch more executions to filter out lightweight/sub-diagram ones
-                executions = await state_store.list_executions(diagram_id=diagram_id, limit=50)
-                # Filter to main executions only
-                main_executions = [e for e in executions if self._is_main_execution(e.id)]
-                if main_executions:
-                    target_execution_id = main_executions[0].id
-                else:
-                    if diagram_id:
-                        print(f"No main executions found for diagram: {diagram_id}")
-                    else:
-                        print("No main executions found")
-                    return False
-            else:
-                # Fetch more executions to filter out lightweight/sub-diagram ones
-                executions = await state_store.list_executions(limit=50)
-                # Filter to main executions only
-                main_executions = [e for e in executions if self._is_main_execution(e.id)]
-                if main_executions:
-                    target_execution_id = main_executions[0].id
-                else:
-                    print("No main executions found")
-                    return False
-
-            # Get execution state from database
-            execution_state = await state_store.get_execution(str(target_execution_id))
-            if not execution_state:
-                print(f"❌ Execution {target_execution_id} not found")
-                return False
-
-            # Check if metrics are available
-            if not execution_state.metrics:
-                print(f"❌ No metrics available for execution {target_execution_id}")
-                print(
-                    "   Metrics are only available for executions run with --timing or --debug flags"
-                )
-                return False
-
-            # Convert Pydantic metrics to summary dict format
-            metrics_data = execution_state.metrics
-            total_token_usage = {"input": 0, "output": 0, "total": 0}
-
-            node_breakdown = []
-            for node_id, node_metrics in metrics_data.node_metrics.items():
-                # Accumulate token usage (llm_usage is a Pydantic model, not a dict)
-                if node_metrics.llm_usage:
-                    total_token_usage["input"] += node_metrics.llm_usage.input or 0
-                    total_token_usage["output"] += node_metrics.llm_usage.output or 0
-                    total_token_usage["total"] += node_metrics.llm_usage.total or 0
-
-                # Convert llm_usage Pydantic model to dict
-                token_usage_dict = {"input": 0, "output": 0, "total": 0}
-                if node_metrics.llm_usage:
-                    token_usage_dict = {
-                        "input": node_metrics.llm_usage.input or 0,
-                        "output": node_metrics.llm_usage.output or 0,
-                        "total": node_metrics.llm_usage.total or 0,
-                    }
-
-                node_breakdown.append(
-                    {
-                        "node_id": node_id,
-                        "node_type": node_metrics.node_type,
-                        "duration_ms": node_metrics.duration_ms,
-                        "token_usage": token_usage_dict,
-                        "error": node_metrics.error,
-                        "module_timings": node_metrics.module_timings or {},
-                    }
-                )
-
-            bottlenecks = []
-            if metrics_data.bottlenecks:
-                for bottleneck in metrics_data.bottlenecks[:5]:
-                    bottlenecks.append(
-                        {
-                            "node_id": bottleneck.node_id,
-                            "node_type": bottleneck.node_type,
-                            "duration_ms": bottleneck.duration_ms,
-                        }
-                    )
-
-            metrics_summary = {
-                "execution_id": str(metrics_data.execution_id),
-                "total_duration_ms": metrics_data.total_duration_ms,
-                "node_count": len(metrics_data.node_metrics),
-                "total_token_usage": total_token_usage,
-                "bottlenecks": bottlenecks,
-                "critical_path_length": len(metrics_data.critical_path)
-                if metrics_data.critical_path
-                else 0,
-                "parallelizable_groups": len(metrics_data.parallelizable_groups)
-                if metrics_data.parallelizable_groups
-                else 0,
-                "node_breakdown": node_breakdown,
-            }
-
-            if output_json:
-                print(json.dumps(metrics_summary, indent=2, default=str))
-            else:
-                await self.display.display_metrics(
-                    metrics_summary, breakdown, bottlenecks_only, optimizations_only
-                )
-
-            return True
-
-        except Exception as e:
-            logger.error(f"Failed to display metrics: {e}", exc_info=True)
-            return False
+        Delegates to MetricsManager for implementation.
+        """
+        return await self.metrics_manager.show_metrics(
+            execution_id=execution_id,
+            latest=latest,
+            diagram_id=diagram_id,
+            breakdown=breakdown,
+            bottlenecks_only=bottlenecks_only,
+            optimizations_only=optimizations_only,
+            output_json=output_json,
+        )
 
     async def show_stats(self, diagram_path: str) -> bool:
-        """Show diagram statistics."""
-        try:
-            diagram_data, _ = await self.diagram_loader.load_diagram(diagram_path, None)
+        """Show diagram statistics.
 
-            node_count = len(diagram_data.get("nodes", []))
-            edge_count = len(diagram_data.get("edges", []))
-
-            print(f"\n📊 Diagram Statistics: {diagram_path}")
-            print(f"  Nodes: {node_count}")
-            print(f"  Edges: {edge_count}")
-
-            node_types = {}
-            for node in diagram_data.get("nodes", []):
-                node_type = node.get("type", "unknown")
-                node_types[node_type] = node_types.get(node_type, 0) + 1
-
-            print("\n  Node Types:")
-            for node_type, count in sorted(node_types.items()):
-                print(f"    {node_type}: {count}")
-
-            return True
-
-        except Exception as e:
-            logger.error(f"Failed to show stats: {e}")
-            return False
+        Delegates to MetricsManager for implementation.
+        """
+        return await self.metrics_manager.show_stats(diagram_path)
 
     async def manage_integrations(self, action: str, **kwargs) -> bool:
-        """Manage API integrations."""
-        try:
-            from dipeo.application.integrations.manager import IntegrationsManager
+        """Manage API integrations.
 
-            manager = IntegrationsManager(self.registry)
-
-            if action == "init":
-                path = kwargs.get("path", "./integrations")
-                result = await manager.initialize_workspace(path)
-
-            elif action == "validate":
-                path = kwargs.get("path", "./integrations")
-                provider = kwargs.get("provider")
-                result = await manager.validate_providers(path, provider)
-
-            elif action == "openapi-import":
-                result = await manager.import_openapi(
-                    kwargs["openapi_path"],
-                    kwargs["name"],
-                    kwargs.get("output"),
-                    kwargs.get("base_url"),
-                )
-
-            elif action == "test":
-                result = await manager.test_provider(
-                    kwargs["provider"],
-                    kwargs.get("operation"),
-                    kwargs.get("config"),
-                    kwargs.get("record", False),
-                    kwargs.get("replay", False),
-                )
-
-            elif action == "claude-code":
-                result = await manager.setup_claude_code_sync(
-                    kwargs.get("watch_todos", False),
-                    kwargs.get("sync_mode", "off"),
-                    kwargs.get("output_dir"),
-                    kwargs.get("auto_execute", False),
-                    kwargs.get("debounce", 2.0),
-                    kwargs.get("timeout"),
-                )
-            else:
-                print(f"❌ Unknown action: {action}")
-                return False
-
-            return result
-
-        except Exception as e:
-            logger.error(f"Integration management failed: {e}")
-            return False
+        Delegates to IntegrationCommandManager for implementation.
+        """
+        return await self.integration_manager.manage_integrations(action, **kwargs)
 
     async def manage_claude_code(self, action: str, **kwargs) -> bool:
-        """Manage Claude Code session conversion."""
-        try:
-            from pathlib import Path
+        """Manage Claude Code session conversion.
 
-            from dipeo.infrastructure.cc_translate import ClaudeCodeManager
-
-            session_dir = None
-            if project := kwargs.get("project"):
-                session_dir = Path.home() / ".claude" / "projects" / project
-                if not session_dir.exists():
-                    print(f"❌ Project directory not found: {session_dir}")
-                    return False
-
-            manager = ClaudeCodeManager(session_dir=session_dir)
-
-            if action == "list":
-                sessions = manager.list_sessions(kwargs.get("limit", 50))
-                for session in sessions:
-                    print(f"  {session.id}: {session.name} ({session.created_at})")
-                return True
-
-            elif action == "convert":
-                session_id = kwargs.get("session_id")
-                latest = kwargs.get("latest", False)
-
-                if latest:
-                    sessions = manager.list_sessions(latest if isinstance(latest, int) else 1)
-                    if not sessions:
-                        print("No sessions found")
-                        return False
-                    results = []
-                    for session in sessions:
-                        result = manager.convert_session(
-                            session.id,
-                            kwargs.get("output_dir"),
-                            kwargs.get("format", "light"),
-                        )
-                        results.append(result)
-                    return all(results)
-                elif session_id:
-                    return manager.convert_session(
-                        session_id,
-                        kwargs.get("output_dir"),
-                        kwargs.get("format", "light"),
-                    )
-                else:
-                    print("Either session_id or --latest required")
-                    return False
-
-            elif action == "watch":
-                return await manager.watch_sessions(
-                    kwargs.get("interval", 30),
-                    kwargs.get("output_dir"),
-                    kwargs.get("format", "light"),
-                )
-
-            elif action == "stats":
-                stats = await manager.get_session_stats(kwargs["session_id"])
-                print(json.dumps(stats, indent=2, default=str))
-                return True
-
-            else:
-                print(f"❌ Unknown action: {action}")
-                return False
-
-        except Exception as e:
-            logger.error(f"Claude Code management failed: {e}")
-            return False
+        Delegates to ClaudeCodeCommandManager for implementation.
+        """
+        return await self.claude_code_manager.manage_claude_code(action, **kwargs)
 
     async def export_diagram(
         self,
@@ -608,7 +371,7 @@ class CLIRunner:
     ) -> bool:
         """Export diagram to Python script."""
         try:
-            from dipeo.application.converters import PythonExporter
+            from dipeo.domain.diagram.compilation import PythonDiagramCompiler
 
             # Load diagram
             (
@@ -622,11 +385,12 @@ class CLIRunner:
                 return False
 
             # Export to Python
-            exporter = PythonExporter()
-            return exporter.export(domain_diagram, output_path)
+            compiler = PythonDiagramCompiler()
+            return compiler.export(domain_diagram, output_path)
 
         except Exception as e:
             logger.error(f"Diagram export failed: {e}")
             import traceback
+
             traceback.print_exc()
             return False

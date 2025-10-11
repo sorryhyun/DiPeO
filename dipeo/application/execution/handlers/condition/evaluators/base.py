@@ -5,7 +5,7 @@ from typing import Any, Protocol, TypedDict
 
 from dipeo.application.execution.handlers.utils import get_node_result
 from dipeo.diagram_generated.unified_nodes.condition_node import ConditionNode
-from dipeo.domain.execution.execution_context import ExecutionContext
+from dipeo.domain.execution.context.execution_context import ExecutionContext
 
 
 class EvaluationResult(TypedDict):

@@ -21,7 +21,7 @@ from dipeo.application.execution.handlers.diff_patch.patch_applier import (
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.enums import NodeType
 from dipeo.diagram_generated.unified_nodes import DiffPatchNode
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
     pass

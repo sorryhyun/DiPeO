@@ -8,7 +8,7 @@ from dipeo.config.base_logger import get_module_logger
 from dipeo.config.llm import PERSON_JOB_MAX_TOKENS, PERSON_JOB_TEMPERATURE
 from dipeo.diagram_generated.domain_models import PersonID
 from dipeo.diagram_generated.unified_nodes.person_job_node import PersonJobNode
-from dipeo.domain.execution.envelope import EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import EnvelopeFactory
 from dipeo.infrastructure.timing.context import atime_phase, time_phase
 
 from .conversation_handler import ConversationHandler

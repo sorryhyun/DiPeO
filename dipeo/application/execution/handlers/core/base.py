@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from dipeo.config.base_logger import get_module_logger
 from dipeo.domain.diagram.models.executable_diagram import ExecutableNode
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
     from dipeo.application.execution.engine.request import ExecutionRequest

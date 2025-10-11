@@ -27,7 +27,7 @@ from dipeo.config.base_logger import get_module_logger
 from dipeo.config.paths import BASE_DIR
 from dipeo.diagram_generated.enums import NodeType
 from dipeo.diagram_generated.unified_nodes.db_node import DbNode
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
     pass

@@ -17,7 +17,7 @@ from dipeo.config.base_logger import get_module_logger
 from dipeo.config.execution import SUB_DIAGRAM_BATCH_SIZE, SUB_DIAGRAM_MAX_CONCURRENT
 from dipeo.diagram_generated import Status
 from dipeo.diagram_generated.unified_nodes.sub_diagram_node import SubDiagramNode
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 from .base_executor import BaseSubDiagramExecutor
 
@@ -36,7 +36,9 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
     def __init__(self):
         super().__init__()
 
-    def set_services(self, state_store, message_router, diagram_service, service_registry=None, event_bus=None):
+    def set_services(
+        self, state_store, message_router, diagram_service, service_registry=None, event_bus=None
+    ):
         super().set_services(
             state_store=state_store,
             message_router=message_router,

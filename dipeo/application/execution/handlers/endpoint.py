@@ -12,7 +12,7 @@ from dipeo.application.execution.handlers.utils import create_error_body, serial
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
 from dipeo.diagram_generated.enums import NodeType
 from dipeo.diagram_generated.unified_nodes.endpoint_node import EndpointNode
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
     pass

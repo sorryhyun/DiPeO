@@ -110,12 +110,12 @@ class ValidatingCompilerAdapter(DiagramCompiler):
         if len(node_ids) != len(set(node_ids)):
             raise ValueError("Diagram contains duplicate node IDs")
 
-        from dipeo.domain.diagram.utils import extract_node_id_from_handle
+        from dipeo.domain.diagram.utils import HandleIdOperations
 
         node_id_set = set(node_ids)
         for arrow in domain_diagram.arrows:
-            source_node_id = extract_node_id_from_handle(arrow.source)
-            target_node_id = extract_node_id_from_handle(arrow.target)
+            source_node_id = HandleIdOperations.extract_node_id_from_handle(arrow.source)
+            target_node_id = HandleIdOperations.extract_node_id_from_handle(arrow.target)
 
             if source_node_id is None:
                 source_node_id = arrow.source

@@ -9,7 +9,7 @@ from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.registry import EXECUTION_CONTEXT
 from dipeo.diagram_generated.enums import NodeType
 from dipeo.diagram_generated.unified_nodes.user_response_node import UserResponseNode
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
     pass

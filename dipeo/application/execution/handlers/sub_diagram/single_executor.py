@@ -9,7 +9,7 @@ from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagram
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import Status
 from dipeo.diagram_generated.unified_nodes.sub_diagram_node import SubDiagramNode
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
     pass
@@ -23,7 +23,9 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
     def __init__(self):
         super().__init__()
 
-    def set_services(self, state_store, message_router, diagram_service, service_registry=None, event_bus=None):
+    def set_services(
+        self, state_store, message_router, diagram_service, service_registry=None, event_bus=None
+    ):
         super().set_services(
             state_store=state_store,
             message_router=message_router,

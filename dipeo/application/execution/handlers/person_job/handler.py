@@ -23,7 +23,7 @@ from dipeo.application.registry.keys import (
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.enums import NodeType
 from dipeo.diagram_generated.unified_nodes.person_job_node import PersonJobNode
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 from .batch_executor import BatchExecutor
 from .conversation_handler import ConversationHandler
