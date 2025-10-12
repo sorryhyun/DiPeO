@@ -59,7 +59,7 @@ def setup_logging(
 
     # Create logs directory if it doesn't exist
     if log_to_file:
-        log_path.mkdir(exist_ok=True)
+        log_path.mkdir(parents=True, exist_ok=True)
 
     # Configure root logger
     root_logger = logging.getLogger()
