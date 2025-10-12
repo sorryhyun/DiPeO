@@ -1,6 +1,5 @@
 // Auto-generated TypeScript model for code_job node
 import { z } from 'zod';
-import { PersonID } from '@dipeo/models';
 import { SupportedLanguage } from '@dipeo/models';
 
 export interface CodeJobNodeData {

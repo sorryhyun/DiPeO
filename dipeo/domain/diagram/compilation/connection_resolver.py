@@ -7,7 +7,7 @@ Validation logic has been moved to the shared validation utilities.
 from dataclasses import dataclass
 
 from dipeo.diagram_generated import DomainArrow, DomainNode, HandleLabel, NodeID
-from dipeo.domain.diagram.utils import parse_handle_id_safe
+from dipeo.domain.diagram.utils import HandleIdOperations
 
 
 @dataclass
@@ -49,8 +49,8 @@ class ConnectionResolver:
     def _resolve_arrow(
         self, arrow: DomainArrow, valid_nodes: set[NodeID]
     ) -> ResolvedConnection | None:
-        source_parsed = parse_handle_id_safe(arrow.source)
-        target_parsed = parse_handle_id_safe(arrow.target)
+        source_parsed = HandleIdOperations.parse_handle_id_safe(arrow.source)
+        target_parsed = HandleIdOperations.parse_handle_id_safe(arrow.target)
 
         if not source_parsed or not target_parsed:
             self._errors.append(f"Arrow {arrow.id}: Cannot resolve - invalid handle format")

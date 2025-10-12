@@ -3,13 +3,13 @@ DO NOT EDIT - Generated unified result types for GraphQL operations
 
 This file provides type-safe result types for all GraphQL operations,
 following the Envelope pattern from the domain layer.
-Generated at: 2025-10-10T14:03:06.740326
+Generated at: 2025-10-12T13:15:10.539155
 """
 
 import strawberry
 from typing import Optional, Any
 from strawberry.scalars import JSON
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 # Import all domain types that results may reference
 from dipeo.diagram_generated.graphql.domain_types import (
@@ -89,15 +89,6 @@ class BaseResultMixin:
         )
 
 
-# Deprecated field compatibility configuration
-_DEPRECATED_FIELD_MAP = {
-    'DiagramResult': ('diagram', 'DomainDiagramType'),
-    'NodeResult': ('node', 'DomainNodeType'),
-    'ExecutionResult': ('execution', 'ExecutionStateType'),
-    'PersonResult': ('person', 'DomainPersonType'),
-    'ApiKeyResult': ('api_key', 'DomainApiKeyType'),
-}
-
 # Specific result types for each entity/operation type
 
 @strawberry.type
@@ -109,34 +100,6 @@ class DiagramResult(BaseResultMixin):
     error_type: Optional[str] = None
     envelope: Optional[JSON] = None
     data: Optional[DomainDiagramType] = None
-    # Deprecated field for backward compatibility
-    diagram: Optional[DomainDiagramType] = strawberry.field(
-        default=None,
-        deprecation_reason="Use 'data' field instead"
-    )
-
-    def __post_init__(self):
-        # Auto-populate deprecated field for backward compatibility
-        if self.data and not self.diagram:
-            self.diagram = self.data
-
-    @classmethod
-    def from_envelope(cls, envelope: Envelope, data: Optional[Any] = None):
-        """Create result from domain Envelope with backward compatibility"""
-        result = super().from_envelope(envelope, data)
-        # Ensure deprecated field is populated
-        if hasattr(result, 'data') and result.data and hasattr(result, 'diagram'):
-            result.diagram = result.data
-        return result
-
-    @classmethod
-    def success_result(cls, data: Any = None, message: Optional[str] = None, **extra_fields):
-        """Create a successful result with backward compatibility"""
-        result = super().success_result(data, message, **extra_fields)
-        # Ensure deprecated field is populated
-        if hasattr(result, 'data') and result.data and hasattr(result, 'diagram'):
-            result.diagram = result.data
-        return result
 
 
 @strawberry.type
@@ -161,34 +124,6 @@ class NodeResult(BaseResultMixin):
     error_type: Optional[str] = None
     envelope: Optional[JSON] = None
     data: Optional[DomainNodeType] = None
-    # Deprecated field for backward compatibility
-    node: Optional[DomainNodeType] = strawberry.field(
-        default=None,
-        deprecation_reason="Use 'data' field instead"
-    )
-
-    def __post_init__(self):
-        # Auto-populate deprecated field for backward compatibility
-        if self.data and not self.node:
-            self.node = self.data
-
-    @classmethod
-    def from_envelope(cls, envelope: Envelope, data: Optional[Any] = None):
-        """Create result from domain Envelope with backward compatibility"""
-        result = super().from_envelope(envelope, data)
-        # Ensure deprecated field is populated
-        if hasattr(result, 'data') and result.data and hasattr(result, 'node'):
-            result.node = result.data
-        return result
-
-    @classmethod
-    def success_result(cls, data: Any = None, message: Optional[str] = None, **extra_fields):
-        """Create a successful result with backward compatibility"""
-        result = super().success_result(data, message, **extra_fields)
-        # Ensure deprecated field is populated
-        if hasattr(result, 'data') and result.data and hasattr(result, 'node'):
-            result.node = result.data
-        return result
 
 
 @strawberry.type
@@ -212,34 +147,6 @@ class ExecutionResult(BaseResultMixin):
     error_type: Optional[str] = None
     envelope: Optional[JSON] = None
     data: Optional[ExecutionStateType] = None
-    # Deprecated field for backward compatibility
-    execution: Optional[ExecutionStateType] = strawberry.field(
-        default=None,
-        deprecation_reason="Use 'data' field instead"
-    )
-
-    def __post_init__(self):
-        # Auto-populate deprecated field for backward compatibility
-        if self.data and not self.execution:
-            self.execution = self.data
-
-    @classmethod
-    def from_envelope(cls, envelope: Envelope, data: Optional[Any] = None):
-        """Create result from domain Envelope with backward compatibility"""
-        result = super().from_envelope(envelope, data)
-        # Ensure deprecated field is populated
-        if hasattr(result, 'data') and result.data and hasattr(result, 'execution'):
-            result.execution = result.data
-        return result
-
-    @classmethod
-    def success_result(cls, data: Any = None, message: Optional[str] = None, **extra_fields):
-        """Create a successful result with backward compatibility"""
-        result = super().success_result(data, message, **extra_fields)
-        # Ensure deprecated field is populated
-        if hasattr(result, 'data') and result.data and hasattr(result, 'execution'):
-            result.execution = result.data
-        return result
 
 
 @strawberry.type
@@ -264,34 +171,6 @@ class PersonResult(BaseResultMixin):
     error_type: Optional[str] = None
     envelope: Optional[JSON] = None
     data: Optional[DomainPersonType] = None
-    # Deprecated field for backward compatibility
-    person: Optional[DomainPersonType] = strawberry.field(
-        default=None,
-        deprecation_reason="Use 'data' field instead"
-    )
-
-    def __post_init__(self):
-        # Auto-populate deprecated field for backward compatibility
-        if self.data and not self.person:
-            self.person = self.data
-
-    @classmethod
-    def from_envelope(cls, envelope: Envelope, data: Optional[Any] = None):
-        """Create result from domain Envelope with backward compatibility"""
-        result = super().from_envelope(envelope, data)
-        # Ensure deprecated field is populated
-        if hasattr(result, 'data') and result.data and hasattr(result, 'person'):
-            result.person = result.data
-        return result
-
-    @classmethod
-    def success_result(cls, data: Any = None, message: Optional[str] = None, **extra_fields):
-        """Create a successful result with backward compatibility"""
-        result = super().success_result(data, message, **extra_fields)
-        # Ensure deprecated field is populated
-        if hasattr(result, 'data') and result.data and hasattr(result, 'person'):
-            result.person = result.data
-        return result
 
 
 @strawberry.type
@@ -315,34 +194,6 @@ class ApiKeyResult(BaseResultMixin):
     error_type: Optional[str] = None
     envelope: Optional[JSON] = None
     data: Optional[DomainApiKeyType] = None
-    # Deprecated field for backward compatibility
-    api_key: Optional[DomainApiKeyType] = strawberry.field(
-        default=None,
-        deprecation_reason="Use 'data' field instead"
-    )
-
-    def __post_init__(self):
-        # Auto-populate deprecated field for backward compatibility
-        if self.data and not self.api_key:
-            self.api_key = self.data
-
-    @classmethod
-    def from_envelope(cls, envelope: Envelope, data: Optional[Any] = None):
-        """Create result from domain Envelope with backward compatibility"""
-        result = super().from_envelope(envelope, data)
-        # Ensure deprecated field is populated
-        if hasattr(result, 'data') and result.data and hasattr(result, 'api_key'):
-            result.api_key = result.data
-        return result
-
-    @classmethod
-    def success_result(cls, data: Any = None, message: Optional[str] = None, **extra_fields):
-        """Create a successful result with backward compatibility"""
-        result = super().success_result(data, message, **extra_fields)
-        # Ensure deprecated field is populated
-        if hasattr(result, 'data') and result.data and hasattr(result, 'api_key'):
-            result.api_key = result.data
-        return result
 
 
 @strawberry.type

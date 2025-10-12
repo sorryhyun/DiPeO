@@ -53,7 +53,7 @@ export function useExecutionLogStream(executionIdParam: ReturnType<typeof execut
 
                 newLogs.push({
                   level: logData.level || logData.levelname || 'INFO',
-                  message: message,
+                  message,
                   timestamp: logData.extra_fields?.timestamp ? new Date(logData.extra_fields.timestamp * 1000).toISOString() :
                            logData.timestamp || logData.time || event.timestamp || new Date().toISOString(),
                   logger: logData.logger_name || logData.logger || logData.name || '',
@@ -82,7 +82,7 @@ export function useExecutionLogStream(executionIdParam: ReturnType<typeof execut
 
           const newLog: LogEntry = {
             level: String(logData.level || logData.levelname || 'INFO'),
-            message: message,
+            message,
             timestamp: logData.extra_fields?.timestamp ? new Date(logData.extra_fields.timestamp * 1000).toISOString() :
                      String(logData.timestamp || logData.time || new Date().toISOString()),
             logger: String(logData.logger_name || logData.logger || logData.name || ''),

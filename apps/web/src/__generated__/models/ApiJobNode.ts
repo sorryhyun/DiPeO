@@ -1,6 +1,5 @@
 // Auto-generated TypeScript model for api_job node
 import { z } from 'zod';
-import { PersonID } from '@dipeo/models';
 import { AuthType, HttpMethod } from '@dipeo/models';
 
 export interface ApiJobNodeData {

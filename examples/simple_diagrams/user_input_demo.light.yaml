@@ -39,6 +39,10 @@ connections:
   to: ask_age
   content_type: raw_text
   label: name
+- from: ask_name
+  to: greet
+  content_type: raw_text
+  label: name
 - from: ask_age
   to: greet
   content_type: raw_text

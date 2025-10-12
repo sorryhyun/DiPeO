@@ -43,7 +43,7 @@ export const nodeQueries: EntityQueryDefinitions = {
           fields: [
             { name: 'success' },
             {
-              name: 'node',
+              name: 'data',
               fields: NODE_FIELDS
             },
             { name: 'message' },

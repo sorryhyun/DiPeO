@@ -436,9 +436,13 @@ class MetricsObserver(EventBus):
                 if execution_state:
                     # Create updated execution state with metrics (Pydantic models are immutable)
                     updated_state = execution_state.model_copy(update={"metrics": pydantic_metrics})
+                    logger.info(
+                        f"[MetricsObserver] Created updated_state with metrics: {bool(updated_state.metrics)}, node_count={len(pydantic_metrics.node_metrics)}"
+                    )
 
                     # Save to cache first
                     await self.state_store.save_execution(updated_state)
+                    logger.info("[MetricsObserver] Saved updated_state to cache")
 
                     # Force immediate database persistence
                     if hasattr(self.state_store, "_persistence_manager") and hasattr(

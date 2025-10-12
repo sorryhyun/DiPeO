@@ -1,6 +1,5 @@
 // Auto-generated TypeScript model for db node
 import { z } from 'zod';
-import { PersonID } from '@dipeo/models';
 import { DBBlockSubType } from '@dipeo/models';
 
 export interface DbNodeData {

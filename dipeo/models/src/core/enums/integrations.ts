@@ -27,12 +27,6 @@ export enum APIServiceType {
   CLAUDE_CODE_CUSTOM = "claude-code-custom"
 }
 
-/**
- * @deprecated Use plain string provider ids resolved at runtime.
- * Kept only to avoid import breakages during transition.
- */
-export type IntegrationProvider = string;
-
 export enum ToolType {
   WEB_SEARCH = 'web_search',
   WEB_SEARCH_PREVIEW = 'web_search_preview',

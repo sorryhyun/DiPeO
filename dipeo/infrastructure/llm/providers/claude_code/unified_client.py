@@ -241,14 +241,14 @@ class UnifiedClaudeCodeClient:
 
         try:
             # Send query with unique session ID
-            async with atime_phase(trace_id, "claude_code", "llm_response__send"):
+            async with atime_phase(trace_id, "claude_code", f"{phase_key}__send"):
                 await session.query(query_input, session_id=session_id)
 
             # Collect response
             result_text = ""
             tool_invocation_data = None
 
-            async with atime_phase(trace_id, "claude_code", "llm_response__collect"):
+            async with atime_phase(trace_id, "claude_code", f"{phase_key}__collect"):
                 async for message in session.receive_response():
                     # Check for tool invocations
                     if hasattr(message, "content") and not hasattr(message, "result"):
@@ -264,7 +264,7 @@ class UnifiedClaudeCodeClient:
                         # No need to break - receive_response() auto-terminates
 
             # Parse response
-            with time_phase(trace_id, "claude_code", "llm_response__parse"):
+            with time_phase(trace_id, "claude_code", f"{phase_key}__parse"):
                 if tool_invocation_data:
                     parsed = self._parser.parse_response_with_tool_data(
                         tool_invocation_data, execution_phase
@@ -279,7 +279,7 @@ class UnifiedClaudeCodeClient:
                 return parsed
         finally:
             # Clean up session after use
-            with time_phase(trace_id, "claude_code", "llm_response__cleanup"):
+            with time_phase(trace_id, "claude_code", f"{phase_key}__cleanup"):
                 await self._cleanup_session(session)
 
     async def _cleanup_session(self, session: ClaudeSDKClient) -> None:
@@ -308,8 +308,11 @@ class UnifiedClaudeCodeClient:
         # Extract trace_id for timing (removed from kwargs by _setup_workspace)
         trace_id = kwargs.get("trace_id", "")
 
+        # Determine phase key for proper timing attribution
+        phase_key = execution_phase.value if execution_phase else "default"
+
         # Prepare messages for Claude SDK
-        async with atime_phase(trace_id, "claude_code", "request__prepare_messages"):
+        async with atime_phase(trace_id, "claude_code", f"{phase_key}__prepare_messages"):
             system_message, formatted_messages = self._processor.prepare_message(messages)
 
         # Configure MCP server based on execution phase
@@ -317,11 +320,11 @@ class UnifiedClaudeCodeClient:
             ExecutionPhase.MEMORY_SELECTION,
             ExecutionPhase.DECISION_EVALUATION,
         )
-        async with atime_phase(trace_id, "claude_code", "request__configure_tools"):
+        async with atime_phase(trace_id, "claude_code", f"{phase_key}__configure_tools"):
             tool_options = self._processor.create_tool_options(execution_phase, use_tools)
 
         # Get system prompt based on execution phase
-        async with atime_phase(trace_id, "claude_code", "request__build_system_prompt"):
+        async with atime_phase(trace_id, "claude_code", f"{phase_key}__build_system_prompt"):
             system_prompt = self._processor.build_system_prompt(
                 system_message,
                 execution_phase,
@@ -333,7 +336,7 @@ class UnifiedClaudeCodeClient:
         self._setup_workspace(kwargs)
 
         # Create Claude Code options
-        async with atime_phase(trace_id, "claude_code", "request__build_options"):
+        async with atime_phase(trace_id, "claude_code", f"{phase_key}__build_options"):
             options_dict = self._processor.build_claude_options(
                 system_prompt, tool_options, hooks_config, stream=False, **kwargs
             )

@@ -89,7 +89,9 @@ class TypeScriptParser:
             raise ServiceError(f"TypeScript parser script not found at {self.parser_script}")
 
         try:
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".ts", delete=False) as tmp_file:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".ts", delete=False, encoding="utf-8"
+            ) as tmp_file:
                 tmp_file.write(source)
                 tmp_file_path = tmp_file.name
 
@@ -305,7 +307,9 @@ class TypeScriptParser:
             # Write batch input to temporary file
             import tempfile
 
-            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as temp_file:
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".json", delete=False, encoding="utf-8"
+            ) as temp_file:
                 temp_file.write(batch_input)
                 temp_file_path = temp_file.name
 
@@ -328,6 +332,7 @@ class TypeScriptParser:
                     cmd,
                     capture_output=True,
                     text=True,
+                    encoding="utf-8",
                     cwd=str(self.project_root),
                     env=env,
                     timeout=60,  # Increased timeout for batch processing

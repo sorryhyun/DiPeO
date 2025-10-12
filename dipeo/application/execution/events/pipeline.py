@@ -26,11 +26,11 @@ from dipeo.domain.events import (
     node_started,
 )
 from dipeo.domain.events.unified_ports import EventBus
-from dipeo.domain.execution.envelope import Envelope
+from dipeo.domain.execution.messaging.envelope import Envelope
 
 if TYPE_CHECKING:
     from dipeo.application.execution.states.state_manager import StateManager
-    from dipeo.domain.execution.state_tracker import StateTracker
+    from dipeo.domain.execution.state import UnifiedStateTracker as StateTracker
 
 logger = get_module_logger(__name__)
 

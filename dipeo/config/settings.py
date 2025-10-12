@@ -150,7 +150,9 @@ class StorageSettings(BaseSettings):
         description="Data files directory (relative to base_dir)",
     )
     logs_dir: str = Field(
-        default=".logs", env="DIPEO_LOGS_DIR", description="Logs directory (relative to base_dir)"
+        default=".dipeo/logs",
+        env="DIPEO_LOGS_DIR",
+        description="Logs directory (relative to base_dir)",
     )
     temp_dir: str = Field(
         default="temp",

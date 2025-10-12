@@ -12,7 +12,7 @@ from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.registry.keys import IR_BUILDER_REGISTRY, IR_CACHE, ServiceKey
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.unified_nodes.ir_builder_node import IrBuilderNode, NodeType
-from dipeo.domain.execution.envelope import Envelope, EnvelopeFactory
+from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 logger = get_module_logger(__name__)
 
@@ -164,30 +164,7 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
             if node.cache_enabled:
                 await self._ir_cache.set(current_cache_key, ir_data)
 
-            if node.output_format == "json":
-                if hasattr(ir_data, "data") and hasattr(ir_data, "metadata"):
-                    result = ir_data.data.copy() if isinstance(ir_data.data, dict) else ir_data.data
-                    if isinstance(result, dict) and "metadata" not in result:
-                        if hasattr(ir_data.metadata, "dict"):
-                            result["metadata"] = ir_data.metadata.dict()
-                        else:
-                            result["metadata"] = ir_data.metadata
-                    return result
-                elif hasattr(ir_data, "dict"):
-                    ir_dict = ir_data.dict()
-                    if "data" in ir_dict and "metadata" in ir_dict:
-                        result = (
-                            ir_dict["data"].copy()
-                            if isinstance(ir_dict["data"], dict)
-                            else ir_dict["data"]
-                        )
-                        if isinstance(result, dict):
-                            result["metadata"] = ir_dict["metadata"]
-                        return result
-                    return ir_dict.get("data", ir_dict)
-                else:
-                    return ir_data
-            elif node.output_format == "yaml":
+            if node.output_format == "json" or node.output_format == "yaml":
                 if hasattr(ir_data, "data") and hasattr(ir_data, "metadata"):
                     result = ir_data.data.copy() if isinstance(ir_data.data, dict) else ir_data.data
                     if isinstance(result, dict) and "metadata" not in result:

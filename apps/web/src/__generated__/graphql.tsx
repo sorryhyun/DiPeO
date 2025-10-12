@@ -66,8 +66,6 @@ export enum APIServiceType {
 
 export type ApiKeyResult = {
   __typename?: 'ApiKeyResult';
-  /** @deprecated Use 'data' field instead */
-  api_key?: Maybe<DomainApiKeyType>;
   data?: Maybe<DomainApiKeyType>;
   envelope?: Maybe<Scalars['JSON']['output']>;
   error?: Maybe<Scalars['String']['output']>;
@@ -172,8 +170,6 @@ export type DiagramMetadataType = {
 export type DiagramResult = {
   __typename?: 'DiagramResult';
   data?: Maybe<DomainDiagramType>;
-  /** @deprecated Use 'data' field instead */
-  diagram?: Maybe<DomainDiagramType>;
   envelope?: Maybe<Scalars['JSON']['output']>;
   error?: Maybe<Scalars['String']['output']>;
   error_type?: Maybe<Scalars['String']['output']>;
@@ -286,8 +282,6 @@ export type ExecutionResult = {
   envelope?: Maybe<Scalars['JSON']['output']>;
   error?: Maybe<Scalars['String']['output']>;
   error_type?: Maybe<Scalars['String']['output']>;
-  /** @deprecated Use 'data' field instead */
-  execution?: Maybe<ExecutionStateType>;
   message?: Maybe<Scalars['String']['output']>;
   success: Scalars['Boolean']['output'];
 };
@@ -534,8 +528,6 @@ export type NodeResult = {
   error?: Maybe<Scalars['String']['output']>;
   error_type?: Maybe<Scalars['String']['output']>;
   message?: Maybe<Scalars['String']['output']>;
-  /** @deprecated Use 'data' field instead */
-  node?: Maybe<DomainNodeType>;
   success: Scalars['Boolean']['output'];
 };
 
@@ -586,8 +578,6 @@ export type PersonResult = {
   error?: Maybe<Scalars['String']['output']>;
   error_type?: Maybe<Scalars['String']['output']>;
   message?: Maybe<Scalars['String']['output']>;
-  /** @deprecated Use 'data' field instead */
-  person?: Maybe<DomainPersonType>;
   success: Scalars['Boolean']['output'];
 };
 
@@ -1004,7 +994,7 @@ export type CreateApiKeyMutationVariables = Exact<{
 }>;
 
 
-export type CreateApiKeyMutation = { __typename?: 'Mutation', createApiKey: { __typename?: 'ApiKeyResult', success: boolean, message?: string | null, error?: string | null, api_key?: { __typename?: 'DomainApiKeyType', id: string, label: string, service: APIServiceType } | null } };
+export type CreateApiKeyMutation = { __typename?: 'Mutation', createApiKey: { __typename?: 'ApiKeyResult', success: boolean, message?: string | null, error?: string | null, data?: { __typename?: 'DomainApiKeyType', id: string, label: string, service: APIServiceType } | null } };
 
 export type TestApiKeyMutationVariables = Exact<{
   api_key_id: Scalars['String']['input'];
@@ -1039,14 +1029,14 @@ export type CreateDiagramMutationVariables = Exact<{
 }>;
 
 
-export type CreateDiagramMutation = { __typename?: 'Mutation', createDiagram: { __typename?: 'DiagramResult', success: boolean, message?: string | null, error?: string | null, diagram?: { __typename?: 'DomainDiagramType', metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null } | null } | null } };
+export type CreateDiagramMutation = { __typename?: 'Mutation', createDiagram: { __typename?: 'DiagramResult', success: boolean, message?: string | null, error?: string | null, data?: { __typename?: 'DomainDiagramType', metadata?: { __typename?: 'DiagramMetadataType', id?: string | null, name?: string | null } | null } | null } };
 
 export type ExecuteDiagramMutationVariables = Exact<{
   input: ExecuteDiagramInput;
 }>;
 
 
-export type ExecuteDiagramMutation = { __typename?: 'Mutation', executeDiagram: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionStateType', id: string } | null } };
+export type ExecuteDiagramMutation = { __typename?: 'Mutation', executeDiagram: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, data?: { __typename?: 'ExecutionStateType', id: string } | null } };
 
 export type DeleteDiagramMutationVariables = Exact<{
   diagram_id: Scalars['String']['input'];
@@ -1060,7 +1050,7 @@ export type ControlExecutionMutationVariables = Exact<{
 }>;
 
 
-export type ControlExecutionMutation = { __typename?: 'Mutation', controlExecution: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionStateType', id: string, status: Status } | null } };
+export type ControlExecutionMutation = { __typename?: 'Mutation', controlExecution: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, data?: { __typename?: 'ExecutionStateType', id: string, status: Status } | null } };
 
 export type SendInteractiveResponseMutationVariables = Exact<{
   input: InteractiveResponseInput;
@@ -1074,7 +1064,7 @@ export type UpdateNodeStateMutationVariables = Exact<{
 }>;
 
 
-export type UpdateNodeStateMutation = { __typename?: 'Mutation', updateNodeState: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, execution?: { __typename?: 'ExecutionStateType', id: string, status: Status } | null } };
+export type UpdateNodeStateMutation = { __typename?: 'Mutation', updateNodeState: { __typename?: 'ExecutionResult', success: boolean, message?: string | null, error?: string | null, data?: { __typename?: 'ExecutionStateType', id: string, status: Status } | null } };
 
 export type UploadFileMutationVariables = Exact<{
   file: Scalars['Upload']['input'];
@@ -1115,7 +1105,7 @@ export type CreateNodeMutationVariables = Exact<{
 }>;
 
 
-export type CreateNodeMutation = { __typename?: 'Mutation', createNode: { __typename?: 'NodeResult', success: boolean, message?: string | null, error?: string | null, node?: { __typename?: 'DomainNodeType', id: string, type: NodeType, data: Record<string, unknown>, position: { __typename?: 'Vec2Type', x: number, y: number } } | null } };
+export type CreateNodeMutation = { __typename?: 'Mutation', createNode: { __typename?: 'NodeResult', success: boolean, message?: string | null, error?: string | null, data?: { __typename?: 'DomainNodeType', id: string, type: NodeType, data: Record<string, unknown>, position: { __typename?: 'Vec2Type', x: number, y: number } } | null } };
 
 export type UpdateNodeMutationVariables = Exact<{
   diagram_id: Scalars['String']['input'];
@@ -1139,7 +1129,7 @@ export type CreatePersonMutationVariables = Exact<{
 }>;
 
 
-export type CreatePersonMutation = { __typename?: 'Mutation', createPerson: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, person?: { __typename?: 'DomainPersonType', id: string, label: string } | null } };
+export type CreatePersonMutation = { __typename?: 'Mutation', createPerson: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, data?: { __typename?: 'DomainPersonType', id: string, label: string } | null } };
 
 export type UpdatePersonMutationVariables = Exact<{
   person_id: Scalars['String']['input'];
@@ -1147,7 +1137,7 @@ export type UpdatePersonMutationVariables = Exact<{
 }>;
 
 
-export type UpdatePersonMutation = { __typename?: 'Mutation', updatePerson: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, person?: { __typename?: 'DomainPersonType', id: string, label: string } | null } };
+export type UpdatePersonMutation = { __typename?: 'Mutation', updatePerson: { __typename?: 'PersonResult', success: boolean, message?: string | null, error?: string | null, data?: { __typename?: 'DomainPersonType', id: string, label: string } | null } };
 
 export type DeletePersonMutationVariables = Exact<{
   person_id: Scalars['String']['input'];
@@ -2356,7 +2346,7 @@ export const CreateApiKeyDocument = gql`
     mutation CreateApiKey($input: CreateApiKeyInput!) {
   createApiKey(input: $input) {
     success
-    api_key {
+    data {
       id
       label
       service
@@ -2535,7 +2525,7 @@ export const CreateDiagramDocument = gql`
     mutation CreateDiagram($input: CreateDiagramInput!) {
   createDiagram(input: $input) {
     success
-    diagram {
+    data {
       metadata {
         id
         name
@@ -2576,7 +2566,7 @@ export const ExecuteDiagramDocument = gql`
     mutation ExecuteDiagram($input: ExecuteDiagramInput!) {
   executeDiagram(input: $input) {
     success
-    execution {
+    data {
       id
     }
     message
@@ -2649,7 +2639,7 @@ export const ControlExecutionDocument = gql`
     mutation ControlExecution($input: ExecutionControlInput!) {
   controlExecution(input: $input) {
     success
-    execution {
+    data {
       id
       status
     }
@@ -2723,7 +2713,7 @@ export const UpdateNodeStateDocument = gql`
     mutation UpdateNodeState($input: UpdateNodeStateInput!) {
   updateNodeState(input: $input) {
     success
-    execution {
+    data {
       id
       status
     }
@@ -2901,7 +2891,7 @@ export const CreateNodeDocument = gql`
     mutation CreateNode($diagram_id: String!, $input: CreateNodeInput!) {
   createNode(diagram_id: $diagram_id, input: $input) {
     success
-    node {
+    data {
       id
       type
       position {
@@ -3019,7 +3009,7 @@ export const CreatePersonDocument = gql`
     mutation CreatePerson($input: CreatePersonInput!) {
   createPerson(input: $input) {
     success
-    person {
+    data {
       id
       label
     }
@@ -3058,7 +3048,7 @@ export const UpdatePersonDocument = gql`
     mutation UpdatePerson($person_id: String!, $input: UpdatePersonInput!) {
   updatePerson(person_id: $person_id, input: $input) {
     success
-    person {
+    data {
       id
       label
     }

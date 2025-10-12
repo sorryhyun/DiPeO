@@ -1,6 +1,5 @@
 // Auto-generated TypeScript model for sub_diagram node
 import { z } from 'zod';
-import { PersonID } from '@dipeo/models';
 import { DiagramFormat } from '@dipeo/models';
 
 export interface SubDiagramNodeData {

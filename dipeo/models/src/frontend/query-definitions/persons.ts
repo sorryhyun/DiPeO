@@ -96,7 +96,7 @@ export const personQueries: EntityQueryDefinitions = {
           fields: [
             { name: 'success' },
             {
-              name: 'person',
+              name: 'data',
               fields: PERSON_COMPACT_FIELDS
             },
             { name: 'message' },
@@ -122,7 +122,7 @@ export const personQueries: EntityQueryDefinitions = {
           fields: [
             { name: 'success' },
             {
-              name: 'person',
+              name: 'data',
               fields: PERSON_COMPACT_FIELDS
             },
             { name: 'message' },

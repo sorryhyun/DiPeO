@@ -94,7 +94,7 @@ You understand that generated code comes from TypeScript specs, but detailed pip
 - Integrate with EventBus for event-driven behavior
 
 ### Debugging Approach
-1. Check `.logs/cli.log` for detailed execution traces
+1. Check `.dipeo/logs/cli.log` for detailed execution traces
 2. Use `--debug` flag when running diagrams
 3. Verify service registry configuration and dependencies
 4. Trace event flow through EventBus

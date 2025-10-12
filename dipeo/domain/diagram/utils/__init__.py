@@ -1,70 +1,73 @@
-"""Diagram utility modules."""
+"""Diagram utility modules.
 
-from .conversion_utils import (
+Organized into subdirectories:
+- core/: Core operations on diagram domain objects (handles, nodes, arrows)
+- conversion/: Format conversion and data extraction utilities
+"""
+
+from .conversion import (
+    DiagramDataExtractor,
     _JsonMixin,
     _node_id_map,
     _YamlMixin,
+    diagram_maps_to_arrays,
 )
-from .graph_utils import (
-    count_node_connections,
-    find_connected_nodes,
-    find_edges_from,
-    find_edges_to,
-    find_orphan_nodes,
-    is_dag,
-)
-from .handle_utils import (
+from .core import (
+    ArrowBuilder,
+    ArrowIdGenerator,
+    HandleIdOperations,
+    HandleLabelParser,
     HandleReference,
+    HandleValidator,
+    NodeDictionaryBuilder,
     ParsedHandle,
-    create_handle_id,
-    extract_node_id_from_handle,
-    is_valid_handle_id,
-    parse_handle_id,
-    parse_handle_id_safe,
+    arrows_list_to_dict,
+    create_arrow_dict,
+    nodes_list_to_dict,
 )
+from .node_field_mapper import NodeFieldMapper
+from .person import PersonExtractor, PersonReferenceResolver, PersonValidator
 from .shared_components import (
     build_node,
     coerce_to_dict,
+    create_node_id,
     ensure_position,
     extract_common_arrows,
-)
-from .strategy_common import (
-    ArrowDataProcessor,
-    HandleParser,
-    NodeFieldMapper,
-    PersonExtractor,
     process_dotted_keys,
 )
 
 __all__ = [
-    "ArrowDataProcessor",
-    "HandleParser",
-    # handle_utils
+    # Arrow operations
+    "ArrowBuilder",
+    "ArrowIdGenerator",
+    # Data extraction
+    "DiagramDataExtractor",
+    # Handle operations
+    "HandleIdOperations",
+    "HandleLabelParser",
     "HandleReference",
-    # strategy_common
+    "HandleValidator",
+    # Node operations
+    "NodeDictionaryBuilder",
     "NodeFieldMapper",
     "ParsedHandle",
+    # Person operations
     "PersonExtractor",
-    # conversion_utils
+    "PersonReferenceResolver",
+    "PersonValidator",
+    # Format converters
     "_JsonMixin",
     "_YamlMixin",
     "_node_id_map",
-    # shared_components
+    "arrows_list_to_dict",
+    # Shared components
     "build_node",
     "coerce_to_dict",
-    "count_node_connections",
-    "create_handle_id",
+    "create_arrow_dict",
+    "create_node_id",
+    "diagram_maps_to_arrays",
     "ensure_position",
     "extract_common_arrows",
-    "extract_node_id_from_handle",
-    "find_connected_nodes",
-    # graph_utils
-    "find_edges_from",
-    "find_edges_to",
-    "find_orphan_nodes",
-    "is_dag",
-    "is_valid_handle_id",
-    "parse_handle_id",
-    "parse_handle_id_safe",
+    "nodes_list_to_dict",
     "process_dotted_keys",
 ]

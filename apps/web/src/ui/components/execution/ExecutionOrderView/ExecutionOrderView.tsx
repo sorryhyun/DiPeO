@@ -4,7 +4,7 @@ import { useCanvas } from '@/domain/diagram/contexts';
 import { ExecutionID, executionId } from '@/infrastructure/types';
 import { Button } from '@/ui/components/common/forms/buttons';
 import { useGetExecutionOrderQuery, GetExecutionOrderQuery } from '@/__generated__/graphql';
-import { Status, isExecutionActive } from '@dipeo/models';
+import { Status, isStatusActive } from '@dipeo/models';
 
 interface ExecutionStep {
   nodeId: string;
@@ -52,7 +52,7 @@ export const ExecutionOrderView: React.FC<ExecutionOrderViewProps> = ({ executio
   // Determine if we should poll based on execution status
   // Note: Status is normalized to lowercase in onCompleted handler
   const shouldPoll = executionOrder
-    ? isExecutionActive(executionOrder.status as Status)
+    ? isStatusActive(executionOrder.status as Status)
     : true;
 
   // Dynamic poll interval based on execution status

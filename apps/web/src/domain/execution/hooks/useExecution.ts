@@ -162,8 +162,8 @@ export function useExecution(options: UseExecutionOptions = {}): UseExecutionRet
         }
       });
 
-      if (result.data?.execute_diagram?.success && result.data.execute_diagram.execution?.id) {
-        const execId = result.data.execute_diagram.execution.id;
+      if (result.data?.execute_diagram?.success && result.data.execute_diagram.data?.id) {
+        const execId = result.data.execute_diagram.data.id;
         const totalNodes = diagram ? (diagram.nodes || []).length : 0;
         startExecution(execId, totalNodes, formatDuration);
         executionActions.startExecution(execId);

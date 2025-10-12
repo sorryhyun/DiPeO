@@ -11,8 +11,8 @@ from dipeo.domain.diagram.models.executable_diagram import (
     ExecutableEdgeV2,
     ExecutableNode,
 )
-from dipeo.domain.execution.envelope import Envelope
-from dipeo.domain.execution.execution_context import ExecutionContext
+from dipeo.domain.execution.context.execution_context import ExecutionContext
+from dipeo.domain.execution.messaging.envelope import Envelope
 
 from .readiness import edge_is_ready, edge_matches_iteration_context, should_process_special_input
 

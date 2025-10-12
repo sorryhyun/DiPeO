@@ -48,7 +48,10 @@ def setup_bundled_paths():
 
 
 setup_bundled_paths()
-load_dotenv()
+
+# Load .env from project root (not apps/server/)
+project_root = Path(__file__).parent.parent.parent
+load_dotenv(dotenv_path=project_root / ".env")
 
 warnings.filterwarnings("ignore", message="_type_definition is deprecated", category=UserWarning)
 warnings.filterwarnings(
@@ -64,7 +67,7 @@ logger = setup_logging(
     component="server",
     log_level=log_level,
     log_to_file=True,
-    log_dir=".logs",
+    log_dir=".dipeo/logs",
     console_output=True,
 )
 

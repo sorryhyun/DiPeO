@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Optional
 
 from dipeo.domain.cc_translate import PhaseCoordinator
-from dipeo.domain.diagram.strategies.light_strategy import LightYamlStrategy
+from dipeo.domain.diagram.strategies.light.strategy import LightYamlStrategy
 from dipeo.infrastructure.cc_translate.adapters import SessionAdapter
 from dipeo.infrastructure.cc_translate.session_parser import (
     ClaudeCodeSession,

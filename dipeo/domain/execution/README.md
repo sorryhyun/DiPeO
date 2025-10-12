@@ -1,553 +1,448 @@
-# DiPeO Domain Execution Rules
+# DiPeO Domain Execution
 
 ## Overview
 
-The `dipeo/domain/execution` module defines the **business rules and logic** for diagram execution flow. It establishes connection constraints between node types, data transformation rules, and dynamic execution order calculation - forming the domain-level execution semantics independent of infrastructure.
+The `dipeo/domain/execution` module defines the **business rules and runtime mechanisms** for diagram execution. It provides token-based flow control, connection rules, data transformation, state management, and input resolution.
+
+This module is organized into focused subdirectories, each handling a specific aspect of execution:
+
+```
+dipeo/domain/execution/
+├── context/              # Execution context protocol
+├── messaging/            # Message envelope system
+├── state/                # State tracking (UI visualization + history)
+├── tokens/               # Token-based flow control
+├── rules/                # Business rules (connections + transforms)
+└── resolution/           # Runtime input resolution
+```
 
 ## Architecture
 
-### Rule-Based System
+### Token-Based Flow Control
+
+DiPeO uses **tokens** to control execution flow, not status tracking. When a node completes, it publishes tokens on outgoing edges. A node is ready to execute when it has tokens available per its join policy:
 
 ```
-┌─────────────────────────────────┐
-│     Execution Domain Rules      │
-├─────────────────────────────────┤
-│  Connection Rules               │ ◄── Which nodes can connect
-│  Transformation Rules           │ ◄── How data flows between nodes  
-│  Dynamic Order Calculation      │ ◄── Runtime execution scheduling
-└─────────────────────────────────┘
-           │
-    Used by ▼
-┌─────────────────────────────────┐
-│   Compilation (Validation)      │
-│   Execution Engine (Runtime)    │
-└─────────────────────────────────┘
+┌──────────┐
+│  Node A  │──token──> [Edge] ──token──> ┌──────────┐
+└──────────┘                              │  Node B  │
+                                          └──────────┘
+┌──────────┐                              │ JoinPolicy: all
+│  Node C  │──token──> [Edge] ──token────┤ (waits for both)
+└──────────┘                              └──────────┘
 ```
 
-### Key Principles
+Status tracking (`PENDING`, `RUNNING`, `COMPLETED`) is maintained **only for UI visualization**. The execution engine uses token availability to determine readiness.
 
-1. **Pure Business Logic**: No infrastructure dependencies
-2. **Declarative Rules**: Express what's valid, not how to validate
-3. **Type Safety**: Strong typing for node types and data
-4. **Composability**: Rules can be combined and extended
-5. **Domain Language**: Uses business terminology
+### Core Principles
+
+1. **Token-Driven Execution**: Readiness is determined by token availability, not status
+2. **Immutable Messages**: All data flows through immutable `Envelope` objects
+3. **Epoch-Based Loops**: Loop iterations use epochs to track token generations
+4. **Separation of Concerns**: State tracking (UI) vs execution flow (tokens) are separate
+5. **Pure Business Logic**: No infrastructure dependencies in domain layer
 
 ## Core Components
 
-### 1. Connection Rules (`connection_rules.py`)
+### 1. Token-Based Flow Control (`tokens/`)
 
-Defines which node types can connect to each other:
+Manages token flow through the execution graph.
 
-```python
-class NodeConnectionRules:
-    """Business rules for valid node connections"""
-    
-    @staticmethod
-    def can_connect(source_type: NodeType, target_type: NodeType) -> bool:
-        """Determine if connection is allowed"""
-        # Start nodes cannot have inputs
-        if target_type == NodeType.START:
-            return False
-        
-        # Endpoint nodes cannot have outputs
-        if source_type == NodeType.ENDPOINT:
-            return False
-        
-        # Output-capable nodes
-        output_capable = {
-            NodeType.PERSON_JOB,
-            NodeType.CONDITION,
-            NodeType.CODE_JOB,
-            NodeType.API_JOB,
-            NodeType.START
-        }
-        
-        if source_type in output_capable:
-            return target_type != NodeType.START
-        
-        return True
-```
+**Key Types:**
+- `Token`: Immutable token with epoch, sequence, and content (Envelope)
+- `EdgeRef`: Identifies a specific edge in the diagram
+- `JoinPolicy`: Defines readiness criteria (all/any/k_of_n)
+- `ConcurrencyPolicy`: Controls concurrent executions (singleton/per-token/bounded)
 
-**Connection Constraints:**
+**TokenManager** (`tokens/token_manager.py:19`):
 
 ```python
-@staticmethod
-def get_connection_constraints(node_type: NodeType) -> dict[str, list[NodeType]]:
-    """Get input/output constraints for a node type"""
-    
-    if node_type == NodeType.START:
-        return {
-            'can_receive_from': [],  # No inputs
-            'can_send_to': [all except START]
-        }
-    
-    if node_type == NodeType.ENDPOINT:
-        return {
-            'can_receive_from': [all except ENDPOINT],
-            'can_send_to': []  # No outputs
-        }
-    
-    # Regular nodes
-    return {
-        'can_receive_from': [all except ENDPOINT],
-        'can_send_to': [all except START]
-    }
+from dipeo.domain.execution.tokens import TokenManager
+
+# Initialize with diagram
+token_mgr = TokenManager(diagram, execution_tracker)
+
+# Publish tokens on node completion
+outputs = {"default": envelope}
+token_mgr.emit_outputs(node_id, outputs, epoch=0)
+
+# Check if node is ready
+is_ready = token_mgr.has_new_inputs(node_id, join_policy="all")
+
+# Consume tokens when executing
+inputs = token_mgr.consume_inbound(node_id)
 ```
 
-### 2. Transformation Rules (`transform_rules.py`)
+**Features:**
+- Epoch management for loop iterations
+- Join policy evaluation (all/any/k_of_n)
+- Branch decision tracking for condition nodes
+- Edge mapping for fast lookups
+- Token sequencing per edge and epoch
 
-Defines how data transforms between different node types:
+See [tokens/README.md](tokens/README.md) for details.
+
+### 2. Execution Context (`context/`)
+
+The `ExecutionContext` protocol defines the contract for managing runtime state.
+
+**ExecutionContext** (`context/execution_context.py:15`):
 
 ```python
-class TransformationRules:
-    """Rules for data transformation between nodes"""
-    
-    @dataclass
-    class TransformRule:
-        """Single transformation rule"""
-        source_type: NodeType
-        target_type: NodeType
-        source_field: str | None = None
-        target_field: str | None = None
-        transform_fn: Callable[[Any], Any] | None = None
-    
-    # Rule definitions
-    RULES = [
-        # PersonJob -> Condition: Extract boolean from response
-        TransformRule(
-            source_type=NodeType.PERSON_JOB,
-            target_type=NodeType.CONDITION,
-            source_field="response",
-            target_field="condition_value",
-            transform_fn=lambda x: bool(x.get("decision"))
-        ),
-        
-        # CodeJob -> PersonJob: Format output as context
-        TransformRule(
-            source_type=NodeType.CODE_JOB,
-            target_type=NodeType.PERSON_JOB,
-            source_field="output",
-            target_field="context",
-            transform_fn=lambda x: {"code_result": str(x)}
-        ),
-        
-        # ApiJob -> TemplateJob: Pass response data
-        TransformRule(
-            source_type=NodeType.API_JOB,
-            target_type=NodeType.TEMPLATE_JOB,
-            source_field="response",
-            target_field="template_data",
-            transform_fn=lambda x: x  # Direct pass-through
-        )
-    ]
-    
-    @classmethod
-    def get_transform(cls, 
-                     source: NodeType, 
-                     target: NodeType) -> TransformRule | None:
-        """Get transformation rule for node pair"""
-        for rule in cls.RULES:
-            if rule.source_type == source and rule.target_type == target:
-                return rule
-        return None
+from typing import Protocol
+from dipeo.domain.execution.context import ExecutionContext
+
+class ExecutionContext(Protocol):
+    diagram: ExecutableDiagram
+    execution_id: str
+    state: StateTracker      # State management
+    tokens: TokenManager     # Token flow control
+
+    def current_epoch(self) -> int: ...
+    def get_variable(self, name: str) -> Any: ...
+    def set_variable(self, name: str, value: Any) -> None: ...
+    def consume_inbound(self, node_id: NodeID) -> dict[str, Envelope]: ...
+    def emit_outputs_as_tokens(self, node_id: NodeID, outputs: dict[str, Envelope]) -> None: ...
 ```
 
-**Transformation Types:**
+The protocol separates concerns:
+- `state`: Tracks node states and outputs (UI visualization)
+- `tokens`: Manages token flow (execution logic)
+- Variables for loop indices and condition results
+
+See [context/README.md](context/README.md) for details.
+
+### 3. State Management (`state/`)
+
+Tracks node execution states and history, primarily for UI visualization and reporting.
+
+**StateTracker** (`state/state_tracker.py:20`):
 
 ```python
-class TransformationType(Enum):
-    """Types of data transformations"""
-    
-    DIRECT = "direct"              # Pass through unchanged
-    EXTRACT = "extract"            # Extract specific field
-    FORMAT = "format"              # Reformat structure
-    AGGREGATE = "aggregate"        # Combine multiple inputs
-    FILTER = "filter"              # Filter data
-    MAP = "map"                    # Map values
-    CUSTOM = "custom"              # Custom function
+from dipeo.domain.execution.state import StateTracker
+
+tracker = StateTracker()
+
+# Transition node states (for UI)
+tracker.initialize_node(node_id)
+tracker.transition_to_running(node_id, epoch=0)
+tracker.transition_to_completed(node_id, output=envelope)
+
+# Query state
+state = tracker.get_node_state(node_id)  # NodeState(status=COMPLETED)
+result = tracker.get_node_result(node_id)
+count = tracker.get_node_execution_count(node_id)
+
+# Check iteration limits
+can_run = tracker.can_execute_in_loop(node_id, epoch=0, max_iteration=10)
 ```
 
-### 3. Node Scheduling (Moved to Application Layer)
-
-Node scheduling and execution order calculation has been moved to the application layer's `NodeScheduler` class in `dipeo.application.execution.scheduler`. This scheduler implements:
-
-- **Token-based readiness checks**: Nodes are scheduled based on token availability
-- **Join policies**: Support for all, any, and k_of_n join semantics
-- **Loop iteration limits**: Automatic handling of max iterations
-- **Priority-based execution**: Respects execution priorities between sibling nodes
-- **Condition branch validation**: Proper handling of conditional dependencies
-- **Optimized edge lookups**: Pre-fetches incoming edges map to eliminate N+1 queries
-
-The scheduler is integrated directly with the execution engine and uses token-based flow control as the primary scheduling mechanism, with status tracking maintained only for UI visualization purposes.
-
-### 4. Parallel Execution Detection:
+**ExecutionTracker** (`state/execution_tracker.py:54`):
 
 ```python
-def get_parallel_groups(self) -> list[set[NodeID]]:
-    """Identify groups of nodes that can execute in parallel"""
-    groups = []
-    remaining = set(self.diagram.node_ids)
-    
-    while remaining:
-        # Find nodes with no dependencies on remaining nodes
-        parallel_group = set()
-        
-        for node_id in remaining:
-            deps = self.get_dependencies(node_id)
-            if not deps.intersection(remaining):
-                parallel_group.add(node_id)
-        
-        if parallel_group:
-            groups.append(parallel_group)
-            remaining -= parallel_group
-        else:
-            # Circular dependency detected
-            raise CyclicDependencyError(remaining)
-    
-    return groups
+# Separates immutable history from mutable runtime state
+tracker = ExecutionTracker()
+
+# Track execution lifecycle
+exec_num = tracker.start_execution(node_id)
+tracker.complete_execution(node_id, CompletionStatus.SUCCESS, output=envelope)
+
+# Query history
+count = tracker.get_execution_count(node_id)
+has_run = tracker.has_executed(node_id)
+records = tracker.get_node_execution_history(node_id)
+summary = tracker.get_execution_summary()
 ```
 
-### 4. Runtime Input Resolution (`resolution/`)
+**Note:** Status tracking is for UI only. Token flow drives execution.
 
-Handles runtime resolution of node inputs during execution:
+See [state/README.md](state/README.md) for details.
 
-**Components:**
-- `api.py` - Main entry point `resolve_inputs()` for resolving all inputs
-- `transformation_engine.py` - `TransformationEngine` for applying data transformations
-- `node_strategies.py` - Node-type-specific resolution strategies (PersonJob, Condition, etc.)
-- `data_structures.py` - Value objects like `InputResolutionContext`, `ValidationResult`
-- `selectors.py` - Edge selection logic for determining which inputs are ready
-- `defaults.py` - Default value application for missing inputs
-- `errors.py` - Resolution-specific exceptions
+### 4. Message Envelope System (`messaging/`)
 
-**Key Features:**
-- Resolves actual values from executed nodes
-- Applies transformation rules at runtime
-- Handles special inputs (iteration counts, diagram info)
-- Supports spread/pack modes for data flow
-- Node-specific strategies for custom behavior
+All data flows through immutable `Envelope` objects.
+
+**Envelope** (`messaging/envelope.py:21`):
+
+```python
+from dipeo.domain.execution.messaging import Envelope, EnvelopeFactory
+
+# Create envelopes
+text_env = EnvelopeFactory.create(body="Hello", content_type=ContentType.RAW_TEXT)
+json_env = EnvelopeFactory.create(body={"key": "value"}, content_type=ContentType.OBJECT)
+
+# Auto-detect content type
+auto_env = EnvelopeFactory.create(body="text")  # Automatically RAW_TEXT
+
+# Access content
+text = envelope.as_text()    # Raises if not RAW_TEXT
+json = envelope.as_json()    # Raises if not OBJECT
+data = envelope.body         # Direct access
+
+# Add metadata (immutable)
+with_meta = envelope.with_meta(iteration=5, branch="true")
+with_iter = envelope.with_iteration(5)
+
+# Error handling
+error_env = EnvelopeFactory.create(body="Error message", error="ValidationError")
+has_err = envelope.has_error()
+```
+
+**Features:**
+- Immutable by design (frozen dataclass)
+- Content type safety (RAW_TEXT, OBJECT, BINARY, CONVERSATION_STATE)
+- Metadata support (iteration, branch, timestamps)
+- Error propagation through envelopes
+
+See [messaging/README.md](messaging/README.md) for details.
+
+### 5. Business Rules (`rules/`)
+
+Defines connection constraints and data transformation rules.
+
+**NodeConnectionRules** (`rules/connection_rules.py:6`):
+
+```python
+from dipeo.domain.execution.rules import NodeConnectionRules
+
+# Check if connection is allowed
+can_connect = NodeConnectionRules.can_connect(
+    source_type=NodeType.PERSON_JOB,
+    target_type=NodeType.CONDITION
+)  # True
+
+# Get valid targets for a node type
+constraints = NodeConnectionRules.get_connection_constraints(NodeType.START)
+valid_targets = constraints['can_send_to']  # All except START
+valid_sources = constraints['can_receive_from']  # Empty (START has no inputs)
+```
+
+**Connection Rules:**
+- START nodes cannot receive inputs
+- ENDPOINT nodes cannot send outputs
+- Nodes cannot connect back to START
+- Output-capable nodes: PERSON_JOB, CONDITION, CODE_JOB, API_JOB, START
+
+**DataTransformRules** (`rules/transform_rules.py:11`):
+
+```python
+from dipeo.domain.execution.rules import DataTransformRules
+
+# Get type-based transformation
+source_node = PersonJobNode(...)
+target_node = ConditionNode(...)
+transforms = DataTransformRules.get_data_transform(source_node, target_node)
+# Returns: {"extract_tool_results": True} if source has tools
+
+# Merge edge-specific and type-based rules
+edge_rules = {"custom_rule": "value"}
+merged = DataTransformRules.merge_transforms(edge_rules, transforms)
+# Edge rules take precedence
+```
+
+**Note:** This is a minimal implementation. More complex transformation rules are planned (see Future Enhancements).
+
+See [rules/README.md](rules/README.md) for details.
+
+### 6. Runtime Input Resolution (`resolution/`)
+
+Resolves node inputs during execution by selecting edges, transforming values, and applying defaults.
+
+**Main API** (`resolution/api.py:27`):
 
 ```python
 from dipeo.domain.execution.resolution import resolve_inputs
 
-# Called by handlers during execution
-inputs = resolve_inputs(node, diagram, execution_context)
+# Resolve all inputs for a node
+inputs: dict[str, Envelope] = resolve_inputs(node, diagram, ctx)
 ```
 
-## Business Rules
+**Resolution Process:**
 
-### Node Type Rules
+1. **Edge Selection** (`selectors.py`): Determine which edges are ready
+2. **Value Extraction** (`api.py:142`): Extract values from source outputs with content type conversion
+3. **Transformation** (`transformation_engine.py`): Apply transformation rules
+4. **Special Inputs** (`selectors.py`): Add iteration counts, diagram info
+5. **Defaults** (`defaults.py`): Apply default values for missing inputs
+6. **Validation**: Ensure required inputs are present
 
-```python
-class NodeTypeRules:
-    """Business rules for specific node types"""
-    
-    # Start Node Rules
-    START_RULES = {
-        "max_count": 1,              # Only one start node allowed
-        "required": True,             # Must have a start node
-        "allows_input": False,        # Cannot receive inputs
-        "requires_output": True       # Must have at least one output
-    }
-    
-    # Endpoint Node Rules
-    ENDPOINT_RULES = {
-        "max_count": None,            # Multiple endpoints allowed
-        "required": False,            # Optional
-        "allows_output": False,       # Cannot send outputs
-        "requires_input": True        # Must have at least one input
-    }
-    
-    # Condition Node Rules
-    CONDITION_RULES = {
-        "max_outputs": 2,             # True/False branches
-        "requires_boolean": True,     # Must evaluate to boolean
-        "branch_labels": ["true", "false"]
-    }
-    
-    # PersonJob Node Rules
-    PERSON_JOB_RULES = {
-        "requires_person": True,      # Must specify a person
-        "allows_memory": True,        # Can access conversation memory
-        "max_retries": 3              # Retry on failure
-    }
-```
+**Components:**
+- `api.py` - Main `resolve_inputs()` orchestration
+- `transformation_engine.py` - `TransformationEngine` for data transformation
+- `node_strategies.py` - Node-type-specific resolution (PersonJob, Condition, Collect)
+- `selectors.py` - Edge selection and special input computation
+- `defaults.py` - Default value application
+- `data_structures.py` - Value objects (InputResolutionContext, ValidationResult)
+- `errors.py` - Resolution-specific exceptions
 
-### Data Flow Rules
+**Features:**
+- Smart content type conversion (text ↔ JSON ↔ conversation state)
+- Spread/pack modes for data flow
+- Node-type-specific strategies
+- Special input injection (iteration count, diagram metadata)
+- Strict vs loose mode (via `DIPEO_LOOSE_EDGE_VALUE`)
+
+**Example Strategy** (`node_strategies.py`):
 
 ```python
-class DataFlowRules:
-    """Rules for data flow between nodes"""
-    
-    @staticmethod
-    def validate_data_compatibility(source_output: type, target_input: type) -> bool:
-        """Check if data types are compatible"""
-        # Direct compatibility
-        if source_output == target_input:
-            return True
-        
-        # Subclass compatibility
-        if issubclass(source_output, target_input):
-            return True
-        
-        # Transformation available
-        if TransformationRules.has_transform(source_output, target_input):
-            return True
-        
-        return False
-    
-    @staticmethod
-    def get_required_fields(node_type: NodeType) -> list[str]:
-        """Get required input fields for node type"""
-        REQUIRED_FIELDS = {
-            NodeType.PERSON_JOB: ["prompt"],
-            NodeType.CODE_JOB: ["code", "language"],
-            NodeType.API_JOB: ["endpoint", "method"],
-            NodeType.TEMPLATE_JOB: ["template", "data"],
-            NodeType.CONDITION: ["expression"]
-        }
-        return REQUIRED_FIELDS.get(node_type, [])
-```
+from dipeo.domain.execution.resolution import PersonJobNodeStrategy
 
-### Execution Flow Rules
+strategy = PersonJobNodeStrategy()
 
-```python
-class ExecutionFlowRules:
-    """Rules governing execution flow"""
-    
-    @staticmethod
-    def should_skip_node(node: ExecutableNode, context: ExecutionContext) -> bool:
-        """Determine if node should be skipped"""
-        # Skip if conditional branch not taken
-        if node.is_conditional_target:
-            condition_result = context.get_condition_result(node.condition_id)
-            if not condition_result.matches_branch(node.branch):
-                return True
-        
-        # Skip if max iterations reached
-        if node.max_iterations:
-            current = context.get_iteration_count(node.id)
-            if current >= node.max_iterations:
-                return True
-        
-        # Skip if dependencies failed (unless error handling)
-        dependencies = context.get_dependencies(node.id)
-        if any(context.is_failed(dep) for dep in dependencies):
-            if not node.handles_errors:
-                return True
-        
-        return False
+# Check if inputs are ready
+ready = strategy.validate_inputs(node, inputs)
+
+# Apply node-specific transformations
+transformed = strategy.transform_inputs(node, inputs)
 ```
 
 ## Usage Examples
 
-### Validate Connection
+### Complete Execution Flow
 
 ```python
-# Check if connection is valid
+from dipeo.domain.execution import (
+    ExecutionContext,
+    Envelope,
+    EnvelopeFactory,
+    resolve_inputs,
+)
+
+# 1. Check token readiness
+is_ready = ctx.tokens.has_new_inputs(node_id, join_policy="all")
+
+if is_ready:
+    # 2. Transition state (for UI)
+    ctx.state.transition_to_running(node_id, epoch=ctx.current_epoch())
+
+    # 3. Consume tokens
+    token_inputs = ctx.consume_inbound(node_id)
+
+    # 4. Resolve actual inputs
+    resolved_inputs = resolve_inputs(node, diagram, ctx)
+
+    # 5. Execute node (handler logic)
+    result = execute_node(node, resolved_inputs)
+
+    # 6. Create output envelope
+    output = EnvelopeFactory.create(body=result, node_id=node_id)
+
+    # 7. Update state (for UI)
+    ctx.state.transition_to_completed(node_id, output=output)
+
+    # 8. Publish tokens on outgoing edges
+    ctx.emit_outputs_as_tokens(node_id, {"default": output})
+```
+
+### Loop Execution with Epochs
+
+```python
+# Enter loop - new epoch
+epoch = ctx.tokens.begin_epoch()
+
+# Execute loop body nodes
+while has_work:
+    for node_id in loop_body:
+        if ctx.tokens.has_new_inputs(node_id, epoch=epoch):
+            # Execute node...
+            ctx.tokens.emit_outputs(node_id, outputs, epoch=epoch)
+
+    # Check iteration limit
+    if not ctx.state.can_execute_in_loop(node_id, epoch, max_iteration=10):
+        ctx.state.transition_to_maxiter(node_id)
+        break
+```
+
+### Validate Connections
+
+```python
+from dipeo.domain.execution.rules import NodeConnectionRules
+
+# Check connection validity at compile time
 source_type = NodeType.PERSON_JOB
-target_type = NodeType.CONDITION
+target_type = NodeType.ENDPOINT
 
 if NodeConnectionRules.can_connect(source_type, target_type):
     print("Connection allowed")
 else:
-    print("Invalid connection")
-
-# Get all valid targets for a node type
-constraints = NodeConnectionRules.get_connection_constraints(NodeType.START)
-valid_targets = constraints['can_send_to']
-```
-
-### Apply Transformation
-
-```python
-# Get transformation rule
-rule = TransformationRules.get_transform(
-    NodeType.CODE_JOB,
-    NodeType.PERSON_JOB
-)
-
-if rule:
-    # Apply transformation
-    source_data = {"output": "code execution result"}
-    target_data = rule.transform_fn(source_data["output"])
-    print(f"Transformed: {target_data}")
-```
-
-### Calculate Execution Order
-
-```python
-# Initialize calculator
-calculator = DynamicOrderCalculator(executable_diagram)
-
-# Track execution state
-completed = {"start-node"}
-failed = set()
-running = {"person-job-1"}
-
-# Get next nodes to execute
-ready_nodes = calculator.get_ready_nodes(completed, failed, running)
-print(f"Ready to execute: {ready_nodes}")
-
-# Get parallel execution groups
-parallel_groups = calculator.get_parallel_groups()
-for i, group in enumerate(parallel_groups):
-    print(f"Parallel group {i}: {group}")
-```
-
-### Validate Data Flow
-
-```python
-# Check data compatibility
-source_output_type = dict
-target_input_type = str
-
-if DataFlowRules.validate_data_compatibility(source_output_type, target_input_type):
-    print("Data types compatible (with transformation)")
-else:
-    print("Incompatible data types")
-
-# Get required fields
-required = DataFlowRules.get_required_fields(NodeType.API_JOB)
-print(f"Required fields for API_JOB: {required}")
-```
-
-## Advanced Features
-
-### Custom Rules
-
-```python
-class CustomExecutionRules(ExecutionFlowRules):
-    """Extended execution rules"""
-    
-    @staticmethod
-    def should_retry_node(node: ExecutableNode, error: Exception) -> bool:
-        """Custom retry logic"""
-        if isinstance(error, TemporaryError):
-            return node.retry_count < node.max_retries
-        return False
-    
-    @staticmethod
-    def get_retry_delay(retry_count: int) -> float:
-        """Exponential backoff for retries"""
-        return min(2 ** retry_count, 60)  # Max 60 seconds
-```
-
-### Rule Composition
-
-```python
-class CompositeRule:
-    """Combine multiple rules"""
-    
-    def __init__(self, rules: list[Callable]):
-        self.rules = rules
-    
-    def evaluate(self, *args, **kwargs) -> bool:
-        """All rules must pass"""
-        return all(rule(*args, **kwargs) for rule in self.rules)
-
-# Compose connection and data flow rules
-composite = CompositeRule([
-    lambda s, t: NodeConnectionRules.can_connect(s, t),
-    lambda s, t: DataFlowRules.validate_data_compatibility(s, t)
-])
-```
-
-### Dynamic Rule Loading
-
-```python
-class RuleRegistry:
-    """Registry for dynamic rule loading"""
-    
-    _rules: dict[str, Any] = {}
-    
-    @classmethod
-    def register(cls, name: str, rule: Any):
-        """Register a rule"""
-        cls._rules[name] = rule
-    
-    @classmethod
-    def get(cls, name: str) -> Any:
-        """Get registered rule"""
-        return cls._rules.get(name)
-
-# Register custom rules
-RuleRegistry.register("custom_connection", CustomConnectionRule())
-RuleRegistry.register("custom_transform", CustomTransformRule())
+    raise ValueError("Invalid connection")
 ```
 
 ## Testing
 
-### Unit Tests
+Unit tests should focus on:
+
+1. **Token Flow**: Token publishing, consumption, and readiness checks
+2. **Join Policies**: All/any/k_of_n semantics
+3. **Connection Rules**: Valid/invalid connections between node types
+4. **Envelope Immutability**: Metadata operations return new instances
+5. **Resolution Logic**: Edge selection, transformation, defaults
+
+Example tests:
 
 ```python
+def test_token_flow():
+    """Test basic token publishing and consumption"""
+    token_mgr = TokenManager(diagram)
+
+    # Publish token
+    envelope = EnvelopeFactory.create(body="data")
+    edge = EdgeRef(source_node_id="A", target_node_id="B", ...)
+    token = token_mgr.publish_token(edge, envelope)
+
+    # Check readiness
+    assert token_mgr.has_new_inputs("B", join_policy="all")
+
+    # Consume
+    inputs = token_mgr.consume_inbound("B")
+    assert "default" in inputs
+
 def test_connection_rules():
     """Test connection validation"""
-    # Valid connections
+    # Valid
     assert NodeConnectionRules.can_connect(NodeType.START, NodeType.PERSON_JOB)
-    assert NodeConnectionRules.can_connect(NodeType.PERSON_JOB, NodeType.ENDPOINT)
-    
-    # Invalid connections
-    assert not NodeConnectionRules.can_connect(NodeType.ENDPOINT, NodeType.PERSON_JOB)
+
+    # Invalid
     assert not NodeConnectionRules.can_connect(NodeType.PERSON_JOB, NodeType.START)
-
-def test_transformation_rules():
-    """Test data transformation"""
-    rule = TransformationRules.get_transform(
-        NodeType.PERSON_JOB,
-        NodeType.CONDITION
-    )
-    
-    assert rule is not None
-    result = rule.transform_fn({"decision": True})
-    assert result is True
-```
-
-### Integration Tests
-
-```python
-def test_execution_flow():
-    """Test complete execution flow rules"""
-    diagram = create_test_diagram()
-    calculator = DynamicOrderCalculator(diagram)
-    
-    # Simulate execution
-    completed = set()
-    for node_id in ["start", "job1", "condition"]:
-        ready = calculator.get_ready_nodes(completed, set(), set())
-        assert node_id in ready
-        completed.add(node_id)
+    assert not NodeConnectionRules.can_connect(NodeType.ENDPOINT, NodeType.PERSON_JOB)
 ```
 
 ## Performance Considerations
 
-- **Rule Caching**: Cache rule evaluations for repeated checks
-- **Dependency Graph**: Build once and reuse during execution
-- **Parallel Detection**: Pre-compute parallel groups
-- **Lazy Evaluation**: Evaluate rules only when needed
-- **Index Optimization**: Use indices for fast lookups
-- **Template Caching**: PromptBuilder caches rendered templates (1000 entry limit)
-- **Edge Map Pre-fetching**: Scheduler pre-fetches incoming edges to avoid N+1 queries
-- **Async I/O**: All file operations use async patterns (aiofiles)
+- **Edge Mapping**: TokenManager pre-builds edge maps for O(1) lookups
+- **Immutable Messages**: Envelopes are immutable, enabling safe sharing
+- **Thread Safety**: StateTracker uses locks for concurrent access
+- **Lazy Evaluation**: Inputs resolved only when node executes
+- **Epoch Isolation**: Tokens are keyed by (edge, epoch, seq) for isolation
 
 ## Dependencies
 
 **Internal:**
-- `dipeo.diagram_generated` - Generated node types
-- `dipeo.domain.diagram.models` - Diagram models
-- `dipeo.domain.diagram.compilation` - Compile-time resolution interfaces
-- `dipeo.domain.events` - Event contracts (consolidated from messaging)
+- `dipeo.diagram_generated` - Generated node types and enums
+- `dipeo.domain.diagram.models` - Diagram models (ExecutableDiagram, ExecutableNode)
+- `dipeo.config.base_logger` - Logging
 
 **External:**
 - Python 3.13+ standard library
-- `dataclasses` - Data structures
-- `enum` - Enumerations
-- `typing` - Type hints
+- `dataclasses` - Immutable data structures
+- `typing` - Type hints and protocols
 
 ## Future Enhancements
 
-- **Rule Versioning**: Support different rule versions
-- **Rule Composition Language**: DSL for complex rules
-- **Machine Learning Rules**: Learn rules from execution history
-- **Rule Optimization**: Optimize rule evaluation order
-- **Visual Rule Builder**: UI for creating custom rules
+The following features are **planned but not yet implemented**:
+
+1. **Rule Registry** (Task 31): Dynamic rule loading and registration
+2. **Advanced Transformation Rules**: Complex transformation pipelines with TransformRule dataclass
+3. **TransformationType Enum**: Typed transformation operations (extract/format/aggregate/filter/map)
+4. **Data Flow Validation**: Type compatibility checking between nodes
+5. **Rule Composition**: Combine multiple rules with AND/OR logic
+6. **Retry Policies**: Configurable retry logic with exponential backoff
+7. **Rule Versioning**: Support different rule versions per diagram
+8. **Machine Learning Rules**: Learn rules from execution history
+
+## Related Documentation
+
+- [Overall Architecture](../../docs/architecture/overall_architecture.md) - System-wide architecture
+- [Diagram Compilation](../../docs/architecture/diagram-compilation.md) - Compile-time processing
+- [Execution Engine](../../application/execution/README.md) - Application-layer orchestration
+- [Node Handlers](../../application/execution/handlers/README.md) - Node-specific execution logic

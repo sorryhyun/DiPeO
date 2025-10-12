@@ -18,7 +18,6 @@ type ApiKeyResult {
   error_type: String
   envelope: JSON
   data: DomainApiKeyType
-  api_key: DomainApiKeyType @deprecated(reason: "Use 'data' field instead")
 }
 
 """Branded scalar type for ArrowID"""
@@ -139,7 +138,6 @@ type DiagramResult {
   error_type: String
   envelope: JSON
   data: DomainDiagramType
-  diagram: DomainDiagramType @deprecated(reason: "Use 'data' field instead")
 }
 
 type DomainApiKeyType {
@@ -245,7 +243,6 @@ type ExecutionResult {
   error_type: String
   envelope: JSON
   data: ExecutionStateType
-  execution: ExecutionStateType @deprecated(reason: "Use 'data' field instead")
 }
 
 type ExecutionStateType {
@@ -387,7 +384,6 @@ type NodeResult {
   error_type: String
   envelope: JSON
   data: DomainNodeType
-  node: DomainNodeType @deprecated(reason: "Use 'data' field instead")
 }
 
 enum NodeType {
@@ -454,7 +450,6 @@ type PersonResult {
   error_type: String
   envelope: JSON
   data: DomainPersonType
-  person: DomainPersonType @deprecated(reason: "Use 'data' field instead")
 }
 
 type ProviderMetadataType {

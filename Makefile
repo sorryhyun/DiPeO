@@ -144,7 +144,7 @@ codegen-status:
 
 # Development servers
 dev-server:
-	cd apps/server && DIPEO_BASE_DIR="$(shell pwd)" python main.py
+	DIPEO_BASE_DIR="$(shell pwd)" python apps/server/main.py
 
 dev-web:
 	pnpm -F web dev
@@ -298,6 +298,6 @@ clean:
 	find . -type d \( -name "__pycache__" -o -name "*.egg-info" -o -name ".pytest_cache" \
 		-o -name ".ruff_cache" -o -name "__generated__" -o -name "dist" -o -name "build" \) \
 		-exec rm -rf {} + 2>/dev/null || true
-	rm -rf .logs/*.log 2>/dev/null || true
+	rm -rf .dipeo/logs/*.log 2>/dev/null || true
 	rm -rf temp/codegen temp/core temp/specifications 2>/dev/null || true
 	@echo "Clean complete."

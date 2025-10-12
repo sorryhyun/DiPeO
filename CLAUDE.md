@@ -26,6 +26,13 @@ dipeo run [diagram] --input-data '{"key": "value"}' --light --debug
 dipeo metrics --latest --breakdown  # Profile latest execution
 ```
 
+### Export to Python
+```bash
+dipeo export <diagram> <output.py> --light  # Export diagram to standalone Python script
+dipeo export examples/simple_diagrams/simple_iter.light.yaml output.py --light
+```
+See [Diagram-to-Python Export Guide](docs/features/diagram-to-python-export.md)
+
 ### Code Generation
 ```bash
 cd dipeo/models && pnpm build      # Build TypeScript specs
@@ -63,7 +70,10 @@ Run agents in parallel when possible. [Agent docs](docs/agents/index.md)
 ### Key Concepts
 - **Code Generation**: TypeScript specs → IR → Python
 - **Avoid editing** `dipeo/diagram_generated/` directly - modify TypeScript specs instead
-- **GraphQL**: 3-tier architecture (Generated → Application → Execution) 
+- **Diagram Compilation**: 6-phase pipeline (Validation → Transformation → Resolution → Edge Building → Optimization → Assembly)
+- **Configuration-Driven**: HandleSpec tables, field mappings - no if-elif chains
+- **Strategy Pattern**: Consistent parser → transformer → serializer → strategy structure
+- **GraphQL**: 3-tier architecture (Generated → Application → Execution)
 - **Service Registry**: EnhancedServiceRegistry with type categorization, audit trails
 - **Event System**: Unified EventBus protocol
 - **Output Pattern**: Envelope pattern via EnvelopeFactory
@@ -83,7 +93,20 @@ See [Overall Architecture](docs/architecture/overall_architecture.md) for comple
 1. Create spec in `/dipeo/models/src/nodes/`
 2. Build: `cd dipeo/models && pnpm build`
 3. Generate: `make codegen` → `make diff-staged` → `make apply-test`
-4. Update schema: `make graphql-schema`
+4. Configure handles in `/dipeo/domain/diagram/utils/shared_components.py` (HANDLE_SPECS)
+5. Add field mappings if needed in `/dipeo/domain/diagram/utils/node_field_mapper.py` (FIELD_MAPPINGS)
+6. Create handler in `/dipeo/application/execution/handlers/`
+7. Update schema: `make graphql-schema`
+
+See [Developer Guide](docs/guides/developer-guide-diagrams.md) for detailed instructions.
+
+### New Diagram Formats
+1. Create strategy in `/dipeo/domain/diagram/strategies/my_format/`
+2. Implement: `parser.py`, `transformer.py`, `serializer.py`, `strategy.py`
+3. Follow existing patterns (see `light/` or `readable/`)
+4. Register strategy in format registry
+
+See [Developer Guide](docs/guides/developer-guide-diagrams.md#adding-new-diagram-formats) for details.
 
 ### GraphQL Operations
 1. Add definition in `/dipeo/models/src/frontend/query-definitions/`
@@ -93,6 +116,7 @@ See [Overall Architecture](docs/architecture/overall_architecture.md) for comple
 ### Other Changes
 - **API changes**: Modify schema → `make graphql-schema`
 - **UI changes**: Work in `/apps/web/src/`
+- **Compilation phases**: Create phase class implementing PhaseInterface (see [Diagram Compilation](docs/architecture/diagram-compilation.md))
 
 ## Important Notes
 
@@ -100,7 +124,7 @@ See [Overall Architecture](docs/architecture/overall_architecture.md) for comple
 - **uv** for Python, **pnpm** for JavaScript (not npm/yarn)
 - Default LLM: `gpt-5-nano-2025-08-07`
 - Backend: port 8000, Frontend: port 3000
-- Debug with `--debug` flag, check `.logs/cli.log`
+- Debug with `--debug` flag, check `.dipeo/logs/cli.log`
 - Formal test suite under development
 
 ## Common Issues & Solutions
@@ -110,7 +134,7 @@ See [Overall Architecture](docs/architecture/overall_architecture.md) for comple
 | Import errors | `make install` (uv auto-manages env) | |
 | Generated code sync | Run codegen workflow | |
 | TypeScript errors | `make graphql-schema` | |
-| Need debugging | Add `--debug`, check `.logs/` | |
+| Need debugging | Add `--debug`, check `.dipeo/logs/` | |
 | Claude Code sessions | Use `dipeocc convert` | |
 
 ## Quick Debug Reference
@@ -118,7 +142,7 @@ See [Overall Architecture](docs/architecture/overall_architecture.md) for comple
 - **Run diagrams**: `dipeo run [diagram] --light --debug`
 - **Monitor UI**: `http://localhost:3000/?monitor=true`
 - **GraphQL playground**: `http://localhost:8000/graphql`
-- **Logs**: `.logs/cli.log` for detailed output
+- **Logs**: `.dipeo/logs/cli.log` for detailed output
 
 ---
 

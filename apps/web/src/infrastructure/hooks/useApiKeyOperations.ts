@@ -31,8 +31,8 @@ const useCreateApiKeyMutation = createEntityMutation({
   entityName: 'API Key',
   document: CreateApiKeyDocument,
   successMessage: (data: any) =>
-    data.create_api_key?.success && data.create_api_key?.api_key
-      ? `API key "${data.create_api_key.api_key.label}" added successfully`
+    data.create_api_key?.success && data.create_api_key?.data
+      ? `API key "${data.create_api_key.data.label}" added successfully`
       : 'API key created',
   errorMessage: (data: any) => data.create_api_key?.error || 'Failed to create API key',
   options: {

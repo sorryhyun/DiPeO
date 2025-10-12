@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import DataType, HandleDirection, HandleLabel, NodeID, NodeType
 
-from .handle_utils import create_handle_id
+from .core.arrow_operations import ArrowBuilder
+from .core.handle_operations import HandleIdOperations
 
 logger = get_module_logger(__name__)
 
@@ -19,18 +21,21 @@ if TYPE_CHECKING:
 __all__ = (
     "ArrowBuilder",
     "HandleGenerator",
+    "HandleSpec",
     "PositionCalculator",
     "build_node",
     "coerce_to_dict",
+    "create_node_id",
     "ensure_position",
     "extract_common_arrows",
+    "process_dotted_keys",
 )
 
 
 def _create_handle_id_from_enums(
     node_id: str, label: HandleLabel, direction: HandleDirection
 ) -> str:
-    result = create_handle_id(NodeID(node_id), label, direction)
+    result = HandleIdOperations.create_handle_id(NodeID(node_id), label, direction)
     return str(result)
 
 
@@ -66,6 +71,46 @@ def _make_handle(
     }
 
 
+@dataclass
+class HandleSpec:
+    label: HandleLabel
+    direction: HandleDirection
+    data_type: DataType = DataType.ANY
+
+
+HANDLE_SPECS: dict[str, list[HandleSpec]] = {
+    NodeType.START: [
+        HandleSpec(HandleLabel.DEFAULT, HandleDirection.OUTPUT),
+    ],
+    NodeType.ENDPOINT.value: [
+        HandleSpec(HandleLabel.DEFAULT, HandleDirection.INPUT),
+    ],
+    NodeType.CONDITION.value: [
+        HandleSpec(HandleLabel.DEFAULT, HandleDirection.INPUT),
+        HandleSpec(HandleLabel.CONDTRUE, HandleDirection.OUTPUT, DataType.BOOLEAN),
+        HandleSpec(HandleLabel.CONDFALSE, HandleDirection.OUTPUT, DataType.BOOLEAN),
+    ],
+    NodeType.DB.value: [
+        HandleSpec(HandleLabel.DEFAULT, HandleDirection.INPUT),
+        HandleSpec(HandleLabel.DEFAULT, HandleDirection.OUTPUT),
+    ],
+    NodeType.PERSON_JOB.value: [
+        HandleSpec(HandleLabel.FIRST, HandleDirection.INPUT),
+        HandleSpec(HandleLabel.DEFAULT, HandleDirection.INPUT),
+        HandleSpec(HandleLabel.DEFAULT, HandleDirection.OUTPUT),
+    ],
+    NodeType.USER_RESPONSE.value: [
+        HandleSpec(HandleLabel.DEFAULT, HandleDirection.INPUT),
+        HandleSpec(HandleLabel.DEFAULT, HandleDirection.OUTPUT),
+    ],
+}
+
+DEFAULT_HANDLES = [
+    HandleSpec(HandleLabel.DEFAULT, HandleDirection.INPUT),
+    HandleSpec(HandleLabel.DEFAULT, HandleDirection.OUTPUT),
+]
+
+
 class HandleGenerator:
     def generate_for_node(
         self,
@@ -73,86 +118,12 @@ class HandleGenerator:
         node_id: str,
         node_type: str,
     ) -> None:
-        if node_type == NodeType.START:
+        handle_specs = HANDLE_SPECS.get(node_type, DEFAULT_HANDLES)
+        for spec in handle_specs:
             _push_handle(
                 diagram,
-                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.OUTPUT),
+                _make_handle(node_id, spec.label, spec.direction, spec.data_type),
             )
-            return
-
-        if node_type == NodeType.ENDPOINT.value:
-            _push_handle(
-                diagram,
-                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.INPUT),
-            )
-            return
-
-        # Condition nodes: one input, two outputs (true/false)
-        if node_type == NodeType.CONDITION.value:
-            _push_handle(
-                diagram,
-                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.INPUT),
-            )
-            _push_handle(
-                diagram,
-                _make_handle(
-                    node_id, HandleLabel.CONDTRUE, HandleDirection.OUTPUT, DataType.BOOLEAN
-                ),
-            )
-            _push_handle(
-                diagram,
-                _make_handle(
-                    node_id, HandleLabel.CONDFALSE, HandleDirection.OUTPUT, DataType.BOOLEAN
-                ),
-            )
-            return
-
-        if node_type == NodeType.DB.value:
-            _push_handle(
-                diagram,
-                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.INPUT),
-            )
-            _push_handle(
-                diagram,
-                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.OUTPUT),
-            )
-            return
-
-        # person_job nodes: first input, default input/output
-        if node_type == NodeType.PERSON_JOB.value:
-            _push_handle(
-                diagram,
-                _make_handle(node_id, HandleLabel.FIRST, HandleDirection.INPUT),
-            )
-            _push_handle(
-                diagram,
-                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.INPUT),
-            )
-            _push_handle(
-                diagram,
-                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.OUTPUT),
-            )
-            return
-
-        if node_type == NodeType.USER_RESPONSE.value:
-            _push_handle(
-                diagram,
-                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.INPUT),
-            )
-            _push_handle(
-                diagram,
-                _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.OUTPUT),
-            )
-            return
-
-        _push_handle(
-            diagram,
-            _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.INPUT),
-        )
-        _push_handle(
-            diagram,
-            _make_handle(node_id, HandleLabel.DEFAULT, HandleDirection.OUTPUT),
-        )
 
 
 class PositionCalculator:
@@ -182,23 +153,6 @@ class PositionCalculator:
             "x": self.x_offset + index * self.x_spacing,
             "y": y,
         }
-
-
-class ArrowBuilder:
-    @staticmethod
-    def create_arrow_id(source_handle: str, target_handle: str) -> str:
-        return f"{source_handle}->{target_handle}"
-
-    @staticmethod
-    def create_simple_arrow(
-        source_node: str,
-        target_node: str,
-        source_label: HandleLabel = HandleLabel.DEFAULT,
-        target_label: HandleLabel = HandleLabel.DEFAULT,
-    ) -> tuple[str, str, str]:
-        s = str(create_handle_id(NodeID(source_node), source_label, HandleDirection.OUTPUT))
-        t = str(create_handle_id(NodeID(target_node), target_label, HandleDirection.INPUT))
-        return ArrowBuilder.create_arrow_id(s, t), s, t
 
 
 def coerce_to_dict(
@@ -257,3 +211,23 @@ def extract_common_arrows(arrows: Any) -> list[dict[str, Any]]:
                 arrow_dict["label"] = a["label"]
             result.append(arrow_dict)
     return result
+
+
+def create_node_id(index: int, prefix: str = "node") -> str:
+    """Generate a unique node ID from index and optional prefix."""
+    return f"{prefix}_{index}"
+
+
+def process_dotted_keys(props: dict[str, Any]) -> dict[str, Any]:
+    """Convert dot notation keys to nested dictionaries."""
+    dotted_keys = [k for k in props if "." in k]
+    for key in dotted_keys:
+        value = props.pop(key)
+        parts = key.split(".")
+        current = props
+        for part in parts[:-1]:
+            if part not in current:
+                current[part] = {}
+            current = current[part]
+        current[parts[-1]] = value
+    return props

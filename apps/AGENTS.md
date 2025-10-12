@@ -199,7 +199,7 @@ dipeo metrics          # Show performance metrics
 4. Update schema: `make graphql-schema`
 
 ### Testing & Debugging
-- Server logs: `.logs/server.log`
+- Server logs: `.dipeo/logs/server.log`
 - GraphQL Playground: `http://localhost:8000/graphql`
 - Add `--debug` flag to CLI commands
 - Frontend debug: `?debug=true` URL parameter

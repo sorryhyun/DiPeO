@@ -136,10 +136,19 @@ jobs:
           Write-Host "PYTHONPATH set to: $env:PYTHONPATH"
           Write-Host "VIRTUAL_ENV set to: $env:VIRTUAL_ENV"
 
+          # Clean TypeScript AST cache
+          Write-Host "Cleaning TypeScript AST cache..."
+          Remove-Item -Path "temp/core", "temp/specifications", "temp/frontend", "temp/codegen", "temp/nodes", "temp/utilities" -Recurse -Force -ErrorAction SilentlyContinue
+          Get-ChildItem -Path "temp" -Filter "*.json" -File -ErrorAction SilentlyContinue | Remove-Item -Force
+
+          # Parse TypeScript models first
+          Write-Host "Parsing TypeScript models..."
+          dipeo run projects/codegen/diagrams/parse_typescript_batch_direct --light --debug --timeout=20
+
           Write-Host "Running unified diagram-based code generation..."
 
           # Generate models
-          dipeo run codegen/diagrams/generate_all --light --debug --timeout=30
+          dipeo run projects/codegen/diagrams/generate_all --light --debug --timeout=30
 
           # Apply staged changes (copy files)
           if (Test-Path "dipeo/diagram_generated_staged") {

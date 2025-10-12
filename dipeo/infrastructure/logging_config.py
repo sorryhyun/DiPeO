@@ -33,7 +33,7 @@ def setup_logging(
     component: str = "dipeo",
     log_level: str = "INFO",
     log_to_file: bool = True,
-    log_dir: str = ".logs",
+    log_dir: str = ".dipeo/logs",
     console_output: bool = True,
     timing_only: bool = False,
     file_mode: str = "a",
@@ -59,7 +59,7 @@ def setup_logging(
 
     # Create logs directory if it doesn't exist
     if log_to_file:
-        log_path.mkdir(exist_ok=True)
+        log_path.mkdir(parents=True, exist_ok=True)
 
     # Configure root logger
     root_logger = logging.getLogger()
@@ -195,7 +195,8 @@ def get_execution_logger(execution_id: str) -> logging.Logger:
     This creates a separate log file for each execution to make debugging easier.
     """
     base_dir = os.environ.get("DIPEO_BASE_DIR", os.getcwd())
-    log_path = Path(base_dir) / ".logs" / "executions"
+    log_dir = os.environ.get("DIPEO_LOGS_DIR", ".dipeo/logs")
+    log_path = Path(base_dir) / log_dir / "executions"
     log_path.mkdir(parents=True, exist_ok=True)
 
     # Create execution-specific logger

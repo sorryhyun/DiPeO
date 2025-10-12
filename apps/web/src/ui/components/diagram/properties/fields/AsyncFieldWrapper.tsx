@@ -62,7 +62,7 @@ export const AsyncFieldWrapper: React.FC<AsyncFieldWrapperProps> = ({
   // For select fields, pass the resolved options
   const resolvedProps: UnifiedFormFieldProps = {
     ...fieldProps,
-    options: options,
+    options,
     isLoading: isLoading || fieldProps.isLoading,
   };
 
