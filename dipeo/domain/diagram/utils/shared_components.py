@@ -25,8 +25,10 @@ __all__ = (
     "PositionCalculator",
     "build_node",
     "coerce_to_dict",
+    "create_node_id",
     "ensure_position",
     "extract_common_arrows",
+    "process_dotted_keys",
 )
 
 
@@ -209,3 +211,23 @@ def extract_common_arrows(arrows: Any) -> list[dict[str, Any]]:
                 arrow_dict["label"] = a["label"]
             result.append(arrow_dict)
     return result
+
+
+def create_node_id(index: int, prefix: str = "node") -> str:
+    """Generate a unique node ID from index and optional prefix."""
+    return f"{prefix}_{index}"
+
+
+def process_dotted_keys(props: dict[str, Any]) -> dict[str, Any]:
+    """Convert dot notation keys to nested dictionaries."""
+    dotted_keys = [k for k in props if "." in k]
+    for key in dotted_keys:
+        value = props.pop(key)
+        parts = key.split(".")
+        current = props
+        for part in parts[:-1]:
+            if part not in current:
+                current[part] = {}
+            current = current[part]
+        current[parts[-1]] = value
+    return props
