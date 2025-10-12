@@ -332,6 +332,7 @@ class TypeScriptParser:
                     cmd,
                     capture_output=True,
                     text=True,
+                    encoding="utf-8",
                     cwd=str(self.project_root),
                     env=env,
                     timeout=60,  # Increased timeout for batch processing
