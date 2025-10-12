@@ -1,6 +1,5 @@
 // Auto-generated TypeScript model for endpoint node
 import { z } from 'zod';
-import { PersonID } from '@dipeo/models';
 
 export interface EndpointNodeData {
   save_to_file?: boolean | undefined;

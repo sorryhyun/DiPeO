@@ -1,6 +1,5 @@
 // Auto-generated TypeScript model for template_job node
 import { z } from 'zod';
-import { PersonID } from '@dipeo/models';
 
 export interface TemplateJobNodeData {
   template_path?: string | undefined;

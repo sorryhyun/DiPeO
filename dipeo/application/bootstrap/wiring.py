@@ -51,19 +51,3 @@ def wire_feature_flags(registry: ServiceRegistry, features: list[str]) -> None:
         elif feature == "experimental_handlers":
             logger.info("Enabling experimental handlers")
             # Wire experimental handlers
-        # Add more application-level feature flags as needed
-
-
-# Note: The following functions have been moved to the composition root:
-# - bootstrap_services() -> apps/server/bootstrap.py
-# - wire_state_services() -> apps/server/bootstrap.py
-# - wire_messaging_services() -> apps/server/bootstrap.py
-# - wire_llm_services() -> apps/server/bootstrap.py
-# - wire_api_services() -> apps/server/bootstrap.py
-# - wire_storage_services() -> apps/server/bootstrap.py
-# - wire_template_services() -> apps/server/bootstrap.py
-# - wire_event_services() -> apps/server/bootstrap.py
-# - execute_event_subscriptions() -> apps/server/bootstrap.py
-#
-# These functions deal with infrastructure and belong in the composition root,
-# not in the application layer.

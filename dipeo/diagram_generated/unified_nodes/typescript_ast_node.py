@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for typescript_ast.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-10T14:03:09.470420
+Generated at: 2025-10-12T13:15:13.273108
 """
 
 from typing import *

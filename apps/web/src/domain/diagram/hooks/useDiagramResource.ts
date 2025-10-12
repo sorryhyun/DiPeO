@@ -94,14 +94,14 @@ export function useDiagram(options: UseDiagramOptions = {}) {
         throw new Error('Failed to create diagram');
       }
 
-      const domainDiagram = DiagramConverter.toDomain(result.createDiagram?.diagram || {}) as DiagramResource;
+      const domainDiagram = DiagramConverter.toDomain(result.createDiagram?.data || {}) as DiagramResource;
 
       if (syncWithStore && domainDiagram) {
         const jsonString = JSON.stringify(domainDiagram);
         await store.importDiagram(jsonString);
       }
 
-      return { ...domainDiagram, id: result.createDiagram?.diagram?.metadata?.id || undefined };
+      return { ...domainDiagram, id: result.createDiagram?.data?.metadata?.id || undefined };
     },
 
     update: async (id: string, data: Partial<DiagramResource>) => {

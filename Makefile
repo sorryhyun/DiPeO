@@ -144,7 +144,7 @@ codegen-status:
 
 # Development servers
 dev-server:
-	cd apps/server && DIPEO_BASE_DIR="$(shell pwd)" python main.py
+	DIPEO_BASE_DIR="$(shell pwd)" python apps/server/main.py
 
 dev-web:
 	pnpm -F web dev

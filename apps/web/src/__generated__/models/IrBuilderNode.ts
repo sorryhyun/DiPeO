@@ -1,6 +1,5 @@
 // Auto-generated TypeScript model for ir_builder node
 import { z } from 'zod';
-import { PersonID } from '@dipeo/models';
 
 export interface IrBuilderNodeData {
   builder_type: string;

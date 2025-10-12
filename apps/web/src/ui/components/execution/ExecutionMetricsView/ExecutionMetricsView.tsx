@@ -95,7 +95,7 @@ export const ExecutionMetricsView: React.FC<ExecutionMetricsViewProps> = ({
     if (!metrics) return;
 
     const dataStr = JSON.stringify(metrics, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+    const dataUri = `data:application/json;charset=utf-8,${  encodeURIComponent(dataStr)}`;
 
     const exportLink = document.createElement('a');
     exportLink.setAttribute('href', dataUri);
@@ -123,7 +123,7 @@ export const ExecutionMetricsView: React.FC<ExecutionMetricsViewProps> = ({
       .map(row => row.map(cell => `"${cell}"`).join(','))
       .join('\n');
 
-    const dataUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvContent);
+    const dataUri = `data:text/csv;charset=utf-8,${  encodeURIComponent(csvContent)}`;
 
     const exportLink = document.createElement('a');
     exportLink.setAttribute('href', dataUri);

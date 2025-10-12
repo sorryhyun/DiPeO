@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces using simplified type resolver.
 
-Generated at: 2025-10-10T14:03:06.740326
+Generated at: 2025-10-12T13:15:10.539155
 """
 
 from __future__ import annotations
@@ -10,7 +10,6 @@ from __future__ import annotations
 import strawberry
 from typing import Optional, Dict, Any, List, Union, Literal, TypeAlias, TYPE_CHECKING
 from strawberry.scalars import JSON
-from .inputs import Float, String, Boolean
 from dipeo.domain.type_defs import JsonValue, JsonDict
 
 # Type aliases for Strawberry

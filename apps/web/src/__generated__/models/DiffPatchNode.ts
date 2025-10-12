@@ -1,6 +1,5 @@
 // Auto-generated TypeScript model for diff_patch node
 import { z } from 'zod';
-import { PersonID } from '@dipeo/models';
 
 export interface DiffPatchNodeData {
   target_path: string;

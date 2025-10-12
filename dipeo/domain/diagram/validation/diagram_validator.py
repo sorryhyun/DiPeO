@@ -47,10 +47,10 @@ class DiagramValidator(BaseValidator):
         compilation_result = validate_via_compiler(diagram)
 
         for error in compilation_result.errors:
-            result.add_error(error.to_validation_error())
+            result.add_error(error.to_validation_result(as_warning=False))
 
         for warning in compilation_result.warnings:
-            result.add_warning(warning.to_validation_warning())
+            result.add_warning(warning.to_validation_result(as_warning=True))
 
         business_errors = self.business_validators.validate(diagram)
         for error in business_errors:

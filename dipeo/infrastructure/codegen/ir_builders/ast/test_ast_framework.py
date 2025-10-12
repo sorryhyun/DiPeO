@@ -169,45 +169,11 @@ def test_walker():
     print("Walker working correctly! ✓")
 
 
-def test_backward_compatibility():
-    """Test that old utils.py functions still work."""
-    from dipeo.infrastructure.codegen.ir_builders.utils import (
-        extract_constants_from_ast,
-        extract_enums_from_ast,
-        extract_interfaces_from_ast,
-    )
-
-    print("\n\nTesting Backward Compatibility")
-    print("=" * 60)
-
-    ast_data = {
-        "test.ts": {
-            "interfaces": [{"name": "UserConfig", "properties": [], "extends": []}],
-            "enums": [{"name": "Status", "members": ["ACTIVE"]}],
-            "constants": [{"name": "MAX", "value": "100", "type": "number"}],
-        }
-    }
-
-    print("\n1. Testing deprecated functions...")
-    interfaces = extract_interfaces_from_ast(ast_data)
-    print(f"   ✓ extract_interfaces_from_ast: {len(interfaces)} interfaces")
-
-    enums = extract_enums_from_ast(ast_data)
-    print(f"   ✓ extract_enums_from_ast: {len(enums)} enums")
-
-    constants = extract_constants_from_ast(ast_data)
-    print(f"   ✓ extract_constants_from_ast: {len(constants)} constants")
-
-    print("\n" + "=" * 60)
-    print("Backward compatibility maintained! ✓")
-
-
 if __name__ == "__main__":
     try:
         test_extractors()
         test_filters()
         test_walker()
-        test_backward_compatibility()
 
         print("\n" + "=" * 60)
         print("ALL TESTS PASSED! ✓✓✓")

@@ -151,7 +151,7 @@ export const diagramQueries: EntityQueryDefinitions = {
           fields: [
             { name: 'success' },
             {
-              name: 'diagram',
+              name: 'data',
               fields: [
                 {
                   name: 'metadata',
@@ -183,7 +183,7 @@ export const diagramQueries: EntityQueryDefinitions = {
           fields: [
             { name: 'success' },
             {
-              name: 'execution',
+              name: 'data',
               fields: [
                 { name: 'id' }
               ]

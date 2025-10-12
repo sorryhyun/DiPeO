@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import { ListConversationsDocument } from '@/__generated__/graphql';
 import { createEntityQuery } from '@/lib/graphql/hooks';
 import type { ConversationFilters, UIConversationMessage, UIPersonMemoryState } from '@/infrastructure/types/conversation';
-import { type PersonID, type ExecutionID, type NodeID, Status, isExecutionActive } from '@dipeo/models';
+import { type PersonID, type ExecutionID, type NodeID, Status, isStatusActive } from '@dipeo/models';
 
 const MESSAGES_PER_PAGE = 50;
 
@@ -25,7 +25,7 @@ export const useConversationData = (options: UseConversationDataOptions | Conver
   const messageCounts = useRef<Record<string, number>>({});
 
   // Determine if we should poll based on execution status
-  const shouldPoll = enableRealtimeUpdates && (!executionStatus || isExecutionActive(executionStatus as any));
+  const shouldPoll = enableRealtimeUpdates && (!executionStatus || isStatusActive(executionStatus as any));
 
   // Create query variables
   const queryVariables = useMemo(() => ({

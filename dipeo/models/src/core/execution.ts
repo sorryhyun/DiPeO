@@ -214,17 +214,3 @@ export function isStatusSuccessful(status: Status, isNode: boolean = false): boo
   }
   return status === Status.COMPLETED;
 }
-
-/**
- * @deprecated Use isStatusActive instead
- */
-export function isExecutionActive(status: Status): boolean {
-  return isStatusActive(status);
-}
-
-/**
- * @deprecated Use isStatusActive instead
- */
-export function isNodeExecutionActive(status: Status): boolean {
-  return isStatusActive(status);
-}

@@ -66,15 +66,6 @@ class CompilationError:
             return f"arrow.{self.arrow_id}"
         return None
 
-    # Backward compatibility methods
-    def to_validation_error(self) -> Any:
-        """Convert to ValidationError (deprecated: use to_validation_result)."""
-        return self.to_validation_result(as_warning=False)
-
-    def to_validation_warning(self) -> Any:
-        """Convert to ValidationWarning (deprecated: use to_validation_result)."""
-        return self.to_validation_result(as_warning=True)
-
 
 @dataclass
 class CompilationResult:

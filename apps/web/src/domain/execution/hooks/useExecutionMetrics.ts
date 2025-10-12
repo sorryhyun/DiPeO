@@ -119,7 +119,7 @@ export function useExecutionMetrics(executionId: string, enableSubscription = tr
           };
 
           // Update node breakdown if node_id is available
-          let updatedNodeBreakdown = prevMetrics.node_breakdown || [];
+          const updatedNodeBreakdown = prevMetrics.node_breakdown || [];
           if (nodeData.node_id) {
             const existingNodeIndex = updatedNodeBreakdown.findIndex(
               n => n.node_id === nodeData.node_id

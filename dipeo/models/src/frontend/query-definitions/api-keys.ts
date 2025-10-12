@@ -82,7 +82,7 @@ export const apiKeyQueries: EntityQueryDefinitions = {
           fields: [
             { name: 'success' },
             {
-              name: 'api_key',
+              name: 'data',
               fields: API_KEY_FIELDS
             },
             { name: 'message' },

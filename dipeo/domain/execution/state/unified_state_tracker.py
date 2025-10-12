@@ -169,11 +169,6 @@ class UnifiedStateTracker:
             key = (node_id, epoch)
             self._node_iterations_per_epoch[key] += 1
 
-            logger.debug(
-                f"Node {node_id} transitioned to RUNNING "
-                f"(execution #{new_count}, epoch {epoch})"
-            )
-
             return new_count
 
     def transition_to_completed(
@@ -197,8 +192,6 @@ class UnifiedStateTracker:
             self._complete_execution_record(
                 node_id, CompletionStatus.SUCCESS, output=output, token_usage=token_usage
             )
-
-            logger.debug(f"Node {node_id} transitioned to COMPLETED")
 
     def transition_to_failed(self, node_id: NodeID, error: str) -> None:
         """Transition a node to FAILED state.
@@ -229,8 +222,6 @@ class UnifiedStateTracker:
 
             # Complete execution record
             self._complete_execution_record(node_id, CompletionStatus.MAX_ITER, output=output)
-
-            logger.debug(f"Node {node_id} transitioned to MAXITER_REACHED")
 
     def transition_to_skipped(self, node_id: NodeID) -> None:
         """Transition a node to SKIPPED state (conditional branch not taken).

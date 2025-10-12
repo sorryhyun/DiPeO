@@ -1,6 +1,5 @@
 // Auto-generated TypeScript model for typescript_ast node
 import { z } from 'zod';
-import { PersonID } from '@dipeo/models';
 
 export interface TypescriptAstNodeData {
   source?: string | undefined;

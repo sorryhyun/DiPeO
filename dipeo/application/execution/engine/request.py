@@ -65,27 +65,6 @@ class ExecutionRequest[T: ExecutableNode]:
             return state.status if state else None
         return None
 
-    def get_service(self, name: str) -> Any:
-        """Legacy service resolution method.
-
-        DEPRECATED: Use get_required_service() or get_optional_service() instead.
-        """
-        warnings.warn(
-            "get_service() is deprecated. Use get_required_service() or get_optional_service() instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if isinstance(self.services, dict):
-            return self.services.get(name)
-        else:
-            from dipeo.application.registry import ServiceKey
-
-            key = ServiceKey(name)
-            try:
-                return self.services.resolve(key)
-            except KeyError:
-                return self.services.get(key)
-
     def get_required_service[S](self, key: Union["ServiceKey[S]", str]) -> S:
         """Get a required service, raising KeyError if not found.
 

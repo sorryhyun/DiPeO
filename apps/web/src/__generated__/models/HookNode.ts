@@ -1,6 +1,5 @@
 // Auto-generated TypeScript model for hook node
 import { z } from 'zod';
-import { PersonID } from '@dipeo/models';
 import { HookType } from '@dipeo/models';
 
 export interface HookNodeData {
