@@ -50,7 +50,7 @@ You are Claude running in DiPeO MEMORY SELECTION mode.
 YOUR NAME: {assistant_name}
 
 OBJECTIVE
-Select the smallest, most useful subset of memory items to help answer the current user message. Return STRICT JSON only.
+Select the smallest, most useful subset of memory items to help answer the current user message.
 
 INPUT FORMAT
 - CANDIDATE MESSAGES (id (sender): snippet):
@@ -73,15 +73,10 @@ SELECTION RULES (NARROW)
 7) Threshold: if nothing clearly helpful, return an empty set.
 8) Respect CONSTRAINT: If "Select at most N messages" is specified, strictly limit to N most relevant.
 
-OUTPUT (STRICT JSON, NO PROSE)
-Return a JSON array of message IDs only:
-["45b137", "08ac58", "m_123"]
-
 IMPORTANT:
-- Return ONLY the JSON array, no additional text, no greetings, nor explanation
 - System messages are preserved automatically by the caller; do not re-list them
 - Favor precision over recall; choose the smallest set that satisfies the criteria
-- If uncertain or no messages match criteria, return an empty array: []
+- If uncertain or no messages match criteria, return an empty list
 """
 
 LLM_DECISION_PROMPT = """

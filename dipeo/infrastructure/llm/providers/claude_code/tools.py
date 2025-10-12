@@ -78,9 +78,6 @@ async def make_decision(args: dict[str, Any]) -> dict[str, Any]:
         Structured output with the decision result
     """
     decision = args.get("decision", False)
-    logger.info(
-        f"[MCP Tool] make_decision invoked with decision={decision} ({'YES' if decision else 'NO'})"
-    )
 
     # Return structured data directly
     result = {
@@ -93,7 +90,6 @@ async def make_decision(args: dict[str, Any]) -> dict[str, Any]:
         "data": {"decision": decision},
     }
 
-    logger.debug(f"[MCP Tool] make_decision returning: {result}")
     return result
 
 
