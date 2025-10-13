@@ -1,0 +1,29 @@
+# ngrok configuration for exposing DiPeO MCP server
+# See: https://ngrok.com/docs/agent/config/
+
+version: "2"
+authtoken: YOUR_NGROK_AUTH_TOKEN_HERE
+
+tunnels:
+  dipeo-mcp:
+    proto: http
+    addr: 8000
+    # Basic HTTP tunnel configuration
+    inspect: true
+    # Optional: Add custom subdomain (requires paid ngrok plan)
+    # subdomain: my-dipeo-mcp
+    # Optional: Add basic auth
+    # auth: "username:password"
+    # Optional: Add request/response headers
+    # request_headers:
+    #   add:
+    #     - "X-Custom-Header: value"
+    # response_headers:
+    #   add:
+    #     - "X-Server: DiPeO-MCP"
+
+# Alternative configuration with custom domain (requires paid plan)
+# dipeo-mcp-custom:
+#   proto: http
+#   addr: 8000
+#   domain: your-domain.com
