@@ -262,7 +262,25 @@ nodes:
       condition_type: llm_decision
       person: Frontend Verdict
       memorize_to: GOLDFISH
-      judge_by: Check if the generated code is not severely invalid or malformed. Return false if the code has critical issues like major syntax errors, or completely missing implementations. Minor issues, style preferences, or small improvements needed should still return true (YES). Backticks on the top and the bottom will be removed automatically so those won't make problems.
+      judge_by: |
+        Check if the generated code is valid AND follows React best practices:
+
+        1. Syntax validity: No major syntax errors or missing implementations
+        2. React Context usage: If code calls useContext or custom hooks (use*), verify the component is wrapped by the corresponding provider or that provider wrapping is handled elsewhere in the component tree
+        3. Hook rules: Hooks are called at top level, not in conditions/loops
+        4. Import completeness: All used components/hooks are imported
+
+        Return false (NO) if:
+        - Critical syntax errors exist
+        - useContext/custom hooks are used without providers AND no provider wrapping is evident
+        - Major missing implementations
+
+        Return true (YES) for minor issues like:
+        - Style preferences
+        - Small type improvements
+        - Missing comments
+
+        Note: Backticks on the top and the bottom will be removed automatically so those won't make problems.
       flipped: [false, false]  # only for UI, does not affect on logic
 
   - label: load Data for revise
