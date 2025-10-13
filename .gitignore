@@ -84,6 +84,9 @@ dipeo/models/node_modules/
 .env.development.local
 .env.test.local
 
+# ngrok configuration (contains auth tokens)
+integrations/mcp/ngrok.yml
+
 # IDE and editors
 .idea/
 .vscode/

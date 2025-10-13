@@ -52,6 +52,14 @@ dipeocc convert {session-id}    # Convert specific
 ```
 See [DiPeOCC Guide](docs/projects/dipeocc-guide.md)
 
+### MCP Server (Expose DiPeO diagrams as MCP tools)
+```bash
+make dev-server                 # Start DiPeO server (port 8000)
+ngrok http 8000                 # Expose via HTTPS (requires ngrok auth token)
+# Access: https://your-url.ngrok-free.app/mcp/info
+```
+See [MCP Server Integration](docs/features/mcp-server-integration.md)
+
 ### Quality
 ```bash
 make lint-server        # Lint Python
