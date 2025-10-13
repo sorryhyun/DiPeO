@@ -204,7 +204,6 @@ DiPeO can also act as an MCP server, exposing diagram execution capabilities to 
 
 3. **Access MCP Server**:
    - Info: `https://your-url.ngrok-free.app/mcp/info`
-   - SSE: `https://your-url.ngrok-free.app/mcp/sse`
    - Messages: `https://your-url.ngrok-free.app/mcp/messages`
 
 ### Available MCP Tools
@@ -255,11 +254,10 @@ cp integrations/mcp/ngrok.yml.example integrations/mcp/ngrok.yml
 - [ ] Tool versioning and compatibility checks
 
 ### MCP Server (exposing DiPeO AS a tool)
-- [x] SSE-based MCP server implementation
+- [x] HTTP-based MCP server implementation
 - [x] dipeo_run tool for diagram execution
 - [x] ngrok integration for HTTPS access
 - [ ] Authentication and authorization
 - [ ] Rate limiting
 - [ ] Execution queuing for high load
-- [ ] Streaming results for long-running diagrams
 - [ ] Custom resource types beyond diagrams

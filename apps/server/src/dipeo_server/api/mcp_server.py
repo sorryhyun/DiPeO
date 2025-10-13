@@ -4,14 +4,12 @@ This module implements a Model Context Protocol (MCP) server that allows
 external LLM applications to execute DiPeO diagrams as tools.
 """
 
-import asyncio
 import json
 import logging
+import os
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import StreamingResponse
-from sse_starlette.sse import EventSourceResponse
 
 from dipeo.config.base_logger import get_module_logger
 from dipeo_server.app_context import get_container
@@ -19,6 +17,9 @@ from dipeo_server.app_context import get_container
 logger = get_module_logger(__name__)
 
 router = APIRouter()
+
+# Configuration
+DEFAULT_MCP_TIMEOUT = int(os.environ.get("MCP_DEFAULT_TIMEOUT", "300"))
 
 
 class MCPServer:
@@ -51,7 +52,7 @@ class MCPServer:
                         "timeout": {
                             "type": "integer",
                             "description": "Execution timeout in seconds",
-                            "default": 300,
+                            "default": DEFAULT_MCP_TIMEOUT,
                         },
                     },
                     "required": ["diagram"],
@@ -112,7 +113,7 @@ class MCPServer:
         diagram = arguments.get("diagram")
         input_data = arguments.get("input_data", {})
         format_type = arguments.get("format_type", "light")
-        timeout = arguments.get("timeout", 300)
+        timeout = arguments.get("timeout", DEFAULT_MCP_TIMEOUT)
 
         if not diagram:
             return {
@@ -212,14 +213,18 @@ class MCPServer:
         else:
             raise ValueError(f"Unknown resource: {uri}")
 
-    async def handle_jsonrpc(self, request_data: dict) -> dict:
+    async def handle_jsonrpc(self, request_data: dict[str, Any]) -> dict[str, Any]:
         """Handle a JSON-RPC 2.0 request.
 
         Args:
             request_data: JSON-RPC request
 
         Returns:
-            JSON-RPC response
+            JSON-RPC response with structure:
+            - jsonrpc: "2.0"
+            - id: Request ID
+            - result: Method result (on success)
+            - error: Error object (on failure)
         """
         method = request_data.get("method")
         params = request_data.get("params", {})
@@ -288,46 +293,6 @@ def get_mcp_server() -> MCPServer:
     return _mcp_server
 
 
-# MCP SSE endpoint
-@router.get("/mcp/sse")
-async def mcp_sse_endpoint(request: Request):
-    """MCP Server-Sent Events endpoint for persistent connection.
-
-    This endpoint establishes a persistent SSE connection for the MCP client
-    to receive events and notifications from the server.
-    """
-    mcp_server = get_mcp_server()
-
-    async def event_generator():
-        """Generate SSE events."""
-        # Send initial connection event
-        yield {
-            "event": "endpoint",
-            "data": json.dumps({"endpoint": "/mcp/messages"}),
-        }
-
-        # Keep connection alive
-        try:
-            while True:
-                # Check if client is still connected
-                if await request.is_disconnected():
-                    break
-
-                # Send heartbeat every 30 seconds
-                yield {
-                    "event": "heartbeat",
-                    "data": json.dumps({"timestamp": asyncio.get_event_loop().time()}),
-                }
-
-                await asyncio.sleep(30)
-        except asyncio.CancelledError:
-            logger.info("SSE connection cancelled")
-        except Exception as e:
-            logger.error(f"Error in SSE event generator: {e}")
-
-    return EventSourceResponse(event_generator())
-
-
 # MCP message endpoint
 @router.post("/mcp/messages")
 async def mcp_messages_endpoint(request: Request):
@@ -378,10 +343,9 @@ async def mcp_info_endpoint():
         },
         "protocol": {
             "version": "2024-11-05",
-            "transport": "sse",
+            "transport": "http",
         },
         "endpoints": {
-            "sse": "/mcp/sse",
             "messages": "/mcp/messages",
             "info": "/mcp/info",
         },

@@ -8,7 +8,7 @@ DiPeO's MCP server integration provides:
 
 1. **MCP Tool**: `dipeo_run` - Execute DiPeO diagrams remotely
 2. **MCP Resource**: `dipeo://diagrams` - List available diagrams
-3. **SSE Transport**: Server-Sent Events for real-time communication
+3. **HTTP Transport**: Standard HTTP JSON-RPC 2.0 protocol
 4. **ngrok Integration**: HTTPS exposure for local development
 
 ## Architecture
@@ -16,7 +16,7 @@ DiPeO's MCP server integration provides:
 ```
 External LLM Client (Claude, etc.)
     ↓ (HTTPS via ngrok)
-MCP Server (/mcp/sse + /mcp/messages)
+MCP Server (/mcp/messages)
     ↓
 DiPeO CLI Runner
     ↓
@@ -26,8 +26,7 @@ Diagram Execution
 ### Endpoints
 
 - **GET /mcp/info** - Server information and capabilities
-- **GET /mcp/sse** - SSE connection endpoint for persistent connection
-- **POST /mcp/messages** - JSON-RPC 2.0 endpoint for tool calls
+- **POST /mcp/messages** - JSON-RPC 2.0 endpoint for tool calls and responses
 
 ## Quick Start
 
@@ -133,7 +132,6 @@ Forwarding  https://abc123.ngrok-free.app -> http://localhost:8000
 
 Your MCP server is now accessible at:
 - Info: `https://abc123.ngrok-free.app/mcp/info`
-- SSE: `https://abc123.ngrok-free.app/mcp/sse`
 - Messages: `https://abc123.ngrok-free.app/mcp/messages`
 
 ## Using with Claude Desktop
@@ -148,9 +146,9 @@ Add to Claude Desktop's MCP configuration (`~/Library/Application Support/Claude
 {
   "mcpServers": {
     "dipeo": {
-      "url": "https://your-ngrok-url.ngrok-free.app/mcp/sse",
+      "url": "https://your-ngrok-url.ngrok-free.app/mcp/messages",
       "transport": {
-        "type": "sse"
+        "type": "http"
       }
     }
   }
@@ -397,36 +395,42 @@ The MCP server follows the Model Context Protocol specification and can be used 
 2. **Custom MCP Clients** (using the official MCP SDKs)
 3. **Other LLM Applications** that support MCP
 
-Example with Python MCP client:
+Example with Python MCP client using HTTP transport:
 
 ```python
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
+import httpx
+import json
 
-# Connect to MCP server
-server_params = StdioServerParameters(
-    command="curl",
-    args=["-N", "https://your-ngrok-url.ngrok-free.app/mcp/sse"],
-)
+# MCP server endpoint
+MCP_URL = "https://your-ngrok-url.ngrok-free.app/mcp/messages"
 
-async with stdio_client(server_params) as (read, write):
-    async with ClientSession(read, write) as session:
-        # Initialize
-        await session.initialize()
-
-        # List tools
-        tools = await session.list_tools()
-        print(f"Available tools: {tools}")
-
-        # Call dipeo_run tool
-        result = await session.call_tool(
-            "dipeo_run",
-            arguments={
-                "diagram": "simple_iter",
-                "format_type": "light"
+async def call_mcp_tool(tool_name: str, arguments: dict):
+    """Call an MCP tool via HTTP transport."""
+    async with httpx.AsyncClient() as client:
+        # Call the tool
+        response = await client.post(
+            MCP_URL,
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {
+                    "name": tool_name,
+                    "arguments": arguments
+                }
             }
         )
-        print(f"Result: {result}")
+        return response.json()
+
+# Example usage
+result = await call_mcp_tool(
+    "dipeo_run",
+    {
+        "diagram": "simple_iter",
+        "format_type": "light"
+    }
+)
+print(f"Result: {result}")
 ```
 
 ## Performance Considerations
@@ -434,8 +438,8 @@ async with stdio_client(server_params) as (read, write):
 ### Diagram Execution Timeouts
 
 - Default timeout: 300 seconds (5 minutes)
-- Adjust based on diagram complexity
-- Use `timeout` parameter in tool arguments
+- Configure default via environment variable: `export MCP_DEFAULT_TIMEOUT=600`
+- Adjust per-request using `timeout` parameter in tool arguments
 
 ### Connection Limits
 
