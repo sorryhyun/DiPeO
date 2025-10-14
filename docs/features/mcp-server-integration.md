@@ -77,26 +77,29 @@ curl -X POST http://localhost:8000/mcp/messages \
 
 ### 3. Uploading Diagrams for MCP Access
 
-DiPeO provides a convenient way to make diagrams available via the MCP server using the `dipeo compile` command with the `--and-push` flag.
+DiPeO provides a convenient way to make diagrams available via the MCP server using the `dipeo compile` command with the `--push-as` flag.
 
-#### From File
+#### Validation Only
 
-Compile and upload an existing diagram file:
+Validate a diagram without uploading:
 
 ```bash
-# Basic usage
-dipeo compile my_diagram.light.yaml --light --and-push
+# From file
+dipeo compile my_diagram.light.yaml --light
 
-# Custom target directory
-dipeo compile my_diagram.light.yaml --light --and-push --target-dir /custom/path
+# From stdin (LLM-friendly)
+echo '<diagram-content>' | dipeo compile --stdin --light
 ```
 
-#### From stdin (for LLMs)
+#### Validation + Upload
 
-LLMs can compile and validate diagrams directly from text without creating files:
+Compile, validate, and push to MCP directory in one command:
 
 ```bash
-# Using echo (for testing)
+# From file
+dipeo compile my_diagram.light.yaml --light --push-as my_workflow
+
+# From stdin (LLM-friendly - no filesystem access needed!)
 echo 'nodes:
   - id: start
     type: start
@@ -112,31 +115,23 @@ arrows:
   - from: start
     to: llm
   - from: llm
-    to: end' | dipeo compile --stdin --light
+    to: end' | dipeo compile --stdin --light --push-as my_workflow
 
-# Using heredoc (for multi-line)
-dipeo compile --stdin --light << 'EOF'
-nodes:
-  - id: start
-    type: start
-  - id: end
-    type: end
-arrows:
-  - from: start
-    to: end
-EOF
+# Custom target directory
+dipeo compile --stdin --light --push-as my_workflow --target-dir /custom/path
 ```
 
 **Benefits:**
 - **Safe Upload**: Only diagrams that pass compilation validation are pushed
-- **No File Persistence**: LLMs don't need filesystem access to validate diagrams
+- **No File Persistence**: LLMs can validate and push diagrams from text without filesystem access
 - **Automatic MCP Integration**: Pushed diagrams are immediately available via `dipeo_run`
-
-**Note**: The `--stdin` flag cannot be used with `--and-push` because stdin input doesn't have a filename. To push a diagram from stdin, first save it to a file, then use `--and-push`.
+- **Simple Interface**: Single parameter combines filename and upload action
 
 **Default Target Directory**: `projects/mcp-diagrams/`
 
 The MCP server automatically scans this directory, making all pushed diagrams available for execution.
+
+**File Extensions**: The system automatically adds the correct extension (`.yaml` for light/readable, `.json` for native) based on the format type.
 
 ### 4. Expose via ngrok
 

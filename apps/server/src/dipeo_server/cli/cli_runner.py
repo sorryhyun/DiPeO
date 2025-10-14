@@ -402,7 +402,7 @@ class CLIRunner:
         check_only: bool = False,
         output_json: bool = False,
         use_stdin: bool = False,
-        and_push: bool = False,
+        push_as: str | None = None,
         target_dir: str | None = None,
     ) -> bool:
         """Compile and validate diagram without executing it.
@@ -413,7 +413,7 @@ class CLIRunner:
             check_only: Only validate structure
             output_json: Output results as JSON
             use_stdin: Read diagram content from stdin
-            and_push: Push compiled diagram to target directory
+            push_as: Push compiled diagram with specified filename (works with --stdin)
             target_dir: Target directory for push (default: projects/mcp-diagrams/)
         """
         import shutil
@@ -516,30 +516,37 @@ class CLIRunner:
                     for e in result.errors:
                         print(f"   [{e.phase.name}] {e.message}")
 
-            # Push to target directory if compilation succeeded and --and-push is set
-            if result.is_valid and and_push:
-                if use_stdin:
-                    print("\n⚠️  Cannot push diagram from stdin without a filename")
-                    print("    Tip: Save the diagram to a file first, then use --and-push")
+            # Push to target directory if compilation succeeded and --push-as is set
+            if result.is_valid and push_as:
+                # Determine target directory
+                if target_dir:
+                    push_dir = Path(target_dir)
                 else:
-                    # Determine target directory
-                    if target_dir:
-                        push_dir = Path(target_dir)
-                    else:
-                        push_dir = Path("projects/mcp-diagrams")
+                    push_dir = Path("projects/mcp-diagrams")
 
-                    # Create target directory if it doesn't exist
-                    push_dir.mkdir(parents=True, exist_ok=True)
+                # Create target directory if it doesn't exist
+                push_dir.mkdir(parents=True, exist_ok=True)
 
-                    # Copy file to target directory
-                    source_file = Path(diagram_file_path)
-                    target_file = push_dir / source_file.name
+                # Determine file extension based on format
+                if format_type in ["light", "readable"]:
+                    extension = ".yaml"
+                else:  # native
+                    extension = ".json"
 
-                    shutil.copy2(diagram_file_path, target_file)
+                # Ensure push_as has correct extension
+                if not push_as.endswith(extension):
+                    target_filename = f"{push_as}{extension}"
+                else:
+                    target_filename = push_as
 
-                    if not output_json:
-                        print(f"\n✅ Pushed diagram to: {target_file}")
-                        print(f"   Available via MCP server at: dipeo://diagrams/{source_file.name}")
+                target_file = push_dir / target_filename
+
+                # Copy file to target directory (use resolved path from DiagramLoader)
+                shutil.copy2(diagram_file_path, target_file)
+
+                if not output_json:
+                    print(f"\n✅ Pushed diagram to: {target_file}")
+                    print(f"   Available via MCP server at: dipeo://diagrams/{target_filename}")
 
             return result.is_valid
 
