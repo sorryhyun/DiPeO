@@ -196,6 +196,28 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
 
             return await cli.manage_claude_code(action, **kwargs)
 
+        elif args.command == "compile":
+            format_type = None
+            if hasattr(args, "light") and args.light:
+                format_type = "light"
+            elif hasattr(args, "native") and args.native:
+                format_type = "native"
+            elif hasattr(args, "readable") and args.readable:
+                format_type = "readable"
+
+            return await cli.compile_diagram(
+                diagram_path=args.diagram,
+                format_type=format_type,
+                check_only=getattr(args, "check_only", False),
+                output_json=getattr(args, "json", False),
+            )
+
+        elif args.command == "list":
+            return await cli.list_diagrams(
+                output_json=getattr(args, "json", False),
+                format_filter=getattr(args, "format", None),
+            )
+
         else:
             print(f"Unknown command: {args.command}")
             return False
@@ -411,6 +433,32 @@ def create_parser() -> argparse.ArgumentParser:
         "stats", help="Show detailed session statistics"
     )
     stats_cc_parser.add_argument("session_id", help="Session ID to analyze")
+
+    # Compile command
+    compile_parser = subparsers.add_parser("compile", help="Validate and compile diagram")
+    compile_parser.add_argument("diagram", help="Path to diagram file or diagram name")
+    compile_parser.add_argument("--check-only", action="store_true", help="Only validate structure")
+    compile_parser.add_argument("--json", action="store_true", help="Output as JSON")
+
+    # Format options
+    compile_format_group = compile_parser.add_mutually_exclusive_group()
+    compile_format_group.add_argument("--light", action="store_true", help="Use light format (YAML)")
+    compile_format_group.add_argument("--native", action="store_true", help="Use native format (JSON)")
+    compile_format_group.add_argument(
+        "--readable", action="store_true", help="Use readable format (YAML)"
+    )
+
+    # List command
+    list_parser = subparsers.add_parser(
+        "list", help="List available diagrams in projects/ and examples/simple_diagrams/"
+    )
+    list_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    list_parser.add_argument(
+        "--format",
+        type=str,
+        choices=["light", "native", "readable"],
+        help="Filter by diagram format",
+    )
 
     return parser
 

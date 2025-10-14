@@ -394,3 +394,189 @@ class CLIRunner:
 
             traceback.print_exc()
             return False
+
+    async def compile_diagram(
+        self,
+        diagram_path: str,
+        format_type: str | None = None,
+        check_only: bool = False,
+        output_json: bool = False,
+    ) -> bool:
+        """Compile and validate diagram without executing it."""
+        try:
+            from dipeo.domain.diagram.compilation import DomainDiagramCompiler
+
+            # Load diagram
+            (
+                domain_diagram,
+                diagram_data,
+                diagram_file_path,
+            ) = await self.diagram_loader.load_and_deserialize(diagram_path, format_type)
+
+            if not domain_diagram:
+                print(f"❌ Failed to load diagram: {diagram_path}")
+                return False
+
+            # Compile with diagnostics
+            compiler = DomainDiagramCompiler()
+            result = compiler.compile_with_diagnostics(domain_diagram)
+
+            # Output results
+            if output_json:
+                import json
+
+                output = {
+                    "valid": result.is_valid,
+                    "errors": [
+                        {
+                            "phase": e.phase.name,
+                            "message": e.message,
+                            "severity": e.severity,
+                            "node_id": str(e.node_id) if e.node_id else None,
+                        }
+                        for e in result.errors
+                    ],
+                    "warnings": [
+                        {
+                            "phase": w.phase.name,
+                            "message": w.message,
+                            "severity": w.severity,
+                            "node_id": str(w.node_id) if w.node_id else None,
+                        }
+                        for w in result.warnings
+                    ],
+                }
+                if result.diagram:
+                    output["node_count"] = len(result.diagram.nodes)
+                    output["edge_count"] = len(result.diagram.edges)
+                print(json.dumps(output, indent=2))
+            else:
+                # Human-readable output
+                if result.is_valid:
+                    print(f"✅ Diagram compiled successfully: {diagram_path}")
+                    if result.diagram:
+                        print(f"   Nodes: {len(result.diagram.nodes)}")
+                        print(f"   Edges: {len(result.diagram.edges)}")
+                else:
+                    print(f"❌ Compilation failed: {diagram_path}")
+
+                if result.warnings:
+                    print(f"\n⚠️  Warnings ({len(result.warnings)}):")
+                    for w in result.warnings:
+                        print(f"   [{w.phase.name}] {w.message}")
+
+                if result.errors:
+                    print(f"\n❌ Errors ({len(result.errors)}):")
+                    for e in result.errors:
+                        print(f"   [{e.phase.name}] {e.message}")
+
+            return result.is_valid
+
+        except Exception as e:
+            logger.error(f"Diagram compilation failed: {e}")
+            import traceback
+
+            traceback.print_exc()
+            return False
+
+    async def list_diagrams(
+        self, output_json: bool = False, format_filter: str | None = None
+    ) -> bool:
+        """List available diagrams in projects/ and examples/simple_diagrams/."""
+        try:
+            from dipeo.config import BASE_DIR
+
+            diagrams = []
+
+            # Scan projects/ and examples/simple_diagrams/
+            scan_dirs = [
+                BASE_DIR / "projects",
+                BASE_DIR / "examples" / "simple_diagrams",
+            ]
+
+            for base_dir in scan_dirs:
+                if not base_dir.exists():
+                    continue
+
+                # Find all diagram files
+                for ext in [".light.yaml", ".light.yml", ".yaml", ".yml", ".json"]:
+                    for diagram_file in base_dir.rglob(f"*{ext}"):
+                        # Detect format
+                        if ".light." in diagram_file.name:
+                            detected_format = "light"
+                        elif diagram_file.suffix == ".json":
+                            detected_format = "native"
+                        else:
+                            detected_format = "readable"
+
+                        # Apply format filter
+                        if format_filter and detected_format != format_filter:
+                            continue
+
+                        # Try to load and get node count
+                        node_count = None
+                        description = None
+                        try:
+                            import json
+
+                            import yaml
+
+                            with open(diagram_file, encoding="utf-8") as f:
+                                if diagram_file.suffix == ".json":
+                                    data = json.load(f)
+                                else:
+                                    data = yaml.safe_load(f)
+
+                                if isinstance(data, dict):
+                                    # Count nodes
+                                    if "nodes" in data:
+                                        node_count = len(data["nodes"])
+
+                                    # Get description from metadata
+                                    if "metadata" in data and isinstance(data["metadata"], dict):
+                                        description = data["metadata"].get("description")
+                        except Exception:
+                            pass
+
+                        diagrams.append(
+                            {
+                                "name": diagram_file.stem,
+                                "path": str(diagram_file.relative_to(BASE_DIR)),
+                                "format": detected_format,
+                                "nodes": node_count,
+                                "description": description,
+                            }
+                        )
+
+            # Sort by path
+            diagrams.sort(key=lambda d: d["path"])
+
+            # Output results
+            if output_json:
+                import json
+
+                print(json.dumps({"diagrams": diagrams}, indent=2))
+            else:
+                if not diagrams:
+                    print("No diagrams found in projects/ or examples/simple_diagrams/")
+                    return True
+
+                print(f"Found {len(diagrams)} diagram(s):\n")
+                for d in diagrams:
+                    print(f"  {d['name']}")
+                    print(f"    Path:   {d['path']}")
+                    print(f"    Format: {d['format']}")
+                    if d["nodes"] is not None:
+                        print(f"    Nodes:  {d['nodes']}")
+                    if d["description"]:
+                        print(f"    Desc:   {d['description']}")
+                    print()
+
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to list diagrams: {e}")
+            import traceback
+
+            traceback.print_exc()
+            return False
