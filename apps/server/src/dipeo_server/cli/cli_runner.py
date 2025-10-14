@@ -541,8 +541,8 @@ class CLIRunner:
 
                 target_file = push_dir / target_filename
 
-                # Copy file to target directory
-                shutil.copy2(source_path, target_file)
+                # Copy file to target directory (use resolved path from DiagramLoader)
+                shutil.copy2(diagram_file_path, target_file)
 
                 if not output_json:
                     print(f"\n✅ Pushed diagram to: {target_file}")
