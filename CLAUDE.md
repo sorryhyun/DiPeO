@@ -33,6 +33,14 @@ dipeo export examples/simple_diagrams/simple_iter.light.yaml output.py --light
 ```
 See [Diagram-to-Python Export Guide](docs/features/diagram-to-python-export.md)
 
+### Compile and Push
+```bash
+dipeo compile <diagram> --light  # Validate diagram without executing
+dipeo compile <diagram> --light --and_push  # Compile and push to MCP-accessible location
+dipeo compile <diagram> --light --and_push --target-dir <path>  # Custom target
+```
+Use `--and_push` for safe upload to MCP server (only pushes if compilation succeeds)
+
 ### Code Generation
 ```bash
 cd dipeo/models && pnpm build      # Build TypeScript specs

@@ -75,7 +75,41 @@ curl -X POST http://localhost:8000/mcp/messages \
   }'
 ```
 
-### 3. Expose via ngrok
+### 3. Uploading Diagrams for MCP Access
+
+Use the `--and_push` flag to safely upload diagrams after compilation:
+
+```bash
+# Compile and push a diagram to make it available via MCP
+dipeo compile my_diagram.light.yaml --light --and_push
+
+# Push to a custom directory
+dipeo compile my_diagram.light.yaml --light --and_push --target-dir /path/to/custom/dir
+```
+
+**How it works:**
+1. The diagram is first compiled and validated
+2. If validation succeeds, the diagram is copied to `projects/mcp-diagrams/` (or custom directory)
+3. The MCP server automatically scans this directory and makes diagrams available
+4. If validation fails, the diagram is NOT pushed (safe upload)
+
+**Benefits for LLM integrations:**
+- **Safe**: Only valid diagrams are uploaded
+- **Automatic**: Pushed diagrams are immediately available via MCP
+- **Flexible**: Support for custom target directories
+- **Simple**: Single command for compile + upload workflow
+
+**Example workflow with an LLM:**
+```bash
+# 1. LLM generates a new diagram
+# 2. Compile and validate with --and_push
+dipeo compile generated_diagram.light.yaml --light --and_push
+
+# 3. If successful, diagram is now available via MCP
+# 4. LLM can immediately execute it using dipeo_run tool
+```
+
+### 4. Expose via ngrok
 
 #### Install ngrok
 

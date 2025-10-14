@@ -191,6 +191,8 @@ class MCPServer:
             import os
             from pathlib import Path
 
+            from dipeo.config import BASE_DIR
+
             diagrams = []
 
             # Check examples directory
@@ -200,6 +202,28 @@ class MCPServer:
                     diagrams.append(
                         {"name": file.stem, "path": str(file), "format": "light"}
                     )
+
+            # Check projects/mcp-diagrams directory (for pushed diagrams)
+            mcp_diagrams_dir = BASE_DIR / "projects" / "mcp-diagrams"
+            if mcp_diagrams_dir.exists():
+                # Support multiple formats
+                for ext in ["*.yaml", "*.yml", "*.json"]:
+                    for file in mcp_diagrams_dir.glob(ext):
+                        # Detect format
+                        if ".light." in file.name:
+                            detected_format = "light"
+                        elif file.suffix == ".json":
+                            detected_format = "native"
+                        else:
+                            detected_format = "readable"
+
+                        diagrams.append(
+                            {
+                                "name": file.stem,
+                                "path": str(file.relative_to(BASE_DIR)),
+                                "format": detected_format,
+                            }
+                        )
 
             return {
                 "contents": [

@@ -210,6 +210,8 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
                 format_type=format_type,
                 check_only=getattr(args, "check_only", False),
                 output_json=getattr(args, "json", False),
+                and_push=getattr(args, "and_push", False),
+                target_dir=getattr(args, "target_dir", None),
             )
 
         elif args.command == "list":
@@ -439,6 +441,16 @@ def create_parser() -> argparse.ArgumentParser:
     compile_parser.add_argument("diagram", help="Path to diagram file or diagram name")
     compile_parser.add_argument("--check-only", action="store_true", help="Only validate structure")
     compile_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    compile_parser.add_argument(
+        "--and_push",
+        action="store_true",
+        help="Push diagram to target directory after successful compilation (safe upload for MCP)",
+    )
+    compile_parser.add_argument(
+        "--target-dir",
+        type=str,
+        help="Target directory for pushed diagram (default: projects/mcp-diagrams/)",
+    )
 
     # Format options
     compile_format_group = compile_parser.add_mutually_exclusive_group()

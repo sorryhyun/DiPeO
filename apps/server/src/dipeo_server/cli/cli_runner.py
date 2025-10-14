@@ -401,8 +401,14 @@ class CLIRunner:
         format_type: str | None = None,
         check_only: bool = False,
         output_json: bool = False,
+        and_push: bool = False,
+        target_dir: str | None = None,
     ) -> bool:
-        """Compile and validate diagram without executing it."""
+        """Compile and validate diagram without executing it.
+
+        If and_push is True, the diagram will be copied to the target directory
+        after successful compilation (safe upload for MCP integration).
+        """
         try:
             from dipeo.domain.diagram.compilation import DomainDiagramCompiler
 
@@ -469,6 +475,42 @@ class CLIRunner:
                     print(f"\n❌ Errors ({len(result.errors)}):")
                     for e in result.errors:
                         print(f"   [{e.phase.name}] {e.message}")
+
+            # Push diagram to target directory if and_push is True and compilation succeeded
+            if and_push and result.is_valid:
+                import shutil
+                from dipeo.config import BASE_DIR
+
+                # Determine target directory
+                if target_dir:
+                    target_path = Path(target_dir)
+                else:
+                    target_path = BASE_DIR / "projects" / "mcp-diagrams"
+
+                # Create target directory if it doesn't exist
+                target_path.mkdir(parents=True, exist_ok=True)
+
+                # Determine source file path
+                source_file = Path(diagram_file_path)
+                if not source_file.exists():
+                    # Try to find the actual file
+                    source_file = Path(diagram_path)
+                    if not source_file.exists():
+                        print(f"❌ Source diagram file not found: {diagram_path}")
+                        return False
+
+                # Determine target file path
+                target_file = target_path / source_file.name
+
+                # Copy the diagram file
+                shutil.copy2(source_file, target_file)
+
+                if not output_json:
+                    print(f"\n📤 Diagram pushed to: {target_file.relative_to(BASE_DIR)}")
+
+            elif and_push and not result.is_valid:
+                if not output_json:
+                    print("\n⚠️  Diagram not pushed due to compilation errors (safe upload)")
 
             return result.is_valid
 
