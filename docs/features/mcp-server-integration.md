@@ -75,7 +75,70 @@ curl -X POST http://localhost:8000/mcp/messages \
   }'
 ```
 
-### 3. Expose via ngrok
+### 3. Uploading Diagrams for MCP Access
+
+DiPeO provides a convenient way to make diagrams available via the MCP server using the `dipeo compile` command with the `--and-push` flag.
+
+#### From File
+
+Compile and upload an existing diagram file:
+
+```bash
+# Basic usage
+dipeo compile my_diagram.light.yaml --light --and-push
+
+# Custom target directory
+dipeo compile my_diagram.light.yaml --light --and-push --target-dir /custom/path
+```
+
+#### From stdin (for LLMs)
+
+LLMs can compile and validate diagrams directly from text without creating files:
+
+```bash
+# Using echo (for testing)
+echo 'nodes:
+  - id: start
+    type: start
+  - id: llm
+    type: llm_call
+    config:
+      model: gpt-5-nano-2025-08-07
+      system_prompt: "You are helpful"
+      user_prompt: "Hello"
+  - id: end
+    type: end
+arrows:
+  - from: start
+    to: llm
+  - from: llm
+    to: end' | dipeo compile --stdin --light
+
+# Using heredoc (for multi-line)
+dipeo compile --stdin --light << 'EOF'
+nodes:
+  - id: start
+    type: start
+  - id: end
+    type: end
+arrows:
+  - from: start
+    to: end
+EOF
+```
+
+**Benefits:**
+- **Safe Upload**: Only diagrams that pass compilation validation are pushed
+- **No File Persistence**: LLMs don't need filesystem access to validate diagrams
+- **Automatic MCP Integration**: Pushed diagrams are immediately available via `dipeo_run`
+
+**Note**: The `--stdin` flag cannot be used with `--and-push` because stdin input doesn't have a filename. To push a diagram from stdin, first save it to a file, then use `--and-push`.
+
+**Default Target Directory**: `projects/mcp-diagrams/`
+
+The MCP server automatically scans this directory, making all pushed diagrams available for execution.
+
+### 4. Expose via ngrok
 
 #### Install ngrok
 

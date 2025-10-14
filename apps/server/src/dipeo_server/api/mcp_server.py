@@ -193,6 +193,18 @@ class MCPServer:
 
             diagrams = []
 
+            # Check MCP diagrams directory (pushed via --and-push)
+            mcp_dir = Path("projects/mcp-diagrams")
+            if mcp_dir.exists():
+                for file in mcp_dir.glob("*.yaml"):
+                    diagrams.append(
+                        {"name": file.stem, "path": str(file), "format": "light"}
+                    )
+                for file in mcp_dir.glob("*.json"):
+                    diagrams.append(
+                        {"name": file.stem, "path": str(file), "format": "native"}
+                    )
+
             # Check examples directory
             examples_dir = Path("examples/simple_diagrams")
             if examples_dir.exists():
