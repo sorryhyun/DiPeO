@@ -397,24 +397,68 @@ class CLIRunner:
 
     async def compile_diagram(
         self,
-        diagram_path: str,
+        diagram_path: str | None,
         format_type: str | None = None,
         check_only: bool = False,
         output_json: bool = False,
+        use_stdin: bool = False,
+        and_push: bool = False,
+        target_dir: str | None = None,
     ) -> bool:
-        """Compile and validate diagram without executing it."""
+        """Compile and validate diagram without executing it.
+
+        Args:
+            diagram_path: Path to diagram file (optional if use_stdin=True)
+            format_type: Diagram format (light, native, readable)
+            check_only: Only validate structure
+            output_json: Output results as JSON
+            use_stdin: Read diagram content from stdin
+            and_push: Push compiled diagram to target directory
+            target_dir: Target directory for push (default: projects/mcp-diagrams/)
+        """
+        import shutil
+        import tempfile
+
+        temp_file = None
+        source_path = diagram_path
+
         try:
             from dipeo.domain.diagram.compilation import DomainDiagramCompiler
+
+            # Handle stdin input
+            if use_stdin:
+                if not format_type:
+                    print("❌ Format type is required with --stdin (use --light, --native, or --readable)")
+                    return False
+
+                # Read content from stdin
+                stdin_content = sys.stdin.read()
+                if not stdin_content.strip():
+                    print("❌ No content received from stdin")
+                    return False
+
+                # Create temporary file
+                suffix = ".yaml" if format_type in ["light", "readable"] else ".json"
+                temp_file = tempfile.NamedTemporaryFile(mode='w', suffix=suffix, delete=False)
+                temp_file.write(stdin_content)
+                temp_file.close()
+                source_path = temp_file.name
+
+                if not output_json:
+                    print(f"📥 Reading diagram from stdin...")
+            elif not diagram_path:
+                print("❌ Either diagram path or --stdin is required")
+                return False
 
             # Load diagram
             (
                 domain_diagram,
                 diagram_data,
                 diagram_file_path,
-            ) = await self.diagram_loader.load_and_deserialize(diagram_path, format_type)
+            ) = await self.diagram_loader.load_and_deserialize(source_path, format_type)
 
             if not domain_diagram:
-                print(f"❌ Failed to load diagram: {diagram_path}")
+                print(f"❌ Failed to load diagram: {source_path}")
                 return False
 
             # Compile with diagnostics
@@ -453,12 +497,14 @@ class CLIRunner:
             else:
                 # Human-readable output
                 if result.is_valid:
-                    print(f"✅ Diagram compiled successfully: {diagram_path}")
+                    display_path = "stdin" if use_stdin else source_path
+                    print(f"✅ Diagram compiled successfully: {display_path}")
                     if result.diagram:
                         print(f"   Nodes: {len(result.diagram.nodes)}")
                         print(f"   Edges: {len(result.diagram.edges)}")
                 else:
-                    print(f"❌ Compilation failed: {diagram_path}")
+                    display_path = "stdin" if use_stdin else source_path
+                    print(f"❌ Compilation failed: {display_path}")
 
                 if result.warnings:
                     print(f"\n⚠️  Warnings ({len(result.warnings)}):")
@@ -470,6 +516,31 @@ class CLIRunner:
                     for e in result.errors:
                         print(f"   [{e.phase.name}] {e.message}")
 
+            # Push to target directory if compilation succeeded and --and-push is set
+            if result.is_valid and and_push:
+                if use_stdin:
+                    print("\n⚠️  Cannot push diagram from stdin without a filename")
+                    print("    Tip: Save the diagram to a file first, then use --and-push")
+                else:
+                    # Determine target directory
+                    if target_dir:
+                        push_dir = Path(target_dir)
+                    else:
+                        push_dir = Path("projects/mcp-diagrams")
+
+                    # Create target directory if it doesn't exist
+                    push_dir.mkdir(parents=True, exist_ok=True)
+
+                    # Copy file to target directory
+                    source_file = Path(diagram_file_path)
+                    target_file = push_dir / source_file.name
+
+                    shutil.copy2(diagram_file_path, target_file)
+
+                    if not output_json:
+                        print(f"\n✅ Pushed diagram to: {target_file}")
+                        print(f"   Available via MCP server at: dipeo://diagrams/{source_file.name}")
+
             return result.is_valid
 
         except Exception as e:
@@ -478,6 +549,11 @@ class CLIRunner:
 
             traceback.print_exc()
             return False
+
+        finally:
+            # Clean up temporary file
+            if temp_file and os.path.exists(temp_file.name):
+                os.unlink(temp_file.name)
 
     async def list_diagrams(
         self, output_json: bool = False, format_filter: str | None = None

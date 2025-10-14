@@ -206,10 +206,13 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
                 format_type = "readable"
 
             return await cli.compile_diagram(
-                diagram_path=args.diagram,
+                diagram_path=getattr(args, "diagram", None),
                 format_type=format_type,
                 check_only=getattr(args, "check_only", False),
                 output_json=getattr(args, "json", False),
+                use_stdin=getattr(args, "stdin", False),
+                and_push=getattr(args, "and_push", False),
+                target_dir=getattr(args, "target_dir", None),
             )
 
         elif args.command == "list":
@@ -436,9 +439,12 @@ def create_parser() -> argparse.ArgumentParser:
 
     # Compile command
     compile_parser = subparsers.add_parser("compile", help="Validate and compile diagram")
-    compile_parser.add_argument("diagram", help="Path to diagram file or diagram name")
+    compile_parser.add_argument("diagram", nargs="?", help="Path to diagram file or diagram name (optional with --stdin)")
     compile_parser.add_argument("--check-only", action="store_true", help="Only validate structure")
     compile_parser.add_argument("--json", action="store_true", help="Output as JSON")
+    compile_parser.add_argument("--stdin", action="store_true", help="Read diagram content from stdin")
+    compile_parser.add_argument("--and-push", dest="and_push", action="store_true", help="Push compiled diagram to MCP directory")
+    compile_parser.add_argument("--target-dir", dest="target_dir", type=str, help="Target directory for --and-push (default: projects/mcp-diagrams/)")
 
     # Format options
     compile_format_group = compile_parser.add_mutually_exclusive_group()
