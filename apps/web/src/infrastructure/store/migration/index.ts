@@ -397,7 +397,7 @@ export function validateMigration(store: UnifiedStore): {
   if (!store.arrows) issues.push('Missing arrows state');
   if (!store.execution) issues.push('Missing execution state');
   if (!store.persons) issues.push('Missing persons state');
-  if (!store.selectedId !== undefined) issues.push('Missing UI state');
+  if (store.selectedId === undefined) issues.push('Missing UI state');
 
   // Check data integrity
   if (!store.nodes || !store.arrows) {

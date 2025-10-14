@@ -84,7 +84,9 @@ export interface MiddlewareContext {
 }
 
 const defaultConfig: StoreConfig = {
+  // eslint-disable-next-line no-undef
   enableDevtools: process.env.NODE_ENV === 'development',
+  // eslint-disable-next-line no-undef
   enableLogging: process.env.NODE_ENV === 'development',
   enablePersistence: false,
   persistenceKey: 'dipeo-store',

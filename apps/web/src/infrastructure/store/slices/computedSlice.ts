@@ -1,5 +1,15 @@
-import { DomainArrow, DomainHandle, DomainNode, DomainPerson } from '@dipeo/models';
-import { NodeType, Status, ArrowID, NodeID, PersonID, Vec2 } from '@dipeo/models';
+import {
+  DomainArrow,
+  DomainHandle,
+  DomainNode,
+  DomainPerson,
+  NodeType,
+  Status,
+  ArrowID,
+  NodeID,
+  PersonID,
+  Vec2,
+} from '@dipeo/models';
 import type { SelectableID } from './ui';
 import type { NodeState } from './execution';
 import { createComputedGetters } from '../helpers/computedGetters';

@@ -57,7 +57,7 @@ export function stripTypenames<T>(obj: T): T {
   if (typeof obj === 'object') {
     const result: any = {};
     for (const key in obj) {
-      if (key !== '__typename' && obj.hasOwnProperty(key)) {
+      if (key !== '__typename' && Object.prototype.hasOwnProperty.call(obj, key)) {
         let value = (obj as any)[key];
 
         // Convert enum values

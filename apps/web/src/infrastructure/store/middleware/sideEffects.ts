@@ -197,7 +197,7 @@ export function createDebouncedSideEffect(
   effect: SideEffect,
   delay: number
 ): SideEffect {
-  let timeoutId: NodeJS.Timeout | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
   return {
     trigger: effect.trigger,
@@ -224,7 +224,7 @@ export function createThrottledSideEffect(
 ): SideEffect {
   let lastExecutionTime = 0;
   let pendingExecution: (() => Promise<void>) | null = null;
-  let timeoutId: NodeJS.Timeout | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
   return {
     trigger: effect.trigger,

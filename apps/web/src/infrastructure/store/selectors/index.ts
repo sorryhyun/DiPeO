@@ -6,11 +6,8 @@ import {
   HandleID,
   NodeExecutionState,
 } from '../types';
-import type { DiagramFormat } from '@dipeo/models';
-
-export type Selector<T> = (state: UnifiedStore) => T;
-export type ParameterizedSelector<P, T> = (params: P) => Selector<T>;
 import {
+  type DiagramFormat,
   DomainNode,
   DomainArrow,
   DomainPerson,
@@ -18,6 +15,9 @@ import {
   NodeType,
   Status,
 } from '@dipeo/models';
+
+export type Selector<T> = (state: UnifiedStore) => T;
+export type ParameterizedSelector<P, T> = (params: P) => Selector<T>;
 
 /**
  * Memoized selectors for efficient state access
