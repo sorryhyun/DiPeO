@@ -96,7 +96,7 @@ dipeo compile my_diagram.light.yaml --light --and-push --target-dir /custom/path
 LLMs can compile and validate diagrams directly from text without creating files:
 
 ```bash
-# Using echo (for testing)
+# Validation only (no push)
 echo 'nodes:
   - id: start
     type: start
@@ -114,8 +114,18 @@ arrows:
   - from: llm
     to: end' | dipeo compile --stdin --light
 
+# Validation AND push to MCP directory (requires --output-name)
+echo 'nodes:
+  - id: start
+    type: start
+  - id: end
+    type: end
+arrows:
+  - from: start
+    to: end' | dipeo compile --stdin --light --and-push --output-name my_workflow
+
 # Using heredoc (for multi-line)
-dipeo compile --stdin --light << 'EOF'
+dipeo compile --stdin --light --and-push --output-name my_workflow << 'EOF'
 nodes:
   - id: start
     type: start
@@ -131,8 +141,9 @@ EOF
 - **Safe Upload**: Only diagrams that pass compilation validation are pushed
 - **No File Persistence**: LLMs don't need filesystem access to validate diagrams
 - **Automatic MCP Integration**: Pushed diagrams are immediately available via `dipeo_run`
+- **LLM-Friendly**: Complete workflow from generation to persistence in one command
 
-**Note**: The `--stdin` flag cannot be used with `--and-push` because stdin input doesn't have a filename. To push a diagram from stdin, first save it to a file, then use `--and-push`.
+**Note**: When using `--stdin` with `--and-push`, you must specify `--output-name` to provide a filename (without extension). The appropriate extension will be added based on the format type.
 
 **Default Target Directory**: `projects/mcp-diagrams/`
 

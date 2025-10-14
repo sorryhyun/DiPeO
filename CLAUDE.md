@@ -38,17 +38,21 @@ See [Diagram-to-Python Export Guide](docs/features/diagram-to-python-export.md)
 # Validate from file
 dipeo compile my_diagram.light.yaml --light
 
-# Validate from stdin (LLM-friendly)
+# Validate from stdin (LLM-friendly, validation only)
 echo '<diagram-content>' | dipeo compile --stdin --light
 
-# Compile and push to MCP directory
+# Compile and push from file to MCP directory
 dipeo compile my_diagram.light.yaml --light --and-push
 dipeo compile my_diagram.light.yaml --light --and-push --target-dir /custom/path
+
+# Compile and push from stdin to MCP directory (LLM-friendly, requires --output-name)
+echo '<diagram-content>' | dipeo compile --stdin --light --and-push --output-name my_workflow
 ```
 
 **Benefits:**
 - **Safe Upload**: Only valid diagrams are pushed
-- **No File Persistence**: LLMs can validate diagrams from text without filesystem access
+- **LLM-Friendly**: Complete workflow from generation to persistence in one command
+- **No File Persistence**: LLMs can validate and push diagrams from text without filesystem access
 - **Automatic MCP Integration**: Pushed diagrams immediately available via `dipeo_run`
 
 See [MCP Server Integration](docs/features/mcp-server-integration.md#3-uploading-diagrams-for-mcp-access)

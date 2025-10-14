@@ -404,6 +404,7 @@ class CLIRunner:
         use_stdin: bool = False,
         and_push: bool = False,
         target_dir: str | None = None,
+        output_name: str | None = None,
     ) -> bool:
         """Compile and validate diagram without executing it.
 
@@ -415,6 +416,7 @@ class CLIRunner:
             use_stdin: Read diagram content from stdin
             and_push: Push compiled diagram to target directory
             target_dir: Target directory for push (default: projects/mcp-diagrams/)
+            output_name: Output filename for stdin input (without extension)
         """
         import shutil
         import tempfile
@@ -519,8 +521,29 @@ class CLIRunner:
             # Push to target directory if compilation succeeded and --and-push is set
             if result.is_valid and and_push:
                 if use_stdin:
-                    print("\n⚠️  Cannot push diagram from stdin without a filename")
-                    print("    Tip: Save the diagram to a file first, then use --and-push")
+                    if not output_name:
+                        print("\n⚠️  Cannot push diagram from stdin without specifying --output-name")
+                        print("    Example: echo '<diagram>' | dipeo compile --stdin --light --and-push --output-name my_workflow")
+                    else:
+                        # Determine target directory
+                        if target_dir:
+                            push_dir = Path(target_dir)
+                        else:
+                            push_dir = Path("projects/mcp-diagrams")
+
+                        # Create target directory if it doesn't exist
+                        push_dir.mkdir(parents=True, exist_ok=True)
+
+                        # Determine file extension based on format
+                        suffix = ".yaml" if format_type in ["light", "readable"] else ".json"
+                        target_file = push_dir / f"{output_name}{suffix}"
+
+                        # Copy temp file to target directory
+                        shutil.copy2(source_path, target_file)
+
+                        if not output_json:
+                            print(f"\n✅ Pushed diagram to: {target_file}")
+                            print(f"   Available via MCP server at: dipeo://diagrams/{output_name}{suffix}")
                 else:
                     # Determine target directory
                     if target_dir:
