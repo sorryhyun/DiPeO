@@ -232,7 +232,7 @@ const ApiKeysModal: React.FC<ApiKeysModalProps> = ({ isOpen, onClose }) => {
               {errors.key && <p className="text-red-500 text-sm mt-1">{errors.key}</p>}
               {newKeyForm.service?.toUpperCase() === 'OLLAMA' && (
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  For Ollama, type 'ollama' as the API key (local models don't require authentication)
+                  For Ollama, type &apos;ollama&apos; as the API key (local models don&apos;t require authentication)
                 </p>
               )}
             </div>

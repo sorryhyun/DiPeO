@@ -29,7 +29,7 @@ export function useMonitorMode(options: UseMonitorModeOptions = {}) {
   // Track if we've already started execution to prevent double-starts
   const hasStartedRef = useRef(false);
   const lastSessionIdRef = useRef<string | null>(null);
-  const clearTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const clearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Get execution hook - use provided one or create own instance
   const execution = providedExecution || useExecution({ showToasts: true });

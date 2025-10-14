@@ -3,17 +3,15 @@
  * Leverages @dipeo/models specifications for type-safe validation
  */
 
-import type {
-  DomainNode,
-  DomainArrow,
-  DomainDiagram,
-  DomainPerson,
-  NodeID,
-  HandleID,
-  LLMService,
-} from '@dipeo/models';
-import { NodeType } from '@dipeo/models';
 import {
+  type DomainNode,
+  type DomainArrow,
+  type DomainDiagram,
+  type DomainPerson,
+  type NodeID,
+  type HandleID,
+  type LLMService,
+  NodeType,
   isValidLLMService,
   isValidAPIServiceType,
 } from '@dipeo/models';
