@@ -3,6 +3,8 @@
 ## Table of Contents
 
 1. [Introduction](#introduction)
+   - [Key Principles](#key-principles)
+   - [IDE Support and Auto-completion](#ide-support-and-auto-completion)
 2. [Core Concepts](#core-concepts)
 3. [Node Types Reference](#node-types-reference)
 4. [Data Flow and Variable Resolution](#data-flow-and-variable-resolution)
@@ -25,6 +27,45 @@ DiPeO Light format is a human-readable YAML syntax for creating executable diagr
 3. **Type Safety**: Each node type has specific properties and validation
 4. **Composability**: Diagrams can be nested and composed via sub-diagrams
 5. **Visual Execution**: All diagrams can be visualized and monitored in real-time
+
+### IDE Support and Auto-completion
+
+DiPeO provides comprehensive JSON Schema for IDE support with auto-completion, real-time validation, and inline documentation.
+
+**To enable IDE features, add the `$schema` reference at the top of your diagram:**
+
+```yaml
+$schema: "https://dipeo.dev/schemas/light-v1.json"
+version: light
+
+nodes:
+  - label: start
+    type:  # IDE will show all available node types here
+    # ... IDE will suggest properties based on node type
+```
+
+**VSCode Setup:**
+
+1. Add the `$schema` line to your diagram file
+2. VSCode will automatically provide:
+   - ✅ Auto-completion for node types (`start`, `person_job`, `code_job`, etc.)
+   - ✅ Property suggestions based on selected node type
+   - ✅ Real-time validation (errors shown with red underlines)
+   - ✅ Inline documentation on hover
+   - ✅ Field type checking (string, number, boolean, etc.)
+
+**Benefits:**
+- Catch errors before running diagrams
+- Discover available node types and properties
+- See property descriptions and examples
+- Validate required fields
+- Type-safe editing experience
+
+**Note:** The schema is located at `dipeo/diagram_generated/schemas/dipeo-light.schema.json` and includes:
+- All 16 node types with full property definitions
+- Shorthand notation support
+- Field alias mappings (e.g., `language` ⟷ `code_type`)
+- Connection validation
 
 ## Core Concepts
 
@@ -57,6 +98,56 @@ connections:
     label: variable_name    # Variable name in target node
 ```
 
+### Shorthand Notation for Node Properties
+
+**One of DiPeO's most convenient features**: You can specify node properties **directly** without the `props:` wrapper!
+
+The parser automatically collects any fields that aren't `type`, `label`, or `position` into the node's properties. This makes diagrams much cleaner and easier to write.
+
+**Traditional Verbose Style:**
+```yaml
+nodes:
+  - label: analyzer
+    type: person_job
+    position: {x: 400, y: 200}
+    props:
+      default_prompt: "Analyze this data"
+      person: analyst
+      max_iteration: 3
+      memorize_to: "requirements"
+```
+
+**Shorthand Style (Recommended):**
+```yaml
+nodes:
+  - label: analyzer
+    type: person_job
+    position: {x: 400, y: 200}
+    default_prompt: "Analyze this data"  # Direct property!
+    person: analyst
+    max_iteration: 3
+    memorize_to: "requirements"
+```
+
+Both styles work identically - use whichever you prefer! The shorthand style is:
+- ✅ More concise and readable
+- ✅ Easier for AI/LLMs to generate
+- ✅ Less nested structure
+- ✅ Recommended for new diagrams
+
+You can even mix both styles in the same node if needed:
+```yaml
+nodes:
+  - label: processor
+    type: code_job
+    position: {x: 400, y: 200}
+    language: python        # Direct property
+    code: |                 # Direct property
+      result = process(data)
+    props:                  # Additional nested properties
+      timeout: 30
+```
+
 ### Field Compatibility and Mapping
 
 DiPeO provides backward compatibility through automatic field mapping:
@@ -65,8 +156,10 @@ DiPeO provides backward compatibility through automatic field mapping:
 |-----------|-------------------|-------|
 | `code_job` | `language` ⟷ `code_type` | Both work interchangeably |
 | `db` | `file` ⟷ `source_details` | Use `file` (current), `source_details` is legacy |
+| `endpoint` | `file_path` ⟷ `file_name` | Both work interchangeably |
+| `json_schema_validator` | `strict` ⟷ `strict_mode` | Both work interchangeably |
 
-These mappings ensure existing diagrams continue to work while supporting newer field names.
+These mappings ensure existing diagrams continue to work while supporting newer field names. You can use either name in shorthand or traditional notation.
 
 ### Connection Syntax
 
@@ -130,20 +223,32 @@ Entry point for diagram execution. Every diagram must have exactly one.
 
 Executes prompts with LLM agents, supporting iteration and memory management.
 
+**Using Shorthand Notation (Recommended):**
+```yaml
+- label: Analyzer
+  type: person_job
+  position: {x: 400, y: 200}
+  person: Agent Name              # Reference to persons section
+  default_prompt: 'Analyze {{data}}'
+  first_only_prompt: 'Start analysis of {{data}}'  # First iteration only
+  prompt_file: code-review.txt    # Load prompt from /files/prompts/ (optional)
+  max_iteration: 5
+  memorize_to: "requirements, API keys"  # Memory selection criteria
+  at_most: 20                    # Maximum messages to keep
+  ignore_person: "assistant2"    # Exclude specific persons from memory
+  tools: websearch               # Optional LLM tools (none, image, websearch)
+```
+
+**Traditional Style with props:**
 ```yaml
 - label: Analyzer
   type: person_job
   position: {x: 400, y: 200}
   props:
-    person: Agent Name              # Reference to persons section
+    person: Agent Name
     default_prompt: 'Analyze {{data}}'
-    first_only_prompt: 'Start analysis of {{data}}'  # First iteration only
-    prompt_file: code-review.txt    # Load prompt from /files/prompts/ (optional)
     max_iteration: 5
-    memorize_to: "requirements, API keys"  # Memory selection criteria
-    at_most: 20                    # Maximum messages to keep
-    ignore_person: "assistant2"    # Exclude specific persons from memory
-    tools: websearch               # Optional LLM tools (none, image, websearch)
+    memorize_to: "requirements, API keys"
 ```
 
 **Memory Management:**
@@ -178,49 +283,59 @@ Executes code in multiple languages with full access to input variables.
 
 #### Inline Code
 
+**Using Shorthand Notation (Recommended):**
+```yaml
+- label: Transform Data
+  type: code_job
+  position: {x: 400, y: 200}
+  language: python  # python, typescript, bash, shell
+  code: |
+    # Input variables available from connections
+    raw = raw_data  # From connection labeled 'raw_data'
+    config = processing_config
+
+    # Process data
+    processed = {
+        'total': len(raw),
+        'valid': sum(1 for r in raw if r.get('valid')),
+        'transformed': [transform(r) for r in raw]
+    }
+
+    # Output via 'result' variable or return
+    result = processed
+    # OR: return processed
+```
+
+**Traditional Style:**
 ```yaml
 - label: Transform Data
   type: code_job
   position: {x: 400, y: 200}
   props:
-    language: python  # python, typescript, bash, shell
+    language: python
     code: |
-      # Input variables available from connections
-      raw = raw_data  # From connection labeled 'raw_data'
-      config = processing_config
-      
-      # Process data
-      processed = {
-          'total': len(raw),
-          'valid': sum(1 for r in raw if r.get('valid')),
-          'transformed': [transform(r) for r in raw]
-      }
-      
-      # Output via 'result' variable or return
-      result = processed
-      # OR: return processed
+      result = process(data)
 ```
 
 #### External Code (Recommended for Complex Logic)
 
+**Using Shorthand Notation:**
 ```yaml
 # Method 1: Using filePath property
 - label: Process Complex Data
   type: code_job
   position: {x: 400, y: 200}
-  props:
-    language: python
-    filePath: files/code/data_processor.py
-    functionName: process_data
+  language: python
+  filePath: files/code/data_processor.py
+  functionName: process_data
 
 # Method 2: Using code property with file path
 - label: Process Data Alternative
   type: code_job
   position: {x: 400, y: 200}
-  props:
-    code_type: python  # Note: can use code_type or language
-    code: files/code/data_processor.py  # File path in code field
-    functionName: process_data
+  code_type: python  # Note: can use code_type or language
+  code: files/code/data_processor.py  # File path in code field
+  functionName: process_data
 ```
 
 **Important Notes about External Code:**
