@@ -7,15 +7,13 @@
 ## Architecture Documentation
 > System design, architecture patterns, and technical specifications
 
-- [Overall Architecture](architecture/overall_architecture.md) - System architecture and technology stack
+- [Overall Architecture](architecture/README.md) - System architecture and technology stack
 - [Diagram Compilation Architecture](architecture/detailed/diagram-compilation.md) - Multi-phase compilation pipeline and configuration-driven approaches
 - [GraphQL Layer Architecture](architecture/detailed/graphql-layer.md) - Complete GraphQL implementation with 3-tier architecture
 - [Memory System Design](architecture/detailed/memory_system_design.md) - Conversation memory architecture
 
 ### Korean Translations
-- [전체 아키텍처](architecture/korean/overall_architecture.md)
 - [메모리 시스템 설계](architecture/korean/memory_system_design.md)
-- [GraphQL 구독](architecture/korean/graphql-subscriptions.md)
 
 ## Format Specifications
 > Diagram formats and data structure specifications
