@@ -372,6 +372,6 @@ dipeo run projects/claude_code/latest.light.yaml --debug
 
 ## Related Documentation
 
-- [Claude Code Integration Guide](../integrations/claude-code.md) - Using Claude Code as an LLM provider
+- [Claude Code Integration Guide](../features/claude-code-integration.md) - Using Claude Code as an LLM provider
 - [Light Diagram Format](../formats/comprehensive_light_diagram_guide.md) - Understanding generated diagrams
 - [DiPeO Architecture](../architecture/overall_architecture.md) - System overview

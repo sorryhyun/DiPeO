@@ -349,3 +349,13 @@ The GraphQL layer provides a production-ready architecture with 50 operations (2
 - ServiceRegistry for dependency injection
 
 For detailed documentation, see [GraphQL Layer Architecture](graphql-layer.md).
+
+---
+
+## 12. Detailed Documentation
+
+For in-depth technical references, see:
+
+- **[Diagram Compilation](detailed/diagram-compilation.md)** - Complete compilation pipeline architecture (validation, transformation, resolution, optimization)
+- **[GraphQL Layer](detailed/graphql-layer.md)** - 3-tier GraphQL architecture with auto-discovery and type safety
+- **[Memory System](detailed/memory_system_design.md)** - Intelligent memory management for AI agents

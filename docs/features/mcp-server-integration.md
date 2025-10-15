@@ -520,8 +520,8 @@ print(f"Result: {result}")
 
 ## See Also
 
-- [DiPeO CLI Documentation](../guides/developer-guide-diagrams.md)
-- [Diagram Formats](../architecture/diagram-compilation.md)
+- [DiPeO CLI Documentation](../developer-guide.md)
+- [Diagram Formats](../architecture/detailed/diagram-compilation.md)
 - [Webhook Integration](./webhook-integration.md)
 - [Model Context Protocol Specification](https://spec.modelcontextprotocol.io/)
 - [ngrok Documentation](https://ngrok.com/docs)

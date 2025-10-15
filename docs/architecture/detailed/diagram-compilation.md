@@ -521,7 +521,5 @@ No changes needed in the compilation phases - they are node-type agnostic!
 
 ## Related Documentation
 
-- [Domain Layer Architecture](domain-layer.md) - Overview of domain organization
-- [Diagram Execution](diagram-execution.md) - How compiled diagrams execute
 - [Light Diagram Format](../formats/comprehensive_light_diagram_guide.md) - Format specification
-- [Developer Guide](../guides/developer-guide-diagrams.md) - Practical development guide
+- [Developer Guide](../developer-guide.md) - Practical development guide

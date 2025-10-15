@@ -64,7 +64,7 @@ DiPeO provides backward compatibility through automatic field mapping:
 | Node Type | Alternative Fields | Notes |
 |-----------|-------------------|-------|
 | `code_job` | `language` ⟷ `code_type` | Both work interchangeably |
-| `db` | `file` ⟷ `source_details` | Both work for file paths |
+| `db` | `file` ⟷ `source_details` | Use `file` (current), `source_details` is legacy |
 
 These mappings ensure existing diagrams continue to work while supporting newer field names.
 
@@ -151,7 +151,7 @@ Executes prompts with LLM agents, supporting iteration and memory management.
   - Examples: "requirements, API design", "test results", "user feedback"
   - Special value: "GOLDFISH" for no memory (fresh perspective each time)
   - Leave empty to show all messages where person is involved (ALL_INVOLVED filter)
-  - See [Memory System Design](../architecture/memory_system_design.md) for details
+  - See [Memory System Design](../architecture/detailed/memory_system_design.md) for details
 - `at_most`: Maximum number of messages to keep (1-500, optional)
   - System messages are preserved automatically
 - `ignore_person`: Comma-separated list of person IDs to exclude from memory (optional)
@@ -345,7 +345,7 @@ File system operations for reading/writing data.
   props:
     operation: read
     sub_type: file
-    source_details: files/config/settings.json  # Note: 'source_details' is mapped to 'file' internally
+    file: files/config/settings.json  # Note: 'source_details' is mapped to 'file' internally
 
 # Read multiple files
 - label: Load All Configs
@@ -354,7 +354,7 @@ File system operations for reading/writing data.
   props:
     operation: read
     sub_type: file
-    source_details:
+    file:
       - files/config/main.json
       - files/config/override.json
       - files/config/secrets.json
@@ -377,7 +377,7 @@ File system operations for reading/writing data.
     sub_type: file
     serialize_json: true  # Parse JSON files automatically
     glob: true            # Enable glob pattern expansion
-    source_details:
+    file:
       - "temp/*.json"         # All JSON files in temp/
       - "config/*.yaml"       # All YAML files in config/
       - "logs/2025-*.log"     # Date-pattern logs
@@ -896,7 +896,7 @@ nodes:
     props:
       operation: read
       sub_type: file
-      source_details: files/data/items.json
+      file: files/data/items.json
       
   - label: Parse Items
     type: code_job
@@ -1316,7 +1316,7 @@ nodes:
   - label: Load Test Cases
     type: db
     props:
-      source_details: files/tests/test_cases.json
+      file: files/tests/test_cases.json
       
   - label: Run Tests
     type: sub_diagram
