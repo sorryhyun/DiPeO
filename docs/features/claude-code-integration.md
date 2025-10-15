@@ -131,7 +131,7 @@ connections:
 
 ## Memory Management for Claude Code
 
-Claude Code agents support DiPeO's intelligent memory management system. See the [Memory System Design](../architecture/memory_system_design.md) for complete details.
+Claude Code agents support DiPeO's intelligent memory management system. See the [Memory System Design](../architecture/detailed/memory_system_design.md) for complete details.
 
 ```yaml
 persons:

@@ -8,14 +8,9 @@
 > System design, architecture patterns, and technical specifications
 
 - [Overall Architecture](architecture/overall_architecture.md) - System architecture and technology stack
-- [Domain Layer Architecture](architecture/domain-layer.md) - Domain-driven design and bounded contexts
-- [Diagram Compilation Architecture](architecture/diagram-compilation.md) - Multi-phase compilation pipeline and configuration-driven approaches
-- [Application Layer Architecture](architecture/application-layer.md) - Use cases and application services
-- [Infrastructure Layer Architecture](architecture/infrastructure-layer.md) - Adapters and infrastructure services
-- [Diagram Execution](architecture/diagram-execution.md) - Runtime execution and state management
-- [GraphQL Layer Architecture](architecture/graphql-layer.md) - Complete GraphQL implementation with 3-tier architecture
-- [Memory System Design](architecture/memory_system_design.md) - Conversation memory architecture
-- [GraphQL Subscriptions](architecture/graphql-subscriptions.md) - Real-time updates implementation
+- [Diagram Compilation Architecture](architecture/detailed/diagram-compilation.md) - Multi-phase compilation pipeline and configuration-driven approaches
+- [GraphQL Layer Architecture](architecture/detailed/graphql-layer.md) - Complete GraphQL implementation with 3-tier architecture
+- [Memory System Design](architecture/detailed/memory_system_design.md) - Conversation memory architecture
 
 ### Korean Translations
 - [전체 아키텍처](architecture/korean/overall_architecture.md)
@@ -34,7 +29,7 @@
 ## Integration Guides
 > External tool and service integrations
 
-- [Claude Code Integration](integrations/claude-code.md) - Integration with Anthropic's Claude Code SDK
+- [Claude Code Integration](features/claude-code-integration.md) - Integration with Anthropic's Claude Code SDK
 
 ## Agent Documentation
 > Detailed guides for DiPeO's specialized Claude Code subagents
@@ -56,7 +51,7 @@
 ## Developer Guides
 > Practical guides for developers working with DiPeO
 
-- [Working with Diagrams](guides/developer-guide-diagrams.md) - Complete guide for adding node types, formats, and working with compilation
+- [Working with Diagrams](developer-guide.md) - Complete guide for adding node types, formats, and working with compilation
 
 ## Features
 > Core DiPeO capabilities and features

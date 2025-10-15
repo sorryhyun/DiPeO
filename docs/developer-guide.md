@@ -472,7 +472,7 @@ result = compiler.compile_with_diagnostics(
 
 ### Adding Custom Compilation Phase
 
-See [Diagram Compilation Architecture](../architecture/diagram-compilation.md#extending-the-compiler) for details.
+See [Diagram Compilation Architecture](../architecture/detailed/diagram-compilation.md#extending-the-compiler) for details.
 
 ## Testing Diagrams
 
@@ -722,8 +722,6 @@ Solution:
 
 ## Further Reading
 
-- [Diagram Compilation Architecture](../architecture/diagram-compilation.md) - Detailed compilation architecture
-- [Domain Layer Architecture](../architecture/domain-layer.md) - Domain layer organization
-- [Diagram Execution](../architecture/diagram-execution.md) - Execution architecture
+- [Diagram Compilation Architecture](../architecture/detailed/diagram-compilation.md) - Detailed compilation architecture
 - [Light Diagram Format](../formats/comprehensive_light_diagram_guide.md) - Format specification
 - [Code Generation Guide](../projects/code-generation-guide.md) - Codegen workflow
