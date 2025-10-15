@@ -16,6 +16,9 @@ class LightDiagramParser:
 
     @staticmethod
     def parse_to_light_diagram(data: dict[str, Any]) -> LightDiagram:
+        # Remove $schema field if present (for IDE support)
+        data.pop("$schema", None)
+
         nodes = []
         for node_data in data.get("nodes", []):
             if isinstance(node_data, dict):
