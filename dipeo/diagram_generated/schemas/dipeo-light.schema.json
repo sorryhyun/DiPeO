@@ -116,83 +116,760 @@
       "description": "Execution nodes in the diagram",
       "minItems": 1,
       "items": {
-        "type": "object",
-        "required": [
-          "label",
-          "type",
-          "position"
-        ],
-        "properties": {
-          "label": {
-            "type": "string",
-            "description": "Human-readable node identifier (must be unique)"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "start",
-              "endpoint",
-              "person_job",
-              "code_job",
-              "condition",
-              "api_job",
-              "db",
-              "user_response",
-              "hook",
-              "template_job",
-              "sub_diagram",
-              "json_schema_validator",
-              "typescript_ast",
-              "integrated_api",
-              "ir_builder",
-              "diff_patch"
-            ],
-            "description": "Node type determining behavior and available properties"
-          },
-          "position": {
+        "allOf": [
+          {
             "type": "object",
             "required": [
-              "x",
-              "y"
+              "label",
+              "type",
+              "position"
             ],
             "properties": {
-              "x": {
-                "type": "number",
-                "description": "X coordinate for visual positioning"
+              "label": {
+                "type": "string",
+                "description": "Human-readable node identifier (must be unique)"
               },
-              "y": {
-                "type": "number",
-                "description": "Y coordinate for visual positioning"
+              "type": {
+                "type": "string",
+                "enum": [
+                  "start",
+                  "endpoint",
+                  "person_job",
+                  "code_job",
+                  "condition",
+                  "api_job",
+                  "db",
+                  "user_response",
+                  "hook",
+                  "template_job",
+                  "sub_diagram",
+                  "json_schema_validator",
+                  "typescript_ast",
+                  "integrated_api",
+                  "ir_builder",
+                  "diff_patch"
+                ],
+                "description": "Node type determining behavior and available properties"
+              },
+              "position": {
+                "type": "object",
+                "required": [
+                  "x",
+                  "y"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "number",
+                    "description": "X coordinate for visual positioning"
+                  },
+                  "y": {
+                    "type": "number",
+                    "description": "Y coordinate for visual positioning"
+                  }
+                },
+                "description": "Visual position in diagram editor"
+              },
+              "flipped": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "boolean"
+                    },
+                    "minItems": 2,
+                    "maxItems": 2
+                  }
+                ],
+                "description": "Handle flip configuration for visual layout"
+              },
+              "metadata": {
+                "type": "object",
+                "description": "Additional node metadata"
+              },
+              "props": {
+                "type": "object",
+                "description": "Node properties (traditional style) - use shorthand notation by specifying properties directly without props wrapper"
               }
             },
-            "description": "Visual position in diagram editor"
+            "additionalProperties": true
           },
-          "flipped": {
-            "anyOf": [
-              {
-                "type": "boolean"
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "start"
+                }
               },
-              {
-                "type": "array",
-                "items": {
-                  "type": "boolean"
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "trigger_mode": {
+                  "type": "string",
+                  "enum": [
+                    "manual",
+                    "automatic"
+                  ],
+                  "description": "How the diagram is triggered"
                 },
-                "minItems": 2,
-                "maxItems": 2
-              }
-            ],
-            "description": "Handle flip configuration for visual layout"
+                "custom_data": {
+                  "type": "object",
+                  "description": "Initial variables available to all nodes"
+                }
+              },
+              "required": []
+            }
           },
-          "metadata": {
-            "type": "object",
-            "description": "Additional node metadata"
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "endpoint"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "file_format": {
+                  "type": "string",
+                  "enum": [
+                    "txt",
+                    "json",
+                    "yaml",
+                    "md"
+                  ],
+                  "description": "Output file format"
+                },
+                "save_to_file": {
+                  "type": "boolean",
+                  "description": "Whether to save to file"
+                },
+                "file_path": {
+                  "type": "string",
+                  "description": "Output file path (relative to project root)"
+                },
+                "file_name": {
+                  "type": "string",
+                  "description": "Alternative to file_path (backward compatible)"
+                }
+              },
+              "required": []
+            }
           },
-          "props": {
-            "type": "object",
-            "description": "Node properties (traditional style) - use shorthand notation by specifying properties directly without props wrapper"
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "person_job"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "person": {
+                  "type": "string",
+                  "description": "AI agent identifier from persons section"
+                },
+                "default_prompt": {
+                  "type": "string",
+                  "description": "Prompt template (supports {{variables}})"
+                },
+                "first_only_prompt": {
+                  "type": "string",
+                  "description": "Prompt used only on first iteration"
+                },
+                "prompt_file": {
+                  "type": "string",
+                  "description": "Path to prompt file in /files/prompts/"
+                },
+                "first_prompt_file": {
+                  "type": "string",
+                  "description": "Path to first prompt file in /files/prompts/"
+                },
+                "max_iteration": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Maximum execution iterations"
+                },
+                "memorize_to": {
+                  "type": "string",
+                  "description": "Memory selection criteria (e.g. 'requirements, feedback')"
+                },
+                "at_most": {
+                  "type": "number",
+                  "description": "Maximum messages to keep in memory"
+                },
+                "ignore_person": {
+                  "type": "string",
+                  "description": "Comma-separated person IDs to exclude from memory"
+                },
+                "tools": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "none",
+                        "image",
+                        "websearch"
+                      ]
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  ],
+                  "description": "Tools available to AI agent"
+                },
+                "text_format": {
+                  "type": "string",
+                  "description": "JSON schema for structured outputs"
+                },
+                "text_format_file": {
+                  "type": "string",
+                  "description": "Path to Pydantic models file for structured outputs"
+                },
+                "batch": {
+                  "type": "boolean",
+                  "description": "Enable batch mode"
+                },
+                "batch_input_key": {
+                  "type": "string",
+                  "description": "Key containing array to iterate over"
+                },
+                "batch_parallel": {
+                  "type": "boolean",
+                  "description": "Execute batch items in parallel"
+                }
+              },
+              "required": [
+                "max_iteration"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "code_job"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "language": {
+                  "type": "string",
+                  "enum": [
+                    "python",
+                    "typescript",
+                    "javascript",
+                    "bash",
+                    "shell"
+                  ],
+                  "description": "Programming language"
+                },
+                "code_type": {
+                  "type": "string",
+                  "description": "Alternative to language (backward compatible)"
+                },
+                "code": {
+                  "type": "string",
+                  "description": "Inline code or path to external file"
+                },
+                "filePath": {
+                  "type": "string",
+                  "description": "Path to external code file"
+                },
+                "functionName": {
+                  "type": "string",
+                  "description": "Function name to call (for external files)"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "condition"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "condition_type": {
+                  "type": "string",
+                  "enum": [
+                    "detect_max_iterations",
+                    "nodes_executed",
+                    "custom",
+                    "llm_decision"
+                  ],
+                  "description": "Type of condition to evaluate"
+                },
+                "expression": {
+                  "type": "string",
+                  "description": "Python expression for custom conditions"
+                },
+                "flipped": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "boolean"
+                      }
+                    }
+                  ],
+                  "description": "Invert true/false outputs"
+                },
+                "person": {
+                  "type": "string",
+                  "description": "AI agent for llm_decision conditions"
+                },
+                "judge_by": {
+                  "type": "string",
+                  "description": "Prompt for llm_decision evaluation"
+                },
+                "judge_by_file": {
+                  "type": "string",
+                  "description": "Path to prompt file for llm_decision"
+                },
+                "memorize_to": {
+                  "type": "string",
+                  "description": "Memory criteria for llm_decision"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "api_job"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "description": "Request URL (supports {{variables}})"
+                },
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "DELETE",
+                    "PATCH"
+                  ],
+                  "description": "HTTP method"
+                },
+                "headers": {
+                  "type": "object",
+                  "description": "Request headers (supports {{variables}})"
+                },
+                "body": {
+                  "anyOf": [
+                    {
+                      "type": "object"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Request body (supports {{variables}})"
+                },
+                "timeout": {
+                  "type": "number",
+                  "description": "Request timeout in seconds"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "db"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "operation": {
+                  "type": "string",
+                  "enum": [
+                    "read",
+                    "write"
+                  ],
+                  "description": "Operation type"
+                },
+                "sub_type": {
+                  "type": "string",
+                  "enum": [
+                    "file"
+                  ],
+                  "description": "Database sub-type"
+                },
+                "file": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  ],
+                  "description": "File path(s) or glob pattern(s)"
+                },
+                "source_details": {
+                  "type": "string",
+                  "description": "Alternative to file (backward compatible)"
+                },
+                "glob": {
+                  "type": "boolean",
+                  "description": "Enable glob pattern expansion"
+                },
+                "serialize_json": {
+                  "type": "boolean",
+                  "description": "Auto-parse JSON files"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "user_response"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "prompt": {
+                  "type": "string",
+                  "description": "Prompt to display to user"
+                },
+                "timeout": {
+                  "type": "number",
+                  "description": "Input timeout in seconds"
+                },
+                "validation_type": {
+                  "type": "string",
+                  "enum": [
+                    "text",
+                    "number",
+                    "boolean"
+                  ],
+                  "description": "Expected input type"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "hook"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "hook_type": {
+                  "type": "string",
+                  "enum": [
+                    "shell",
+                    "webhook",
+                    "python"
+                  ],
+                  "description": "Hook type"
+                },
+                "config": {
+                  "type": "object",
+                  "description": "Hook-specific configuration"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "template_job"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "engine": {
+                  "type": "string",
+                  "enum": [
+                    "jinja2"
+                  ],
+                  "description": "Template engine"
+                },
+                "template_path": {
+                  "type": "string",
+                  "description": "Path to template file"
+                },
+                "output_path": {
+                  "type": "string",
+                  "description": "Output file path"
+                },
+                "variables": {
+                  "type": "object",
+                  "description": "Template variables (supports {{variables}})"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "sub_diagram"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "diagram_name": {
+                  "type": "string",
+                  "description": "Path to sub-diagram"
+                },
+                "diagram_format": {
+                  "type": "string",
+                  "enum": [
+                    "light",
+                    "readable"
+                  ],
+                  "description": "Sub-diagram format"
+                },
+                "passInputData": {
+                  "type": "boolean",
+                  "description": "Pass all variables to sub-diagram"
+                },
+                "batch": {
+                  "type": "boolean",
+                  "description": "Execute once per array item"
+                },
+                "batch_input_key": {
+                  "type": "string",
+                  "description": "Array variable for batching"
+                },
+                "batch_parallel": {
+                  "type": "boolean",
+                  "description": "Run batch items concurrently"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "json_schema_validator"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "schema": {
+                  "type": "object",
+                  "description": "JSON Schema for validation"
+                },
+                "strict": {
+                  "type": "boolean",
+                  "description": "Fail on validation errors"
+                },
+                "strict_mode": {
+                  "type": "boolean",
+                  "description": "Alternative to strict (backward compatible)"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "typescript_ast"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "source_file": {
+                  "type": "string",
+                  "description": "TypeScript file to parse"
+                },
+                "extract": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "interfaces",
+                      "functions",
+                      "exports",
+                      "classes"
+                    ]
+                  },
+                  "description": "Elements to extract"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "integrated_api"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "provider": {
+                  "type": "string",
+                  "enum": [
+                    "notion",
+                    "slack",
+                    "github"
+                  ],
+                  "description": "API provider"
+                },
+                "operation": {
+                  "type": "string",
+                  "description": "Provider-specific operation"
+                },
+                "config": {
+                  "type": "object",
+                  "description": "Operation configuration"
+                },
+                "api_key_id": {
+                  "type": "string",
+                  "description": "API key reference"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "ir_builder"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "builder_type": {
+                  "type": "string",
+                  "description": "IR builder type"
+                },
+                "config": {
+                  "type": "object",
+                  "description": "Builder configuration"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "diff_patch"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "patch": {
+                  "type": "string",
+                  "description": "Unified diff patch content"
+                },
+                "target_file": {
+                  "type": "string",
+                  "description": "Target file path"
+                }
+              },
+              "required": []
+            }
           }
-        },
-        "additionalProperties": true
+        ]
       }
     },
     "connections": {

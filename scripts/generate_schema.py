@@ -457,55 +457,76 @@ def generate_light_diagram_schema() -> dict:
                 "description": "Execution nodes in the diagram",
                 "minItems": 1,
                 "items": {
-                    "type": "object",
-                    "required": ["label", "type", "position"],
-                    "properties": {
-                        "label": {
-                            "type": "string",
-                            "description": "Human-readable node identifier (must be unique)",
-                        },
-                        "type": {
-                            "type": "string",
-                            "enum": node_types,
-                            "description": "Node type determining behavior and available properties",
-                        },
-                        "position": {
+                    "allOf": [
+                        {
+                            # Base node schema with common properties
                             "type": "object",
-                            "required": ["x", "y"],
+                            "required": ["label", "type", "position"],
                             "properties": {
-                                "x": {
-                                    "type": "number",
-                                    "description": "X coordinate for visual positioning",
+                                "label": {
+                                    "type": "string",
+                                    "description": "Human-readable node identifier (must be unique)",
                                 },
-                                "y": {
-                                    "type": "number",
-                                    "description": "Y coordinate for visual positioning",
+                                "type": {
+                                    "type": "string",
+                                    "enum": node_types,
+                                    "description": "Node type determining behavior and available properties",
+                                },
+                                "position": {
+                                    "type": "object",
+                                    "required": ["x", "y"],
+                                    "properties": {
+                                        "x": {
+                                            "type": "number",
+                                            "description": "X coordinate for visual positioning",
+                                        },
+                                        "y": {
+                                            "type": "number",
+                                            "description": "Y coordinate for visual positioning",
+                                        },
+                                    },
+                                    "description": "Visual position in diagram editor",
+                                },
+                                "flipped": {
+                                    "anyOf": [
+                                        {"type": "boolean"},
+                                        {
+                                            "type": "array",
+                                            "items": {"type": "boolean"},
+                                            "minItems": 2,
+                                            "maxItems": 2,
+                                        },
+                                    ],
+                                    "description": "Handle flip configuration for visual layout",
+                                },
+                                "metadata": {
+                                    "type": "object",
+                                    "description": "Additional node metadata",
+                                },
+                                "props": {
+                                    "type": "object",
+                                    "description": "Node properties (traditional style) - use shorthand notation by specifying properties directly without props wrapper",
                                 },
                             },
-                            "description": "Visual position in diagram editor",
+                            "additionalProperties": True,  # Allow shorthand properties
                         },
-                        "flipped": {
-                            "anyOf": [
-                                {"type": "boolean"},
-                                {
-                                    "type": "array",
-                                    "items": {"type": "boolean"},
-                                    "minItems": 2,
-                                    "maxItems": 2,
+                        # Conditional schemas for each node type
+                        *[
+                            {
+                                "if": {
+                                    "properties": {
+                                        "type": {"const": node_type}
+                                    },
+                                    "required": ["type"],
                                 },
-                            ],
-                            "description": "Handle flip configuration for visual layout",
-                        },
-                        "metadata": {
-                            "type": "object",
-                            "description": "Additional node metadata",
-                        },
-                        "props": {
-                            "type": "object",
-                            "description": "Node properties (traditional style) - use shorthand notation by specifying properties directly without props wrapper",
-                        },
-                    },
-                    "additionalProperties": True,  # Allow shorthand properties
+                                "then": {
+                                    "properties": node_property_schemas[node_type].get("properties", {}),
+                                    "required": node_property_schemas[node_type].get("required", []),
+                                },
+                            }
+                            for node_type in node_types
+                        ],
+                    ],
                 },
             },
             "connections": {
