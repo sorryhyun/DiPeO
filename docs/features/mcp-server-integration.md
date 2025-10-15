@@ -99,23 +99,68 @@ Compile, validate, and push to MCP directory in one command:
 # From file
 dipeo compile my_diagram.light.yaml --light --push-as my_workflow
 
-# From stdin (LLM-friendly - no filesystem access needed!)
-echo 'nodes:
-  - id: start
-    type: start
-  - id: llm
-    type: llm_call
-    config:
-      model: gpt-5-nano-2025-08-07
-      system_prompt: "You are helpful"
-      user_prompt: "Hello"
-  - id: end
-    type: end
-arrows:
-  - from: start
-    to: llm
-  - from: llm
-    to: end' | dipeo compile --stdin --light --push-as my_workflow
+# Using echo (for testing)
+echo 'version: light
+nodes:
+- label: start
+  type: start
+  position: {x: 330, y: 200}
+  props:
+    trigger_mode: manual
+- label: printer
+  type: person_job
+  position: {x: 632, y: 231}
+  props:
+    default_prompt: say hi
+    max_iteration: 3
+    memorize_to: ALL_MESSAGES
+    person: person 1
+- label: condition
+  type: condition
+  position: {x: 620, y: 425}
+  props:
+    condition_type: detect_max_iterations
+    skippable: true
+    flipped: [true, true]
+- label: endpoint
+  type: endpoint
+  position: {x: 0, y: 437}
+  props:
+    file_format: txt
+    save_to_file: true
+    flipped: [true, false]
+    file_path: files/results/total.txt
+- label: ask
+  type: person_job
+  position: {x: 311, y: 443}
+  props:
+    default_prompt: How many times did you respond?
+    flipped: [true, false]
+    max_iteration: 1
+    memorize_to: "remember all"
+    person: person 1
+connections:
+- from: start
+  to: printer
+  content_type: raw_text
+- from: printer
+  to: condition
+  content_type: conversation_state
+- from: condition_condfalse
+  to: printer
+  content_type: conversation_state
+- from: condition_condtrue
+  to: ask
+  content_type: conversation_state
+- from: ask
+  to: endpoint
+  content_type: raw_text
+persons:
+  person 1:
+    service: openai
+    model: "gpt-5-nano-2025-08-07"
+    api_key_id: APIKEY_52609F
+' | dipeo compile --stdin --light --push-as my_workflow
 
 # Custom target directory
 dipeo compile --stdin --light --push-as my_workflow --target-dir /custom/path
