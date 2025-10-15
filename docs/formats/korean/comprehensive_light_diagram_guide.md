@@ -154,24 +154,21 @@ LLM 에이전트로 프롬프트를 실행하며, 반복(iteration)과 메모리
     first_only_prompt: 'Start analysis of {{data}}'  # 최초 반복에서만 사용
     prompt_file: code-review.txt    # /files/prompts/에서 로드(선택)
     max_iteration: 5
-    memory_profile: FOCUSED         # 메모리 관리 전략
-    tools:                          # 선택: LLM 도구
-      - type: web_search_preview
-        enabled: true
-    memory_settings:                # (CUSTOM 프로파일 시) 고급 메모리 제어
-      view: conversation_pairs       # 옵션: all_involved, sent_by_me, sent_to_me,
-                                     # system_and_me, conversation_pairs, all_messages
-      max_messages: 20
-      preserve_system: true
+    memorize_to: "requirements, API keys"  # 메모리 선택 기준
+    at_most: 20                    # 유지할 최대 메시지 수
+    ignore_person: "assistant2"    # 메모리에서 제외할 특정 퍼슨
+    tools: websearch               # 선택적 LLM 도구 (none, image, websearch)
 ```
 
-**메모리 프로파일:**
-
-- `FULL`: 대화 전체 이력
-- `FOCUSED`: 최근 대화 쌍 20개(분석 기본값)
-- `MINIMAL`: 시스템 + 최근 5개 메시지
-- `GOLDFISH`: 마지막 2개 메시지만, 시스템 미보존
-- `CUSTOM`: `memory_settings`로 사용자 정의
+**메모리 관리:**
+- `memorize_to`: 지능형 메시지 선택을 위한 자연어 기준
+  - 예시: "requirements, API design", "test results", "user feedback"
+  - 특수 값: "GOLDFISH"는 메모리 없음 (매번 새로운 관점)
+  - 빈 값으로 두면 해당 퍼슨이 관여한 모든 메시지 표시 (ALL_INVOLVED 필터)
+  - 자세한 내용은 [메모리 시스템 설계](../architecture/detailed/memory_system_design.md) 참조
+- `at_most`: 유지할 최대 메시지 수 (1-500, 선택)
+  - 시스템 메시지는 자동으로 보존됨
+- `ignore_person`: 메모리에서 제외할 퍼슨 ID 목록 (쉼표로 구분, 선택)
 
 **프롬프트 템플릿:**
 
@@ -286,7 +283,7 @@ def validate_data(raw_data, **kwargs):
 
 ### 4. CONDITION 노드
 
-불리언 표현식 또는 내장 조건에 따라 흐름을 제어합니다.
+불리언 표현식, 내장 조건 또는 LLM 기반 판단에 따라 흐름을 제어합니다.
 
 ```yaml
 # 내장 조건 사용
@@ -304,16 +301,52 @@ def validate_data(raw_data, **kwargs):
   props:
     condition_type: custom
     expression: score >= 70 and len(errors) == 0
+
+# LLM 기반 판단 (NEW)
+- label: Check Output Quality
+  type: condition
+  position: {x: 600, y: 400}
+  props:
+    condition_type: llm_decision
+    person: Validator  # persons 섹션 참조
+    memorize_to: "GOLDFISH"  # 매번 새로운 평가
+    judge_by: |
+      다음 출력을 검토하고 품질 기준을 충족하는지 판단하세요:
+      {{generated_output}}
+
+      YES 또는 NO로만 응답하세요:
+      - YES: 출력이 허용 가능함
+      - NO: 출력에 중대한 문제가 있음
 ```
 
 **내장 조건:**
-
-- `detect_max_iterations`: 모든 `person_job` 노드가 `max_iteration`에 도달하면 true
+- `detect_max_iterations`: 모든 person_job 노드가 max_iteration에 도달하면 true
 - `nodes_executed`: 특정 노드의 실행 여부 확인
 - `custom`: 모든 변수에 접근 가능한 Python 표현식 평가
+- `llm_decision`: 프롬프트 기반으로 LLM이 이진 결정을 내림
+
+**LLM Decision 속성:**
+- `person`: persons 섹션에 정의된 AI 에이전트 참조 (필수)
+- `judge_by`: LLM이 판단을 내리도록 요청하는 인라인 프롬프트 (judge_by_file을 사용하지 않는 한 필수)
+  - 핸들바 스타일 템플릿 지원: `{{variable}}`, `{{nested.property}}`
+  - 상위 노드의 모든 변수는 연결 레이블을 통해 접근 가능
+- `judge_by_file`: /files/prompts/의 외부 프롬프트 파일 경로 (judge_by 대신 사용 가능)
+  - 파일은 `/files/prompts/` 디렉터리에 위치해야 함
+  - 전체 경로가 아닌 파일명만 사용 (예: `quality_check.txt`)
+  - 여러 다이어그램에서 복잡한 평가 기준을 재사용하는 데 유용
+- `memorize_to`: 컨텍스트 메시지 선택 기준 (기본값: "GOLDFISH"로 편향 없는 평가)
+  - "GOLDFISH": 메모리 없음 - 매번 새로운 평가 (객관적 결정에 권장)
+  - 자연어: 예: "code quality standards, best practices"
+  - 빈 값으로 두면 ALL_INVOLVED 필터 사용
+- `at_most`: 컨텍스트에 유지할 최대 메시지 수 (선택)
+
+**LLM Decision 응답 파싱:**
+평가자는 LLM 응답을 지능적으로 파싱하여 불리언 결정을 추출합니다:
+- 긍정 키워드 확인: yes, true, valid, approved, accept, correct, pass
+- 부정 키워드 확인: no, false, invalid, rejected, deny, fail
+- 응답이 모호하면 기본값 false
 
 **연결 핸들:**
-
 - `NodeLabel_condtrue`: 조건이 참일 때
 - `NodeLabel_condfalse`: 조건이 거짓일 때
 
@@ -752,8 +785,8 @@ nodes:
       first_only_prompt: 'Propose a solution for: {{problem}}'
       default_prompt: 'Refine your proposal based on criticism'
       max_iteration: 3
-      memory_profile: FOCUSED
-      
+      at_most: 20  # 집중된 컨텍스트 유지
+
   - label: Critical Review
     type: person_job
     props:
@@ -761,11 +794,11 @@ nodes:
       default_prompt: |
         Evaluate this proposal:
         {{proposal}}
-        
+
         Identify strengths and weaknesses.
       max_iteration: 3
-      memory_profile: GOLDFISH  # 매 반복 신선한 관점
-      
+      memorize_to: "GOLDFISH"  # 매 반복 신선한 관점
+
   - label: Synthesize
     type: person_job
     props:
@@ -774,13 +807,85 @@ nodes:
         Given the proposal and criticism:
         Proposal: {{proposal}}
         Criticism: {{criticism}}
-        
+
         Create a balanced synthesis.
       max_iteration: 1
-      memory_profile: FULL
+      # memorize_to 없음 = 모든 메시지 유지
 ```
 
-### 3. 에러 처리와 재시도 로직
+### 3. LLM 기반 품질 제어
+
+코드 생성에서 자동화된 품질 검사를 위한 `llm_decision` 사용:
+
+```yaml
+persons:
+  QualityChecker:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_OPENAI
+    system_prompt: You are a code quality evaluator
+
+nodes:
+  - label: Generate Code
+    type: person_job
+    props:
+      person: CodeGenerator
+      default_prompt: |
+        Generate a Python function to {{task_description}}
+      max_iteration: 1
+
+  - label: Quality Gate
+    type: condition
+    position: {x: 600, y: 200}
+    props:
+      condition_type: llm_decision
+      person: QualityChecker
+      memorize_to: "GOLDFISH"  # 편향 없는 평가
+      judge_by: |
+        다음 생성된 코드의 프로덕션 준비 상태를 평가하세요:
+
+        ```python
+        {{generated_code}}
+        ```
+
+        다음을 확인하세요:
+        - 실제 코드 구현 (설명 텍스트가 아님)
+        - 적절한 에러 처리
+        - 명확한 함수 시그니처
+        - 명백한 버그나 구문 오류 없음
+
+        프로덕션 준비가 되었으면 YES, 수정이 필요하면 NO로 응답하세요.
+
+  - label: Deploy Code
+    type: endpoint
+    position: {x: 800, y: 100}
+    props:
+      file_path: generated/production_code.py
+
+  - label: Request Revision
+    type: person_job
+    position: {x: 800, y: 300}
+    props:
+      person: CodeGenerator
+      default_prompt: |
+        코드에 수정이 필요합니다. 이전 시도:
+        {{generated_code}}
+
+        문제를 수정하고 다시 생성하세요.
+
+connections:
+  - from: Generate Code
+    to: Quality Gate
+    label: generated_code
+  - from: Quality Gate_condtrue
+    to: Deploy Code
+  - from: Quality Gate_condfalse
+    to: Request Revision
+```
+
+이 패턴은 생성된 코드가 배포 전에 품질 기준을 충족하도록 보장하며, AI를 사용하여 코드 품질을 객관적으로 평가합니다.
+
+### 4. 에러 처리와 재시도 로직
 
 ```yaml
 nodes:

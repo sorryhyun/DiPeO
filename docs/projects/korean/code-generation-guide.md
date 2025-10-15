@@ -241,6 +241,54 @@ DiPeO의 코드 생성은 전형적인 도그푸딩 사례입니다. 곧, DiPeO 
    * GraphQL 타입과 오퍼레이션
    * 검증 스키마
 
+### 핸들러 스캐폴딩
+
+새 노드 타입을 추가할 때, DiPeO는 백엔드 구현을 시작하기 위한 핸들러 스텁을 자동으로 생성할 수 있습니다:
+
+1. **노드 명세에 핸들러 메타데이터 추가**:
+   ```typescript
+   // /dipeo/models/src/nodes/my-node.spec.ts
+   export const myNodeSpec: NodeSpecification = {
+     // ... 기타 필드 ...
+
+     handlerMetadata: {
+       modulePath: "dipeo.application.execution.handlers.my_node",
+       className: "MyNodeHandler",
+       mixins: ["LoggingMixin", "ValidationMixin"],
+       serviceKeys: ["LLM_CLIENT", "STATE_STORE"],
+       skipGeneration: false,  // 커스텀 핸들러의 경우 true로 설정
+       customImports: []       // 필요시 추가 import 지정
+     }
+   };
+   ```
+
+2. **코드 생성 실행**:
+   ```bash
+   cd dipeo/models && pnpm build
+   make codegen
+   ```
+
+3. **생성된 핸들러 스텁 검토**:
+   - 위치: `/dipeo/diagram_generated_staged/handlers/my-node_handler.py`
+   - 적절한 import, 믹스인, 서비스 선언 포함
+   - 구현을 위한 TODO 마커 포함
+   - 기존 핸들러는 보존(덮어쓰지 않음)
+
+4. **핸들러 메타데이터 필드**:
+   - `modulePath`: 핸들러의 Python 모듈 경로
+   - `className`: 핸들러 클래스 이름
+   - `mixins`: 포함할 서비스 믹스인 (예: LoggingMixin)
+   - `serviceKeys`: 필요한 서비스 (예: LLM_CLIENT, EVENT_BUS)
+   - `skipGeneration`: 커스텀 핸들러의 경우 스텁 생성 건너뛰기
+   - `customImports`: 필요한 추가 import 구문
+
+5. **생성된 핸들러 포함 내용**:
+   - 믹스인을 포함한 적절한 클래스 상속
+   - 노드 데이터 모델을 사용한 타입 힌트
+   - 서비스 키 선언
+   - Envelope 패턴 구현
+   - 일반적인 서비스 사용 예시
+
 ### 새로운 GraphQL 쿼리/뮤테이션 추가
 
 1. **기존 엔티티용**: 쿼리 생성기를 수정
