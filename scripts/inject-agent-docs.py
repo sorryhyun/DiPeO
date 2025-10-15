@@ -14,34 +14,34 @@ AGENT_DOCS_MAP = {
     "dipeo-codegen-specialist": [
         "docs/agents/codegen-pipeline.md",
         "docs/projects/code-generation-guide.md",
-        "docs/architecture/overall_architecture.md",
+        "docs/architecture/README.md",
         "docs/formats/comprehensive_light_diagram_guide.md",
     ],
     "typescript-model-designer": [
         "docs/agents/typescript-model-design.md",
         "docs/projects/code-generation-guide.md",
-        "docs/architecture/graphql-layer.md",
+        "docs/architecture/detailed/graphql-layer.md",
     ],
     "dipeo-core-python": [
         "docs/agents/core-python-development.md",
-        "docs/architecture/overall_architecture.md",
-        "docs/architecture/graphql-layer.md",
+        "docs/architecture/README.md",
+        "docs/architecture/detailed/graphql-layer.md",
         "docs/projects/code-generation-guide.md",
     ],
     "dipeo-frontend-dev": [
         "docs/agents/frontend-development.md",
-        "docs/architecture/graphql-layer.md",
-        "docs/architecture/overall_architecture.md",
+        "docs/architecture/detailed/graphql-layer.md",
+        "docs/architecture/README.md",
     ],
     "comment-cleaner": "docs/agents/comment-cleanup.md",
     "codebase-auditor": [
         "docs/agents/code-auditing.md",
-        "docs/architecture/overall_architecture.md",
+        "docs/architecture/README.md",
     ],
     "typecheck-fixer": [
         "docs/agents/typecheck-fixing.md",
         "docs/agents/frontend-development.md",
-        "docs/architecture/graphql-layer.md",
+        "docs/architecture/detailed/graphql-layer.md",
     ],
     "docs-maintainer": [
         "docs/agents/documentation-maintenance.md",
@@ -52,11 +52,11 @@ AGENT_DOCS_MAP = {
         "docs/agents/dipeocc-conversion.md",
         "docs/projects/dipeocc-guide.md",
         "docs/formats/comprehensive_light_diagram_guide.md",
-        "docs/integrations/claude-code.md",
+        "docs/features/claude-code-integration.md",
     ],
     "import-refactor-updater": [
         "docs/agents/import-refactoring.md",
-        "docs/architecture/overall_architecture.md",
+        "docs/architecture/README.md",
     ],
 }
 
