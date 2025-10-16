@@ -9,6 +9,7 @@ import {
   type NodeID,
   type DomainNode,
   type NodeType,
+  type JsonDict,
   nodeKindToDomainType,
   domainTypeToNodeKind,
   NODE_TYPE_MAP
@@ -25,7 +26,7 @@ export class NodeConverter {
       id: nodeId(graphqlNode.id),
       type: nodeKindToDomainType(graphqlNode.type),
       position: graphqlNode.position,
-      data: (graphqlNode.data || {}) as any
+      data: (graphqlNode.data || {}) as JsonDict
     };
   }
 

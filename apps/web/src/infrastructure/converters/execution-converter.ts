@@ -14,6 +14,7 @@ import {
   type ExecutionUpdate,
   type LLMUsage,
   type SerializedNodeOutput,
+  type JsonDict,
   Status,
   EventType
 } from '@dipeo/models';
@@ -51,12 +52,12 @@ export class ExecutionConverter {
     if (graphqlExecution.node_states) {
       Object.entries(graphqlExecution.node_states).forEach(([nodeId, state]) => {
         if (state) {
-          const nodeState = state as any;
+          const nodeState = state as Record<string, unknown>;
           nodeStates[nodeId] = {
             status: nodeState.status as Status,
-            started_at: nodeState.started_at,
-            ended_at: nodeState.ended_at,
-            error: nodeState.error,
+            started_at: nodeState.started_at as string | undefined,
+            ended_at: nodeState.ended_at as string | null | undefined,
+            error: nodeState.error as string | null | undefined,
             llm_usage: nodeState.llm_usage as LLMUsage | null
           };
         }
@@ -70,8 +71,8 @@ export class ExecutionConverter {
       started_at: graphqlExecution.started_at || new Date().toISOString(),
       ended_at: graphqlExecution.ended_at,
       node_states: nodeStates,
-      node_outputs: (graphqlExecution.node_outputs || {}) as any,
-      variables: (graphqlExecution.variables || {}) as any,
+      node_outputs: (graphqlExecution.node_outputs || {}) as JsonDict,
+      variables: (graphqlExecution.variables || {}) as JsonDict,
       llm_usage: graphqlExecution.llm_usage as LLMUsage,
       error: graphqlExecution.error,
       exec_counts: {},
@@ -84,9 +85,9 @@ export class ExecutionConverter {
    */
   static updateToDomain(update: GraphQLExecutionUpdate): ExecutionUpdate {
     return {
-      type: (update as any).type as EventType || EventType.EXECUTION_LOG,
+      type: (update as Record<string, unknown>).type as EventType || EventType.EXECUTION_LOG,
       execution_id: executionId(update.execution_id),
-      data: (update.data ?? null) as any,
+      data: (update.data ?? null) as JsonDict | null,
       timestamp: update.timestamp ?? undefined
     };
   }

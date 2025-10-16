@@ -1,5 +1,5 @@
-import { HandleDirection, HandleLabel, DataType, createHandleId, NodeID, JsonDict } from '@dipeo/models';
-import { DomainNode, DomainArrow, DomainPerson, DomainHandle, NodeType } from '@/infrastructure/types';
+import { HandleDirection, HandleLabel, DataType, createHandleId, NodeID, JsonDict, type ApiKeyID, type PersonID } from '@dipeo/models';
+import { DomainNode, DomainArrow, DomainPerson, DomainHandle, NodeType, apiKeyId } from '@/infrastructure/types';
 import { getNodeConfig } from '@/domain/diagram/config/nodes';
 import { diagramMapsToArrays } from '@/lib/graphql/types';
 import { useUnifiedStore } from '@/infrastructure/store/unifiedStore';
@@ -134,7 +134,7 @@ function getStoreStateWithMaps() {
         ...person,
         llm_config: {
           ...person.llm_config,
-          api_key_id: 'default' as any
+          api_key_id: apiKeyId('default')
         }
       });
     }
@@ -144,7 +144,7 @@ function getStoreStateWithMaps() {
     nodes: state.nodes,
     handles: state.handles,
     arrows: state.arrows,
-    persons: personsWithRequiredFields as any
+    persons: personsWithRequiredFields as Map<PersonID, DomainPerson>
   };
 }
 
@@ -224,7 +224,7 @@ export function serializeDiagram(): SerializedDiagram {
   });
 
   const cleanPersons = (diagramArrays.persons || []).map(person => {
-    const { masked_api_key: _masked_api_key, ...cleanPerson } = person as any;
+    const { masked_api_key: _masked_api_key, ...cleanPerson } = person as DomainPerson & { masked_api_key?: string };
     return cleanPerson as DomainPerson;
   });
 

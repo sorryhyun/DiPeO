@@ -191,7 +191,7 @@ export function createEntitySubscription<TData = any, TVariables extends Operati
       variables: variables || config.options?.variables,
       // Remove cache-and-network if it was set, as it's not valid for subscriptions
       fetchPolicy: config.cacheStrategy === 'cache-and-network' ? 'network-only' :
-                   (config.cacheStrategy as any) || config.options?.fetchPolicy || overrideOptions?.fetchPolicy,
+                   config.cacheStrategy || config.options?.fetchPolicy || overrideOptions?.fetchPolicy,
       onError: (error) => {
         if (config.onError) {
           config.onError(error);

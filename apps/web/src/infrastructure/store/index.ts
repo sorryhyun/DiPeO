@@ -194,8 +194,7 @@ function createUnifiedStore(config: Partial<StoreConfig> = {}) {
             draft.history.undoStack.pop();
             draft.history.redoStack.push(currentSnapshot);
             // Use type assertion to avoid type instantiation depth errors
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            restoreSnapshot(draft as any, previousSnapshot);
+            restoreSnapshot(draft as UnifiedStore, previousSnapshot);
           });
         }
       },
@@ -212,8 +211,7 @@ function createUnifiedStore(config: Partial<StoreConfig> = {}) {
             draft.history.redoStack.pop();
             draft.history.undoStack.push(currentSnapshot);
             // Use type assertion to avoid type instantiation depth errors
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            restoreSnapshot(draft as any, nextSnapshot);
+            restoreSnapshot(draft as UnifiedStore, nextSnapshot);
           });
         }
       },
@@ -224,8 +222,7 @@ function createUnifiedStore(config: Partial<StoreConfig> = {}) {
       restoreSnapshot: (snapshot: StoreSnapshot) => {
         set((draft) => {
           // Use type assertion to avoid type instantiation depth errors
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          restoreSnapshot(draft as any, snapshot);
+          restoreSnapshot(draft as UnifiedStore, snapshot);
         });
       },
 
@@ -268,8 +265,7 @@ function createUnifiedStore(config: Partial<StoreConfig> = {}) {
           // Rollback on error
           set((draft) => {
             // Use type assertion to avoid type instantiation depth errors
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            restoreSnapshot(draft as any, beforeSnapshot);
+            restoreSnapshot(draft as UnifiedStore, beforeSnapshot);
             draft.history.currentTransaction = null;
           });
           throw error;
@@ -323,20 +319,16 @@ function createUnifiedStore(config: Partial<StoreConfig> = {}) {
 
   // ===== Apply Middleware Stack =====
 
-  // Use explicit any type to avoid type instantiation depth errors with complex middleware chains
+  // Use explicit StateCreator type to avoid type instantiation depth errors with complex middleware chains
   // This is a known limitation with Zustand's middleware typing when combining immer, subscribeWithSelector, and devtools
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const withImmer = immer(storeCreator as any);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const withSelector = subscribeWithSelector(withImmer as any);
+  const withImmer = immer(storeCreator as StateCreator<UnifiedStore, [], []>);
+  const withSelector = subscribeWithSelector(withImmer as StateCreator<UnifiedStore, [], []>);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let store: any = withSelector;
+  let store: StateCreator<UnifiedStore, [], []> = withSelector;
 
   // Apply side effects middleware
   if (finalConfig.middleware?.length) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    store = sideEffectsMiddleware(store as any);
+    store = sideEffectsMiddleware(store as StateCreator<UnifiedStore, [], []>);
   }
 
   // Apply devtools in development

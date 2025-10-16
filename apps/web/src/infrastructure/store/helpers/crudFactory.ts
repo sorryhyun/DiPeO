@@ -2,6 +2,7 @@ import { recordHistory, updateMap, updateEntity } from './entityHelpers';
 import { DomainArrow, DomainNode, DomainPerson } from '@/infrastructure/types';
 import {ArrowID, NodeID, PersonID} from '@dipeo/models';
 import type { UnifiedStore } from '../types';
+import { Draft } from 'immer';
 
 type EntityType = 'nodes' | 'arrows' | 'persons';
 type EntityId = NodeID | ArrowID | PersonID;
@@ -44,9 +45,8 @@ export function createCrudActions<T extends Entity, ID extends EntityId>(
       state.dataVersion += 1;
 
       options?.onAdd?.(state, entity);
-      // Use type assertion to avoid type instantiation depth errors
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recordHistory(state as any);
+      // Use Draft type for immer state
+      recordHistory(state as Draft<UnifiedStore>);
 
       return entity.id as ID;
     },
@@ -64,9 +64,8 @@ export function createCrudActions<T extends Entity, ID extends EntityId>(
           options?.onUpdate?.(state, id, entity as T);
         }
 
-        // Use type assertion to avoid type instantiation depth errors
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        recordHistory(state as any);
+        // Use Draft type for immer state
+        recordHistory(state as Draft<UnifiedStore>);
       }
     },
 
@@ -83,9 +82,8 @@ export function createCrudActions<T extends Entity, ID extends EntityId>(
         state.selectedType = null;
       }
 
-      // Use type assertion to avoid type instantiation depth errors
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recordHistory(state as any);
+      // Use Draft type for immer state
+      recordHistory(state as Draft<UnifiedStore>);
     }
   };
 }
