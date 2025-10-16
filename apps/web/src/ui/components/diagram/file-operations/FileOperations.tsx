@@ -115,7 +115,7 @@ export const FileOperations: React.FC = () => {
       });
 
       if (!convertResult.data?.convertDiagramFormat?.success) {
-        const errorMsg = (convertResult.data?.convertDiagramFormat as any)?.error;
+        const errorMsg = (convertResult.data?.convertDiagramFormat as Record<string, unknown>)?.error;
         throw new Error(typeof errorMsg === 'string' ? errorMsg : 'Conversion failed');
       }
 
@@ -144,7 +144,7 @@ export const FileOperations: React.FC = () => {
       });
 
       if (!uploadResult.data?.uploadFile?.success) {
-        const errorMsg = (uploadResult.data?.uploadFile as any)?.error;
+        const errorMsg = (uploadResult.data?.uploadFile as Record<string, unknown>)?.error;
         throw new Error(typeof errorMsg === 'string' ? errorMsg : 'Upload failed');
       }
 

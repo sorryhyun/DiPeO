@@ -38,7 +38,7 @@ export const personFields: TypedPanelFieldConfig<ExtendedPersonData>[] = [
           .filter((key: any) => {
             // Convert uppercase enum name to lowercase for comparison
             const serviceLowercase = key.service.toLowerCase();
-            return isLLMService(serviceLowercase as any);
+            return isLLMService(serviceLowercase as LLMService);
           })
           .map((key: any) => ({
             value: key.id,

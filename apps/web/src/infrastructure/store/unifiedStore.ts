@@ -1,4 +1,4 @@
-import { create, StoreApi } from "zustand";
+import { create, StoreApi, StateCreator } from "zustand";
 import { devtools, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { Draft } from "immer";
@@ -131,9 +131,8 @@ const createStore = () => {
 
           set((state) => {
             if (state.history.currentTransaction) {
-              // Use type assertion to avoid type instantiation depth errors
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              recordHistory(state as any);
+              // Use Draft type for immer state
+              recordHistory(state as Draft<UnifiedStore>);
               state.history.currentTransaction = null;
             }
           });
@@ -196,24 +195,20 @@ const createStore = () => {
   });
 
   // Apply middleware based on environment
-  // Use explicit any type to avoid type instantiation depth errors with complex middleware chains
+  // Use explicit StateCreator type to avoid type instantiation depth errors with complex middleware chains
   // This is a known limitation with Zustand's middleware typing when combining immer, subscribeWithSelector, and devtools
   if (import.meta.env.DEV) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const withImmer = immer(storeCreator as any);
+    const withImmer = immer(storeCreator as StateCreator<UnifiedStore, [], []>);
     const withSelector = subscribeWithSelector(withImmer);
     const withDevtools = devtools(withSelector, devtoolsOptions);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return create<UnifiedStore>()(withDevtools as any);
+    return create<UnifiedStore>()(withDevtools as StateCreator<UnifiedStore, [], []>);
   }
 
   // Production build without logger
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const withImmer = immer(storeCreator as any);
+  const withImmer = immer(storeCreator as StateCreator<UnifiedStore, [], []>);
   const withSelector = subscribeWithSelector(withImmer);
   const withDevtools = devtools(withSelector, devtoolsOptions);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return create<UnifiedStore>()(withDevtools as any);
+  return create<UnifiedStore>()(withDevtools as StateCreator<UnifiedStore, [], []>);
 };
 
 export const useUnifiedStore = createStore();

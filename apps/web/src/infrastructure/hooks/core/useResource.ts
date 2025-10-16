@@ -157,7 +157,7 @@ export function useResource<T extends { id?: string } = any>(
         loading: false,
         lastFetch: new Date(),
       }));
-      handleSuccess('list', data as any);
+      handleSuccess('list', data as TData);
       return data;
     } catch (error) {
       handleError('list', error);

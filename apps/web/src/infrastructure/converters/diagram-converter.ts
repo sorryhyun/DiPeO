@@ -41,7 +41,7 @@ export class DiagramConverter {
    * Convert GraphQL diagram to domain diagram
    * Uses utility from @dipeo/models
    */
-  static toDomain(graphqlDiagram: DomainDiagramType | any): Partial<DomainDiagram> {
+  static toDomain(graphqlDiagram: DomainDiagramType): Partial<DomainDiagram> {
     return convertGraphQLDiagramToDomain(graphqlDiagram);
   }
 
@@ -52,23 +52,23 @@ export class DiagramConverter {
     const result: Partial<DomainDiagramType> = {};
 
     if (domainDiagram.nodes) {
-      result.nodes = NodeConverter.batchToGraphQL(domainDiagram.nodes) as any;
+      result.nodes = NodeConverter.batchToGraphQL(domainDiagram.nodes) as DomainDiagramType['nodes'];
     }
 
     if (domainDiagram.arrows) {
-      result.arrows = ArrowConverter.batchToGraphQL(domainDiagram.arrows) as any;
+      result.arrows = ArrowConverter.batchToGraphQL(domainDiagram.arrows) as DomainDiagramType['arrows'];
     }
 
     if (domainDiagram.handles) {
-      result.handles = HandleConverter.batchToGraphQL(domainDiagram.handles) as any;
+      result.handles = HandleConverter.batchToGraphQL(domainDiagram.handles) as DomainDiagramType['handles'];
     }
 
     if (domainDiagram.persons) {
-      result.persons = PersonConverter.batchToGraphQL(domainDiagram.persons) as any;
+      result.persons = PersonConverter.batchToGraphQL(domainDiagram.persons) as DomainDiagramType['persons'];
     }
 
     if (domainDiagram.metadata) {
-      result.metadata = domainDiagram.metadata as any;
+      result.metadata = domainDiagram.metadata as DomainDiagramType['metadata'];
     }
 
     return result;

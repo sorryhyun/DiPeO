@@ -397,7 +397,7 @@ export class NodeFactory {
         const errors: ValidationError[] = [];
 
         if ('error' in validationResult && validationResult.error) {
-          const zodError = validationResult.error as any;
+          const zodError = validationResult.error as z.ZodError;
           if (zodError.issues) {
             for (const issue of zodError.issues) {
               errors.push({

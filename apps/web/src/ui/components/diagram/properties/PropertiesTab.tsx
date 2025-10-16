@@ -33,7 +33,7 @@ export const PropertiesTab: React.FC = () => {
       const [sourceNodeId, ...sourceHandleParts] = selectedArrow.source.split(':');
       const sourceHandleName = sourceHandleParts.join(':');
 
-      const sourceNode = sourceNodeId ? nodes.get(sourceNodeId as any) : undefined;
+      const sourceNode = sourceNodeId ? nodes.get(sourceNodeId) : undefined;
       const isFromConditionBranch = sourceHandleName === 'true' || sourceHandleName === 'false';
 
       return {

@@ -25,7 +25,7 @@ export class NodeConverter {
       id: nodeId(graphqlNode.id),
       type: nodeKindToDomainType(graphqlNode.type),
       position: graphqlNode.position,
-      data: (graphqlNode.data || {}) as any
+      data: (graphqlNode.data || {}) as Record<string, unknown>
     };
   }
 
