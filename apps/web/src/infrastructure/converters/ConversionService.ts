@@ -361,9 +361,9 @@ export class Converters {
       id: arrow.id,
       source: arrow.source,
       target: arrow.target,
-      content_type: arrow.content_type,
-      label: arrow.label,
-      data: arrow.data
+      content_type: arrow.content_type as any,
+      label: arrow.label as any,
+      data: arrow.data as any
     };
   }
 
@@ -396,13 +396,21 @@ export class Converters {
   }
 
   /**
+   * Convert GraphQL APIServiceType to domain APIServiceType
+   * GraphQL uses uppercase with underscores (e.g. CLAUDE_CODE), domain uses lowercase with hyphens (e.g. claude-code)
+   */
+  private static convertAPIServiceType(graphqlService: import('@/__generated__/graphql').APIServiceType): APIServiceType {
+    return graphqlService.toLowerCase().replace(/_/g, '-') as APIServiceType;
+  }
+
+  /**
    * Convert GraphQL API key to domain
    */
   static graphQLApiKeyToDomain(apiKey: DomainApiKeyType): DomainApiKey {
     return {
       id: this.toApiKeyId(apiKey.id),
       label: apiKey.label,
-      service: apiKey.service as APIServiceType,
+      service: this.convertAPIServiceType(apiKey.service),
       key: ''
     };
   }
@@ -436,8 +444,8 @@ export class Converters {
       started_at: execution.started_at || new Date().toISOString(),
       ended_at: execution.ended_at || null,
       node_states: nodeStates,
-      node_outputs: (execution.node_outputs || {}) as JsonDict,
-      variables: (execution.variables || {}) as JsonDict,
+      node_outputs: (execution.node_outputs || {}) as Record<string, any>,
+      variables: (execution.variables || {}) as Record<string, any>,
       llm_usage: execution.llm_usage as LLMUsage,
       error: execution.error || null,
       exec_counts: {},
@@ -452,7 +460,7 @@ export class Converters {
     return {
       type: (update as Record<string, unknown>).type as EventType,  // type field comes from subscription query
       execution_id: this.toExecutionId(update.execution_id),
-      data: (update.data ?? null) as JsonDict | null,
+      data: (update.data ?? undefined) as Record<string, any> | undefined,
       timestamp: update.timestamp ?? undefined
     };
   }

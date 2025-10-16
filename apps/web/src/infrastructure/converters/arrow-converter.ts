@@ -37,9 +37,9 @@ export class ArrowConverter {
       id: domainArrow.id,
       source: domainArrow.source,
       target: domainArrow.target,
-      content_type: domainArrow.content_type,
-      label: domainArrow.label,
-      data: domainArrow.data
+      content_type: domainArrow.content_type as any,
+      label: domainArrow.label as any,
+      data: domainArrow.data as any
     };
   }
 

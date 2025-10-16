@@ -260,11 +260,11 @@ export class DiagramAdapter {
       id: Converters.toArrowId(rfEdge.id),
       source: sourceHandle,
       target: targetHandle,
-      data: Object.keys(restData).length > 0 ? restData : null
+      data: Object.keys(restData).length > 0 ? restData : undefined
     };
 
     if (content_type !== undefined && content_type !== null) {
-      (domainArrow as DomainArrow & { content_type: ContentType | null }).content_type = content_type;
+      domainArrow.content_type = content_type as ContentType;
     }
     if (label !== undefined && label !== null && typeof label === 'string') {
       domainArrow.label = label;
