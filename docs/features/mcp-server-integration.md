@@ -292,17 +292,211 @@ List available DiPeO diagrams in the examples directory.
 }
 ```
 
+## Authentication
+
+DiPeO MCP server supports **OAuth 2.1 authentication** as required by the MCP specification (2025-03-26). This enables secure integration with LLM services like ChatGPT and Claude Desktop.
+
+### Authentication Methods
+
+The MCP server supports two authentication methods:
+
+1. **OAuth 2.1 JWT Bearer Tokens** (Production)
+   - Industry-standard OAuth 2.1 with PKCE
+   - Supports external OAuth providers (Auth0, Google, GitHub, etc.)
+   - Required for ChatGPT and similar services
+
+2. **API Keys** (Development/Testing)
+   - Simple authentication via `X-API-Key` header
+   - Useful for development and testing
+
+### Quick Start: Development Mode
+
+For local development without authentication:
+
+```bash
+# Disable authentication (default: authentication is optional)
+export MCP_AUTH_ENABLED=false
+
+# Start server
+make dev-server
+```
+
+### Quick Start: API Key Authentication
+
+For simple authentication during development:
+
+```bash
+# Enable API key authentication
+export MCP_AUTH_ENABLED=true
+export MCP_AUTH_REQUIRED=false  # Optional authentication
+export MCP_API_KEY_ENABLED=true
+export MCP_API_KEYS="dev-key-123,test-key-456"
+
+# Start server
+make dev-server
+```
+
+Test with API key:
+
+```bash
+curl -X POST http://localhost:8000/mcp/messages \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: dev-key-123" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {}
+  }'
+```
+
+### Production: OAuth 2.1 Setup
+
+#### Step 1: Choose an OAuth Provider
+
+Select an OAuth 2.1 provider:
+- **Auth0** (recommended for ease of use)
+- **Google OAuth**
+- **GitHub OAuth**
+- **Your own OAuth server**
+
+#### Step 2: Configure OAuth Provider
+
+Example with Auth0:
+
+1. Create an Auth0 application
+2. Configure application settings:
+   - Application Type: "Machine to Machine" or "Single Page Application"
+   - Allowed Callback URLs: Your MCP server URL
+3. Note your credentials:
+   - Domain (e.g., `your-tenant.auth0.com`)
+   - Client ID
+   - Client Secret (if using confidential client)
+
+#### Step 3: Configure DiPeO MCP Server
+
+Create `.env` file with OAuth configuration:
+
+```bash
+# Enable OAuth authentication
+MCP_AUTH_ENABLED=true
+MCP_AUTH_REQUIRED=true  # Require authentication for all requests
+
+# OAuth 2.1 JWT validation
+MCP_JWT_ENABLED=true
+MCP_JWT_ALGORITHM=RS256
+MCP_JWT_AUDIENCE=https://your-mcp-server.example.com
+MCP_JWT_ISSUER=https://your-tenant.auth0.com/
+
+# OAuth server configuration
+MCP_OAUTH_SERVER_URL=https://your-tenant.auth0.com
+MCP_OAUTH_JWKS_URI=https://your-tenant.auth0.com/.well-known/jwks.json
+
+# Optional: API key fallback
+MCP_API_KEY_ENABLED=true
+MCP_API_KEYS=emergency-access-key-123
+```
+
+#### Step 4: Provide Public Key
+
+For RS256 algorithm, provide the OAuth provider's public key:
+
+**Option 1:** Inline public key
+```bash
+export MCP_JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
+-----END PUBLIC KEY-----"
+```
+
+**Option 2:** Public key file
+```bash
+# Save public key to file
+echo "-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
+-----END PUBLIC KEY-----" > /path/to/public-key.pem
+
+# Configure path
+export MCP_JWT_PUBLIC_KEY_FILE=/path/to/public-key.pem
+```
+
+**Option 3:** JWKS URI (recommended)
+```bash
+# OAuth provider's JWKS endpoint (automatic key rotation)
+export MCP_OAUTH_JWKS_URI=https://your-tenant.auth0.com/.well-known/jwks.json
+```
+
+#### Step 5: Test Authentication
+
+```bash
+# Get access token from OAuth provider
+# (using OAuth 2.1 authorization code flow or client credentials)
+ACCESS_TOKEN="your-jwt-token-here"
+
+# Test authenticated request
+curl -X POST https://your-mcp-server.example.com/mcp/messages \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {}
+  }'
+```
+
+### OAuth Metadata Discovery
+
+The MCP server exposes OAuth metadata for automatic discovery:
+
+```bash
+# Get OAuth authorization server metadata (RFC 8414)
+curl https://your-mcp-server.example.com/.well-known/oauth-authorization-server
+```
+
+This endpoint returns:
+- Authorization endpoint
+- Token endpoint
+- Supported grant types (authorization_code, client_credentials)
+- PKCE support (S256)
+- JWKS URI (if configured)
+
+### Configuration Reference
+
+See `.env.mcp.example` for complete configuration options:
+
+```bash
+cp .env.mcp.example .env
+# Edit .env with your settings
+```
+
+**Key Environment Variables:**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MCP_AUTH_ENABLED` | `true` | Enable/disable authentication |
+| `MCP_AUTH_REQUIRED` | `false` | Require authentication (if false, optional) |
+| `MCP_API_KEY_ENABLED` | `true` | Enable API key authentication |
+| `MCP_API_KEYS` | - | Comma-separated list of valid API keys |
+| `MCP_JWT_ENABLED` | `true` | Enable JWT validation |
+| `MCP_JWT_ALGORITHM` | `RS256` | JWT algorithm (HS256, RS256, etc.) |
+| `MCP_JWT_PUBLIC_KEY` | - | Public key for RS256 |
+| `MCP_JWT_PUBLIC_KEY_FILE` | - | Path to public key file |
+| `MCP_JWT_AUDIENCE` | - | Expected audience claim |
+| `MCP_JWT_ISSUER` | - | Expected issuer claim |
+| `MCP_OAUTH_SERVER_URL` | - | OAuth server base URL |
+| `MCP_OAUTH_JWKS_URI` | - | JWKS endpoint for key discovery |
+
 ## Security Considerations
 
 ### Production Deployment
 
 For production use:
 
-1. **Use Authentication**: Add basic auth or API keys
-   ```yaml
-   # In ngrok.yml
-   auth: "username:password"
-   ```
+1. **Enable OAuth 2.1 Authentication**
+   - Use a trusted OAuth provider (Auth0, Google, etc.)
+   - Set `MCP_AUTH_REQUIRED=true` to require authentication
+   - Use RS256 algorithm with public key validation
+   - Configure JWKS URI for automatic key rotation
 
 2. **Restrict Origins**: Configure CORS in DiPeO server
    ```python
@@ -315,20 +509,15 @@ For production use:
    )
    ```
 
-3. **Use Custom Domain**: Instead of ngrok free tier
-   - Paid ngrok plan with custom domain
-   - Or deploy to production server (AWS, GCP, etc.)
+3. **Use HTTPS**: Always use HTTPS in production
+   - OAuth requires HTTPS for security
+   - Use ngrok with custom domain or deploy to cloud
 
-4. **Rate Limiting**: Add rate limiting middleware
-   ```python
-   from slowapi import Limiter
-   limiter = Limiter(key_func=get_remote_address)
-
-   @app.post("/mcp/messages")
-   @limiter.limit("10/minute")
-   async def mcp_messages_endpoint(request: Request):
-       ...
-   ```
+4. **Token Security**
+   - Never include tokens in query strings
+   - Use `Authorization: Bearer <token>` header
+   - Validate token expiration
+   - Implement token refresh if needed
 
 5. **Monitor Access**: Enable logging and monitoring
    ```bash
