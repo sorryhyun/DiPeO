@@ -3,6 +3,7 @@ import { generatePersonId } from '@/infrastructure/types/utilities';
 import { LLMService } from '@dipeo/models';
 import { Converters } from '@/infrastructure/services';
 import type { UnifiedStore, SetState, GetState, StoreApiType } from '../types';
+import type { DomainPersonType } from '@/__generated__/graphql';
 
 export interface PersonSlice {
   // Core data
@@ -16,7 +17,7 @@ export interface PersonSlice {
   // Batch operations
   batchUpdatePersons: (updates: Array<{id: PersonID, updates: Partial<DomainPerson>}>) => void;
   importPersons: (persons: DomainPerson[]) => void;
-  importPersonsFromGraphQL: (graphqlPersons: unknown[]) => void;
+  importPersonsFromGraphQL: (graphqlPersons: DomainPersonType[]) => void;
 
   // Clear and restore operations
   clearPersons: () => void;
