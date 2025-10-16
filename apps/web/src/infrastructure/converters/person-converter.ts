@@ -32,7 +32,7 @@ export class PersonConverter {
       id: domainPerson.id,
       label: domainPerson.label,
       llm_config: {
-        service: domainPerson.llm_config.service as string,
+        service: domainPerson.llm_config.service,
         model: domainPerson.llm_config.model,
         api_key_id: domainPerson.llm_config.api_key_id,
         system_prompt: domainPerson.llm_config.system_prompt

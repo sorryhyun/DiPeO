@@ -18,6 +18,7 @@ import {
   getNodeSpecification,
   createHandleId,
 } from '@dipeo/models';
+import { z } from 'zod';
 import { ValidationService } from './validation-service';
 
 /**

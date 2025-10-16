@@ -14,6 +14,7 @@ import {
   type ExecutionUpdate,
   type LLMUsage,
   type SerializedNodeOutput,
+  type JsonDict,
   Status,
   EventType
 } from '@dipeo/models';
@@ -70,8 +71,8 @@ export class ExecutionConverter {
       started_at: graphqlExecution.started_at || new Date().toISOString(),
       ended_at: graphqlExecution.ended_at,
       node_states: nodeStates,
-      node_outputs: (graphqlExecution.node_outputs || {}) as Record<string, SerializedNodeOutput>,
-      variables: (graphqlExecution.variables || {}) as Record<string, unknown>,
+      node_outputs: (graphqlExecution.node_outputs || {}) as JsonDict,
+      variables: (graphqlExecution.variables || {}) as JsonDict,
       llm_usage: graphqlExecution.llm_usage as LLMUsage,
       error: graphqlExecution.error,
       exec_counts: {},
@@ -86,7 +87,7 @@ export class ExecutionConverter {
     return {
       type: (update as Record<string, unknown>).type as EventType || EventType.EXECUTION_LOG,
       execution_id: executionId(update.execution_id),
-      data: (update.data ?? null) as Record<string, unknown> | null,
+      data: (update.data ?? null) as JsonDict | null,
       timestamp: update.timestamp ?? undefined
     };
   }

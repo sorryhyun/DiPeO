@@ -1,6 +1,7 @@
 import React, { Suspense, useMemo } from 'react';
 import { useCanvasState } from '@/domain/diagram/contexts';
 import { LoadingFallback } from '@/ui/components/common/feedback';
+import { nodeId } from '@/infrastructure/types/branded';
 
 const PropertyPanel = React.lazy(() => import('./PropertyPanel').then(module => ({ default: module.PropertyPanel })));
 
@@ -33,7 +34,7 @@ export const PropertiesTab: React.FC = () => {
       const [sourceNodeId, ...sourceHandleParts] = selectedArrow.source.split(':');
       const sourceHandleName = sourceHandleParts.join(':');
 
-      const sourceNode = sourceNodeId ? nodes.get(sourceNodeId) : undefined;
+      const sourceNode = sourceNodeId ? nodes.get(nodeId(sourceNodeId)) : undefined;
       const isFromConditionBranch = sourceHandleName === 'true' || sourceHandleName === 'false';
 
       return {

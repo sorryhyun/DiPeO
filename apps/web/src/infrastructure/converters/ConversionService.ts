@@ -30,11 +30,13 @@ import {
   type LLMUsage,
   type ExecutionUpdate,
   type ContentType,
+  type JsonDict,
   Status,
   HandleDirection,
   HandleLabel,
   DataType,
   LLMService,
+  APIServiceType,
   EventType
 } from '@dipeo/models';
 import { nodeId, arrowId, personId, handleId, apiKeyId, diagramId, executionId } from '@/infrastructure/types/branded';
@@ -321,7 +323,7 @@ export class Converters {
       id: this.toNodeId(node.id),
       type: this.stringToNodeType(node.type),
       position: node.position,
-      data: (node.data || {}) as Record<string, unknown>
+      data: (node.data || {}) as JsonDict
     };
   }
 
@@ -359,7 +361,7 @@ export class Converters {
       id: arrow.id,
       source: arrow.source,
       target: arrow.target,
-      content_type: arrow.content_type as string | null,
+      content_type: arrow.content_type,
       label: arrow.label,
       data: arrow.data
     };
@@ -400,7 +402,7 @@ export class Converters {
     return {
       id: this.toApiKeyId(apiKey.id),
       label: apiKey.label,
-      service: apiKey.service as LLMService,
+      service: apiKey.service as APIServiceType,
       key: ''
     };
   }
@@ -434,8 +436,8 @@ export class Converters {
       started_at: execution.started_at || new Date().toISOString(),
       ended_at: execution.ended_at || null,
       node_states: nodeStates,
-      node_outputs: (execution.node_outputs || {}) as Record<string, unknown>,
-      variables: (execution.variables || {}) as Record<string, unknown>,
+      node_outputs: (execution.node_outputs || {}) as JsonDict,
+      variables: (execution.variables || {}) as JsonDict,
       llm_usage: execution.llm_usage as LLMUsage,
       error: execution.error || null,
       exec_counts: {},
@@ -450,7 +452,7 @@ export class Converters {
     return {
       type: (update as Record<string, unknown>).type as EventType,  // type field comes from subscription query
       execution_id: this.toExecutionId(update.execution_id),
-      data: (update.data ?? null) as Record<string, unknown> | null,
+      data: (update.data ?? null) as JsonDict | null,
       timestamp: update.timestamp ?? undefined
     };
   }

@@ -9,7 +9,8 @@ const ConfigurableNode = React.memo<NodeProps>((props) => {
   const nodeType = props.type || 'start';
 
   // Check if this is a TODO-backed note node
-  const isTodoNode = nodeType === 'note' && (props.data as Record<string, unknown>)?.metadata?.isTodoItem;
+  const metadata = (props.data as Record<string, unknown>)?.metadata as Record<string, unknown> | undefined;
+  const isTodoNode = nodeType === 'note' && metadata?.isTodoItem;
 
   if (isTodoNode) {
     // Pass through all props to TodoNode
