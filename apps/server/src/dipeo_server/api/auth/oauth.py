@@ -5,12 +5,14 @@ the MCP specification (2025-03-26).
 """
 
 import os
+import secrets
+import threading
 from dataclasses import dataclass
 from typing import Any, Optional
 
 import jwt
 from fastapi import HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from dipeo.config.base_logger import get_module_logger
 
@@ -95,8 +97,13 @@ class MCPOAuthConfig:
         jwt_public_key = os.getenv("MCP_JWT_PUBLIC_KEY")
         jwt_public_key_file = os.getenv("MCP_JWT_PUBLIC_KEY_FILE")
         if jwt_public_key_file and os.path.exists(jwt_public_key_file):
-            with open(jwt_public_key_file, "r") as f:
-                jwt_public_key = f.read()
+            try:
+                with open(jwt_public_key_file, "r") as f:
+                    jwt_public_key = f.read()
+            except OSError as e:
+                logger.error(f"Failed to read JWT public key file {jwt_public_key_file}: {e}")
+                # Don't fail initialization, just log the error
+                jwt_public_key = None
 
         return cls(
             enabled=os.getenv("MCP_AUTH_ENABLED", "true").lower() == "true",
@@ -117,30 +124,36 @@ class MCPOAuthConfig:
         )
 
 
-# Global OAuth config instance
+# Global OAuth config instance (thread-safe singleton)
 _oauth_config: Optional[MCPOAuthConfig] = None
+_oauth_config_lock = threading.Lock()
 
 
 def get_oauth_config() -> MCPOAuthConfig:
-    """Get the global OAuth configuration.
+    """Get the global OAuth configuration (thread-safe).
 
     Returns:
         MCPOAuthConfig instance
     """
     global _oauth_config
+
+    # Double-checked locking pattern for thread safety
     if _oauth_config is None:
-        _oauth_config = MCPOAuthConfig.from_env()
-        logger.info(
-            f"OAuth config loaded: enabled={_oauth_config.enabled}, "
-            f"required={_oauth_config.require_auth}, "
-            f"api_key={_oauth_config.api_key_enabled}, "
-            f"jwt={_oauth_config.jwt_enabled}"
-        )
+        with _oauth_config_lock:
+            # Check again inside the lock
+            if _oauth_config is None:
+                _oauth_config = MCPOAuthConfig.from_env()
+                logger.info(
+                    f"OAuth config loaded: enabled={_oauth_config.enabled}, "
+                    f"required={_oauth_config.require_auth}, "
+                    f"api_key={_oauth_config.api_key_enabled}, "
+                    f"jwt={_oauth_config.jwt_enabled}"
+                )
     return _oauth_config
 
 
 def verify_api_key(api_key: str) -> bool:
-    """Verify an API key.
+    """Verify an API key using constant-time comparison.
 
     Args:
         api_key: API key to verify
@@ -157,7 +170,11 @@ def verify_api_key(api_key: str) -> bool:
         logger.warning("No API keys configured, but API key auth is enabled")
         return False
 
-    return api_key in config.api_keys
+    # Use constant-time comparison to prevent timing attacks
+    for valid_key in config.api_keys:
+        if secrets.compare_digest(api_key, valid_key):
+            return True
+    return False
 
 
 def verify_jwt_token(token: str) -> TokenData:
@@ -223,15 +240,33 @@ def verify_jwt_token(token: str) -> TokenData:
             options=verify_options,
         )
 
+        # Validate required claims
+        sub = payload.get("sub")
+        if not sub or not isinstance(sub, str):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token missing required 'sub' claim",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
         # Extract token data
-        return TokenData(
-            sub=payload.get("sub"),
-            iss=payload.get("iss"),
-            aud=payload.get("aud"),
-            exp=payload.get("exp"),
-            scope=payload.get("scope"),
-            email=payload.get("email"),
-        )
+        try:
+            return TokenData(
+                sub=sub,
+                iss=payload.get("iss"),
+                aud=payload.get("aud"),
+                exp=payload.get("exp"),
+                scope=payload.get("scope"),
+                email=payload.get("email"),
+            )
+        except ValidationError as e:
+            # Token data validation failed - this is a client error, not server error
+            logger.warning(f"Invalid token claims: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token claims",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
     except jwt.ExpiredSignatureError:
         raise HTTPException(
@@ -258,8 +293,12 @@ def verify_jwt_token(token: str) -> TokenData:
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    except HTTPException:
+        # Re-raise HTTPExceptions (including our sub claim validation)
+        raise
     except Exception as e:
-        logger.error(f"Error verifying JWT token: {e}", exc_info=True)
+        # Only truly unexpected errors should return 500
+        logger.error(f"Unexpected error verifying JWT token: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error verifying token",
