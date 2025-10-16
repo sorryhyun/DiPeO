@@ -2,7 +2,7 @@
 name: comment-cleaner
 description: Use this agent when you need to review and clean up code comments according to specific guidelines. This agent removes unnecessary, redundant, or obvious comments while preserving those that add genuine value. Perfect for code cleanup after initial development or when preparing code for review. Examples: <example>Context: The user wants to clean up comments in recently written code that has excessive documentation. user: "I just wrote a new authentication module, can you clean up the comments?" assistant: "I'll use the comment-cleaner agent to review and remove unnecessary comments from your authentication module." <commentary>Since the user wants to clean up comments in their code, use the comment-cleaner agent to remove redundant documentation while preserving valuable insights.</commentary></example> <example>Context: After generating code with verbose comments, the user wants to streamline the documentation. user: "The generated code has way too many obvious comments, please clean it up" assistant: "Let me use the comment-cleaner agent to remove the redundant comments while keeping the important ones." <commentary>The user explicitly wants comment cleanup, so the comment-cleaner agent is the appropriate tool for this task.</commentary></example>
 tools: Bash, Glob, Grep, LS, Read, Edit, MultiEdit, Write, NotebookRead, NotebookEdit, WebFetch, TodoWrite, WebSearch, ListMcpResourcesTool, ReadMcpResourceTool
-model: sonnet
+model: claude-haiku-4-5-20251001
 color: purple
 ---
 
