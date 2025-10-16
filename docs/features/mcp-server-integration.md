@@ -111,7 +111,7 @@ echo 'nodes:
       user_prompt: "Hello"
   - id: end
     type: end
-arrows:
+connections:
   - from: start
     to: llm
   - from: llm
