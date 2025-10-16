@@ -44,9 +44,7 @@ export function createCrudActions<T extends Entity, ID extends EntityId>(
       state.dataVersion += 1;
 
       options?.onAdd?.(state, entity);
-      // Use type assertion to avoid type instantiation depth errors
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recordHistory(state as any);
+      recordHistory(state);
 
       return entity.id as ID;
     },
@@ -64,9 +62,7 @@ export function createCrudActions<T extends Entity, ID extends EntityId>(
           options?.onUpdate?.(state, id, entity as T);
         }
 
-        // Use type assertion to avoid type instantiation depth errors
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        recordHistory(state as any);
+        recordHistory(state);
       }
     },
 
@@ -83,9 +79,7 @@ export function createCrudActions<T extends Entity, ID extends EntityId>(
         state.selectedType = null;
       }
 
-      // Use type assertion to avoid type instantiation depth errors
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recordHistory(state as any);
+      recordHistory(state);
     }
   };
 }

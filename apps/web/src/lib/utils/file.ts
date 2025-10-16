@@ -116,8 +116,9 @@ export const saveDiagram = async (file: File, format?: DiagramFormat): Promise<{
       }
     });
 
-    if (!data?.uploadFile.success) {
-      const errorMsg = (data?.uploadFile as any)?.error;
+    const uploadFile = data?.uploadFile as Record<string, unknown> | undefined;
+    if (!uploadFile?.success) {
+      const errorMsg = uploadFile?.error;
       throw new Error(typeof errorMsg === 'string' ? errorMsg : 'Failed to save diagram');
     }
 
@@ -125,13 +126,12 @@ export const saveDiagram = async (file: File, format?: DiagramFormat): Promise<{
     const filename = file.name;
     const diagramId = filename.replace('.yaml', '').replace('.yml', '').replace('.json', '');
 
-    const uploadResult = data.uploadFile as any;
     return {
       success: true,
       diagramId,
       diagramName: filename,
       nodeCount: undefined, // We don't have this info from uploadFile
-      message: typeof uploadResult.message === 'string' ? uploadResult.message : 'Diagram saved successfully'
+      message: typeof uploadFile.message === 'string' ? uploadFile.message : 'Diagram saved successfully'
     };
   } catch (error) {
     console.error('[Save diagram GraphQL]', error);
@@ -170,17 +170,17 @@ export const uploadFile = async (
       }
     });
 
-    if (!data?.uploadFile.success) {
-      const errorMsg = (data?.uploadFile as any)?.error;
+    const uploadFile = data?.uploadFile as Record<string, unknown> | undefined;
+    if (!uploadFile?.success) {
+      const errorMsg = uploadFile?.error;
       throw new Error(typeof errorMsg === 'string' ? errorMsg : 'Failed to upload file');
     }
 
-    const uploadResult = data.uploadFile as any;
     return {
       success: true,
-      path: typeof uploadResult.path === 'string' ? uploadResult.path : undefined,
-      sizeBytes: typeof uploadResult.sizeBytes === 'number' ? uploadResult.sizeBytes : undefined,
-      message: typeof uploadResult.message === 'string' ? uploadResult.message : undefined
+      path: typeof uploadFile.path === 'string' ? uploadFile.path : undefined,
+      sizeBytes: typeof uploadFile.sizeBytes === 'number' ? uploadFile.sizeBytes : undefined,
+      message: typeof uploadFile.message === 'string' ? uploadFile.message : undefined
     };
   } catch (error) {
     console.error('[Upload file GraphQL]', error);
