@@ -100,22 +100,36 @@ Compile, validate, and push to MCP directory in one command:
 dipeo compile my_diagram.light.yaml --light --push-as my_workflow
 
 # From stdin (LLM-friendly - no filesystem access needed!)
-echo 'nodes:
-  - id: start
+echo 'version: light
+nodes:
+  - label: start
     type: start
-  - id: llm
-    type: llm_call
-    config:
-      model: gpt-5-nano-2025-08-07
-      system_prompt: "You are helpful"
-      user_prompt: "Hello"
-  - id: end
-    type: end
-arrows:
+    position: {x: 100, y: 200}
+    props:
+      trigger_mode: manual
+  - label: llm
+    type: person_job
+    position: {x: 300, y: 200}
+    props:
+      person: assistant
+      default_prompt: "Hello"
+      max_iteration: 1
+  - label: end
+    type: endpoint
+    position: {x: 500, y: 200}
+    props:
+      file_format: txt
+      save_to_file: false
+connections:
   - from: start
     to: llm
   - from: llm
-    to: end' | dipeo compile --stdin --light --push-as my_workflow
+    to: end
+persons:
+  assistant:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_ID' | dipeo compile --stdin --light --push-as my_workflow
 
 # Custom target directory
 dipeo compile --stdin --light --push-as my_workflow --target-dir /custom/path
