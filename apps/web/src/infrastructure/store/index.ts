@@ -322,18 +322,18 @@ function createUnifiedStore(config: Partial<StoreConfig> = {}) {
   // Use explicit StateCreator type to avoid type instantiation depth errors with complex middleware chains
   // This is a known limitation with Zustand's middleware typing when combining immer, subscribeWithSelector, and devtools
   const withImmer = immer(storeCreator as StateCreator<UnifiedStore, [], []>);
-  const withSelector = subscribeWithSelector(withImmer as StateCreator<UnifiedStore, [], []>);
+  const withSelector = subscribeWithSelector(withImmer);
 
-  let store: StateCreator<UnifiedStore, [], []> = withSelector;
+  let store = withSelector;
 
   // Apply side effects middleware
   if (finalConfig.middleware?.length) {
-    store = sideEffectsMiddleware(store as StateCreator<UnifiedStore, [], []>);
+    store = sideEffectsMiddleware(store as any);
   }
 
   // Apply devtools in development
   if (finalConfig.enableDevtools) {
-    store = devtools(store, {
+    store = devtools(store as any, {
       name: 'DiPeO Store',
       serialize: {
         replacer: (_key: string, value: unknown) => {

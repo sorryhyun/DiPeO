@@ -16,11 +16,12 @@ export function createFullSnapshot(state: Partial<UnifiedStore>): Snapshot {
 export function recordHistory(state: Draft<UnifiedStore>) {
   if (!state.history.currentTransaction) {
     // Create snapshot using current() to get the current state from Draft
+    const currentState = current(state) as UnifiedStore;
     const snapshot: Snapshot = {
-      nodes: new Map(current(state.nodes)),
-      arrows: new Map(current(state.arrows)),
-      persons: new Map(current(state.persons)),
-      handles: new Map(current(state.handles)),
+      nodes: new Map(currentState.nodes),
+      arrows: new Map(currentState.arrows),
+      persons: new Map(currentState.persons),
+      handles: new Map(currentState.handles),
       timestamp: Date.now(),
     };
     // Push to history stacks
