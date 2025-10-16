@@ -2,7 +2,7 @@ import type { PanelLayoutConfig, TypedPanelFieldConfig } from '@/domain/diagram/
 import type { DomainPerson } from '@/infrastructure/types';
 import { apolloClient } from '@/lib/graphql/client';
 import { GetApiKeysDocument, GetAvailableModelsDocument, type GetApiKeysQuery } from '@/__generated__/graphql';
-import { isLLMService } from '@dipeo/models';
+import { isLLMService, type APIServiceType } from '@dipeo/models';
 
 interface ExtendedPersonData extends Partial<DomainPerson> {
   'llm_config.api_key_id'?: string;
@@ -38,7 +38,7 @@ export const personFields: TypedPanelFieldConfig<ExtendedPersonData>[] = [
           .filter((key: any) => {
             // Convert uppercase enum name to lowercase for comparison
             const serviceLowercase = key.service.toLowerCase();
-            return isLLMService(serviceLowercase as LLMService);
+            return isLLMService(serviceLowercase as APIServiceType);
           })
           .map((key: any) => ({
             value: key.id,
