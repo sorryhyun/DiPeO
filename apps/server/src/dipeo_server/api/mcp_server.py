@@ -2,17 +2,22 @@
 
 This module implements a Model Context Protocol (MCP) server that allows
 external LLM applications to execute DiPeO diagrams as tools.
+
+Supports OAuth 2.1 authentication as required by MCP specification (2025-03-26).
 """
 
 import json
 import logging
 import os
-from typing import Any
+from typing import Any, Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from dipeo.config.base_logger import get_module_logger
 from dipeo_server.app_context import get_container
+
+from .auth import get_current_user, get_oauth_config
+from .auth.oauth import TokenData, get_authorization_server_metadata
 
 logger = get_module_logger(__name__)
 
@@ -307,12 +312,27 @@ def get_mcp_server() -> MCPServer:
 
 # MCP message endpoint
 @router.post("/mcp/messages")
-async def mcp_messages_endpoint(request: Request):
+async def mcp_messages_endpoint(
+    request: Request,
+    user: Optional[TokenData] = Depends(get_current_user),
+):
     """MCP messages endpoint for JSON-RPC requests.
 
     This endpoint handles JSON-RPC 2.0 requests from the MCP client.
+    Supports OAuth 2.1 authentication (optional or required based on configuration).
+
+    Authentication:
+        - Bearer token (OAuth 2.1 JWT) via Authorization header
+        - API key via X-API-Key header
+        - Optional/required based on MCP_AUTH_REQUIRED env var
     """
     mcp_server = get_mcp_server()
+
+    # Log authentication status
+    if user:
+        logger.debug(f"MCP request authenticated: {user.sub}")
+    else:
+        logger.debug("MCP request unauthenticated")
 
     try:
         request_data = await request.json()
@@ -337,15 +357,45 @@ async def mcp_messages_endpoint(request: Request):
 
 # MCP info endpoint
 @router.get("/mcp/info")
-async def mcp_info_endpoint():
+async def mcp_info_endpoint(
+    user: Optional[TokenData] = Depends(get_current_user),
+):
     """Get information about the MCP server.
 
     Returns server capabilities, available tools, and connection information.
+
+    Authentication:
+        - Optional (provides authentication status in response)
     """
     mcp_server = get_mcp_server()
+    config = get_oauth_config()
 
     tools = await mcp_server.list_tools()
     resources = await mcp_server.list_resources()
+
+    # Build authentication info
+    auth_info = {
+        "enabled": config.enabled,
+        "required": config.require_auth,
+        "methods": [],
+    }
+
+    if config.enabled:
+        if config.jwt_enabled:
+            auth_info["methods"].append("Bearer (OAuth 2.1 JWT)")
+        if config.api_key_enabled:
+            auth_info["methods"].append("API Key (X-API-Key header)")
+
+    if config.authorization_server_url:
+        auth_info["oauth_server"] = config.authorization_server_url
+        auth_info["discovery"] = "/.well-known/oauth-authorization-server"
+
+    # Include authenticated user info if available
+    if user:
+        auth_info["authenticated"] = True
+        auth_info["user"] = user.sub
+    else:
+        auth_info["authenticated"] = False
 
     return {
         "server": {
@@ -360,7 +410,9 @@ async def mcp_info_endpoint():
         "endpoints": {
             "messages": "/mcp/messages",
             "info": "/mcp/info",
+            "oauth_metadata": "/.well-known/oauth-authorization-server",
         },
+        "authentication": auth_info,
         "capabilities": {
             "tools": len(tools),
             "resources": len(resources),
@@ -368,3 +420,29 @@ async def mcp_info_endpoint():
         "tools": tools,
         "resources": resources,
     }
+
+
+# OAuth 2.0 Authorization Server Metadata endpoint (RFC 8414)
+# Required by MCP specification for metadata discovery
+@router.get("/.well-known/oauth-authorization-server")
+async def oauth_authorization_server_metadata():
+    """OAuth 2.0 Authorization Server Metadata endpoint.
+
+    This endpoint is required by MCP specification (2025-03-26) for
+    OAuth metadata discovery (RFC 8414).
+
+    Returns:
+        Authorization server metadata including endpoints and capabilities
+    """
+    try:
+        metadata = get_authorization_server_metadata()
+        logger.debug(f"OAuth metadata requested: {metadata}")
+        return metadata
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating OAuth metadata: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Error generating OAuth authorization server metadata",
+        )
