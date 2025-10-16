@@ -78,6 +78,7 @@ dependencies = [
     "pydantic-core==2.33.2",
     "pydantic-settings==2.7.1",
     "pyinstaller~=6.14.2",
+    "PyJWT[crypto]==2.9.0",
     "pyparsing==3.2.3",
     "pytest~=8.4.1",
     "python-dateutil==2.9.0.post0",

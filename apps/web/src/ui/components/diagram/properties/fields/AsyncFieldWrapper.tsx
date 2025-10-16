@@ -45,7 +45,7 @@ export const AsyncFieldWrapper: React.FC<AsyncFieldWrapperProps> = ({
         setIsLoading(true);
         try {
           // Check if the function expects formData
-          const result = await (optionsConfig as any)(formData);
+          const result = await (optionsConfig as (data: Record<string, unknown>) => Promise<Array<{ value: string; label: string }>>)(formData);
           setOptions(result || []);
         } catch (error) {
           console.error(`Error loading options for field ${fieldDefinition.name}:`, error);

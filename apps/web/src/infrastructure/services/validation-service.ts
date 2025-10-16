@@ -214,7 +214,7 @@ export class ValidationService {
       return false;
     }
 
-    const fieldSchema = (schema as any).shape[fieldName];
+    const fieldSchema = (schema as z.ZodObject<z.ZodRawShape>).shape[fieldName];
     if (!fieldSchema) {
       return false;
     }
@@ -242,7 +242,7 @@ export class ValidationService {
       return [`No validation schema found for ${typeKey}.${fieldName}`];
     }
 
-    const fieldSchema = (schema as any).shape[fieldName];
+    const fieldSchema = (schema as z.ZodObject<z.ZodRawShape>).shape[fieldName];
     if (!fieldSchema) {
       return [`Field ${fieldName} not found in schema for ${typeKey}`];
     }

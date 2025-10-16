@@ -193,7 +193,7 @@ export function createTransaction(
       });
 
       afterCommit?.();
-      return true as any;
+      return true;
     } catch (error) {
       // Rollback on error
       onRollback?.();

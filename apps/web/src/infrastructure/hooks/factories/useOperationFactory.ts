@@ -7,6 +7,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { DocumentNode, OperationVariables } from '@apollo/client';
 import { createEntityQuery, createEntityMutation } from '@/lib/graphql/hooks/factory';
 import { createStoreOperationHook, type OperationHookConfig } from './storeOpFactory';
+import type { UnifiedStore } from '@/infrastructure/store/types';
 
 /**
  * Unified operation type
@@ -256,7 +257,7 @@ export function useOperationFactory<TEntity = any, TCreateArgs extends unknown[]
 
     try {
       asyncActions.setMutating(true);
-      const result = await createMutation({ variables: args[0] as any });
+      const result = await createMutation({ variables: args[0] as OperationVariables });
       const id = result.data?.id || result.data?._id || null;
       asyncActions.setSuccess(true);
       return id;
@@ -385,7 +386,7 @@ export function createSimpleStoreOperations<TEntity>(
     entityName,
     selectCollection: selectors.collection,
     selectAddAction: selectors.add,
-    selectUpdateAction: selectors.update as any,
-    selectDeleteAction: selectors.remove as any,
+    selectUpdateAction: selectors.update as (state: UnifiedStore) => (id: string, updates: Partial<TEntity>) => void,
+    selectDeleteAction: selectors.remove as (state: UnifiedStore) => (id: string) => void,
   });
 }

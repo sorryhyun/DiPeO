@@ -30,11 +30,13 @@ import {
   type LLMUsage,
   type ExecutionUpdate,
   type ContentType,
+  type JsonDict,
   Status,
   HandleDirection,
   HandleLabel,
   DataType,
   LLMService,
+  APIServiceType,
   EventType
 } from '@dipeo/models';
 import { nodeId, arrowId, personId, handleId, apiKeyId, diagramId, executionId } from '@/infrastructure/types/branded';
@@ -283,7 +285,7 @@ export class Converters {
    * Convert GraphQL person response to domain person model
    * Centralizes GraphQL conversion logic
    */
-  static convertGraphQLPerson(person: any): DomainPerson {
+  static convertGraphQLPerson(person: DomainPersonType): DomainPerson {
     return convertGraphQLPersonToDomain(person);
   }
 
@@ -291,7 +293,7 @@ export class Converters {
    * Convert GraphQL diagram response to domain diagram model
    * Centralizes GraphQL conversion logic
    */
-  static convertGraphQLDiagram(diagram: any): Partial<DomainDiagram> {
+  static convertGraphQLDiagram(diagram: DomainDiagramType): Partial<DomainDiagram> {
     return convertGraphQLDiagramToDomain(diagram);
   }
 
@@ -321,7 +323,7 @@ export class Converters {
       id: this.toNodeId(node.id),
       type: this.stringToNodeType(node.type),
       position: node.position,
-      data: (node.data || {}) as any
+      data: (node.data || {}) as JsonDict
     };
   }
 
@@ -360,8 +362,8 @@ export class Converters {
       source: arrow.source,
       target: arrow.target,
       content_type: arrow.content_type as any,
-      label: arrow.label,
-      data: arrow.data
+      label: arrow.label as any,
+      data: arrow.data as any
     };
   }
 
@@ -394,13 +396,21 @@ export class Converters {
   }
 
   /**
+   * Convert GraphQL APIServiceType to domain APIServiceType
+   * GraphQL uses uppercase with underscores (e.g. CLAUDE_CODE), domain uses lowercase with hyphens (e.g. claude-code)
+   */
+  private static convertAPIServiceType(graphqlService: import('@/__generated__/graphql').APIServiceType): APIServiceType {
+    return graphqlService.toLowerCase().replace(/_/g, '-') as APIServiceType;
+  }
+
+  /**
    * Convert GraphQL API key to domain
    */
   static graphQLApiKeyToDomain(apiKey: DomainApiKeyType): DomainApiKey {
     return {
       id: this.toApiKeyId(apiKey.id),
       label: apiKey.label,
-      service: apiKey.service as any,
+      service: this.convertAPIServiceType(apiKey.service),
       key: ''
     };
   }
@@ -415,12 +425,12 @@ export class Converters {
     if (execution.node_states) {
       Object.entries(execution.node_states).forEach(([nodeId, state]) => {
         if (state) {
-          const nodeState = state as any;
+          const nodeState = state as Record<string, unknown>;
           nodeStates[nodeId] = {
             status: nodeState.status as Status,
-            started_at: nodeState.started_at,
-            ended_at: nodeState.ended_at,
-            error: nodeState.error,
+            started_at: nodeState.started_at as string | undefined,
+            ended_at: nodeState.ended_at as string | null | undefined,
+            error: nodeState.error as string | null | undefined,
             llm_usage: nodeState.llm_usage as LLMUsage | null
           };
         }
@@ -434,8 +444,8 @@ export class Converters {
       started_at: execution.started_at || new Date().toISOString(),
       ended_at: execution.ended_at || null,
       node_states: nodeStates,
-      node_outputs: (execution.node_outputs || {}) as any,
-      variables: (execution.variables || {}) as any,
+      node_outputs: (execution.node_outputs || {}) as Record<string, any>,
+      variables: (execution.variables || {}) as Record<string, any>,
       llm_usage: execution.llm_usage as LLMUsage,
       error: execution.error || null,
       exec_counts: {},
@@ -448,9 +458,9 @@ export class Converters {
    */
   static graphQLExecutionUpdateToDomain(update: ExecutionUpdateType): ExecutionUpdate {
     return {
-      type: (update as any).type as EventType,  // type field comes from subscription query
+      type: (update as Record<string, unknown>).type as EventType,  // type field comes from subscription query
       execution_id: this.toExecutionId(update.execution_id),
-      data: (update.data ?? null) as any,
+      data: (update.data ?? undefined) as Record<string, any> | undefined,
       timestamp: update.timestamp ?? undefined
     };
   }

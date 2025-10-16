@@ -8,7 +8,8 @@ import {
   useGetDiagramQuery,
   useCreateDiagramMutation,
   useDeleteDiagramMutation,
-  useListDiagramsQuery
+  useListDiagramsQuery,
+  type DomainDiagramType
 } from '@/__generated__/graphql';
 
 // Wrapper type to satisfy useResource constraints
@@ -77,7 +78,7 @@ export function useDiagram(options: UseDiagramOptions = {}) {
         return [];
       }
 
-      return data.listDiagrams.map(d => ({ ...DiagramConverter.toDomain(d), id: d.metadata?.id || undefined } as DiagramResource));
+      return data.listDiagrams.map(d => ({ ...DiagramConverter.toDomain(d as unknown as DomainDiagramType), id: d.metadata?.id || undefined } as DiagramResource));
     },
 
     create: async (data: Partial<DiagramResource>) => {
@@ -94,7 +95,7 @@ export function useDiagram(options: UseDiagramOptions = {}) {
         throw new Error('Failed to create diagram');
       }
 
-      const domainDiagram = DiagramConverter.toDomain(result.createDiagram?.data || {}) as DiagramResource;
+      const domainDiagram = DiagramConverter.toDomain((result.createDiagram?.data || {}) as unknown as DomainDiagramType) as DiagramResource;
 
       if (syncWithStore && domainDiagram) {
         const jsonString = JSON.stringify(domainDiagram);
