@@ -361,9 +361,9 @@ export class Converters {
       id: arrow.id,
       source: arrow.source,
       target: arrow.target,
-      content_type: arrow.content_type ?? undefined,
-      label: arrow.label ?? undefined,
-      data: arrow.data ?? undefined
+      content_type: arrow.content_type as any,
+      label: arrow.label as any,
+      data: arrow.data as any
     };
   }
 
@@ -397,10 +397,10 @@ export class Converters {
 
   /**
    * Convert GraphQL APIServiceType to domain APIServiceType
-   * GraphQL uses uppercase values, domain uses lowercase
+   * GraphQL uses uppercase with underscores (e.g. CLAUDE_CODE), domain uses lowercase with hyphens (e.g. claude-code)
    */
   private static convertAPIServiceType(graphqlService: import('@/__generated__/graphql').APIServiceType): APIServiceType {
-    return graphqlService.toLowerCase() as APIServiceType;
+    return graphqlService.toLowerCase().replace(/_/g, '-') as APIServiceType;
   }
 
   /**

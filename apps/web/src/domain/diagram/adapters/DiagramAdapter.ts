@@ -264,7 +264,7 @@ export class DiagramAdapter {
     };
 
     if (content_type !== undefined && content_type !== null) {
-      domainArrow.content_type = content_type;
+      domainArrow.content_type = content_type as ContentType;
     }
     if (label !== undefined && label !== null && typeof label === 'string') {
       domainArrow.label = label;
