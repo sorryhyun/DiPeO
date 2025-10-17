@@ -35,7 +35,6 @@ logger = get_module_logger(__name__)
 
 # Configuration
 DEFAULT_MCP_TIMEOUT = int(os.environ.get("MCP_DEFAULT_TIMEOUT", "300"))
-DEBUG_MODE = os.environ.get("DIPEO_DEBUG", "false").lower() == "true"
 
 # Project root for absolute paths
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent.parent
@@ -111,99 +110,32 @@ async def _execute_diagram(arguments: dict[str, Any]) -> list[TextContent]:
     Returns:
         List of text content with execution results
     """
-    from dipeo_server.cli import CLIRunner
+    from .mcp_utils import DiagramExecutionError, execute_diagram_shared
 
     diagram = arguments.get("diagram")
     input_data = arguments.get("input_data", {})
     format_type = arguments.get("format_type", "light")
     timeout = arguments.get("timeout", DEFAULT_MCP_TIMEOUT)
 
-    # Validate required parameters
-    if not diagram:
-        return [
-            TextContent(
-                type="text",
-                text=json.dumps(
-                    {"success": False, "error": "diagram parameter is required"},
-                    indent=2,
-                ),
-            )
-        ]
-
-    # Validate input_data type
-    if input_data is not None and not isinstance(input_data, dict):
-        return [
-            TextContent(
-                type="text",
-                text=json.dumps(
-                    {"success": False, "error": "input_data must be a dictionary"},
-                    indent=2,
-                ),
-            )
-        ]
-
-    # Validate format_type
-    valid_formats = ["light", "native", "readable"]
-    if format_type not in valid_formats:
-        return [
-            TextContent(
-                type="text",
-                text=json.dumps(
-                    {
-                        "success": False,
-                        "error": f"Invalid format_type: {format_type}. Must be one of {valid_formats}",
-                    },
-                    indent=2,
-                ),
-            )
-        ]
-
     try:
-        logger.info(f"Executing diagram via MCP SDK: {diagram}")
-
-        # Get the container
-        container = get_container()
-
-        # Create CLI runner
-        cli = CLIRunner(container)
-
-        # Execute the diagram
-        success = await cli.run_diagram(
+        # Execute diagram using shared logic (with validation enabled)
+        result = await execute_diagram_shared(
             diagram=diagram,
-            debug=False,
-            timeout=timeout,
+            input_data=input_data,
             format_type=format_type,
-            input_variables=input_data if input_data else None,
-            use_unified=True,
-            simple=True,  # Use simple output for MCP
-            interactive=False,  # Non-interactive for MCP
+            timeout=timeout,
+            validate_inputs=True,
         )
 
-        # Return result
-        result_text = json.dumps(
-            {
-                "success": success,
-                "diagram": diagram,
-                "format": format_type,
-                "message": "Diagram executed successfully"
-                if success
-                else "Diagram execution failed",
-            },
-            indent=2,
-        )
+        # Convert result to SDK format
+        return [TextContent(type="text", text=result.to_json())]
 
-        return [TextContent(type="text", text=result_text)]
-
-    except Exception as e:
-        logger.error(f"Error executing diagram via MCP SDK: {e}", exc_info=True)
-
-        # Sanitize error message - don't expose full stack traces in production
-        error_msg = str(e) if DEBUG_MODE else "Diagram execution failed"
-
+    except DiagramExecutionError as e:
+        # Validation error - return error response
         return [
             TextContent(
                 type="text",
-                text=json.dumps({"success": False, "error": error_msg}, indent=2),
+                text=json.dumps({"success": False, "error": str(e)}, indent=2),
             )
         ]
 

@@ -113,71 +113,37 @@ class MCPServer:
         Returns:
             Execution result
         """
-        from dipeo_server.cli import CLIRunner
+        from .mcp_utils import DiagramExecutionError, execute_diagram_shared
 
         diagram = arguments.get("diagram")
         input_data = arguments.get("input_data", {})
         format_type = arguments.get("format_type", "light")
         timeout = arguments.get("timeout", DEFAULT_MCP_TIMEOUT)
 
-        if not diagram:
+        try:
+            # Execute diagram using shared logic (without validation for backward compatibility)
+            result = await execute_diagram_shared(
+                diagram=diagram,
+                input_data=input_data,
+                format_type=format_type,
+                timeout=timeout,
+                validate_inputs=False,  # Legacy implementation didn't validate
+            )
+
+            # Convert result to legacy format
+            return {
+                "content": [{"type": "text", "text": result.to_json()}],
+                "isError": not result.success,
+            }
+
+        except DiagramExecutionError as e:
+            # Validation error - return error response
             return {
                 "content": [
                     {
                         "type": "text",
-                        "text": json.dumps(
-                            {"success": False, "error": "diagram parameter is required"},
-                            indent=2,
-                        ),
+                        "text": json.dumps({"success": False, "error": str(e)}, indent=2),
                     }
-                ],
-                "isError": True,
-            }
-
-        try:
-            logger.info(f"Executing diagram via MCP: {diagram}")
-
-            # Get the container
-            container = get_container()
-
-            # Create CLI runner
-            cli = CLIRunner(container)
-
-            # Execute the diagram
-            success = await cli.run_diagram(
-                diagram=diagram,
-                debug=False,
-                timeout=timeout,
-                format_type=format_type,
-                input_variables=input_data if input_data else None,
-                use_unified=True,
-                simple=True,  # Use simple output for MCP
-                interactive=False,  # Non-interactive for MCP
-            )
-
-            # Return result
-            result_text = json.dumps(
-                {
-                    "success": success,
-                    "diagram": diagram,
-                    "format": format_type,
-                    "message": "Diagram executed successfully"
-                    if success
-                    else "Diagram execution failed",
-                },
-                indent=2,
-            )
-
-            return {
-                "content": [{"type": "text", "text": result_text}],
-                "isError": not success,
-            }
-
-        except Exception as e:
-            logger.error(f"Error executing diagram via MCP: {e}", exc_info=True)
-            return {
-                "content": [
-                    {"type": "text", "text": json.dumps({"success": False, "error": str(e)}, indent=2)}
                 ],
                 "isError": True,
             }
