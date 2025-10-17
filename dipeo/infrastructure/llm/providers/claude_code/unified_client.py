@@ -248,16 +248,9 @@ class UnifiedClaudeCodeClient:
 
         try:
             # Send query with unique session ID
-            # For forked sessions that haven't been connected yet, use connect() instead of query()
-            # to combine connection and first message, avoiding warmup messages
+            # Uses helper method to handle connection state and avoid race conditions
             async with atime_phase(trace_id, "claude_code", f"{phase_key}__send"):
-                if session not in self._connected_sessions:
-                    # First connection for this session - use connect(query) to avoid warmup
-                    await session.connect(query_input)
-                    self._connected_sessions.add(session)
-                else:
-                    # Already connected - use normal query
-                    await session.query(query_input, session_id=session_id)
+                await self._ensure_connected_and_send(session, query_input, session_id)
 
             # Collect response
             result_text = ""
@@ -308,6 +301,50 @@ class UnifiedClaudeCodeClient:
                 self._connected_sessions.discard(session)
         except Exception as e:
             logger.warning(f"[ClaudeCode] Error disconnecting session: {e}")
+
+    async def _ensure_connected_and_send(
+        self,
+        session: ClaudeSDKClient,
+        query_input: str | AsyncIterator[dict[str, Any]],
+        session_id: str | None = None,
+    ) -> None:
+        """Ensure session is connected and send query.
+
+        For sessions not yet connected (typically forked sessions), uses connect(query)
+        to combine connection and first message in one step, avoiding warmup messages.
+        For already-connected sessions, uses query() directly.
+
+        Thread-safe: Uses locking to prevent race conditions when checking/updating
+        connection state.
+
+        Args:
+            session: ClaudeSDKClient session to use
+            query_input: Message dict or async iterable of message dicts to send
+            session_id: Unique session ID for this query
+        """
+        # Check and reserve connection status atomically to prevent race conditions
+        async with self._session_lock:
+            if session not in self._connected_sessions:
+                # Reserve this session immediately to prevent concurrent connect attempts
+                self._connected_sessions.add(session)
+                is_first_connection = True
+            else:
+                is_first_connection = False
+
+        try:
+            if is_first_connection:
+                # First connection for this session - use connect(query) to avoid warmup
+                # Note: connect() does not accept session_id parameter
+                await session.connect(query_input)
+            else:
+                # Already connected - use normal query with session_id
+                await session.query(query_input, session_id=session_id)
+        except Exception:
+            # If connection failed and this was first attempt, remove from connected set
+            if is_first_connection:
+                async with self._session_lock:
+                    self._connected_sessions.discard(session)
+            raise
 
     async def async_chat(
         self,
@@ -477,14 +514,8 @@ class UnifiedClaudeCodeClient:
             # Execute query with unique session ID
             session_id = f"{phase_key}_{uuid4()}"
 
-            # For forked sessions that haven't been connected yet, use connect() instead of query()
-            if session not in self._connected_sessions:
-                # First connection for this session - use connect(query) to avoid warmup
-                await session.connect(query_input)
-                self._connected_sessions.add(session)
-            else:
-                # Already connected - use normal query
-                await session.query(query_input, session_id=session_id)
+            # Send query using helper method to handle connection state and avoid race conditions
+            await self._ensure_connected_and_send(session, query_input, session_id)
 
             # Stream responses
             has_yielded_content = False
