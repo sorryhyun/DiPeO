@@ -7,13 +7,14 @@ The implementation uses the SDK's decorator-based API for defining tools and res
 while preserving DiPeO's existing OAuth 2.1 authentication infrastructure.
 """
 
+import asyncio
 import json
 import logging
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from mcp.server import Server
 from mcp.server.fastapi import add_mcp_to_fastapi
 from mcp.types import (
@@ -27,10 +28,17 @@ from mcp.types import (
 from dipeo.config.base_logger import get_module_logger
 from dipeo_server.app_context import get_container
 
+from .auth import get_current_user
+from .auth.oauth import TokenData
+
 logger = get_module_logger(__name__)
 
 # Configuration
 DEFAULT_MCP_TIMEOUT = int(os.environ.get("MCP_DEFAULT_TIMEOUT", "300"))
+DEBUG_MODE = os.environ.get("DIPEO_DEBUG", "false").lower() == "true"
+
+# Project root for absolute paths
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent.parent
 
 # Create MCP server instance
 mcp_server = Server("dipeo-mcp-server")
@@ -110,12 +118,41 @@ async def _execute_diagram(arguments: dict[str, Any]) -> list[TextContent]:
     format_type = arguments.get("format_type", "light")
     timeout = arguments.get("timeout", DEFAULT_MCP_TIMEOUT)
 
+    # Validate required parameters
     if not diagram:
         return [
             TextContent(
                 type="text",
                 text=json.dumps(
                     {"success": False, "error": "diagram parameter is required"},
+                    indent=2,
+                ),
+            )
+        ]
+
+    # Validate input_data type
+    if input_data is not None and not isinstance(input_data, dict):
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {"success": False, "error": "input_data must be a dictionary"},
+                    indent=2,
+                ),
+            )
+        ]
+
+    # Validate format_type
+    valid_formats = ["light", "native", "readable"]
+    if format_type not in valid_formats:
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {
+                        "success": False,
+                        "error": f"Invalid format_type: {format_type}. Must be one of {valid_formats}",
+                    },
                     indent=2,
                 ),
             )
@@ -159,10 +196,14 @@ async def _execute_diagram(arguments: dict[str, Any]) -> list[TextContent]:
 
     except Exception as e:
         logger.error(f"Error executing diagram via MCP SDK: {e}", exc_info=True)
+
+        # Sanitize error message - don't expose full stack traces in production
+        error_msg = str(e) if DEBUG_MODE else "Diagram execution failed"
+
         return [
             TextContent(
                 type="text",
-                text=json.dumps({"success": False, "error": str(e)}, indent=2),
+                text=json.dumps({"success": False, "error": error_msg}, indent=2),
             )
         ]
 
@@ -195,28 +236,37 @@ async def read_resource(uri: str) -> str:
         Resource content as JSON string
     """
     if uri == "dipeo://diagrams":
-        # List available diagrams
+        # List available diagrams using absolute paths
         diagrams = []
 
-        # Check MCP diagrams directory (pushed via --and-push)
-        mcp_dir = Path("projects/mcp-diagrams")
-        if mcp_dir.exists():
-            for file in mcp_dir.glob("*.yaml"):
-                diagrams.append(
-                    {"name": file.stem, "path": str(file), "format": "light"}
-                )
-            for file in mcp_dir.glob("*.json"):
-                diagrams.append(
-                    {"name": file.stem, "path": str(file), "format": "native"}
-                )
+        # Use asyncio.to_thread for blocking I/O operations
+        def scan_diagrams():
+            result = []
 
-        # Check examples directory
-        examples_dir = Path("examples/simple_diagrams")
-        if examples_dir.exists():
-            for file in examples_dir.glob("*.yaml"):
-                diagrams.append(
-                    {"name": file.stem, "path": str(file), "format": "light"}
-                )
+            # Check MCP diagrams directory (pushed via --and-push)
+            mcp_dir = PROJECT_ROOT / "projects" / "mcp-diagrams"
+            if mcp_dir.exists():
+                for file in mcp_dir.glob("*.yaml"):
+                    result.append(
+                        {"name": file.stem, "path": str(file), "format": "light"}
+                    )
+                for file in mcp_dir.glob("*.json"):
+                    result.append(
+                        {"name": file.stem, "path": str(file), "format": "native"}
+                    )
+
+            # Check examples directory
+            examples_dir = PROJECT_ROOT / "examples" / "simple_diagrams"
+            if examples_dir.exists():
+                for file in examples_dir.glob("*.yaml"):
+                    result.append(
+                        {"name": file.stem, "path": str(file), "format": "light"}
+                    )
+
+            return result
+
+        # Run blocking I/O in thread pool
+        diagrams = await asyncio.to_thread(scan_diagrams)
 
         return json.dumps({"diagrams": diagrams}, indent=2)
     else:
@@ -229,16 +279,26 @@ def create_sdk_router() -> APIRouter:
     The SDK handles the MCP protocol (JSON-RPC 2.0), while FastAPI
     provides the HTTP transport and authentication middleware.
 
+    IMPORTANT: This router enforces the same authentication as the legacy
+    MCP endpoint (/mcp/messages). All SDK endpoints require authentication
+    based on the MCP_AUTH_REQUIRED configuration.
+
     Returns:
-        APIRouter with MCP endpoints
+        APIRouter with MCP endpoints protected by authentication
     """
-    router = APIRouter()
+    # Create router with authentication dependency applied to all routes
+    # This ensures all SDK-generated endpoints require authentication
+    router = APIRouter(
+        dependencies=[Depends(get_current_user)],
+        tags=["mcp-sdk"],
+    )
 
     # Add MCP SDK to FastAPI
     # This creates /mcp/sse endpoint for Server-Sent Events transport
+    # All routes added here will inherit the authentication dependency
     add_mcp_to_fastapi(mcp_server, router)
 
-    logger.info("MCP SDK server initialized with official Python SDK")
+    logger.info("MCP SDK server initialized with official Python SDK and authentication")
 
     return router
 
