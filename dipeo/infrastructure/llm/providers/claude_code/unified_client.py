@@ -80,6 +80,9 @@ class UnifiedClaudeCodeClient:
         self._active_sessions: list[ClaudeSDKClient] = []
         self._session_lock = asyncio.Lock()
 
+        # Track which sessions have been connected (to avoid calling connect() twice)
+        self._connected_sessions: set[ClaudeSDKClient] = set()
+
     def _get_capabilities(self) -> ProviderCapabilities:
         """Get Claude Code provider capabilities."""
         from dipeo.config.provider_capabilities import ProviderType as ConfigProviderType
@@ -140,6 +143,7 @@ class UnifiedClaudeCodeClient:
             ):
                 template_session = ClaudeSDKClient(options=options)
                 await template_session.connect(None)
+                self._connected_sessions.add(template_session)
 
             # Store template
             self._template_sessions[execution_phase] = template_session
@@ -187,7 +191,9 @@ class UnifiedClaudeCodeClient:
                     )
 
                     forked_session = ClaudeSDKClient(options=fork_options)
-                    await forked_session.connect(None)
+                    # Note: Forked sessions should NOT call connect(None) here as it triggers
+                    # unwanted warmup messages. Instead, we'll use connect(query) in _execute_query
+                    # to combine connection and first message in one step.
 
                 # Track the forked session for cleanup
                 async with self._session_lock:
@@ -210,6 +216,7 @@ class UnifiedClaudeCodeClient:
         ):
             session = ClaudeSDKClient(options=options)
             await session.connect(None)
+            self._connected_sessions.add(session)
 
         # Track session for cleanup
         async with self._session_lock:
@@ -241,8 +248,16 @@ class UnifiedClaudeCodeClient:
 
         try:
             # Send query with unique session ID
+            # For forked sessions that haven't been connected yet, use connect() instead of query()
+            # to combine connection and first message, avoiding warmup messages
             async with atime_phase(trace_id, "claude_code", f"{phase_key}__send"):
-                await session.query(query_input, session_id=session_id)
+                if session not in self._connected_sessions:
+                    # First connection for this session - use connect(query) to avoid warmup
+                    await session.connect(query_input)
+                    self._connected_sessions.add(session)
+                else:
+                    # Already connected - use normal query
+                    await session.query(query_input, session_id=session_id)
 
             # Collect response
             result_text = ""
@@ -289,6 +304,8 @@ class UnifiedClaudeCodeClient:
             async with self._session_lock:
                 if session in self._active_sessions:
                     self._active_sessions.remove(session)
+                # Remove from connected sessions tracking
+                self._connected_sessions.discard(session)
         except Exception as e:
             logger.warning(f"[ClaudeCode] Error disconnecting session: {e}")
 
@@ -459,7 +476,15 @@ class UnifiedClaudeCodeClient:
 
             # Execute query with unique session ID
             session_id = f"{phase_key}_{uuid4()}"
-            await session.query(query_input, session_id=session_id)
+
+            # For forked sessions that haven't been connected yet, use connect() instead of query()
+            if session not in self._connected_sessions:
+                # First connection for this session - use connect(query) to avoid warmup
+                await session.connect(query_input)
+                self._connected_sessions.add(session)
+            else:
+                # Already connected - use normal query
+                await session.query(query_input, session_id=session_id)
 
             # Stream responses
             has_yielded_content = False
@@ -520,6 +545,7 @@ class UnifiedClaudeCodeClient:
                 except Exception as e:
                     logger.warning(f"[ClaudeCode] Error disconnecting forked session: {e}")
             self._active_sessions.clear()
+            self._connected_sessions.clear()
 
         # Clean up template sessions
         async with self._template_lock:
