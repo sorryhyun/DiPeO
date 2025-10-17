@@ -169,8 +169,9 @@ class UnifiedClaudeCodeClient:
                 template = await self._get_or_create_template(options, execution_phase, trace_id)
 
                 # Create a forked session from the template
-                # The fork will inherit the template's configuration but have its own state
-                # Create new session with resume from template (this creates a fork)
+                # The fork will inherit the template's configuration and connection state
+                # Do NOT call connect(None) on forks - they inherit connection from template
+                # Calling connect on a fork causes a "warmup" message to be generated
                 async with atime_phase(
                     trace_id,
                     "claude_code",
@@ -187,7 +188,7 @@ class UnifiedClaudeCodeClient:
                     )
 
                     forked_session = ClaudeSDKClient(options=fork_options)
-                    await forked_session.connect(None)
+                    # Note: Forked sessions inherit connection from template, no connect needed
 
                 # Track the forked session for cleanup
                 async with self._session_lock:
