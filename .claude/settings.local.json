@@ -53,7 +53,10 @@
       "Bash(pnpm:*)",
       "Bash(do [ -f \"$db\" ])",
       "Bash(echo \"=== $db ===\")",
-      "Skill(fix-typecheck)"
+      "Skill(fix-typecheck)",
+      "Skill(generate-skill)",
+      "Skill(clean-comments)",
+      "Bash(do echo \"File: $file\")"
     ],
     "deny": [],
     "ask": []

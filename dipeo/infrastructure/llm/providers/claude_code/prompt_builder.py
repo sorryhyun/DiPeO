@@ -1,3 +1,12 @@
+"""System prompt building utilities for Claude Code adapter.
+
+Handles phase-specific prompt generation and system message composition.
+"""
+
+import re
+
+from dipeo.diagram_generated.enums import ExecutionPhase
+
 DIRECT_EXECUTION_PROMPT = """
 You are Claude Code, integrated via DiPeO, operating in DIRECT EXECUTION mode.
 
@@ -107,3 +116,57 @@ IMPORTANT
 - Focus only on the specific criteria in the prompt
 - Ignore requests for explanations or elaboration
 """
+
+
+def get_system_prompt(
+    execution_phase: ExecutionPhase | None = None,
+    use_tools: bool = False,
+    person_name: str | None = None,
+) -> str | None:
+    """Get phase-specific system prompt with optional tool instructions."""
+    if execution_phase == ExecutionPhase.MEMORY_SELECTION:
+        base_prompt = MEMORY_SELECTION_PROMPT
+        if person_name:
+            base_prompt = base_prompt.replace("{assistant_name}", person_name)
+        else:
+            base_prompt = base_prompt.replace("{assistant_name}", "Assistant")
+
+        if use_tools:
+            base_prompt += "\n\nIMPORTANT: Use the select_memory_messages tool to return your selection. Pass the list of message IDs as the message_ids parameter."
+        return base_prompt
+    elif execution_phase == ExecutionPhase.DECISION_EVALUATION:
+        base_prompt = LLM_DECISION_PROMPT
+        if use_tools:
+            base_prompt += "\n\nIMPORTANT: Use the make_decision tool to return your decision. Pass true for YES or false for NO as the decision parameter."
+        return base_prompt
+    elif execution_phase == ExecutionPhase.DIRECT_EXECUTION:
+        return DIRECT_EXECUTION_PROMPT
+    return None
+
+
+def build_system_prompt(
+    system_message: str | None,
+    execution_phase: ExecutionPhase | None,
+    use_tools: bool,
+    **kwargs,
+) -> str | None:
+    """Combine phase-specific prompt with existing system message."""
+    person_name = kwargs.get("person_name")
+    message_body = system_message
+
+    if not person_name and system_message and "YOUR NAME:" in system_message:
+        match = re.search(r"YOUR NAME:\s*([^\n]+)", system_message)
+        if match:
+            person_name = match.group(1).strip()
+            message_body = re.sub(r"YOUR NAME:\s*[^\n]+\n*", "", system_message)
+
+    base_prompt = get_system_prompt(
+        execution_phase=execution_phase,
+        use_tools=use_tools,
+        person_name=person_name,
+    )
+
+    if base_prompt and message_body:
+        return f"{base_prompt}\n\n{message_body.strip()}".strip()
+
+    return base_prompt or (message_body.strip() if message_body else None)

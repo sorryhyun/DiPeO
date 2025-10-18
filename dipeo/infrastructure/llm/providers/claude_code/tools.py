@@ -10,7 +10,6 @@ from dipeo.config.base_logger import get_module_logger
 logger = get_module_logger(__name__)
 
 
-# Memory selection tool with proper type annotations
 @tool(
     "select_memory_messages",
     "Select relevant messages from memory for context",
@@ -27,18 +26,9 @@ logger = get_module_logger(__name__)
     },
 )
 async def select_memory_messages(args: dict[str, Any]) -> dict[str, Any]:
-    """
-    Select relevant messages from memory for context.
-
-    Args:
-        args: Dictionary containing 'message_ids' key with list of message IDs
-
-    Returns:
-        Structured output with selected message IDs
-    """
+    """Select relevant messages from memory for context."""
     message_ids = args.get("message_ids", [])
 
-    # Return structured data directly - let SDK handle formatting
     result = {
         "content": [
             {
@@ -52,7 +42,6 @@ async def select_memory_messages(args: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-# Decision making tool with proper boolean type
 @tool(
     "make_decision",
     "Make a binary YES/NO decision based on evaluation criteria",
@@ -68,18 +57,9 @@ async def select_memory_messages(args: dict[str, Any]) -> dict[str, Any]:
     },
 )
 async def make_decision(args: dict[str, Any]) -> dict[str, Any]:
-    """
-    Make a binary YES/NO decision based on evaluation criteria.
-
-    Args:
-        args: Dictionary containing 'decision' key with boolean value
-
-    Returns:
-        Structured output with the decision result
-    """
+    """Make a binary YES/NO decision based on evaluation criteria."""
     decision = args.get("decision", False)
 
-    # Return structured data directly
     result = {
         "content": [
             {
@@ -94,7 +74,7 @@ async def make_decision(args: dict[str, Any]) -> dict[str, Any]:
 
 
 def create_dipeo_mcp_server():
-    """Create an MCP server with DiPeO structured output tools."""
+    """Create MCP server with structured output tools."""
     return create_sdk_mcp_server(
         name="dipeo_structured_output",
         version="1.0.0",
