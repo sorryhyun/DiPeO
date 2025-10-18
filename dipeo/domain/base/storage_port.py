@@ -13,8 +13,6 @@ from typing import BinaryIO, Protocol, runtime_checkable
 
 @dataclass
 class FileInfo:
-    """Metadata about a file."""
-
     path: Path
     size: int
     modified: datetime
@@ -35,8 +33,6 @@ class Artifact:
 
 @dataclass
 class ArtifactRef:
-    """Reference to a stored artifact."""
-
     name: str
     version: str
     uri: str
@@ -91,8 +87,6 @@ class FileSystemPort(Protocol):
 
 @runtime_checkable
 class ArtifactStorePort(Protocol):
-    """High-level artifact management."""
-
     async def push(self, artifact: Artifact) -> ArtifactRef: ...
 
     async def pull(self, ref: ArtifactRef) -> Path: ...
@@ -110,8 +104,6 @@ class ArtifactStorePort(Protocol):
 
 @dataclass
 class DiagramInfo:
-    """Metadata about a diagram file."""
-
     id: str
     path: Path
     format: str

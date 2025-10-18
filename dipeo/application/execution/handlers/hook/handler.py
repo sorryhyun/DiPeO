@@ -124,7 +124,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         exit_code = 0
         if isinstance(result, dict):
             if "status" in result:
-                success = result["status"] != "timeout" and result["status"] != "error"
+                success = result["status"] not in ("timeout", "error")
             if "returncode" in result:
                 exit_code = result["returncode"]
 
@@ -168,7 +168,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     async def _execute_python_hook(
         self, node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]
     ) -> Any:
-        """Execute inline Python script by spawning subprocess."""
+        """Execute Python script in isolated subprocess for security."""
         config = node.config
         script = config.get("script")
 

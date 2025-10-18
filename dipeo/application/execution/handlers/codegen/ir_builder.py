@@ -22,11 +22,7 @@ logger = get_module_logger(__name__)
     ir_builder_registry=IR_BUILDER_REGISTRY,
 )
 class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
-    """Handler for IR builder nodes.
-
-    Manages IR building operations through the IR builder registry,
-    with support for caching and validation.
-    """
+    """Manages IR building operations through the IR builder registry with caching and validation."""
 
     NODE_TYPE = NodeType.IR_BUILDER
 
@@ -50,7 +46,6 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
         return "Builds intermediate representation (IR) from source data"
 
     def validate(self, request: ExecutionRequest[IrBuilderNode]) -> str | None:
-        """Static validation of node configuration."""
         node = request.node
 
         if not node.builder_type:
@@ -62,7 +57,6 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
         return None
 
     async def pre_execute(self, request: ExecutionRequest[IrBuilderNode]) -> Envelope | None:
-        """Runtime validation and setup."""
         node = request.node
 
         try:
@@ -96,7 +90,6 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
     async def prepare_inputs(
         self, request: ExecutionRequest[IrBuilderNode], inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Convert envelope inputs to source data for IR building."""
         if "default" in inputs:
             envelope = inputs["default"]
             if hasattr(envelope, "body"):
@@ -109,7 +102,6 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
         return {}
 
     async def run(self, inputs: dict[str, Any], request: ExecutionRequest[IrBuilderNode]) -> Any:
-        """Execute IR building."""
         node = request.node
         current_builder = request.get_handler_state("current_builder")
 
@@ -164,7 +156,6 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
             raise
 
     def serialize_output(self, result: Any, request: ExecutionRequest[IrBuilderNode]) -> Envelope:
-        """Serialize IR data to envelope."""
         node = request.node
 
         envelope = EnvelopeFactory.create(

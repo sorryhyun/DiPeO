@@ -21,7 +21,7 @@ from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 @register_handler
 @requires_services(filesystem_adapter=FILESYSTEM_ADAPTER)
 class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
-    """Handler for JSON Schema validation."""
+    """Validates JSON data against JSON Schema specifications."""
 
     NODE_TYPE = NodeType.JSON_SCHEMA_VALIDATOR
 
@@ -78,7 +78,6 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
     async def prepare_inputs(
         self, request: ExecutionRequest[JsonSchemaValidatorNode], inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Convert envelope inputs to data for validation."""
         envelope_inputs = self.get_effective_inputs(request, inputs)
 
         node = request.node

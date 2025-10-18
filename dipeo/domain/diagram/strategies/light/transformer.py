@@ -48,7 +48,6 @@ class LightTransformer:
         """
         from dipeo.domain.diagram.strategies.light.parser import LightDiagramParser
 
-        # Build nodes list
         nodes_list = []
         for index, node in enumerate(light_diagram.nodes):
             node_dict = node.model_dump(exclude_none=True)
@@ -70,7 +69,6 @@ class LightTransformer:
             effective_path = diagram_path or original_data.get("metadata", {}).get("diagram_id")
             nodes_list = prompt_compiler.resolve_prompt_files(nodes_list, effective_path)
 
-        # Convert to dictionaries
         nodes_dict = nodes_list_to_dict(nodes_list)
         arrows_list = self.process_light_connections(light_diagram, nodes_list)
         arrows_dict = arrows_list_to_dict(arrows_list)
@@ -131,7 +129,6 @@ class LightTransformer:
             label_counts[base] = cnt + 1
             return f"{base}~{cnt}" if cnt else base
 
-        # Convert nodes
         nodes_out = []
         for n in diagram.nodes:
             base = n.data.get("label") or str(n.type).split(".")[-1].title()
@@ -162,7 +159,6 @@ class LightTransformer:
             )
             nodes_out.append(node)
 
-        # Convert connections
         connections = []
         for a in diagram.arrows:
             s_node_id, s_handle, _ = HandleIdOperations.parse_handle_id(a.source)
@@ -184,7 +180,6 @@ class LightTransformer:
             conn = LightConnection(**conn_kwargs)  # type: ignore[arg-type]
             connections.append(conn)
 
-        # Convert persons
         persons_data = None
         if diagram.persons:
             persons_dict = {}
@@ -268,15 +263,12 @@ class LightTransformer:
         conn_dict = conn.model_dump(by_alias=True, exclude={"from", "to", "label", "type"})
         arrow_data = conn_dict.get("data", {})
 
-        # Build arrow data with special handling
         arrow_data_processed = self._build_arrow_data(arrow_data, src_handle, dst_handle_from_split)
 
-        # Create handle IDs
         source_handle_id, target_handle_id = HandleIdOperations.create_handle_ids(
             src_id, dst_id, src_handle, dst_handle
         )
 
-        # Create arrow dictionary
         return create_arrow_dict(
             arrow_data.get("id", f"arrow_{idx}"),
             source_handle_id,

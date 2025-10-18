@@ -99,7 +99,6 @@ class PromptFileCompiler:
                 logger.warning(f"[PromptCompiler] diagram_path does not exist: {diagram_path}")
 
         for node in nodes:
-            # Only process PersonJob nodes
             node_type = node.get("type", "")
             if node_type not in ["person_job", "PersonJob", NodeType.PERSON_JOB]:
                 continue
@@ -173,7 +172,6 @@ class PromptFileCompiler:
                 diagram_dir = Path(diagram_path).parent
 
         for node in domain_nodes:
-            # Only process PersonJob nodes
             if node.type != NodeType.PERSON_JOB:
                 continue
 

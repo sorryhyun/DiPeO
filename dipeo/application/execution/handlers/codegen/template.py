@@ -113,7 +113,6 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     async def prepare_inputs(
         self, request: ExecutionRequest[TemplateJobNode], inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Prepare template variables from envelopes and node configuration."""
         from datetime import datetime
 
         envelope_inputs = self.get_effective_inputs(request, inputs)

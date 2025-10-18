@@ -10,7 +10,7 @@ from dipeo.domain.base.exceptions import NodeExecutionError
 async def execute_file_hook(
     node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]
 ) -> Any:
-    """Write inputs to file using filesystem adapter."""
+    """Write inputs to file in specified format (json, yaml, etc.)."""
     config = node.config
     file_path = config.get("file_path")
 

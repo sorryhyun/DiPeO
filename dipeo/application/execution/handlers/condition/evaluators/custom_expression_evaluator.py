@@ -13,9 +13,7 @@ logger = get_module_logger(__name__)
 
 
 class CustomExpressionEvaluator(BaseConditionEvaluator):
-    """Evaluates custom expressions using safe AST evaluation."""
-
-    def __init__(self):
+    def __init__(self) -> None:
         self._expression_evaluator = ExpressionEvaluator()
 
     async def evaluate(
@@ -32,26 +30,18 @@ class CustomExpressionEvaluator(BaseConditionEvaluator):
 
         eval_context = inputs.copy() if inputs else {}
 
-        # Variables take precedence over inputs
         if hasattr(context, "get_variables"):
-            variables = context.get_variables()
-            for key, value in variables.items():
-                eval_context[key] = value
+            eval_context.update(context.get_variables())
 
         result = self._expression_evaluator.evaluate_custom_expression(
             expression=expression, context_values=eval_context
         )
 
-        output_data = inputs if inputs else {}
-
-        # expose_index_as variables are set globally by the condition handler
-        # and should NOT be included in output_data to avoid conflicts
-
         return EvaluationResult(
             result=result,
             metadata={
                 "expression": expression,
-                "context_keys": list(eval_context.keys()) if eval_context else [],
+                "context_keys": list(eval_context.keys()),
             },
-            output_data=output_data,
+            output_data=inputs if inputs else {},
         )

@@ -29,12 +29,8 @@ def resolve_inputs(
 ) -> dict[str, Envelope]:
     """Resolve all inputs for a node during execution.
 
-    This is the main orchestration function that:
-    1. Selects ready edges
-    2. Fetches and transforms values
-    3. Handles special inputs
-    4. Applies defaults
-    5. Validates final inputs
+    Orchestrates edge selection, value transformation, special inputs,
+    defaults, and validation.
 
     Args:
         node: The node to resolve inputs for
@@ -181,8 +177,7 @@ def extract_edge_value(source_output: Any, edge: Any) -> Any:
         if desired == ContentType.OBJECT:
             if actual == ContentType.RAW_TEXT and isinstance(body, str):
                 try:
-                    parsed = json.loads(body)
-                    return parsed
+                    return json.loads(body)
                 except (json.JSONDecodeError, ValueError):
                     logger.debug("RAW_TEXT is not valid JSON, wrapping in dict")
                     return {"text": body}

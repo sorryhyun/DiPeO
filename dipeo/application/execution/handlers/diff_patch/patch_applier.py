@@ -11,7 +11,6 @@ logger = get_module_logger(__name__)
 
 
 def create_backup(target_path: Path, backup_dir: Path | None) -> Path:
-    """Create backup with PID suffix in specified or same directory."""
     if backup_dir:
         backup_dir.mkdir(parents=True, exist_ok=True)
         backup_path = backup_dir / f"{target_path.name}.backup.{os.getpid()}"
@@ -30,7 +29,6 @@ def apply_diff(
     fuzz_factor: int,
     ignore_whitespace: bool,
 ) -> tuple[list[str], list[dict[str, Any]]]:
-    """Apply diff with fuzzy matching and return (patched_lines, rejected_hunks)."""
     if format_type not in ["unified", "git"]:
         logger.warning(f"Format {format_type} not fully supported, treating as unified")
 
@@ -85,7 +83,6 @@ def apply_diff(
 
 
 def save_rejected_hunks(reject_file: Path, rejected_hunks: list[dict[str, Any]]) -> None:
-    """Save rejected hunks in diff format for manual review."""
     reject_content = []
 
     for i, hunk in enumerate(rejected_hunks, 1):
@@ -102,23 +99,20 @@ def save_rejected_hunks(reject_file: Path, rejected_hunks: list[dict[str, Any]])
 
 
 def calculate_file_hash(content: str) -> str:
-    """Calculate SHA256 hash of file content."""
     return hashlib.sha256(content.encode()).hexdigest()
 
 
 def _match_content(
     actual_lines: list[str], expected_lines: list[str], ignore_whitespace: bool
 ) -> bool:
-    """Check if actual lines match expected with optional whitespace normalization."""
     if len(actual_lines) != len(expected_lines):
         return False
 
-    for actual, expected in zip(actual_lines, expected_lines, strict=False):
+    for actual, expected in zip(actual_lines, expected_lines, strict=True):
         if ignore_whitespace:
             if actual.strip() != expected.strip():
                 return False
-        else:
-            if actual != expected:
-                return False
+        elif actual != expected:
+            return False
 
     return True

@@ -13,8 +13,6 @@ logger = get_module_logger(__name__)
 
 
 class MaxIterationsEvaluator(BaseConditionEvaluator):
-    """Evaluates whether all person_job nodes have reached max iterations."""
-
     async def evaluate(
         self, node: ConditionNode, context: ExecutionContext, inputs: dict[str, Any]
     ) -> EvaluationResult:
@@ -47,7 +45,7 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
                     )
 
         result = found_executed and all_reached_max
-        output_data = inputs
+        output_data = inputs if inputs else {}
 
         if (
             hasattr(node, "expose_index_as")
@@ -59,7 +57,7 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
                 if isinstance(output_data, dict):
                     output_data[node.expose_index_as] = loop_value
                 else:
-                    output_data = {"data": output_data, node.expose_index_as: loop_value}
+                    output_data = {node.expose_index_as: loop_value}
 
         return EvaluationResult(
             result=result,

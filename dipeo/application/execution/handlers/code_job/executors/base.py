@@ -7,8 +7,6 @@ from typing import Any, Protocol, TypedDict
 
 
 class ExecutionResult(TypedDict, total=False):
-    """Result of code execution."""
-
     value: Any
     output: str
     error: str | None
@@ -16,24 +14,16 @@ class ExecutionResult(TypedDict, total=False):
 
 
 class CodeExecutor(Protocol):
-    """Protocol for language-specific code executors."""
-
     async def execute_file(
         self, file_path: Path, inputs: dict[str, Any], timeout: int, function_name: str = "main"
-    ) -> Any:
-        """Execute code from a file with timeout and input handling."""
-        ...
+    ) -> Any: ...
 
     async def execute_inline(
         self, code: str, inputs: dict[str, Any], timeout: int, function_name: str = "main"
-    ) -> Any:
-        """Execute inline code string with timeout and input handling."""
-        ...
+    ) -> Any: ...
 
 
 class BaseCodeExecutor(ABC):
-    """Base class for code executors with common functionality."""
-
     def prepare_inputs(self, inputs: dict[str, Any]) -> dict[str, Any]:
         prepared = {}
         if not isinstance(inputs, dict):

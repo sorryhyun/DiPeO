@@ -9,8 +9,6 @@ from dipeo.domain.base.exceptions import ValidationError
 
 @dataclass
 class ValidationWarning:
-    """Represents a validation warning."""
-
     message: str
     field_name: str | None = None
     details: dict[str, Any] = field(default_factory=dict)
@@ -19,8 +17,6 @@ class ValidationWarning:
 
 @dataclass
 class ValidationResult:
-    """Result of a validation operation."""
-
     errors: list[ValidationError] = field(default_factory=list)
     warnings: list[ValidationWarning] = field(default_factory=list)
 
@@ -44,8 +40,6 @@ class ValidationResult:
 
 
 class Validator(Protocol):
-    """Protocol for all validators."""
-
     def validate(self, target: Any) -> ValidationResult: ...
 
 
@@ -64,8 +58,6 @@ class CompositeValidator:
 
 
 class BaseValidator:
-    """Base class for validators with common functionality."""
-
     def validate(self, target: Any) -> ValidationResult:
         result = ValidationResult()
         self._perform_validation(target, result)

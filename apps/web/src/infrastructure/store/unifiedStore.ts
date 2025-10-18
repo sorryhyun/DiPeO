@@ -131,8 +131,8 @@ const createStore = () => {
 
           set((state) => {
             if (state.history.currentTransaction) {
-              // Use Draft type for immer state
-              recordHistory(state as Draft<UnifiedStore>);
+              // Use Draft type for immer state - cast to any to avoid deep type instantiation
+              recordHistory(state as any);
               state.history.currentTransaction = null;
             }
           });
@@ -198,17 +198,27 @@ const createStore = () => {
   // Use explicit StateCreator type to avoid type instantiation depth errors with complex middleware chains
   // This is a known limitation with Zustand's middleware typing when combining immer, subscribeWithSelector, and devtools
   if (import.meta.env.DEV) {
-    const withImmer = immer(storeCreator as StateCreator<UnifiedStore, [], []>);
-    const withSelector = subscribeWithSelector(withImmer);
-    const withDevtools = devtools(withSelector, devtoolsOptions);
-    return create<UnifiedStore>()(withDevtools as StateCreator<UnifiedStore, [], []>);
+    // Inline middleware composition with aggressive casting to avoid deep type instantiation
+    return create<UnifiedStore>()(
+      devtools(
+        subscribeWithSelector(
+          immer(storeCreator as any)
+        ) as any,
+        devtoolsOptions
+      ) as any
+    );
   }
 
   // Production build without logger
-  const withImmer = immer(storeCreator as StateCreator<UnifiedStore, [], []>);
-  const withSelector = subscribeWithSelector(withImmer);
-  const withDevtools = devtools(withSelector, devtoolsOptions);
-  return create<UnifiedStore>()(withDevtools as StateCreator<UnifiedStore, [], []>);
+  // Inline middleware composition with aggressive casting to avoid deep type instantiation
+  return create<UnifiedStore>()(
+    devtools(
+      subscribeWithSelector(
+        immer(storeCreator as any)
+      ) as any,
+      devtoolsOptions
+    ) as any
+  );
 };
 
 export const useUnifiedStore = createStore();

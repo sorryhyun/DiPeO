@@ -22,7 +22,6 @@ class CodeJobNodeGenerator(BaseNodeGenerator):
 
         self._add_comment(label)
 
-        # Add code lines with proper indentation
         for line in code.split("\n"):
             if line.strip():
                 self.context.add_main_code(f"{indent}{line}")

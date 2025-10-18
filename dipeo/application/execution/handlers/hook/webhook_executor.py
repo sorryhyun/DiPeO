@@ -12,7 +12,7 @@ from dipeo.domain.events import DomainEvent
 async def execute_webhook_hook(
     node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]
 ) -> Any:
-    """Send HTTP request with inputs or subscribe to webhook events."""
+    """Send HTTP request or subscribe to webhook events based on config."""
     config = node.config
 
     if config.get("subscribe_to"):
@@ -41,7 +41,7 @@ async def execute_webhook_hook(
 
 
 async def _subscribe_to_webhook_events(node: HookNode, inputs: dict[str, Any]) -> Any:
-    """Wait for webhook event matching provider and filters, with timeout."""
+    """Wait for matching webhook events based on provider, event name, and filters."""
     config = node.config
     subscribe_config = config.get("subscribe_to", {})
 
@@ -80,22 +80,13 @@ async def _subscribe_to_webhook_events(node: HookNode, inputs: dict[str, Any]) -
 
     try:
         await asyncio.wait_for(event_received.wait(), timeout=timeout)
-
-        if received_event:
-            return {
-                "status": "triggered",
-                "provider": provider,
-                "event_name": received_event.get("event_name"),
-                "payload": received_event.get("payload"),
-                "headers": received_event.get("headers", {}),
-            }
-        else:
-            return {
-                "status": "timeout",
-                "provider": provider,
-                "message": f"No matching webhook event received within {timeout} seconds",
-            }
-
+        return {
+            "status": "triggered",
+            "provider": provider,
+            "event_name": received_event.get("event_name"),
+            "payload": received_event.get("payload"),
+            "headers": received_event.get("headers", {}),
+        }
     except TimeoutError:
         return {
             "status": "timeout",

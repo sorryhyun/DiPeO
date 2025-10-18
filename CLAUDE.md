@@ -146,10 +146,11 @@ assistant: "I'll use the todo-manage skill to create a detailed, phase-organized
 ### Other Skills
 
 - **clean-comments**: Remove unnecessary comments while preserving valuable ones
-- **fix-typecheck**: Fix TypeScript type errors systematically
 - **import-refactor**: Update imports after moving/renaming files
 - **maintain-docs**: Keep documentation current with implementation
 - **separate-monolithic-python**: Break large Python files (>500 LOC) into modules
+
+**Note**: TypeScript type fixing is handled by the **dipeo-frontend-dev** agent.
 
 See `.claude/skills/` for detailed skill documentation.
 
