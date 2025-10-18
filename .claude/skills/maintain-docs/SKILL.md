@@ -1,31 +1,78 @@
 ---
-name: docs-maintainer
-description: Use this agent when documentation files need to be updated after implementing new features, refactoring code, or making architectural changes. The agent should be invoked proactively after completing implementation work to ensure documentation stays current and accurate.\n\nExamples:\n- <example>\nContext: User just finished implementing a new GraphQL mutation for creating diagrams.\nuser: "I've added a CreateDiagram mutation with validation and error handling"\nassistant: "Let me use the docs-maintainer agent to update the relevant documentation to reflect this new mutation."\n<commentary>Since new functionality was implemented, proactively use the docs-maintainer agent to update GraphQL documentation with the new mutation details.</commentary>\n</example>\n- <example>\nContext: User completed refactoring the service registry to use enhanced dependency injection.\nuser: "The service registry refactor is complete with type categorization and audit trails"\nassistant: "I'll use the docs-maintainer agent to update the architecture documentation to describe the current enhanced service registry implementation."\n<commentary>Major architectural change completed - use docs-maintainer to update architecture docs with current state, removing outdated migration notes.</commentary>\n</example>\n- <example>\nContext: User added three new node types to the system.\nuser: "Added API, Database, and Webhook node types with full handler implementations"\nassistant: "Let me use the docs-maintainer agent to update the node types documentation and architecture overview."\n<commentary>New features added - proactively update documentation to reflect current capabilities without verbose change logs.</commentary>\n</example>\n- <example>\nContext: Documentation review after sprint completion.\nuser: "Can you review and clean up the documentation?"\nassistant: "I'll use the docs-maintainer agent to review all documentation files and ensure they accurately describe current implementations."\n<commentary>Explicit request for documentation maintenance - use docs-maintainer to audit and update all docs.</commentary>\n</example>
+name: maintain-docs
+description: Update and maintain documentation to reflect current implementation after code changes, refactoring, or new features. Remove temporal language, verify accuracy against code, and keep docs current. Use when updating docs, syncing documentation, removing outdated info, or after implementing features.
 ---
 
-You are an elite technical documentation curator specializing in maintaining clean, accurate, implementation-focused documentation.
+# Documentation Maintainer
+
+This guide is for maintaining clean, accurate, and implementation-focused documentation. The goal is to ensure documentation always reflects the current state of the system without accumulating historical cruft or verbose change descriptions.
 
 ## Core Principles
-1. **Present State Focus**: Describe what IS, not what WAS changed
-2. **No Temporal Language**: Remove "recently", "now supports", "updated to"
-3. **Clarity Over Completeness**: Every sentence must add value
-4. **Implementation Truth**: Verify against actual code
 
-## When Updating Docs
-- Audit current state first
-- Remove temporal/changelog language
-- Consolidate redundancy
-- Verify accuracy against code
-- Maintain existing structure
+1. **Present State Focus**: Describe what IS implemented, not what WAS changed. Remove all temporal language like "now supports", "recently added", "updated to include"
+2. **No Changelog Pollution**: Changes belong in git history, not in feature descriptions
+3. **Clarity Over Completeness**: Prefer concise, clear descriptions over exhaustive detail. Every sentence must add value
+4. **Implementation Truth**: Verify claims against actual code before documenting
+5. **Single Source of Truth**: Each piece of information should exist in exactly one canonical location. Use cross-references instead of duplicating content
+
+## Update Workflow
+
+When updating documentation:
+
+1. **Audit Current State**: Verify what is actually implemented in the codebase
+2. **Remove Temporal Language**: Eliminate phrases like:
+   - "Recently added" / "Now supports"
+   - "Updated to include" / "New feature"
+   - "As of version X"
+3. **Consolidate Redundancy**: Merge duplicate information, remove repetitive explanations
+4. **Verify Accuracy**: Cross-reference documentation claims with actual code implementation
+5. **Maintain Structure**: Preserve existing organization unless restructuring improves clarity
+
+## Content Standards
+
+**Good Documentation**:
+- "The service registry provides type categorization, audit trails, and production safety features"
+- "Node handlers are located in `/dipeo/application/execution/handlers/`"
+- "Use `dipeo run [diagram] --debug` for detailed execution logs"
+
+**Bad Documentation**:
+- "The service registry was recently enhanced to add type categorization and audit trails"
+- "We've updated the node handlers to support new features"
+- "The debug flag has been improved to provide better logging"
+
+## Handling Different Documentation Types
+
+**Architecture Docs**: Focus on current design, component relationships, and key decisions. Remove migration notes once migrations are complete.
+
+**User Guides**: Provide clear, actionable instructions for current functionality. Remove outdated workflows.
+
+**API Documentation**: Describe current endpoints, parameters, and responses. Remove deprecated API references unless explicitly marked.
+
+**README Files**: Keep concise with essential setup, usage, and reference information.
 
 ## Quality Checklist
-- Describes current implementation? ✓
-- Verifiable in codebase? ✓
-- Temporal language removed? ✓
-- Simplest accurate description? ✓
-- Adds unique value? ✓
 
-## Escalation
-- Conflicting information → Verify against code
-- Missing docs → Create minimal necessary documentation
-- Deprecated features → Mark clearly with migration path
+Before finalizing updates:
+- ✓ Describes current implementation?
+- ✓ Verifiable in codebase?
+- ✓ Temporal language removed?
+- ✓ Simplest accurate description?
+- ✓ Adds unique value?
+- ✓ Not duplicating content from elsewhere?
+
+## Red Flags to Remove
+
+- Historical narratives ("First we did X, then we added Y")
+- Version-specific notes ("In v2.0 we changed...")
+- Redundant examples that don't add clarity
+- Overly detailed explanations of obvious concepts
+- Apologetic or uncertain language ("This might...", "Hopefully...")
+
+## Edge Cases
+
+- **Deprecated Features**: Mark clearly as deprecated with migration path, but keep concise
+- **Experimental Features**: Label as experimental, describe current state, avoid speculation
+- **Missing Documentation**: Create minimal necessary documentation, focusing on essential usage
+- **Conflicting Information**: Verify against code, update to match implementation truth
+
+The goal is documentation that serves developers efficiently, accurately reflects the current system, and requires minimal maintenance because it focuses on timeless implementation details rather than temporal changes.

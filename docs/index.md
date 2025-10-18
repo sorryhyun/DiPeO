@@ -40,13 +40,7 @@
 - [TypeScript Model Design](agents/typescript-model-design.md) - Model specifications (typescript-model-designer)
 - [Code Generation Pipeline](agents/codegen-pipeline.md) - Codegen system (dipeo-codegen-specialist)
 - [DiPeOCC Conversion](agents/dipeocc-conversion.md) - Session conversion (dipeocc-converter)
-- [Documentation Maintenance](agents/documentation-maintenance.md) - Docs updates (docs-maintainer)
-- [Task Management](agents/task-management.md) - TODO management (todo-manager)
-- [TypeScript Type Checking](agents/typecheck-fixing.md) - Type error fixing (typecheck-fixer)
-- [Import Refactoring](agents/import-refactoring.md) - Reference updates (import-refactor-updater)
 - [Code Auditing](agents/code-auditing.md) - Targeted audits (codebase-auditor)
-- [Comment Cleanup](agents/comment-cleanup.md) - Comment optimization (comment-cleaner)
-- [ChatGPT Integration](agents/chatgpt-integration.md) - ChatGPT management (chatgpt-dipeo-project-manager)
 
 ## Developer Guides
 > Practical guides for developers working with DiPeO

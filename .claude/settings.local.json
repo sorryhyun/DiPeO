@@ -52,7 +52,8 @@
       "Bash(do echo \"=== Checking $file ===\")",
       "Bash(pnpm:*)",
       "Bash(do [ -f \"$db\" ])",
-      "Bash(echo \"=== $db ===\")"
+      "Bash(echo \"=== $db ===\")",
+      "Skill(fix-typecheck)"
     ],
     "deny": [],
     "ask": []

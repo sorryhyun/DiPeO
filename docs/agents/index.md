@@ -34,37 +34,14 @@ This directory contains detailed development guides for DiPeO's specialized Clau
 **Domain**: Converting Claude Code sessions to DiPeO diagrams
 **Key Areas**: Session parsing, diagram generation, workflow replay
 
-### [Documentation Maintenance](documentation-maintenance.md)
-**Agent**: `docs-maintainer`
-**Domain**: Keeping documentation current after code changes
-**Key Areas**: `/docs/`, proactive documentation updates
-
-### [Task Management](task-management.md)
-**Agent**: `todo-manager`
-**Domain**: Planning, organizing, and tracking tasks in TODO.md
-**Key Areas**: Task breakdown, prioritization, progress tracking
 
 ## Utility Agents
-
-### [TypeScript Type Checking](typecheck-fixing.md)
-**Agent**: `typecheck-fixer`
-**Domain**: Resolving TypeScript type errors in frontend code
-**Key Areas**: Type safety, error analysis, proper fixes
-
-### [Import Refactoring](import-refactoring.md)
-**Agent**: `import-refactor-updater`
-**Domain**: Updating imports and references after refactoring
-**Key Areas**: Module moves, renames, reference updates
 
 ### [Code Auditing](code-auditing.md)
 **Agent**: `codebase-auditor`
 **Domain**: Targeted code analysis for security, performance, quality
 **Key Areas**: Pattern detection, issue identification, audit reports
 
-### [Comment Cleanup](comment-cleanup.md)
-**Agent**: `comment-cleaner`
-**Domain**: Removing redundant comments while preserving valuable ones
-**Key Areas**: Code clarity, documentation quality
 
 ## How to Use These Guides
 
@@ -86,6 +63,6 @@ Each agent guide contains:
 ## Related Documentation
 
 - [Documentation Index](../index.md) - Complete documentation overview
-- [Overall Architecture](../architecture/overall_architecture.md) - System architecture
+- [Overall Architecture](../architecture/README.md) - System architecture
 - [Code Generation Guide](../projects/code-generation-guide.md) - Codegen workflow
 - [CLAUDE.md](../../CLAUDE.md) - Main project guidance for Claude Code

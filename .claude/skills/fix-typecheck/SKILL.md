@@ -1,39 +1,71 @@
 ---
-name: typecheck-fixer
-description: Use this agent when you encounter TypeScript type checking errors from `pnpm typecheck` command, particularly for frontend code issues. This agent specializes in analyzing type errors, understanding their root causes, and implementing proper fixes while maintaining type safety. Examples:\n\n<example>\nContext: The user has just written some React component code and wants to ensure type safety.\nuser: "I'm getting type errors in my new component"\nassistant: "Let me run typecheck to see the errors"\n<runs pnpm typecheck>\nassistant: "I see several type errors. Let me use the typecheck-fixer agent to analyze and fix these issues"\n<commentary>\nSince there are TypeScript errors from pnpm typecheck, use the Task tool to launch the typecheck-fixer agent to resolve them.\n</commentary>\n</example>\n\n<example>\nContext: After modifying GraphQL queries or component props.\nuser: "Can you check if my recent changes broke any types?"\nassistant: "I'll check for type issues first"\n<runs pnpm typecheck>\nassistant: "Found some type mismatches. I'll use the typecheck-fixer agent to resolve these"\n<commentary>\nType errors were detected, so the typecheck-fixer agent should be used to fix them systematically.\n</commentary>\n</example>
+name: fix-typecheck
+description: Fix TypeScript type checking errors from pnpm typecheck, analyze type mismatches, and resolve type safety issues in React and TypeScript applications. Use when encountering type errors, TypeScript compilation failures, type mismatches, or after running pnpm typecheck.
 ---
 
-You are a TypeScript type system expert specializing in fixing type checking errors in React and modern web applications.
+# TypeScript Type Error Fixer
+
+This guide is for fixing TypeScript type checking errors in React and modern web applications. It covers analyzing type mismatches, resolving type safety issues, and maintaining proper typing throughout the codebase.
 
 ## Core Workflow
-1. Run `pnpm typecheck` → Get error list
-2. Group related errors by common cause
-3. Fix from most fundamental → derived errors
-4. Re-run `pnpm typecheck` after significant fixes
-5. Verify no new errors introduced
+
+1. **Run** `pnpm typecheck` → Get error list
+2. **Group** related errors by common cause
+3. **Fix** from most fundamental → derived errors
+4. **Re-run** `pnpm typecheck` after significant fixes
+5. **Verify** no new errors introduced
 
 ## Fixing Principles
-- Fix at source, not with assertions
-- Maintain type safety (avoid `any`)
-- Prefer union types, generics, type narrowing
-- Update type definitions as needed
-- Preserve existing functionality
 
-## Common Patterns
-- Missing/incorrect generic parameters
-- Incompatible prop types
+- **Fix at source**, not with type assertions
+- **Maintain type safety** - never use `any` unless absolutely necessary and well-justified
+- **Prefer** union types, generics, and proper type narrowing over loose typing
+- **Update** type definitions, interfaces, or generic constraints as needed
+- **Preserve** existing functionality while fixing types
+
+## Common Pattern Recognition
+
+Common type errors to identify and fix:
+- Missing or incorrect generic type parameters
+- Incompatible prop types between parent and child components
 - Incorrect event handler signatures
-- GraphQL query result mismatches
-- Missing null/undefined checks
-- Discriminated union issues
+- Type mismatches in GraphQL query results
+- Missing null/undefined checks in optional chaining
+- Incorrect discriminated union usage
+- Type inference issues with array methods
 
-## Project Context
-- Generated code: dipeo/diagram_generated/ (don't edit)
-- GraphQL types may need: `make graphql-schema`
-- Domain structure: /apps/web/src/domain/
-- Infrastructure: /apps/web/src/infrastructure/
+## Frontend-Specific Expertise
 
-## Escalation
-- Generated code issues → Trace to source specs
-- GraphQL mismatches → Consider schema regeneration
-- Shared type errors → Fix shared definition
+Key frontend typing concepts:
+- React component prop types and their proper definition
+- React hooks and their type constraints
+- Event handler types and DOM type definitions
+- GraphQL generated types and their integration
+- Zustand store typing patterns
+- React Query type patterns
+
+## Project-Specific Context
+
+This is a DiPeO project with:
+- Generated code in `dipeo/diagram_generated/` (don't manually edit)
+- GraphQL types that may need regeneration via `make graphql-schema`
+- Domain-driven structure in `/apps/web/src/domain/`
+- Infrastructure code in `/apps/web/src/infrastructure/`
+- Centralized Zustand store patterns
+
+## Decision Framework
+
+- If type error involves **generated code** → Trace back to source specification
+- If **GraphQL types** are mismatched → Consider schema regeneration
+- If **multiple components** share same error → Fix the shared type definition
+- If quick fix would **compromise type safety** → Implement proper solution instead
+
+## Quality Checks
+
+After fixing all errors:
+- Run `pnpm typecheck` one final time
+- Verify fixes maintain intended functionality
+- Ensure no `@ts-ignore` or `@ts-expect-error` added without justification
+- Confirm type assertions (`as`) only used when type narrowing isn't possible
+
+Always prioritize long-term type safety over quick fixes.

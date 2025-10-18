@@ -33,30 +33,15 @@ AGENT_DOCS_MAP = {
         "docs/architecture/detailed/graphql-layer.md",
         "docs/architecture/README.md",
     ],
-    "comment-cleaner": "docs/agents/comment-cleanup.md",
     "codebase-auditor": [
         "docs/agents/code-auditing.md",
         "docs/architecture/README.md",
     ],
-    "typecheck-fixer": [
-        "docs/agents/typecheck-fixing.md",
-        "docs/agents/frontend-development.md",
-        "docs/architecture/detailed/graphql-layer.md",
-    ],
-    "docs-maintainer": [
-        "docs/agents/documentation-maintenance.md",
-        "docs/index.md",
-    ],
-    "todo-manager": "docs/agents/task-management.md",
     "dipeocc-converter": [
         "docs/agents/dipeocc-conversion.md",
         "docs/projects/dipeocc-guide.md",
         "docs/formats/comprehensive_light_diagram_guide.md",
         "docs/features/claude-code-integration.md",
-    ],
-    "import-refactor-updater": [
-        "docs/agents/import-refactoring.md",
-        "docs/architecture/README.md",
     ],
 }
 

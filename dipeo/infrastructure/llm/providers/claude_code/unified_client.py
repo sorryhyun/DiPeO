@@ -40,11 +40,10 @@ FORK_SESSION_ENABLED = (
 
 
 class UnifiedClaudeCodeClient:
-    """Unified Claude Code client with efficient template-based session management.
+    """Unified Claude Code client with fork_session and context manager pattern.
 
-    This client maintains pre-created template sessions for each execution phase
-    and forks them for individual requests. This provides both efficiency (no cold start)
-    and isolation (each request gets its own forked session).
+    This client maintains template sessions for each execution phase (for performance)
+    and uses context manager pattern for forked sessions (for clean lifecycle management).
     """
 
     def __init__(self, config: AdapterConfig):
@@ -75,13 +74,6 @@ class UnifiedClaudeCodeClient:
             "default": None,
         }
         self._template_lock = asyncio.Lock()
-
-        # Track active forked sessions for cleanup
-        self._active_sessions: list[ClaudeSDKClient] = []
-        self._session_lock = asyncio.Lock()
-
-        # Track which sessions have been connected (to avoid calling connect() twice)
-        self._connected_sessions: set[ClaudeSDKClient] = set()
 
     def _get_capabilities(self) -> ProviderCapabilities:
         """Get Claude Code provider capabilities."""
@@ -143,43 +135,33 @@ class UnifiedClaudeCodeClient:
             ):
                 template_session = ClaudeSDKClient(options=options)
                 await template_session.connect(None)
-                self._connected_sessions.add(template_session)
 
             # Store template
             self._template_sessions[execution_phase] = template_session
 
             return template_session
 
-    async def _create_forked_session(
+    async def _get_forked_session_options(
         self, options: ClaudeAgentOptions, execution_phase: str, trace_id: str = ""
-    ) -> ClaudeSDKClient:
-        """Create a session by forking from template or creating fresh.
-
-        This method attempts to fork from an existing template session for efficiency.
-        If forking is not supported or fails, it falls back to creating a fresh session.
+    ) -> ClaudeAgentOptions:
+        """Get options for a forked session from template.
 
         Args:
-            options: Claude Code options with system prompt
+            options: Base Claude Code options
             execution_phase: Execution phase identifier
             trace_id: Trace ID for timing metrics
 
         Returns:
-            New or forked ClaudeSDKClient session for this request
+            ClaudeAgentOptions for forked session, or original if forking not supported
         """
-        # Attempt to get/create template and fork from it if supported
+        # Attempt to fork from template if supported
         if FORK_SESSION_ENABLED:
             try:
                 # Get or create the template session for this phase
                 template = await self._get_or_create_template(options, execution_phase, trace_id)
 
-                # Create a forked session from the template
-                # The fork will inherit the template's configuration but have its own state
-                # Create new session with resume from template (this creates a fork)
-                async with atime_phase(
-                    trace_id,
-                    "claude_code",
-                    f"{execution_phase}__fork",
-                ):
+                # Create fork options with resume from template
+                async with atime_phase(trace_id, "claude_code", f"{execution_phase}__fork_prepare"):
                     fork_options = ClaudeAgentOptions(
                         **{
                             **options.__dict__,
@@ -189,162 +171,15 @@ class UnifiedClaudeCodeClient:
                             "fork_session": True,
                         }
                     )
-
-                    forked_session = ClaudeSDKClient(options=fork_options)
-                    # Note: Forked sessions should NOT call connect(None) here as it triggers
-                    # unwanted warmup messages. Instead, we'll use connect(query) in _execute_query
-                    # to combine connection and first message in one step.
-
-                # Track the forked session for cleanup
-                async with self._session_lock:
-                    self._active_sessions.append(forked_session)
-
-                return forked_session
+                return fork_options
 
             except Exception as e:
                 logger.warning(
-                    f"[ClaudeCode] Failed to fork from template: {e}, creating fresh session"
+                    f"[ClaudeCode] Failed to prepare fork from template: {e}, using fresh session"
                 )
 
-        # Fallback: Create a fresh session if forking is not available or failed
-        logger.debug(f"[ClaudeCode] Creating fresh session for phase '{execution_phase}'")
-
-        async with atime_phase(
-            trace_id,
-            "claude_code",
-            f"{execution_phase}__fresh_create",
-        ):
-            session = ClaudeSDKClient(options=options)
-            await session.connect(None)
-            self._connected_sessions.add(session)
-
-        # Track session for cleanup
-        async with self._session_lock:
-            self._active_sessions.append(session)
-
-        return session
-
-    async def _execute_query(
-        self,
-        session: ClaudeSDKClient,
-        query_input: str | AsyncIterator[dict[str, Any]],
-        execution_phase: ExecutionPhase | None,
-        session_id: str,
-        trace_id: str = "",
-    ) -> LLMResponse:
-        """Execute a query on a session.
-
-        Args:
-            session: ClaudeSDKClient session to query
-            query_input: Message dict or async iterable of message dicts to send
-            execution_phase: Execution phase for response parsing
-            session_id: Unique session ID for this query
-            trace_id: Trace ID for timing metrics
-
-        Returns:
-            Parsed LLM response
-        """
-        phase_key = execution_phase.value if execution_phase else "default"
-
-        try:
-            # Send query with unique session ID
-            # Uses helper method to handle connection state and avoid race conditions
-            async with atime_phase(trace_id, "claude_code", f"{phase_key}__send"):
-                await self._ensure_connected_and_send(session, query_input, session_id)
-
-            # Collect response
-            result_text = ""
-            tool_invocation_data = None
-
-            async with atime_phase(trace_id, "claude_code", f"{phase_key}__collect"):
-                async for message in session.receive_response():
-                    # Check for tool invocations
-                    if hasattr(message, "content") and not hasattr(message, "result"):
-                        for block in message.content:
-                            if hasattr(block, "name") and hasattr(block, "input"):
-                                if block.name.startswith("mcp__dipeo_structured_output__"):
-                                    tool_invocation_data = block.input
-                                    break
-
-                    # Process ResultMessage (final message, iterator auto-terminates after this)
-                    if hasattr(message, "result"):
-                        result_text = str(message.result)
-                        # No need to break - receive_response() auto-terminates
-
-            # Parse response
-            with time_phase(trace_id, "claude_code", f"{phase_key}__parse"):
-                if tool_invocation_data:
-                    parsed = self._parser.parse_response_with_tool_data(
-                        tool_invocation_data, execution_phase
-                    )
-                    parsed.provider = self.provider_type
-                    parsed.raw_response = str(tool_invocation_data)
-                    return parsed
-
-                parsed = self._parser.parse_response(result_text, execution_phase)
-                parsed.provider = self.provider_type
-                parsed.raw_response = result_text
-                return parsed
-        finally:
-            # Clean up session after use
-            with time_phase(trace_id, "claude_code", f"{phase_key}__cleanup"):
-                await self._cleanup_session(session)
-
-    async def _cleanup_session(self, session: ClaudeSDKClient) -> None:
-        """Clean up a session after use."""
-        try:
-            await session.disconnect()
-            async with self._session_lock:
-                if session in self._active_sessions:
-                    self._active_sessions.remove(session)
-                # Remove from connected sessions tracking
-                self._connected_sessions.discard(session)
-        except Exception as e:
-            logger.warning(f"[ClaudeCode] Error disconnecting session: {e}")
-
-    async def _ensure_connected_and_send(
-        self,
-        session: ClaudeSDKClient,
-        query_input: str | AsyncIterator[dict[str, Any]],
-        session_id: str | None = None,
-    ) -> None:
-        """Ensure session is connected and send query.
-
-        For sessions not yet connected (typically forked sessions), uses connect(query)
-        to combine connection and first message in one step, avoiding warmup messages.
-        For already-connected sessions, uses query() directly.
-
-        Thread-safe: Uses locking to prevent race conditions when checking/updating
-        connection state.
-
-        Args:
-            session: ClaudeSDKClient session to use
-            query_input: Message dict or async iterable of message dicts to send
-            session_id: Unique session ID for this query
-        """
-        # Check and reserve connection status atomically to prevent race conditions
-        async with self._session_lock:
-            if session not in self._connected_sessions:
-                # Reserve this session immediately to prevent concurrent connect attempts
-                self._connected_sessions.add(session)
-                is_first_connection = True
-            else:
-                is_first_connection = False
-
-        try:
-            if is_first_connection:
-                # First connection for this session - use connect(query) to avoid warmup
-                # Note: connect() does not accept session_id parameter
-                await session.connect(query_input)
-            else:
-                # Already connected - use normal query with session_id
-                await session.query(query_input, session_id=session_id)
-        except Exception:
-            # If connection failed and this was first attempt, remove from connected set
-            if is_first_connection:
-                async with self._session_lock:
-                    self._connected_sessions.discard(session)
-            raise
+        # Fallback: Return original options for fresh session
+        return options
 
     async def async_chat(
         self,
@@ -408,9 +243,11 @@ class UnifiedClaudeCodeClient:
         )
 
         async def _make_request():
-            # Fork from template or create fresh session for this request
+            # Get phase key for this request
             phase_key = execution_phase.value if execution_phase else "default"
-            session = await self._create_forked_session(options, phase_key, trace_id)
+
+            # Get forked session options (with template resume if available)
+            forked_options = await self._get_forked_session_options(options, phase_key, trace_id)
 
             # Create async generator for messages to yield them individually
             async def message_generator():
@@ -430,16 +267,36 @@ class UnifiedClaudeCodeClient:
 
                 query_input = default_generator()
 
-            # Execute query with unique session ID
+            # Execute query with context manager (handles connection/disconnection automatically)
             session_id = f"{phase_key}_{uuid4()}"
-            async with atime_phase(
-                trace_id,
-                "claude_code",
-                f"{phase_key}__api_call",
+            async with (
+                atime_phase(trace_id, "claude_code", f"{phase_key}__api_call"),
+                ClaudeSDKClient(options=forked_options) as client,
             ):
-                return await self._execute_query(
-                    session, query_input, execution_phase, session_id, trace_id
-                )
+                # Send query
+                async with atime_phase(trace_id, "claude_code", f"{phase_key}__send"):
+                    await client.query(query_input)
+
+                # Collect response
+                async with atime_phase(trace_id, "claude_code", f"{phase_key}__collect"):
+                    result_text, tool_invocation_data = await self._parser.collect_response(
+                        client.receive_response()
+                    )
+
+                # Parse response
+                with time_phase(trace_id, "claude_code", f"{phase_key}__parse"):
+                    if tool_invocation_data:
+                        parsed = self._parser.parse_response_with_tool_data(
+                            tool_invocation_data, execution_phase
+                        )
+                        parsed.provider = self.provider_type
+                        parsed.raw_response = str(tool_invocation_data)
+                        return parsed
+
+                    parsed = self._parser.parse_response(result_text, execution_phase)
+                        parsed.provider = self.provider_type
+                        parsed.raw_response = result_text
+                        return parsed
 
         async for attempt in retry:
             with attempt:
@@ -488,41 +345,46 @@ class UnifiedClaudeCodeClient:
         )
         options = ClaudeAgentOptions(**options_dict)
 
-        # Fork from template or create fresh session for this request
+        # Get phase key and forked session options
         phase_key = execution_phase.value if execution_phase else "default"
-        session = await self._create_forked_session(options, phase_key)
+        trace_id = kwargs.get("trace_id", "")
+        forked_options = await self._get_forked_session_options(options, phase_key, trace_id)
 
-        try:
-            # Create async generator for messages to yield them individually
-            async def message_generator():
-                for msg in formatted_messages:
-                    yield msg
+        # Create async generator for messages to yield them individually
+        async def message_generator():
+            for msg in formatted_messages:
+                yield msg
 
-            # Always use async generator for formatted messages
-            if formatted_messages:
-                query_input = message_generator()
-            else:
-                # Fallback: create a default message generator
-                async def default_generator():
-                    yield {
-                        "type": "user",
-                        "message": json.dumps({"role": "user", "content": "Please respond"}),
-                    }
+        # Always use async generator for formatted messages
+        if formatted_messages:
+            query_input = message_generator()
+        else:
+            # Fallback: create a default message generator
+            async def default_generator():
+                yield {
+                    "type": "user",
+                    "message": json.dumps({"role": "user", "content": "Please respond"}),
+                }
 
-                query_input = default_generator()
+            query_input = default_generator()
 
-            # Execute query with unique session ID
-            session_id = f"{phase_key}_{uuid4()}"
+        # Execute query with context manager for automatic cleanup
+        session_id = f"{phase_key}_{uuid4()}"
 
-            # Send query using helper method to handle connection state and avoid race conditions
-            await self._ensure_connected_and_send(session, query_input, session_id)
+        async with ClaudeSDKClient(options=forked_options) as client:
+            # Send query
+            await client.query(query_input, session_id=session_id)
 
             # Stream responses
             has_yielded_content = False
-            async for message in session.receive_response():
+            async for message in client.receive_response():
                 if hasattr(message, "content") and not hasattr(message, "result"):
                     # Stream content from AssistantMessage (real-time streaming)
                     for block in message.content:
+                        # Skip thinking blocks - only stream text content
+                        block_type = getattr(block, "type", None)
+                        if block_type == "thinking":
+                            continue
                         if hasattr(block, "text") and block.text:
                             has_yielded_content = True
                             yield block.text
@@ -531,9 +393,6 @@ class UnifiedClaudeCodeClient:
                     if not has_yielded_content:
                         yield str(message.result)
                     # No need to break - receive_response() auto-terminates after ResultMessage
-        finally:
-            # Clean up session after use
-            await self._cleanup_session(session)
 
     async def batch_chat(
         self,
@@ -565,19 +424,11 @@ class UnifiedClaudeCodeClient:
         return await asyncio.gather(*tasks)
 
     async def cleanup(self) -> None:
-        """Cleanup all sessions on shutdown."""
-        # Clean up active forked sessions
-        async with self._session_lock:
-            for session in self._active_sessions[
-                :
-            ]:  # Copy list to avoid modification during iteration
-                try:
-                    await session.disconnect()
-                except Exception as e:
-                    logger.warning(f"[ClaudeCode] Error disconnecting forked session: {e}")
-            self._active_sessions.clear()
-            self._connected_sessions.clear()
+        """Cleanup template sessions on shutdown.
 
+        Note: Forked sessions use context manager pattern and are automatically cleaned up.
+        This method only needs to clean up the long-lived template sessions.
+        """
         # Clean up template sessions
         async with self._template_lock:
             for phase, template in self._template_sessions.items():
@@ -593,4 +444,4 @@ class UnifiedClaudeCodeClient:
         # Give subprocess time to terminate gracefully to avoid EPIPE errors
         await asyncio.sleep(0.5)
 
-        logger.info("[ClaudeCode] Cleanup complete (templates and forked sessions)")
+        logger.info("[ClaudeCode] Cleanup complete (template sessions)")
