@@ -179,7 +179,7 @@ connections:
 connections:
   # Simple connection
   - {from: Source Node, to: Target Node}
-  
+
   # With additional properties
   - {from: Source Node, to: Target Node, content_type: raw_text, label: variable_name}
 ```
@@ -189,12 +189,115 @@ Both formats are functionally identical. The compact format is useful for:
 - Keeping related connections visually grouped
 - Reducing file length for large diagrams
 
+### Handle Syntax for Connections
+
+When connecting to specific handles (input/output ports) on nodes, DiPeO supports two syntaxes:
+
+**Bracket Syntax (Recommended):**
+```yaml
+connections:
+  # Explicit handle references using brackets
+  - {from: "condition[condtrue]", to: success_handler, content_type: conversation_state}
+  - {from: "condition[condfalse]", to: retry_handler, content_type: conversation_state}
+  - {from: start, to: "analyzer[first]", content_type: raw_text}
+```
+
+**Underscore Syntax (Legacy):**
+```yaml
+connections:
+  # Implicit handle references using underscores
+  - {from: condition_condtrue, to: success_handler, content_type: conversation_state}
+  - {from: condition_condfalse, to: retry_handler, content_type: conversation_state}
+  - {from: start, to: analyzer_first, content_type: raw_text}
+```
+
+**Key Differences:**
+
+| Feature | Bracket Syntax | Underscore Syntax |
+|---------|---------------|-------------------|
+| Readability | More explicit and clear | Can be ambiguous |
+| Validation | Strict - errors on invalid handles | Permissive - auto-creates handles |
+| Export | Normalized on export | Converted to bracket syntax |
+| Quoting | Requires quotes in flow syntax | No quotes needed |
+| Recommended | ✅ Yes | For backward compatibility only |
+
+**YAML Quoting Requirements:**
+
+When using bracket syntax in compact (flow) format, **you must quote the value**:
+
+```yaml
+# ✅ Correct - quoted bracket syntax
+connections:
+  - {from: "condition[condtrue]", to: next_node}
+
+# ❌ Wrong - unquoted will cause YAML parse error
+connections:
+  - {from: condition[condtrue], to: next_node}
+
+# ✅ Alternative - use multi-line format (no quotes needed)
+connections:
+  - from: condition[condtrue]
+    to: next_node
+```
+
+**Available Handles by Node Type:**
+
+Different node types have different available handles:
+
+| Node Type | Input Handles | Output Handles |
+|-----------|---------------|----------------|
+| `start` | None | `default` |
+| `endpoint` | `default` | None |
+| `condition` | `default` | `condtrue`, `condfalse` |
+| `person_job` | `first`, `default` | `default` |
+| `user_response` | `default` | `default` |
+| `db` | `default` | `default` |
+| Most others | `default` | `default` |
+
+**Validation:**
+
+- **Bracket syntax** performs strict validation - the diagram will fail to load if you reference a handle that doesn't exist for that node type
+- **Underscore syntax** is permissive - missing handles are auto-created with type `ANY`
+- Use bracket syntax to catch errors early during diagram development
+
+**Examples:**
+
+```yaml
+nodes:
+- label: condition
+  type: condition
+  position: {x: 300, y: 200}
+  condition_type: detect_max_iterations
+
+- label: continue_loop
+  type: person_job
+  position: {x: 500, y: 100}
+  person: assistant
+
+- label: end_loop
+  type: person_job
+  position: {x: 500, y: 300}
+  person: assistant
+
+connections:
+  # ✅ Valid - condtrue is a valid output handle for condition nodes
+  - {from: "condition[condtrue]", to: end_loop, content_type: conversation_state}
+
+  # ✅ Valid - condfalse is a valid output handle for condition nodes
+  - {from: "condition[condfalse]", to: continue_loop, content_type: conversation_state}
+
+  # ❌ Invalid - would fail validation (myhandle doesn't exist for condition)
+  # - {from: "condition[myhandle]", to: continue_loop}
+  # Error: Handle 'myhandle' does not exist as output handle for node 'condition' of type 'condition'.
+  # Available output handles: ['condtrue', 'condfalse']
+```
+
 ### Node Labels and References
 
 - Labels must be unique within a diagram
 - Spaces in labels are allowed: `label: Data Processing Step`
 - Duplicate labels auto-increment: `Process` → `Process~1`
-- Condition nodes create special handles: `Check Value_condtrue`, `Check Value_condfalse`
+- When using handles, prefer bracket syntax over underscore suffix for clarity
 
 ## Node Types Reference
 

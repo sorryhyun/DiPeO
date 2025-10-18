@@ -10,19 +10,7 @@ from dipeo.domain.base.exceptions import NodeExecutionError
 async def execute_file_hook(
     node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]
 ) -> Any:
-    """Execute file hook - write data to a file.
-
-    Args:
-        node: The hook node configuration
-        inputs: Input data to write to file
-        request: The execution request containing state
-
-    Returns:
-        Status dictionary with file path
-
-    Raises:
-        NodeExecutionError: If file operation fails or filesystem adapter unavailable
-    """
+    """Write inputs to file using filesystem adapter."""
     config = node.config
     file_path = config.get("file_path")
 

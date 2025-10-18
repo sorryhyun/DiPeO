@@ -1,4 +1,3 @@
-import logging
 import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -24,7 +23,7 @@ from dipeo.diagram_generated.unified_nodes import DiffPatchNode
 from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
 if TYPE_CHECKING:
-    pass
+    from dipeo.application.registry import EnhancedServiceRegistry
 
 logger = get_module_logger(__name__)
 
@@ -46,12 +45,11 @@ class DiffPatchHandler(TypedNodeHandler[DiffPatchNode]):
 
     @property
     def description(self) -> str:
-        return "Applies diff patches to files with validation and safety controls"
+        return "Apply diff patches with validation, backup, and fuzzy matching"
 
     async def run(
         self, inputs: dict[str, Any], request: ExecutionRequest[DiffPatchNode]
     ) -> dict[str, Any]:
-        """Apply a diff patch to a file with validation and safety features."""
         node = request.node
         target_path = Path(node.target_path)
 
@@ -166,7 +164,6 @@ class DiffPatchHandler(TypedNodeHandler[DiffPatchNode]):
         )
 
     async def pre_execute(self, request: ExecutionRequest[DiffPatchNode]) -> Envelope | None:
-        """Validate the diff patch configuration before execution."""
         node = request.node
 
         if not node.target_path:

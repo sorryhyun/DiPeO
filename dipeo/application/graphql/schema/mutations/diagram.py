@@ -19,12 +19,7 @@ from dipeo.infrastructure.diagram.adapters import UnifiedSerializerAdapter
 logger = get_module_logger(__name__)
 
 
-# Standalone resolver functions for use with OperationExecutor
 async def create_diagram(registry: ServiceRegistry, input: CreateDiagramInput) -> DiagramResult:
-    """
-    Resolver for CreateDiagram operation.
-    Uses the generated CREATE_DIAGRAM_MUTATION query string.
-    """
     try:
         diagram_service = registry.resolve(DIAGRAM_PORT)
 
@@ -61,10 +56,6 @@ async def create_diagram(registry: ServiceRegistry, input: CreateDiagramInput) -
 
 
 async def delete_diagram(registry: ServiceRegistry, diagram_id: strawberry.ID) -> DeleteResult:
-    """
-    Resolver for DeleteDiagram operation.
-    Uses the generated DELETE_DIAGRAM_MUTATION query string.
-    """
     try:
         diagram_id_typed = DiagramID(str(diagram_id))
         diagram_service = registry.resolve(DIAGRAM_PORT)

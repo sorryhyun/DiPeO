@@ -22,16 +22,7 @@ class ConditionEvaluator(Protocol):
     async def evaluate(
         self, node: ConditionNode, context: ExecutionContext, inputs: dict[str, Any]
     ) -> EvaluationResult:
-        """Evaluate the condition.
-
-        Args:
-            node: The condition node
-            context: Execution context (contains diagram)
-            inputs: Input data
-
-        Returns:
-            Evaluation result with metadata
-        """
+        """Evaluate the condition and return result with metadata."""
         ...
 
 

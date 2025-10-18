@@ -29,9 +29,6 @@ from dipeo.diagram_generated.enums import NodeType
 from dipeo.diagram_generated.unified_nodes.db_node import DbNode
 from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
-if TYPE_CHECKING:
-    pass
-
 logger = get_module_logger(__name__)
 
 
@@ -61,10 +58,8 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
         return "File-based DB node supporting read, write and append operations"
 
     async def pre_execute(self, request: ExecutionRequest[DbNode]) -> Envelope | None:
-        """Pre-execution setup: validate operation configuration."""
         node = request.node
 
-        # Validate operation type
         valid_operations = ["read", "write", "append", "update"]
         error = validate_operation(node.operation, valid_operations)
         if error:
@@ -106,7 +101,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                 produced_by=str(node.id),
             )
 
-        # Validate file paths are provided
         file_paths = node.file
         error = validate_required_field(file_paths, "file paths")
         if error:
@@ -115,10 +109,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                 produced_by=str(node.id),
             )
 
-        # Store configuration in request state
         request.set_handler_state("base_dir", str(BASE_DIR))
-
-        # No early return - proceed to execute_request
         return None
 
     @staticmethod
@@ -145,11 +136,8 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
         return expanded_paths
 
     async def run(self, inputs: dict[str, Any], request: ExecutionRequest[DbNode]) -> Any:
-        """Execute database operation."""
         node = request.node
         context = request.context
-
-        # Services are injected by decorator
         db_service = self._db_service
         template_processor = self._template_processor
         base_dir = request.get_handler_state("base_dir")
@@ -161,14 +149,10 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
         elif not file_paths:
             file_paths = []
 
-        # Use PromptBuilder to properly prepare template values from inputs
-        # This handles nested structures and makes node outputs available
         from dipeo.infrastructure.diagram.prompt_templates import PromptBuilder
 
         prompt_builder = PromptBuilder(template_processor)
         prepared_inputs = prompt_builder.prepare_template_values(inputs)
-
-        # Use centralized context builder to merge globals properly
         template_values = context.build_template_context(inputs=prepared_inputs, globals_win=True)
 
         processed_paths = []
@@ -184,8 +168,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
 
             processed_paths.append(file_path)
 
-        # Auto-detect and expand glob patterns before passing to db_service
-        # No need for explicit glob field - just check if paths contain glob characters
         processed_paths = self._expand_glob_patterns(processed_paths, base_dir)
 
         format_type = getattr(node, "format", None)
@@ -214,8 +196,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                 or extract_first_non_empty(inputs)
             )
 
-            # Only serialize for YAML format or text format
-            # JSON serialization is handled by db_adapter
             if (
                 node.operation in ("write", "update")
                 and format_type == "yaml"
@@ -278,7 +258,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
                         logger.warning(f"Failed to read file {file_path}: {e}")
                         results[file_path] = None
 
-                # Return raw results - will be serialized by serialize_output
                 return {
                     "results": results,
                     "multiple_files": True,
@@ -332,7 +311,6 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
 
                 serialize_json = getattr(node, "serialize_json", False)
 
-                # Return raw result with metadata
                 return {
                     "value": output_value,
                     "serialize_json": serialize_json,
@@ -348,23 +326,18 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
 
         except Exception as exc:
             logger.exception("DB operation failed: %s", exc)
-            raise  # Let base class handle error
+            raise
 
     def serialize_output(self, result: Any, request: ExecutionRequest[DbNode]) -> Envelope:
-        """Custom serialization for DB results."""
         node = request.node
         trace_id = request.execution_id or ""
         operation = node.operation
 
-        # Handle multiple files result
         if isinstance(result, dict) and "multiple_files" in result:
             file_count = result["file_count"]
             results = result["results"]
 
-            # Create envelope with results as body
             envelope = EnvelopeFactory.create(body=results, produced_by=node.id, trace_id=trace_id)
-
-            # Add metadata about the operation
             envelope = envelope.with_meta(
                 multiple_files=True,
                 file_count=file_count,
@@ -380,25 +353,19 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
 
             return envelope
 
-        # Handle single file result
         if isinstance(result, dict) and "value" in result:
             output_value = result["value"]
 
-            # Determine the body based on serialize_json flag
             if isinstance(output_value, dict | list):
-                if result.get("serialize_json", False) and not result.get("format"):
-                    # Serialize to text if requested
-                    body = json.dumps(output_value)
-                else:
-                    # Keep as structured data
-                    body = output_value
+                body = (
+                    json.dumps(output_value)
+                    if result.get("serialize_json", False) and not result.get("format")
+                    else output_value
+                )
             else:
                 body = output_value
 
-            # Create envelope
             envelope = EnvelopeFactory.create(body=body, produced_by=node.id, trace_id=trace_id)
-
-            # Add metadata
             envelope = envelope.with_meta(
                 operation=operation,
                 format=result.get("format"),
@@ -410,9 +377,7 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
 
             return envelope
 
-        # Fallback for unexpected result format
         envelope = EnvelopeFactory.create(body=result, produced_by=node.id, trace_id=trace_id)
-
         envelope = envelope.with_meta(operation=operation)
 
         return envelope
@@ -420,22 +385,9 @@ class DBTypedNodeHandler(TypedNodeHandler[DbNode]):
     async def prepare_inputs(
         self, request: ExecutionRequest[DbNode], inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Prepare inputs with token consumption.
-
-        Phase 5: Now consumes tokens from incoming edges when available.
-        """
-        # Phase 5: Consume tokens from incoming edges or fall back to regular inputs
         envelope_inputs = self.get_effective_inputs(request, inputs)
-
-        # Call parent prepare_inputs for default envelope conversion
         return await super().prepare_inputs(request, envelope_inputs)
 
     def post_execute(self, request: ExecutionRequest[DbNode], output: Envelope) -> Envelope:
-        """Post-execution hook to emit tokens.
-
-        Phase 5: Now emits output as tokens to trigger downstream nodes.
-        """
-        # Phase 5: Emit output as tokens to trigger downstream nodes
         self.emit_token_outputs(request, output)
-
         return output

@@ -1,6 +1,5 @@
 """Base executor for sub-diagram execution with common functionality."""
 
-import logging
 import uuid
 from typing import TYPE_CHECKING, Any
 

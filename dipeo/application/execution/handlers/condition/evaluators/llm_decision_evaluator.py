@@ -1,6 +1,5 @@
 """Evaluator for LLM-based decision conditions."""
 
-import logging
 from typing import Any
 
 from dipeo.config.base_logger import get_module_logger

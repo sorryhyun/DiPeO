@@ -1,21 +1,21 @@
-# Webhook Integration Guide
+# Webhook Integration
 
-This guide explains how to use DiPeO's webhook integration feature to receive and process webhooks from external providers.
+DiPeO provides webhook integration for sending HTTP requests to external services and receiving webhooks from external providers.
 
 ## Overview
 
-DiPeO supports two webhook-related capabilities:
+DiPeO supports two webhook capabilities:
 
-1. **Receiving Webhooks**: External services can send webhooks to DiPeO, which are then processed as events
-2. **Subscribing to Webhooks**: Diagrams can subscribe to webhook events and trigger workflows
+1. **Receiving Webhooks**: External services send webhooks to DiPeO's HTTP endpoint
+2. **Sending Webhooks**: Diagrams send HTTP requests to external endpoints via hook nodes
 
 ## Architecture
 
 ### Components
 
-1. **Webhook Gateway** (`/webhooks/{provider}`): HTTP endpoint that receives webhooks
-2. **Event Bus**: Distributes webhook events to subscribers
-3. **Hook Node**: Subscribe to or send webhook events in diagrams
+1. **Webhook Gateway** (`/webhooks/{provider}`): HTTP endpoint receiving webhooks from external services
+2. **Event Bus**: Distributes webhook events internally
+3. **Hook Node**: Sends HTTP requests to webhook endpoints
 4. **Provider Registry**: Manages webhook configurations per provider
 
 ### Event Flow
@@ -71,94 +71,85 @@ For example:
 
 ## Using Webhooks in Diagrams
 
-### Subscribing to Webhook Events
+### Sending Outgoing Webhooks
 
-Use the `hook` node with webhook subscription configuration:
+Use the `hook` node to send HTTP requests to external webhook endpoints:
 
 ```yaml
-- label: Wait for GitHub Push
+- label: Send Webhook
   type: hook
   props:
     hook_type: webhook
     config:
-      subscribe_to:
-        provider: github
-        event_name: push
-        timeout: 300  # Wait up to 5 minutes
-        filters:
-          repository: "myorg/myrepo"  # Optional: filter specific events
+      url: https://api.example.com/webhook
+      method: POST  # Optional: default is POST
+      headers:  # Optional: custom headers
+        X-Custom-Header: value
+      timeout: 30  # Optional: request timeout in seconds
 ```
 
-### Processing Webhook Data
+### Processing Webhook Responses
 
-The webhook payload is available to downstream nodes:
+Webhook responses are available to downstream nodes:
 
 ```yaml
-- label: Process Push Event
-  type: person_job
+- label: Process Response
+  type: code_job
   props:
-    person_job_config:
-      person: Assistant
-      prompt: |
-        A GitHub push event was received:
-        Repository: {{payload.repository.full_name}}
-        Commit: {{payload.head_commit.message}}
-        Author: {{payload.pusher.name}}
-        
-        Generate a summary of the changes.
+    code: |
+      # webhook_response contains the response from the webhook
+      status = webhook_response.get('status', 'unknown')
+      result = f"Webhook returned: {status}"
 ```
 
 ### Complete Example
 
 ```yaml
-name: github_webhook_processor
-description: Process GitHub webhook events
+version: light
 
 nodes:
-  - label: start
+  - label: Start
     type: start
 
-  - label: Subscribe to GitHub Events
+  - label: Prepare Payload
+    type: code_job
+    props:
+      code: |
+        payload_data = {
+          "event": "deployment_complete",
+          "service": "api-server",
+          "version": "1.2.3"
+        }
+
+  - label: Send Notification
     type: hook
     props:
       hook_type: webhook
       config:
-        subscribe_to:
-          provider: github
-          event_name: push
-          timeout: 600
-    connections:
-      - to: Analyze Changes
+        url: https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+        method: POST
+        timeout: 15
 
-  - label: Analyze Changes
-    type: person_job
+  - label: Log Result
+    type: code_job
     props:
-      person_job_config:
-        person: CodeReviewer
-        prompt: |
-          Review the following GitHub push:
-          {{payload}}
-          
-          Identify:
-          1. Critical changes
-          2. Potential issues
-          3. Suggested actions
-    connections:
-      - to: Notify Team
+      code: |
+        print(f"Notification sent: {webhook_response}")
 
-  - label: Notify Team
-    type: integrated_api
-    props:
-      provider: slack
-      operation: post_message
-      config:
-        channel: "#dev-team"
-        text: "Code review completed for {{payload.repository.full_name}}"
-    connections:
-      - to: end
+  - label: End
+    type: endpoint
 
-  - label: end
-    type: end
+connections:
+  - from: Start
+    to: Prepare Payload
+  - from: Prepare Payload
+    to: Send Notification
+    label: payload_data
+  - from: Send Notification
+    to: Log Result
+    label: webhook_response
+  - from: Log Result
+    to: End
 ```
 
 ## Security
@@ -248,44 +239,46 @@ dipeo run webhook_diagram --debug
 
 ## Advanced Usage
 
-### Custom Event Processing
+### Conditional Webhook Sending
 
-For complex webhook logic, combine with other nodes:
+Send webhooks based on conditions:
 
 ```yaml
-- label: Webhook Router
+- label: Check Status
   type: condition
   props:
-    condition: "payload.event_type == 'issue_opened'"
-  connections:
-    - to: Process Issue
-      condition: true
-    - to: Process Other
-      condition: false
+    condition_type: custom
+    expression: deployment_status == 'success'
+
+- label: Send Success Webhook
+  type: hook
+  props:
+    hook_type: webhook
+    config:
+      url: https://api.example.com/success
+connections:
+  - from: Check Status_condtrue
+    to: Send Success Webhook
 ```
 
-### Parallel Webhook Processing
+### Multiple Webhook Endpoints
 
-Process multiple webhook sources simultaneously:
+Send notifications to multiple services:
 
 ```yaml
-- label: GitHub Webhook
+- label: Notify Slack
   type: hook
   props:
     hook_type: webhook
     config:
-      subscribe_to:
-        provider: github
+      url: https://hooks.slack.com/...
 
-- label: Slack Webhook
+- label: Notify Discord
   type: hook
   props:
     hook_type: webhook
     config:
-      subscribe_to:
-        provider: slack
-
-# Both can run in parallel and merge later
+      url: https://discord.com/api/webhooks/...
 ```
 
 ## API Reference
@@ -312,21 +305,7 @@ Receives webhooks from external providers.
 
 ### Hook Node Configuration
 
-**Webhook Subscription Mode:**
-
-```yaml
-type: hook
-props:
-  hook_type: webhook
-  config:
-    subscribe_to:
-      provider: string        # Required: Provider name
-      event_name: string      # Optional: Specific event to wait for
-      timeout: number         # Optional: Timeout in seconds (default: 60)
-      filters: object         # Optional: Key-value filters for payload
-```
-
-**Outgoing Webhook Mode:**
+**Outgoing Webhook:**
 
 ```yaml
 type: hook
@@ -336,7 +315,7 @@ props:
     url: string              # Required: Webhook URL
     method: string           # Optional: HTTP method (default: POST)
     headers: object          # Optional: Additional headers
-    timeout: number          # Optional: Request timeout
+    timeout: number          # Optional: Request timeout in seconds (default: 30)
 ```
 
 ## See Also

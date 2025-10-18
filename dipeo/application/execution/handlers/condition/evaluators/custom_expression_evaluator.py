@@ -1,6 +1,5 @@
 """Evaluator for custom expression conditions."""
 
-import logging
 from typing import Any
 
 from dipeo.config.base_logger import get_module_logger
@@ -33,7 +32,6 @@ class CustomExpressionEvaluator(BaseConditionEvaluator):
 
         eval_context = inputs.copy() if inputs else {}
 
-        # Add all variables to evaluation context (includes loop indices)
         # Variables take precedence over inputs
         if hasattr(context, "get_variables"):
             variables = context.get_variables()

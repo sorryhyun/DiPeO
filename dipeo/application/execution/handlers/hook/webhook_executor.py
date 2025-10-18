@@ -12,19 +12,7 @@ from dipeo.domain.events import DomainEvent
 async def execute_webhook_hook(
     node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]
 ) -> Any:
-    """Execute webhook hook - send request or subscribe to events.
-
-    Args:
-        node: The hook node configuration
-        inputs: Input data to send in webhook payload
-        request: The execution request containing state
-
-    Returns:
-        Response data from webhook or subscription result
-
-    Raises:
-        NodeExecutionError: If the webhook request fails
-    """
+    """Send HTTP request with inputs or subscribe to webhook events."""
     config = node.config
 
     if config.get("subscribe_to"):
@@ -53,18 +41,7 @@ async def execute_webhook_hook(
 
 
 async def _subscribe_to_webhook_events(node: HookNode, inputs: dict[str, Any]) -> Any:
-    """Subscribe to webhook events from providers.
-
-    Args:
-        node: The hook node configuration
-        inputs: Input data (not used in subscription)
-
-    Returns:
-        Event data when matching event is received, or timeout status
-
-    Raises:
-        NodeExecutionError: If subscription configuration is invalid
-    """
+    """Wait for webhook event matching provider and filters, with timeout."""
     config = node.config
     subscribe_config = config.get("subscribe_to", {})
 

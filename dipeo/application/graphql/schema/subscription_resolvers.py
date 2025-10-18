@@ -21,40 +21,33 @@ logger = get_module_logger(__name__)
 
 def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdateType | None:
     """Transform raw event to ExecutionUpdate type."""
-    # Normalize timestamp to string
     timestamp = event.get("timestamp")
     if isinstance(timestamp, datetime):
         timestamp = timestamp.isoformat()
     elif isinstance(timestamp, int | float):
-        # Convert numeric epoch timestamp to ISO string
         timestamp = datetime.fromtimestamp(timestamp).isoformat()
     elif timestamp is None or timestamp == "":
         timestamp = datetime.now().isoformat()
     else:
-        # Ensure it's a string
         timestamp = str(timestamp)
 
-    # Extract the event type, preferring UI event_type over raw type
+    # Extract event type, preferring UI event_type over raw type
     event_type = event.get("event_type") or event.get("type", "unknown")
 
-    # Skip BATCH_UPDATE events - they're internal batch messages
+    # Skip BATCH_UPDATE events - internal batch messages
     if event_type == "BATCH_UPDATE":
         return None
 
-    # Normalize event type from SCREAMING_SNAKE_CASE to lowercase_snake_case
-    # to match EventType enum values
+    # Normalize SCREAMING_SNAKE_CASE to lowercase_snake_case for EventType enum
     event_type = event_type.lower()
 
-    # Normalize execution_id key (handle both executionId and execution_id)
+    # Handle both executionId and execution_id keys
     exec_id_str = event.get("execution_id") or event.get("executionId", "")
 
-    # For node events, restructure the data to match frontend expectations
+    # For node events, restructure data to match frontend expectations
     if event_type in ["node_started", "node_completed", "node_failed", "node_error"]:
-        # node_id is at the top level of the event, not in data
-        # data field contains the payload (node_type, output, etc.)
         event_data = event.get("data", {})
 
-        # Handle None case explicitly
         if event_data is None:
             event_data = {}
         elif isinstance(event_data, str):
@@ -63,14 +56,11 @@ def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdateType | 
             except Exception:
                 event_data = {}
 
-        # Extract metadata (person_id, node_type) from the event's meta field
         event_meta = event.get("meta", {})
 
-        # Extract node_id from top level, other fields from data payload
         data = {
-            "node_id": event.get("node_id"),  # From top level
-            "node_type": event_meta.get("node_type")
-            or event_data.get("node_type"),  # Check meta first, then data
+            "node_id": event.get("node_id"),
+            "node_type": event_meta.get("node_type") or event_data.get("node_type"),
             "status": (
                 "RUNNING"
                 if event_type == "node_started"
@@ -81,17 +71,15 @@ def _transform_execution_update(event: dict[str, Any]) -> ExecutionUpdateType | 
             "output": event_data.get("output"),
             "metrics": event_data.get("metrics"),
             "error": event_data.get("error"),
-            "token_usage": event_data.get("token_usage"),  # From data payload
+            "token_usage": event_data.get("token_usage"),
             "memory_selection": event_meta.get("memory_selection")
-            or event_data.get("memory_selection"),  # Check meta first, then data
-            "person_id": event_meta.get("person_id"),  # From metadata
-            "model": event_meta.get("model"),  # From metadata
+            or event_data.get("memory_selection"),
+            "person_id": event_meta.get("person_id"),
+            "model": event_meta.get("model"),
         }
-        # Remove None values
         data = {k: v for k, v in data.items() if v is not None}
     elif event_type == "node_status_changed":
         # Handle NODE_STATUS_CHANGED events (if any still exist)
-        # node_id and status are in the data payload
         event_data = event.get("data", {})
         if event_data is None:
             event_data = {}

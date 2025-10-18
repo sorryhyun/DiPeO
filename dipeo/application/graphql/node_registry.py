@@ -1,48 +1,11 @@
 """Node Type Registry for runtime validation and input type resolution.
 
-This registry provides essential runtime validation that cannot be enforced by Python's
-type system or GraphQL schemas. It serves as a centralized authority for:
+Provides runtime validation for business rules that cannot be enforced by the type system:
+- Cardinality rules (e.g., only one START node per diagram)
+- Value constraints (allowed operators, languages, formats)
+- Dynamic input type resolution (NodeType enum → CreateXxxInput/UpdateXxxInput)
 
-1. **Business Rule Validation**: Enforces domain-specific rules that go beyond type checking
-   - Example: "Only one START node allowed per diagram" (cannot be type-checked)
-   - Example: Operator validation for CONDITION nodes (runtime value constraints)
-
-2. **Input Type Resolution**: Maps NodeType enums to their corresponding GraphQL input types
-   - Dynamically resolves CreateXxxInput and UpdateXxxInput classes
-   - Bridges the gap between generated Strawberry types and runtime execution
-
-3. **Field-Level Validation**: Validates required fields and value constraints
-   - Required field presence (beyond GraphQL non-null enforcement)
-   - Enum value validation (e.g., valid operators for conditions)
-   - Format validation (e.g., language codes for CODE_JOB nodes)
-
-Why NodeTypeRegistry Exists:
-----------------------------
-While TypeScript specs and generated Strawberry types provide compile-time safety,
-certain business rules can only be validated at runtime:
-
-- **Cardinality rules**: "Only one X per Y" (e.g., one START node per diagram)
-- **Value constraints**: Allowed operators, languages, formats
-- **Cross-field validation**: Dependencies between optional fields
-- **Dynamic type resolution**: Runtime mapping from enum to input class
-
-Relationship to Generated Code:
--------------------------------
-- Generated types (dipeo/diagram_generated/graphql/): Provide type safety
-- NodeTypeRegistry: Adds runtime validation and business rules on top
-- Both work together: Types prevent invalid structure, Registry prevents invalid semantics
-
-Example:
---------
-    # Type system allows this (structurally valid)
-    condition_node = ConditionNode(operator="INVALID_OP")
-
-    # NodeTypeRegistry prevents this (semantically invalid)
-    is_valid, error = NodeTypeRegistry.validate_node_data(
-        NodeTypeGraphQL.CONDITION,
-        {"operator": "INVALID_OP"}
-    )
-    # Returns: (False, "Invalid operator: INVALID_OP")
+Works alongside generated types: types prevent invalid structure, registry prevents invalid semantics.
 """
 
 from typing import Any
@@ -52,12 +15,7 @@ from dipeo.diagram_generated.graphql.enums import NodeTypeGraphQL
 
 
 def _pascal_from_enum(node_type: NodeTypeGraphQL) -> str:
-    """Convert node type enum to Pascal case.
-
-    Examples:
-        "code_job" -> "CodeJob"
-        "json_schema_validator" -> "JsonSchemaValidator"
-    """
+    """Convert node type enum to PascalCase (e.g., "code_job" -> "CodeJob")."""
     return "".join(part.title() for part in node_type.value.split("_"))
 
 
@@ -77,40 +35,12 @@ def get_input_types(node_type: NodeTypeGraphQL) -> tuple[type | None, type | Non
 
 
 class NodeTypeRegistry:
-    """Registry for mapping node types to their input classes and validation logic.
+    """Registry for mapping node types to input classes and runtime validation.
 
-    This class provides:
-    1. Dynamic resolution of Create/Update input types from NodeType enums
-    2. Runtime validation of node data against business rules
-    3. Type-safe creation of input objects for GraphQL mutations
-
-    The registry maintains validation rules that cannot be expressed in the type system:
-    - Cardinality constraints (e.g., "only one START node per diagram")
-    - Value enumerations (e.g., valid operators for CONDITION nodes)
-    - Format requirements (e.g., supported languages for CODE_JOB)
-
-    Usage:
-        # Validate node data
-        is_valid, error = NodeTypeRegistry.validate_node_data(
-            NodeTypeGraphQL.CONDITION,
-            {"operator": "==", "value_b": "test"}
-        )
-
-        # Create input object
-        input_obj = NodeTypeRegistry.create_node_input(
-            node_type=NodeTypeGraphQL.PERSON_JOB,
-            diagram_id="diagram-123",
-            position={"x": 100, "y": 200},
-            data={"person_id": "person-1", "message": "Hello"}
-        )
-
-    Note:
-        While VALIDATION_RULES define business constraints, the actual GraphQL input
-        types are generated from TypeScript specifications. This registry bridges
-        runtime validation with compile-time type safety.
+    Provides dynamic resolution of Create/Update inputs and validates business rules
+    that cannot be expressed in the type system (cardinality, value constraints, formats).
     """
 
-    # Node-specific validation rules
     VALIDATION_RULES: dict[NodeTypeGraphQL, dict[str, Any]] = {
         NodeTypeGraphQL.START: {
             "required_fields": [],
@@ -197,13 +127,10 @@ class NodeTypeRegistry:
         """
         rules = cls.VALIDATION_RULES.get(node_type, {})
 
-        # Check required fields
         required_fields = rules.get("required_fields", [])
         for field in required_fields:
             if field not in data or data[field] is None:
                 return False, f"Missing required field '{field}' for {node_type.value} node"
-
-        # Validate specific node type constraints
         if node_type == NodeTypeGraphQL.PERSON_JOB:
             if "person_id" in data and not isinstance(data["person_id"], str):
                 return (
@@ -273,12 +200,10 @@ class NodeTypeRegistry:
                 f"Ensure the corresponding CreateXxxInput is defined in node_mutations."
             )
 
-        # Validate the data
         is_valid, error = cls.validate_node_data(node_type, data)
         if not is_valid:
             raise ValueError(f"Invalid {node_type.value} node data: {error}")
 
-        # Create the input object
         from dipeo.diagram_generated.graphql.inputs import Vec2Input
 
         return input_class(
@@ -309,13 +234,11 @@ class NodeTypeRegistry:
                 f"Ensure the corresponding UpdateXxxInput is defined in node_mutations."
             )
 
-        # Validate the data if provided
         if data:
             is_valid, error = cls.validate_node_data(node_type, data)
             if not is_valid:
                 raise ValueError(f"Invalid {node_type.value} node data: {error}")
 
-        # Create the update input object
         kwargs = {}
         if position:
             from dipeo.diagram_generated.graphql.inputs import Vec2Input
@@ -337,11 +260,9 @@ class NodeTypeRegistry:
             NodeTypeGraphQL enum value or None if not found
         """
         try:
-            # Convert string to uppercase and replace spaces with underscores
             enum_key = type_string.upper().replace(" ", "_")
             return NodeTypeGraphQL[enum_key]
         except (KeyError, AttributeError):
-            # Try direct value match
             for node_type in NodeTypeGraphQL:
                 if node_type.value == type_string:
                     return node_type

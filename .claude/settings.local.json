@@ -58,7 +58,9 @@
       "Skill(clean-comments)",
       "Bash(do echo \"File: $file\")",
       "Bash(uv pip list)",
-      "Skill(todo-manage)"
+      "Skill(todo-manage)",
+      "Skill(maintain-docs)",
+      "Skill(separate-monolithic-python)"
     ],
     "deny": [],
     "ask": []

@@ -3,15 +3,7 @@ from typing import Any
 
 
 def validate_diff(diff_content: str, format_type: str) -> list[str]:
-    """Validate the diff content for basic structure.
-
-    Args:
-        diff_content: The diff content to validate
-        format_type: The format of the diff (unified, git, context)
-
-    Returns:
-        List of validation error messages (empty if valid)
-    """
+    """Validate diff structure and return error messages (empty if valid)."""
     errors = []
 
     if not diff_content.strip():
@@ -35,14 +27,7 @@ def validate_diff(diff_content: str, format_type: str) -> list[str]:
 
 
 def parse_hunks(diff_content: str) -> list[dict[str, Any]]:
-    """Parse diff content into hunks.
-
-    Args:
-        diff_content: The diff content to parse
-
-    Returns:
-        List of hunk dictionaries with old_start, old_lines, new_start, new_lines, and lines
-    """
+    """Parse diff into hunk dictionaries with line ranges and content."""
     hunks = []
     current_hunk = None
 
@@ -65,15 +50,7 @@ def parse_hunks(diff_content: str) -> list[dict[str, Any]]:
 
 
 def reverse_diff(diff_content: str, format_type: str) -> str:
-    """Reverse a diff (swap additions and deletions).
-
-    Args:
-        diff_content: The diff content to reverse
-        format_type: The format of the diff (currently unused)
-
-    Returns:
-        Reversed diff content
-    """
+    """Reverse diff by swapping additions and deletions."""
     reversed_lines = []
 
     for line in diff_content.splitlines():

@@ -1,6 +1,5 @@
 """Handler for IR builder nodes."""
 
-import logging
 from typing import Any
 
 from pydantic import BaseModel
@@ -9,7 +8,7 @@ from dipeo.application.execution.engine.request import ExecutionRequest
 from dipeo.application.execution.handlers.core.base import TypedNodeHandler
 from dipeo.application.execution.handlers.core.decorators import requires_services
 from dipeo.application.execution.handlers.core.factory import register_handler
-from dipeo.application.registry.keys import IR_BUILDER_REGISTRY, IR_CACHE, ServiceKey
+from dipeo.application.registry.keys import IR_BUILDER_REGISTRY, IR_CACHE
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.unified_nodes.ir_builder_node import IrBuilderNode, NodeType
 from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
@@ -51,14 +50,7 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
         return "Builds intermediate representation (IR) from source data"
 
     def validate(self, request: ExecutionRequest[IrBuilderNode]) -> str | None:
-        """Static validation - structural checks only.
-
-        Args:
-            request: Execution request with node
-
-        Returns:
-            Error message if validation fails, None otherwise
-        """
+        """Static validation of node configuration."""
         node = request.node
 
         if not node.builder_type:
@@ -70,14 +62,7 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
         return None
 
     async def pre_execute(self, request: ExecutionRequest[IrBuilderNode]) -> Envelope | None:
-        """Runtime validation and setup.
-
-        Args:
-            request: Execution request with node
-
-        Returns:
-            Error envelope if setup fails, None otherwise
-        """
+        """Runtime validation and setup."""
         node = request.node
 
         try:
@@ -111,15 +96,7 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
     async def prepare_inputs(
         self, request: ExecutionRequest[IrBuilderNode], inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Convert envelope inputs to source data for IR building.
-
-        Args:
-            request: Execution request
-            inputs: Input envelopes from edges
-
-        Returns:
-            Prepared source data
-        """
+        """Convert envelope inputs to source data for IR building."""
         if "default" in inputs:
             envelope = inputs["default"]
             if hasattr(envelope, "body"):
@@ -132,15 +109,7 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
         return {}
 
     async def run(self, inputs: dict[str, Any], request: ExecutionRequest[IrBuilderNode]) -> Any:
-        """Execute IR building.
-
-        Args:
-            inputs: Prepared source data
-            request: Execution request
-
-        Returns:
-            Built IR data
-        """
+        """Execute IR building."""
         node = request.node
         current_builder = request.get_handler_state("current_builder")
 
@@ -195,15 +164,7 @@ class IrBuilderNodeHandler(TypedNodeHandler[IrBuilderNode]):
             raise
 
     def serialize_output(self, result: Any, request: ExecutionRequest[IrBuilderNode]) -> Envelope:
-        """Serialize IR data to envelope.
-
-        Args:
-            result: IR data to serialize
-            request: Execution request
-
-        Returns:
-            Envelope containing the IR data
-        """
+        """Serialize IR data to envelope."""
         node = request.node
 
         envelope = EnvelopeFactory.create(

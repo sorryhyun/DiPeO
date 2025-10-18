@@ -11,15 +11,7 @@ logger = get_module_logger(__name__)
 
 
 def create_backup(target_path: Path, backup_dir: Path | None) -> Path:
-    """Create a backup of the target file.
-
-    Args:
-        target_path: Path to the file to backup
-        backup_dir: Optional directory to store backup (uses same dir if None)
-
-    Returns:
-        Path to the created backup file
-    """
+    """Create backup with PID suffix in specified or same directory."""
     if backup_dir:
         backup_dir.mkdir(parents=True, exist_ok=True)
         backup_path = backup_dir / f"{target_path.name}.backup.{os.getpid()}"
@@ -38,19 +30,7 @@ def apply_diff(
     fuzz_factor: int,
     ignore_whitespace: bool,
 ) -> tuple[list[str], list[dict[str, Any]]]:
-    """Apply diff to original lines and return patched lines and rejected hunks.
-
-    Args:
-        original_lines: Original file content as list of lines
-        diff_content: The diff content to apply
-        format_type: The format of the diff
-        strip_level: Number of path components to strip
-        fuzz_factor: Number of lines of fuzz to allow
-        ignore_whitespace: Whether to ignore whitespace in matching
-
-    Returns:
-        Tuple of (patched_lines, rejected_hunks)
-    """
+    """Apply diff with fuzzy matching and return (patched_lines, rejected_hunks)."""
     if format_type not in ["unified", "git"]:
         logger.warning(f"Format {format_type} not fully supported, treating as unified")
 
@@ -105,12 +85,7 @@ def apply_diff(
 
 
 def save_rejected_hunks(reject_file: Path, rejected_hunks: list[dict[str, Any]]) -> None:
-    """Save rejected hunks to a file.
-
-    Args:
-        reject_file: Path to save rejected hunks
-        rejected_hunks: List of rejected hunk dictionaries
-    """
+    """Save rejected hunks in diff format for manual review."""
     reject_content = []
 
     for i, hunk in enumerate(rejected_hunks, 1):
@@ -127,22 +102,14 @@ def save_rejected_hunks(reject_file: Path, rejected_hunks: list[dict[str, Any]])
 
 
 def calculate_file_hash(content: str) -> str:
+    """Calculate SHA256 hash of file content."""
     return hashlib.sha256(content.encode()).hexdigest()
 
 
 def _match_content(
     actual_lines: list[str], expected_lines: list[str], ignore_whitespace: bool
 ) -> bool:
-    """Check if actual lines match expected lines.
-
-    Args:
-        actual_lines: Lines from the file
-        expected_lines: Lines from the diff
-        ignore_whitespace: Whether to ignore whitespace in comparison
-
-    Returns:
-        True if lines match, False otherwise
-    """
+    """Check if actual lines match expected with optional whitespace normalization."""
     if len(actual_lines) != len(expected_lines):
         return False
 

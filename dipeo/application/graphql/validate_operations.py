@@ -18,7 +18,6 @@ from dipeo.application.registry.enhanced_service_registry import (
 )
 from dipeo.diagram_generated.graphql import operations
 
-# Add project root to path
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -29,7 +28,6 @@ def get_all_generated_operations() -> set[str]:
 
     for name in dir(operations):
         if name.endswith("Operation") and not name.startswith("_"):
-            # Remove 'Operation' suffix to get the operation name
             op_name = name[: -len("Operation")]
             all_ops.add(op_name)
 
@@ -42,13 +40,9 @@ def analyze_operation_coverage(executor: OperationExecutor) -> dict[str, any]:
     generated_ops = get_all_generated_operations()
     registered_ops = set(executor.operations.keys())
 
-    # Find missing operations
     missing = generated_ops - registered_ops
-
-    # Find extra operations (registered but not generated)
     extra = registered_ops - generated_ops
 
-    # Calculate coverage
     coverage = (
         len(registered_ops & generated_ops) / len(generated_ops) * 100 if generated_ops else 0
     )
@@ -78,7 +72,6 @@ def categorize_operations(executor: OperationExecutor) -> dict[str, list[str]]:
         elif op_type == "subscription":
             categories["subscriptions"].append(op_name)
 
-    # Sort each category
     for cat in categories:
         categories[cat].sort()
 
@@ -93,7 +86,6 @@ def print_report(executor: OperationExecutor):
     print("=" * 80)
     print()
 
-    # Coverage analysis
     coverage = analyze_operation_coverage(executor)
 
     print("📊 Coverage Summary:")
@@ -103,7 +95,6 @@ def print_report(executor: OperationExecutor):
     print(f"  Coverage: {coverage['coverage_percent']:.1f}%")
     print()
 
-    # Operation categories
     categories = categorize_operations(executor)
 
     print("📋 Operation Breakdown:")
@@ -112,7 +103,6 @@ def print_report(executor: OperationExecutor):
     print(f"  Subscriptions: {len(categories['subscriptions'])}")
     print()
 
-    # Missing operations
     if coverage["missing"]:
         print(f"❌ Missing Operations ({len(coverage['missing'])}):")
         for op in coverage["missing"]:
@@ -122,14 +112,12 @@ def print_report(executor: OperationExecutor):
         print("✅ All generated operations are implemented!")
         print()
 
-    # Extra operations
     if coverage["extra"]:
         print("⚠️  Extra Operations (registered but not generated):")
         for op in coverage["extra"]:
             print(f"    - {op}")
         print()
 
-    # Detailed breakdown
     print("📝 Detailed Operation List:")
     print()
 
@@ -152,7 +140,6 @@ def print_report(executor: OperationExecutor):
             print(f"    {status} {sub}")
         print()
 
-    # Final status
     print("=" * 80)
     if not coverage["missing"]:
         print("✅ VALIDATION PASSED: All operations are implemented!")
@@ -160,7 +147,6 @@ def print_report(executor: OperationExecutor):
         print(f"❌ VALIDATION FAILED: {len(coverage['missing'])} operations need implementation")
     print("=" * 80)
 
-    # Return exit code
     return 0 if not coverage["missing"] else 1
 
 
@@ -168,16 +154,10 @@ async def main():
     """Main validation function."""
 
     try:
-        # Create a minimal registry for testing
         registry = ServiceRegistry()
-
-        # Initialize the operation executor
         executor = OperationExecutor(registry)
-
-        # Print the validation report
         exit_code = print_report(executor)
 
-        # Also validate that operations can be retrieved
         print("\n🔍 Testing Operation Query Retrieval:")
         test_ops = ["GetDiagram", "CreateNode", "ExecuteDiagram"]
         for op_name in test_ops:
@@ -189,7 +169,6 @@ async def main():
 
         print()
 
-        # List all operations
         all_ops = executor.list_operations()
         print(f"📊 Total Operations Registered: {len(all_ops)}")
 

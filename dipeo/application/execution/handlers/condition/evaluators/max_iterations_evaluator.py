@@ -1,6 +1,5 @@
 """Evaluator for max iterations condition."""
 
-import logging
 from typing import Any
 
 from dipeo.application.execution.handlers.utils import get_node_execution_count
@@ -34,8 +33,6 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
 
             if exec_count > 0:
                 found_executed = True
-
-                node_state = context.state.get_node_state(node.id)
 
                 # Use >= because if exec_count equals max_iteration, we've done all iterations
                 if exec_count < node.max_iteration:

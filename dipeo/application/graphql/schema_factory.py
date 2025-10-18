@@ -10,8 +10,6 @@ from strawberry.scalars import JSON
 from strawberry.schema.config import StrawberryConfig
 
 from dipeo.application.registry import ServiceRegistry
-
-# Import generated schema (Now includes fixed Subscription)
 from dipeo.diagram_generated.graphql.generated_schema import Mutation, Query, Subscription
 
 
@@ -24,7 +22,6 @@ def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
     Returns:
         A Strawberry GraphQL schema ready to be served
     """
-    # Import scalar types from generated code
     from dipeo.diagram_generated.graphql.domain_types import (
         AuthConfigType,
         IntegrationTestResultType,
@@ -48,27 +45,18 @@ def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
         TaskIDScalar,
     )
 
-    # Use generated schema for Query, Mutation, and Subscription
     query = Query
     mutation = Mutation
     subscription = Subscription
 
-    # Create the schema with configuration
     schema = strawberry.Schema(
         query=query,
         mutation=mutation,
         subscription=subscription,
         extensions=[],
-        # Disable auto camelCase conversion to keep snake_case field names
         config=StrawberryConfig(auto_camel_case=False),
-        scalar_overrides={
-            # Register JSON scalar type
-            dict: JSON
-        },
-        # Register only custom scalar types that Strawberry can't auto-discover
-        # Domain types referenced by Query/Mutation/Subscription fields are auto-discovered
+        scalar_overrides={dict: JSON},
         types=[
-            # Custom scalar types (required for GraphQL schema)
             NodeIDScalar,
             HandleIDScalar,
             ArrowIDScalar,
@@ -78,7 +66,6 @@ def create_schema(registry: ServiceRegistry) -> strawberry.Schema:
             ExecutionIDScalar,
             HookIDScalar,
             TaskIDScalar,
-            # Provider types (generated from TypeScript models)
             ProviderType,
             OperationType,
             ProviderMetadataType,

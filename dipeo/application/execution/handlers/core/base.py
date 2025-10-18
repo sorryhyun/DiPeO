@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 logger = get_module_logger(__name__)
 
 T = TypeVar("T", bound=ExecutableNode)
-TNode = TypeVar("TNode")
 
 
 class TokenHandlerMixin:

@@ -2,7 +2,7 @@ import contextlib
 import json
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -17,17 +17,11 @@ from dipeo.diagram_generated.unified_nodes.json_schema_validator_node import (
 )
 from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
-if TYPE_CHECKING:
-    pass
-
 
 @register_handler
 @requires_services(filesystem_adapter=FILESYSTEM_ADAPTER)
 class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
-    """Handler for JSON Schema validation.
-
-    Now uses envelope-based communication for clean input/output interfaces.
-    """
+    """Handler for JSON Schema validation."""
 
     NODE_TYPE = NodeType.JSON_SCHEMA_VALIDATOR
 
@@ -84,14 +78,10 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
     async def prepare_inputs(
         self, request: ExecutionRequest[JsonSchemaValidatorNode], inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Convert envelope inputs to data for validation.
-
-        Phase 5: Now consumes tokens from incoming edges when available.
-        """
+        """Convert envelope inputs to data for validation."""
         envelope_inputs = self.get_effective_inputs(request, inputs)
 
         node = request.node
-        services = request.services
         filesystem_adapter = request.get_required_service(FILESYSTEM_ADAPTER)
 
         request.set_handler_state("envelope_inputs", envelope_inputs)
@@ -145,7 +135,6 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         self, inputs: dict[str, Any], request: ExecutionRequest[JsonSchemaValidatorNode]
     ) -> Any:
         node = request.node
-        services = request.services
         filesystem_adapter = self._filesystem_adapter
 
         if node.json_schema:
@@ -172,15 +161,6 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
         )
 
         if validation_result["valid"]:
-            debug = request.get_handler_state("debug")
-            schema_path = request.get_handler_state("schema_path")
-            if debug:
-                print(f"[JsonSchemaValidatorNode] ✓ Validation successful for node {node.id}")
-                if node.data_path:
-                    print(f"[JsonSchemaValidatorNode]   - Data file: {node.data_path}")
-                if schema_path:
-                    print(f"[JsonSchemaValidatorNode]   - Schema file: {schema_path}")
-
             return {
                 "data": data_to_validate,
                 "validation_result": validation_result,
@@ -188,24 +168,6 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
                 "data_path": node.data_path,
             }
         else:
-            debug = request.get_handler_state("debug")
-            schema_path = request.get_handler_state("schema_path")
-            if debug:
-                print(f"[JsonSchemaValidatorNode] ✗ Validation FAILED for node {node.id}")
-                if node.data_path:
-                    print(f"[JsonSchemaValidatorNode]   - Data file: {node.data_path}")
-                if schema_path:
-                    print(f"[JsonSchemaValidatorNode]   - Schema file: {schema_path}")
-                print(
-                    f"[JsonSchemaValidatorNode]   - Errors found: {len(validation_result['errors'])}"
-                )
-                for i, error in enumerate(validation_result["errors"][:3]):
-                    print(f"[JsonSchemaValidatorNode]     {i+1}. {error}")
-                if len(validation_result["errors"]) > 3:
-                    print(
-                        f"[JsonSchemaValidatorNode]     ... and {len(validation_result['errors']) - 3} more errors"
-                    )
-
             error_message = f"Validation failed: {'; '.join(validation_result['errors'])}"
             raise ValueError(error_message)
 
@@ -290,27 +252,5 @@ class JsonSchemaValidatorNodeHandler(TypedNodeHandler[JsonSchemaValidatorNode]):
     def post_execute(
         self, request: ExecutionRequest[JsonSchemaValidatorNode], output: Envelope
     ) -> Envelope:
-        """Phase 5: Now emits output as tokens to trigger downstream nodes."""
         self.emit_token_outputs(request, output)
-
-        debug = request.get_handler_state("debug")
-        strict_mode = request.get_handler_state("strict_mode")
-        if debug:
-            if not output.has_error():
-                print(
-                    f"[JsonSchemaValidatorNode] Validation complete - Valid: True, Strict: {strict_mode}"
-                )
-            else:
-                try:
-                    metadata = output.get_metadata_dict()
-                    errors = metadata.get("errors", [])
-                    if errors:
-                        print(f"[JsonSchemaValidatorNode] Validation errors: {len(errors)}")
-                        for error in errors[:3]:
-                            print(f"  - {error}")
-                        if len(errors) > 3:
-                            print(f"  ... and {len(errors) - 3} more errors")
-                except Exception:
-                    pass
-
         return output

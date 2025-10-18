@@ -44,7 +44,7 @@ class PromptFileResolver:
         return None
 
     def load_prompt_file(self, prompt_filename: str, node_label: str | None = None) -> str | None:
-        """Load prompt content from file."""
+        """Load prompt content from file, searching diagram-local then global directories."""
         if not self.filesystem:
             logger.error(
                 f"[PromptResolver] No filesystem adapter available! "

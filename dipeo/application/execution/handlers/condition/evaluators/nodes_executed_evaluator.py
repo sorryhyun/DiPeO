@@ -1,6 +1,5 @@
 """Evaluator for checking if specific nodes have been executed."""
 
-import logging
 from typing import Any
 
 from dipeo.config.base_logger import get_module_logger

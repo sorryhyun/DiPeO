@@ -1,5 +1,6 @@
 """Base executor protocol for language-specific code execution."""
 
+import json
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Protocol, TypedDict
@@ -34,8 +35,6 @@ class BaseCodeExecutor(ABC):
     """Base class for code executors with common functionality."""
 
     def prepare_inputs(self, inputs: dict[str, Any]) -> dict[str, Any]:
-        import json
-
         prepared = {}
         if not isinstance(inputs, dict):
             return prepared
