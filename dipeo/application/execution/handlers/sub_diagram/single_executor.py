@@ -1,15 +1,15 @@
 """Single sub-diagram executor - handles execution of individual sub-diagrams."""
 
-import logging
 from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.engine.request import ExecutionRequest
-from dipeo.application.execution.handlers.sub_diagram.base_executor import BaseSubDiagramExecutor
 from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated import Status
 from dipeo.diagram_generated.unified_nodes.sub_diagram_node import SubDiagramNode
 from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
+
+from .base_executor import BaseSubDiagramExecutor
 
 if TYPE_CHECKING:
     pass
@@ -35,10 +35,7 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
         )
 
     async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> Envelope:
-        """Execute a single sub-diagram and return an Envelope.
-
-        Returns an Envelope containing the execution results.
-        """
+        """Execute a single sub-diagram with state tracking."""
         node = request.node
         trace_id = request.execution_id or ""
 
@@ -93,8 +90,6 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
     def _create_execution_use_case(
         self, request: ExecutionRequest[SubDiagramNode]
     ) -> ExecuteDiagramUseCase:
-        from dipeo.application.execution.use_cases.execute_diagram import ExecuteDiagramUseCase
-
         service_registry = request.parent_registry
         if not service_registry:
             from dipeo.application.registry import ServiceKey, ServiceRegistry
@@ -144,10 +139,7 @@ class SingleSubDiagramExecutor(BaseSubDiagramExecutor):
         execution_results: dict[str, Any],
         execution_error: str | None,
     ) -> Envelope:
-        """Build and return an Envelope with execution results.
-
-        Creates an Envelope containing the execution results or error.
-        """
+        """Build an Envelope with execution results or error."""
         trace_id = sub_execution_id
 
         if execution_error:

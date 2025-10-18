@@ -21,21 +21,12 @@ logger = get_module_logger(__name__)
 
 
 class TypeScriptParser:
-    """TypeScript AST parser using ts-morph via Node.js subprocess."""
-
     def __init__(
         self,
         project_root: Path | None = None,
         parser_script: Path | None = None,
         cache_enabled: bool = True,
     ):
-        """Initialize the TypeScript parser.
-
-        Args:
-            project_root: Project root directory. If not provided, uses centralized BASE_DIR config.
-            parser_script: Path to the parser script. If not provided, uses default location.
-            cache_enabled: Whether to enable AST caching (default: True)
-        """
         self.project_root = project_root or BASE_DIR
 
         if parser_script:
@@ -52,24 +43,6 @@ class TypeScriptParser:
     async def parse(
         self, source: str, extract_patterns: list[str], options: dict[str, Any] | None = None
     ) -> dict[str, Any]:
-        """Parse TypeScript source code and extract AST information.
-
-        Args:
-            source: The TypeScript source code to parse
-            extract_patterns: List of patterns to extract (e.g., ["interface", "type", "enum"])
-            options: Optional parser-specific options:
-                - includeJSDoc: Whether to include JSDoc comments (default: False)
-                - parseMode: 'module' or 'script' (default: 'module')
-
-        Returns:
-            Dictionary containing:
-                - ast: The extracted AST nodes organized by pattern type
-                - metadata: Additional metadata about the parsing operation
-
-        Raises:
-            ServiceError: If parsing fails
-        """
-
         options = options or {}
         include_jsdoc = options.get("includeJSDoc", False)
         parse_mode = options.get("parseMode", "module")
@@ -139,8 +112,6 @@ class TypeScriptParser:
 
             os.unlink(tmp_file_path)
 
-            # logger.debug(f"[TypeScriptParser] Command completed with return code: {returncode}")
-
             if returncode != 0:
                 logger.error(f"[TypeScriptParser] Parser failed with return code {returncode}")
                 logger.error(f"[TypeScriptParser] Command was: {' '.join(cmd)}")
@@ -209,7 +180,6 @@ class TypeScriptParser:
             raise ServiceError(f"Unexpected error during TypeScript parsing: {e!s}") from e
 
     def clear_cache(self):
-        """Clear the in-memory AST cache."""
         if self._cache is not None:
             self._cache.clear()
         else:
@@ -218,19 +188,6 @@ class TypeScriptParser:
     async def parse_file(
         self, file_path: str, extract_patterns: list[str], options: dict[str, Any] | None = None
     ) -> dict[str, Any]:
-        """Parse a TypeScript file.
-
-        Args:
-            file_path: Path to the TypeScript file (relative to project root)
-            extract_patterns: List of patterns to extract
-            options: Optional parser-specific options
-
-        Returns:
-            Same as parse() method
-
-        Raises:
-            ServiceError: If file reading or parsing fails
-        """
         full_path = self.project_root / file_path
 
         if not full_path.exists():
@@ -251,22 +208,7 @@ class TypeScriptParser:
         extract_patterns: list[str],
         options: dict[str, Any] | None = None,
     ) -> dict[str, dict[str, Any]]:
-        """Parse multiple TypeScript sources in a single operation.
-
-        This method significantly reduces subprocess overhead by processing
-        all sources in a single Node.js execution.
-
-        Args:
-            sources: Dictionary mapping keys to TypeScript source code
-            extract_patterns: List of patterns to extract (e.g., ["interface", "type", "enum"])
-            options: Optional parser-specific options
-
-        Returns:
-            Dictionary mapping each key to its parse result
-
-        Raises:
-            ServiceError: If batch parsing fails
-        """
+        """Reduce subprocess overhead by processing all sources in a single Node.js execution."""
         options = options or {}
         include_jsdoc = options.get("includeJSDoc", False)
         parse_mode = options.get("parseMode", "module")
@@ -428,19 +370,6 @@ class TypeScriptParser:
         extract_patterns: list[str],
         options: dict[str, Any] | None = None,
     ) -> dict[str, dict[str, Any]]:
-        """Parse multiple TypeScript files in a single operation.
-
-        Args:
-            file_paths: List of file paths relative to project root
-            extract_patterns: List of patterns to extract
-            options: Optional parser-specific options
-
-        Returns:
-            Dictionary mapping file paths to parse results
-
-        Raises:
-            ServiceError: If file reading or parsing fails
-        """
         sources = {}
 
         for file_path in file_paths:

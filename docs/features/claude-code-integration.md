@@ -182,13 +182,23 @@ nodes:
 - `at_most`: Maximum messages to keep (optional, system messages preserved automatically)
 - `ignore_person`: Exclude specific persons from memory selection (optional)
 
-**Backward Compatibility:** Diagrams using legacy `memory_profile` settings are automatically converted to the current memory configuration format.
+**Backward Compatibility:** Diagrams using legacy `memory_profile` settings are automatically converted to the supported memory configuration format.
+
+## Tool Support
+
+Claude Code supports structured output via MCP tools:
+
+- `select_memory_messages`: Select relevant messages from conversation history
+- `make_decision`: Make binary YES/NO decisions based on criteria
+
+These tools enable:
+- **Memory Selection**: LLM-driven selection of relevant context
+- **Condition Evaluation**: Binary decision making for `llm_decision` condition nodes
 
 ## Limitations
 
-- Tool/function calling is not yet supported
 - Response API pattern is not available
-- Models list API is not available (returns predefined list)
+- Models list API returns predefined list
 
 ## Advanced Example: Code Review Workflow
 

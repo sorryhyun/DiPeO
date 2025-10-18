@@ -1,9 +1,4 @@
-"""Single-flight cache for deduplicating concurrent async operations.
-
-This pattern ensures that when multiple coroutines request the same resource
-concurrently, only one actually performs the expensive operation (e.g., pulling
-a model) while others wait for its result.
-"""
+"""Single-flight cache: deduplicates concurrent async operations (only first executes, others wait)."""
 
 import asyncio
 import logging
@@ -18,18 +13,7 @@ T = TypeVar("T")
 
 
 class SingleFlightCache:
-    """Cache that deduplicates concurrent requests for the same key.
-
-    When multiple coroutines request the same key simultaneously:
-    - The first becomes the "leader" and executes the factory function
-    - Others become "followers" and wait for the leader's result
-    - All get the same result (or exception)
-
-    This is particularly useful for operations like:
-    - Model downloading/pulling
-    - Expensive API calls
-    - Database lookups
-    """
+    """Deduplicates concurrent requests: first caller executes, others wait for result."""
 
     def __init__(self):
         self._lock = asyncio.Lock()
@@ -39,19 +23,6 @@ class SingleFlightCache:
     async def get_or_create(
         self, key: str, factory: Callable[[], Coroutine[Any, Any, T]], cache_result: bool = True
     ) -> T:
-        """Get a value from cache or create it using the factory.
-
-        Args:
-            key: Cache key to identify the resource
-            factory: Async function that creates the resource
-            cache_result: If True, cache the result permanently
-
-        Returns:
-            The cached or newly created resource
-
-        Raises:
-            Any exception raised by the factory function
-        """
         if cache_result and key in self._permanent_cache:
             return self._permanent_cache[key]
 
@@ -95,7 +66,6 @@ class SingleFlightCache:
                 raise
 
     def clear(self, key: str | None = None):
-        """Clear cached results for specific key or all keys."""
         if key:
             self._permanent_cache.pop(key, None)
         else:

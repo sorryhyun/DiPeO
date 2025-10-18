@@ -1,6 +1,4 @@
-"""Handler for Integrated API node."""
-
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -12,9 +10,6 @@ from dipeo.application.registry import API_KEY_SERVICE, INTEGRATED_API_SERVICE
 from dipeo.diagram_generated.unified_nodes.integrated_api_node import IntegratedApiNode, NodeType
 from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
-if TYPE_CHECKING:
-    pass
-
 
 @register_handler
 @requires_services(integrated_api_service=INTEGRATED_API_SERVICE, api_key_service=API_KEY_SERVICE)
@@ -22,9 +17,6 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
     """Handler for executing integrated API operations across multiple providers."""
 
     NODE_TYPE = NodeType.INTEGRATED_API
-
-    def __init__(self):
-        super().__init__()
 
     @property
     def node_class(self) -> type[IntegratedApiNode]:
@@ -44,8 +36,6 @@ class IntegratedApiNodeHandler(TypedNodeHandler[IntegratedApiNode]):
 
     async def pre_execute(self, request: ExecutionRequest[IntegratedApiNode]) -> Envelope | None:
         node = request.node
-
-        # Get services from request
         integrated_api_service = request.get_optional_service(INTEGRATED_API_SERVICE)
         api_key_service = request.get_optional_service(API_KEY_SERVICE)
 

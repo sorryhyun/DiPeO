@@ -15,17 +15,16 @@ export function createFullSnapshot(state: Partial<UnifiedStore>): Snapshot {
 
 export function recordHistory(state: Draft<UnifiedStore>) {
   if (!state.history.currentTransaction) {
-    // Create snapshot using current() to get the current state from Draft
-    const currentState = current(state) as UnifiedStore;
+    // Create snapshot - cast maps to avoid deep type instantiation errors with immer Draft types
     const snapshot: Snapshot = {
-      nodes: new Map(currentState.nodes),
-      arrows: new Map(currentState.arrows),
-      persons: new Map(currentState.persons),
-      handles: new Map(currentState.handles),
+      nodes: new Map(state.nodes as any),
+      arrows: new Map(state.arrows as any),
+      persons: new Map(state.persons as any),
+      handles: new Map(state.handles as any),
       timestamp: Date.now(),
     };
-    // Push to history stacks
-    state.history.undoStack.push(snapshot);
+    // Push to history stacks - use aggressive casting to avoid deep type instantiation issues
+    (state.history.undoStack as any).push(snapshot);
     state.history.redoStack = [];
     if (state.history.undoStack.length > MAX_HISTORY_SIZE) {
       state.history.undoStack.shift();

@@ -18,12 +18,6 @@ class OutputBuilder:
     def __init__(
         self, text_format_handler: TextFormatHandler, conversation_handler: ConversationHandler
     ):
-        """Initialize OutputBuilder with required dependencies.
-
-        Args:
-            text_format_handler: Handler for text format processing
-            conversation_handler: Handler for conversation operations
-        """
         self._text_format_handler = text_format_handler
         self._conversation_handler = conversation_handler
 
@@ -38,21 +32,7 @@ class OutputBuilder:
         selected_messages: list | None = None,
         execution_orchestrator: Any = None,
     ) -> dict[str, Any]:
-        """Build node output as dict for single execution.
-
-        Args:
-            result: LLM result
-            person: Person executing the job
-            node: PersonJobNode configuration
-            diagram: Diagram containing the node
-            model: LLM model used
-            trace_id: Execution trace ID
-            selected_messages: Messages selected for context
-            execution_orchestrator: Orchestrator for accessing conversation
-
-        Returns:
-            Dictionary with body and metadata
-        """
+        """Build output with appropriate representations (text, object, conversation) based on node configuration."""
         llm_usage = None
         if hasattr(result, "llm_usage") and result.llm_usage:
             llm_usage = result.llm_usage
@@ -104,14 +84,7 @@ class OutputBuilder:
         }
 
     def _extract_text(self, result: Any) -> str:
-        """Extract text representation from result.
-
-        Args:
-            result: LLM result
-
-        Returns:
-            Text representation
-        """
+        """Extract text representation from result."""
         if hasattr(result, "content"):
             return result.content
         elif hasattr(result, "text"):
@@ -119,19 +92,10 @@ class OutputBuilder:
         return str(result)
 
     def _extract_object(self, result: Any, node: PersonJobNode) -> dict | None:
-        """Extract structured object if text_format was used.
-
-        Args:
-            result: LLM result
-            node: PersonJobNode configuration
-
-        Returns:
-            Structured object or None
-        """
+        """Extract structured object if text_format was configured."""
         has_text_format = (hasattr(node, "text_format") and node.text_format) or (
             hasattr(node, "text_format_file") and node.text_format_file
         )
-
         if has_text_format:
             return self._text_format_handler.process_structured_output(result, True)
         return None
@@ -144,18 +108,7 @@ class OutputBuilder:
         result: Any,
         execution_orchestrator: Any = None,
     ) -> dict[str, Any]:
-        """Build conversation representation.
-
-        Args:
-            person: Person executing the job
-            selected_messages: Messages selected for context
-            model: LLM model used
-            result: LLM result
-            execution_orchestrator: Orchestrator for accessing conversation
-
-        Returns:
-            Dictionary with conversation data
-        """
+        """Build conversation representation, filtering messages relevant to this person."""
         if selected_messages is not None:
             messages = selected_messages
         else:
@@ -164,7 +117,6 @@ class OutputBuilder:
                 if execution_orchestrator and hasattr(execution_orchestrator, "get_conversation")
                 else []
             )
-            # Filter messages relevant to this person
             messages = [
                 msg
                 for msg in all_conv_messages
@@ -179,20 +131,11 @@ class OutputBuilder:
         }
 
     def _any_edge_needs_conversation(self, node_id: str, diagram: Any) -> bool:
-        """Check if any outgoing edge needs conversation representation.
-
-        Args:
-            node_id: Node ID to check
-            diagram: Diagram containing the node
-
-        Returns:
-            True if any edge needs conversation representation
-        """
+        """Check if any outgoing edge needs conversation representation."""
         from dipeo.diagram_generated.enums import ContentType
 
         if not diagram or not hasattr(diagram, "get_outgoing_edges"):
             return False
-
         edges = diagram.get_outgoing_edges(node_id)
         return any(
             hasattr(edge, "content_type") and edge.content_type == ContentType.CONVERSATION_STATE
@@ -205,20 +148,10 @@ class OutputBuilder:
         node: PersonJobNode,
         execution_orchestrator: Any = None,
     ) -> dict[str, Any] | None:
-        """Build memory selection information for metadata.
-
-        Args:
-            selected_messages: Messages selected for context
-            node: PersonJobNode configuration
-            execution_orchestrator: Orchestrator for accessing conversation
-
-        Returns:
-            Dictionary with memory selection info or None
-        """
+        """Build memory selection metadata including counts and criteria."""
         if selected_messages is None:
             return None
 
-        # Get all messages from conversation to determine the total count
         all_messages = (
             execution_orchestrator.get_conversation().messages
             if execution_orchestrator and hasattr(execution_orchestrator, "get_conversation")

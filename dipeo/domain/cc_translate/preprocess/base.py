@@ -11,8 +11,6 @@ from dipeo.domain.cc_translate.models.session import DomainSession
 
 
 class SessionChangeType(Enum):
-    """Types of changes that can be made to a session during preprocessing."""
-
     EVENT_PRUNED = "event_pruned"
     FIELD_REMOVED = "field_removed"
     CONTENT_MODIFIED = "content_modified"
@@ -23,8 +21,6 @@ class SessionChangeType(Enum):
 
 @dataclass
 class SessionChange:
-    """Represents a single change made to a session during preprocessing."""
-
     change_type: SessionChangeType
     description: str
     target: str  # What was changed (e.g., "event_123", "field:content")
@@ -37,8 +33,6 @@ class SessionChange:
 
 @dataclass
 class SessionProcessingReport:
-    """Report of all changes made during session preprocessing."""
-
     session_id: str
     changes: list[SessionChange] = field(default_factory=list)
     total_events_before: int = 0
@@ -49,39 +43,31 @@ class SessionProcessingReport:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def add_change(self, change: SessionChange) -> None:
-        """Add a change to the report."""
         self.changes.append(change)
 
     def add_error(self, error: str) -> None:
-        """Add an error to the report."""
         self.errors.append(error)
 
     def add_warning(self, warning: str) -> None:
-        """Add a warning to the report."""
         self.warnings.append(warning)
 
     @property
     def total_changes(self) -> int:
-        """Get total number of changes made."""
         return len(self.changes)
 
     @property
     def has_errors(self) -> bool:
-        """Check if processing had errors."""
         return len(self.errors) > 0
 
     @property
     def events_pruned_count(self) -> int:
-        """Count of events that were pruned."""
         return sum(1 for c in self.changes if c.change_type == SessionChangeType.EVENT_PRUNED)
 
     @property
     def fields_removed_count(self) -> int:
-        """Count of fields that were removed."""
         return sum(1 for c in self.changes if c.change_type == SessionChangeType.FIELD_REMOVED)
 
     def get_summary(self) -> str:
-        """Get a summary of the processing results."""
         lines = [
             f"Session Processing Report for {self.session_id}",
             f"  Events: {self.total_events_before} → {self.total_events_after}",
@@ -103,12 +89,10 @@ class BaseSessionProcessor(ABC):
     """Abstract base class for all session processors in the preprocess phase."""
 
     def __init__(self, config: Any | None = None):
-        """Initialize processor with optional configuration."""
         self.config = config or self._get_default_config()
 
     @abstractmethod
     def _get_default_config(self) -> Any:
-        """Get default configuration for this processor."""
         pass
 
     @abstractmethod
@@ -126,14 +110,6 @@ class BaseSessionProcessor(ABC):
         pass
 
     def validate_session(self, session: DomainSession) -> list[str]:
-        """Validate that a session can be processed.
-
-        Args:
-            session: The session to validate
-
-        Returns:
-            List of validation errors, empty if valid
-        """
         errors = []
 
         if session is None:
@@ -146,7 +122,6 @@ class BaseSessionProcessor(ABC):
         return errors
 
     def _create_report(self, session: DomainSession) -> SessionProcessingReport:
-        """Create a new processing report for a session."""
         return SessionProcessingReport(
             session_id=getattr(session, "id", "unknown"),
             total_events_before=len(getattr(session, "events", [])),

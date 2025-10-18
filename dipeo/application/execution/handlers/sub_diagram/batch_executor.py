@@ -8,7 +8,6 @@ This executor implements optimizations for batch parallel execution:
 """
 
 import asyncio
-import logging
 from typing import TYPE_CHECKING, Any
 
 from dipeo.application.execution.engine.request import ExecutionRequest
@@ -216,10 +215,10 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         if not all([self._state_store, self._message_router, self._diagram_service]):
             raise ValueError("Required services not configured")
 
+        from dipeo.application.registry import ServiceKey, ServiceRegistry
+
         service_registry = request.parent_registry
         if not service_registry:
-            from dipeo.application.registry import ServiceKey, ServiceRegistry
-
             service_registry = ServiceRegistry()
             for service_name, service in request.services.items():
                 key = ServiceKey(service_name)
@@ -280,7 +279,6 @@ class BatchSubDiagramExecutor(BaseSubDiagramExecutor):
         domain_diagram: Any,  # DomainDiagram
         base_context: dict[str, Any],
     ) -> tuple[list[Any], list[dict[str, Any]]]:
-        """Execute batch items sequentially."""
         results = []
         errors = []
 

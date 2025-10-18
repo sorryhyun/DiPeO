@@ -1,6 +1,5 @@
-import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -14,9 +13,6 @@ from dipeo.diagram_generated.enums import NodeType
 from dipeo.diagram_generated.unified_nodes.endpoint_node import EndpointNode
 from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
-if TYPE_CHECKING:
-    pass
-
 
 @register_handler
 @requires_services(filesystem_adapter=(FILESYSTEM_ADAPTER, Optional))
@@ -24,9 +20,6 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
     """Endpoint node - pass through data and optionally save to file."""
 
     NODE_TYPE = NodeType.ENDPOINT
-
-    def __init__(self):
-        super().__init__()
 
     @property
     def node_class(self) -> type[EndpointNode]:
@@ -65,9 +58,6 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
                 file_name = node.metadata.get("file_path")
 
             if not file_name:
-                pass
-
-            if not file_name:
                 file_name = f"output_{node.id}.json"
 
             request.set_handler_state("save_enabled", True)
@@ -91,8 +81,6 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
     async def prepare_inputs(
         self, request: ExecutionRequest[EndpointNode], inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Prepare inputs with token consumption."""
-        # Use standard pattern for token inputs
         envelope_inputs = self.get_effective_inputs(request, inputs)
 
         result_data = {}
@@ -154,6 +142,5 @@ class EndpointNodeHandler(TypedNodeHandler[EndpointNode]):
         return output_envelope
 
     def post_execute(self, request: ExecutionRequest[EndpointNode], output: Envelope) -> Envelope:
-        """Post-execution hook to emit tokens."""
         self.emit_token_outputs(request, output)
         return output

@@ -3,7 +3,6 @@
 - ApplicationContainer: Use cases and orchestration (includes domain services)
 """
 
-import logging
 from typing import Any
 
 from dipeo.application.registry import ServiceKey
@@ -84,12 +83,8 @@ class ApplicationContainer:
         )
 
         # CLI_SESSION_SERVICE is registered by wire_execution in wiring.py
+        # DIAGRAM_PORT is registered by wire_diagram_port in wiring.py
 
-        # DIAGRAM_PORT is registered by wire_diagram_port, no need to re-register it
-        # Just verify it exists if we're in a context where it should be wired
-        if self.registry.has(DIAGRAM_PORT):
-            # Already registered by wiring, nothing to do
-            pass
         from dipeo.application.execution.use_cases import ExecuteDiagramUseCase
 
         # EXECUTION_SERVICE: Used by GraphQL mutations for server-initiated execution
@@ -136,8 +131,6 @@ class Container:
         return self.registry.resolve(service_key)
 
     async def initialize(self):
-        """Initialize all services implementing Lifecycle protocol."""
-
         from .lifecycle import InitializeOnly, Lifecycle
 
         logger = get_module_logger(__name__)
@@ -188,10 +181,8 @@ class Container:
                 service = self.registry.resolve(ServiceKey[Any](service_name))
                 if isinstance(service, Lifecycle | InitializeOnly):
                     await service.initialize()
-                    # logger.info(f"Initialized service: {service_name}")
             except Exception as e:
                 logger.error(f"Failed to initialize service {service_name}: {e}")
-                # Continue initializing other services even if one fails
 
         # Freeze registry after bootstrap to prevent accidental modifications
         if self.config.dependency_injection.freeze_after_boot or (
@@ -201,8 +192,6 @@ class Container:
             self.registry.freeze()
 
     async def shutdown(self):
-        """Shutdown all services in reverse order."""
-
         from .lifecycle import Lifecycle, ShutdownOnly
 
         logger = get_module_logger(__name__)

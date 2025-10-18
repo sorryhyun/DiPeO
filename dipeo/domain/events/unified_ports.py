@@ -18,9 +18,7 @@ T = TypeVar("T", bound=DomainEvent)
 class EventFilter(Protocol):
     """Protocol for filtering domain events."""
 
-    def matches(self, event: DomainEvent) -> bool:
-        """Check if event matches the filter criteria."""
-        ...
+    def matches(self, event: DomainEvent) -> bool: ...
 
 
 class EventHandler[T](Protocol):
@@ -45,9 +43,7 @@ class EventSubscription:
 class EventBus(Protocol):
     """Unified event bus protocol for all domain event operations."""
 
-    async def publish(self, event: DomainEvent) -> None:
-        """Publish a domain event."""
-        ...
+    async def publish(self, event: DomainEvent) -> None: ...
 
     async def publish_batch(self, events: list[DomainEvent]) -> None:
         """Publish multiple events atomically."""
@@ -59,29 +55,21 @@ class EventBus(Protocol):
         handler: EventHandler,
         filter: EventFilter | None = None,
         priority: EventPriority = EventPriority.NORMAL,
-    ) -> EventSubscription:
-        """Subscribe to domain events."""
-        ...
+    ) -> EventSubscription: ...
 
-    async def unsubscribe(self, subscription: EventSubscription) -> None:
-        """Unsubscribe from domain events."""
-        ...
+    async def unsubscribe(self, subscription: EventSubscription) -> None: ...
 
-    async def initialize(self) -> None:
-        """Initialize the event bus."""
-        ...
+    async def initialize(self) -> None: ...
 
     async def cleanup(self) -> None:
-        """Stop the event bus and clean up resources."""
+        """Clean up resources."""
         ...
 
     async def register_connection(self, connection_id: str, handler: Callable) -> None:
         """Register a connection handler for execution updates."""
         ...
 
-    async def unregister_connection(self, connection_id: str) -> None:
-        """Unregister a connection."""
-        ...
+    async def unregister_connection(self, connection_id: str) -> None: ...
 
     async def broadcast_to_execution(self, execution_id: str, message: dict) -> None:
         """Broadcast message to all connections subscribed to execution."""
@@ -89,19 +77,13 @@ class EventBus(Protocol):
 
     async def subscribe_connection_to_execution(
         self, connection_id: str, execution_id: str
-    ) -> None:
-        """Subscribe connection to execution updates."""
-        ...
+    ) -> None: ...
 
     async def unsubscribe_connection_from_execution(
         self, connection_id: str, execution_id: str
-    ) -> None:
-        """Unsubscribe connection from execution updates."""
-        ...
+    ) -> None: ...
 
-    def get_stats(self) -> dict:
-        """Get bus statistics."""
-        ...
+    def get_stats(self) -> dict: ...
 
 
 class EventStore(Protocol):

@@ -56,7 +56,11 @@
       "Skill(fix-typecheck)",
       "Skill(generate-skill)",
       "Skill(clean-comments)",
-      "Bash(do echo \"File: $file\")"
+      "Bash(do echo \"File: $file\")",
+      "Bash(uv pip list)",
+      "Skill(todo-manage)",
+      "Skill(maintain-docs)",
+      "Skill(separate-monolithic-python)"
     ],
     "deny": [],
     "ask": []

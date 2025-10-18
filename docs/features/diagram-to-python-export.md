@@ -236,13 +236,6 @@ pip install openai anthropic
 ## Limitations
 
 - Complex control flow may require manual adjustment
-- Sub-diagrams are not yet supported
-- Batch execution needs manual implementation
-- Some advanced node types may generate TODO comments
-
-## Future Enhancements
-
-- Sub-diagram support via function calls
-- Batch processing patterns
-- More sophisticated control flow detection
-- Error handling and retry logic
+- Sub-diagrams are not supported
+- Batch execution requires manual implementation
+- Advanced node types may generate TODO comments for manual completion

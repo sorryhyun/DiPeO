@@ -8,8 +8,6 @@ from dipeo.domain.conversation.ports import ConversationRepository
 
 
 class InMemoryConversationRepository(ConversationRepository):
-    """In-memory ConversationRepository with global conversation."""
-
     def __init__(self):
         self._global_conversation = Conversation()
 
@@ -33,7 +31,6 @@ class InMemoryConversationRepository(ConversationRepository):
         return self._global_conversation.messages.copy()
 
     def get_conversation_history(self, person_id: PersonID) -> list[dict[str, Any]]:
-        """Get conversation history formatted for the person's perspective."""
         history = []
         for msg in self._global_conversation.messages:
             if msg.from_person_id == person_id or msg.to_person_id == person_id:

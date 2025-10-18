@@ -12,19 +12,7 @@ from dipeo.domain.base.exceptions import NodeExecutionError
 async def execute_shell_hook(
     node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]
 ) -> Any:
-    """Execute a shell command with environment variables from inputs.
-
-    Args:
-        node: The hook node configuration
-        inputs: Input data to pass as environment variables
-        request: The execution request containing state
-
-    Returns:
-        Command output (JSON if parseable, otherwise raw text)
-
-    Raises:
-        NodeExecutionError: If the command fails or times out
-    """
+    """Execute shell command with inputs as DIPEO_INPUT_* environment variables."""
     config = node.config
     command = config.get("command")
 

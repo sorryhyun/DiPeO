@@ -21,7 +21,6 @@ class Converter(BaseConverter):
     """Converts preprocessed session data into DiPeO diagram structures."""
 
     def __init__(self):
-        """Initialize the converter."""
         self.node_builder = NodeBuilder()
         self.connection_builder = ConnectionBuilder()
         self.assembler = DiagramAssembler(self.node_builder.person_registry)
@@ -111,15 +110,6 @@ class Converter(BaseConverter):
             return self._create_report(context, None)
 
     def validate_input(self, preprocessed_data: PreprocessedData) -> bool:
-        """
-        Validate that the input data can be converted.
-
-        Args:
-            preprocessed_data: The preprocessed data to validate
-
-        Returns:
-            True if the data is valid for conversion, False otherwise
-        """
         if not preprocessed_data:
             return False
 
@@ -133,13 +123,11 @@ class Converter(BaseConverter):
         return True
 
     def _reset_state(self) -> None:
-        """Reset converter state for new conversion."""
         self.node_builder.reset()
         self.connection_builder.reset()
         self.event_processor.reset()
 
     def _create_start_node(self, session_id: str, initial_prompt: str) -> str:
-        """Create the start node for the diagram."""
         node = self.node_builder.create_start_node(session_id, initial_prompt)
         return node["label"]
 
@@ -181,7 +169,6 @@ class Converter(BaseConverter):
         return turns
 
     def _extract_initial_prompt(self, preprocessed_data: PreprocessedData) -> str:
-        """Extract initial prompt from preprocessed data."""
         if "initial_prompt" in preprocessed_data.conversation_context:
             return preprocessed_data.conversation_context["initial_prompt"]
 
@@ -192,7 +179,6 @@ class Converter(BaseConverter):
         return "Claude Code Session"
 
     def _extract_preprocessing_report(self, preprocessed_data: PreprocessedData) -> dict[str, Any]:
-        """Extract preprocessing report from preprocessed data."""
         return {
             "changes": len(preprocessed_data.changes),
             "stats": preprocessed_data.stats.to_dict(),
@@ -204,7 +190,6 @@ class Converter(BaseConverter):
     def _create_report(
         self, context: ConversionContext, diagram: dict[str, Any] | None
     ) -> ConversionReport:
-        """Create a conversion report."""
         return ConversionReport(
             session_id=context.session_id,
             conversion_id=context.conversion_id,
@@ -215,7 +200,6 @@ class Converter(BaseConverter):
         )
 
     def _get_conversion_stats(self) -> dict[str, Any]:
-        """Get conversion statistics."""
         return {
             "total_nodes": len(self.node_builder.nodes),
             "total_connections": len(self.connection_builder.get_connections()),
@@ -224,7 +208,6 @@ class Converter(BaseConverter):
         }
 
     def _count_node_types(self) -> dict[str, int]:
-        """Count nodes by type."""
         type_counts = {}
         for node in self.node_builder.nodes:
             node_type = node.get("type", "unknown")

@@ -39,12 +39,10 @@ class DomainDiagramCompiler(DiagramCompiler):
     """
 
     def __init__(self):
-        # Initialize helper components
         node_factory = NodeFactory()
         connection_resolver = ConnectionResolver()
         edge_builder = EdgeBuilder()
 
-        # Initialize compilation phases
         self.phases = [
             ValidationPhase(),
             NodeTransformationPhase(node_factory),

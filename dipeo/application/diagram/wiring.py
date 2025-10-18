@@ -1,9 +1,7 @@
 """Wiring module for diagram bounded context."""
 
-import logging
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from dipeo.application.registry.enhanced_service_registry import (
     EnhancedServiceRegistry as ServiceRegistry,
@@ -20,22 +18,11 @@ from dipeo.application.registry.keys import (
 )
 from dipeo.config.base_logger import get_module_logger
 
-if TYPE_CHECKING:
-    pass
-
 logger = get_module_logger(__name__)
 
 
 def wire_diagram(registry: ServiceRegistry) -> None:
-    """Wire diagram bounded context services and use cases.
-
-    This includes:
-    - Diagram compiler
-    - Diagram serializer
-    - Compile-time resolver
-    - Runtime resolver
-    - Transformation engine
-    """
+    """Wire diagram bounded context services and use cases."""
     wire_diagram_compiler(registry)
     wire_diagram_serializer(registry)
     wire_resolution_services(registry)
@@ -87,11 +74,7 @@ def wire_diagram_use_cases(registry: ServiceRegistry) -> None:
 
 
 def wire_diagram_compiler(registry: ServiceRegistry) -> None:
-    """Wire diagram compiler.
-
-    Args:
-        registry: Service registry to register compiler with
-    """
+    """Wire diagram compiler."""
     from dipeo.infrastructure.diagram.adapters import (
         CachingCompilerAdapter,
         StandardCompilerAdapter,
@@ -113,11 +96,7 @@ def wire_diagram_compiler(registry: ServiceRegistry) -> None:
 
 
 def wire_diagram_serializer(registry: ServiceRegistry) -> None:
-    """Wire diagram serializer.
-
-    Args:
-        registry: Service registry to register serializer with
-    """
+    """Wire diagram serializer."""
     from dipeo.infrastructure.diagram.adapters import (
         CachingSerializerAdapter,
         UnifiedSerializerAdapter,
@@ -133,11 +112,7 @@ def wire_diagram_serializer(registry: ServiceRegistry) -> None:
 
 
 def wire_resolution_services(registry: ServiceRegistry) -> None:
-    """Wire input resolution services.
-
-    Args:
-        registry: Service registry to register resolvers with
-    """
+    """Wire input resolution services."""
     from dipeo.domain.execution.resolution import StandardTransformationEngine
 
     transform_engine = StandardTransformationEngine()
@@ -145,11 +120,7 @@ def wire_resolution_services(registry: ServiceRegistry) -> None:
 
 
 def wire_diagram_port(registry: ServiceRegistry) -> None:
-    """Wire the unified diagram port.
-
-    Args:
-        registry: Service registry to register diagram port with
-    """
+    """Wire the unified diagram port."""
     from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
     from dipeo.config import get_settings
     from dipeo.infrastructure.diagram.drivers.diagram_service import DiagramService

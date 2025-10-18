@@ -23,33 +23,16 @@ logger = get_module_logger(__name__)
 
 
 class BatchExecutor:
-    """Handles batch execution for PersonJob nodes.
-
-    This class encapsulates all batch-related execution logic,
-    including parallel and sequential processing, error handling,
-    and result aggregation.
-    """
+    """Handles batch execution with parallel/sequential processing, error handling, and result aggregation."""
 
     DEFAULT_MAX_CONCURRENT = BATCH_MAX_CONCURRENT
     DEFAULT_BATCH_SIZE = BATCH_SIZE
 
     def __init__(self, execute_single_callback: Callable):
-        """Initialize BatchExecutor with required dependencies.
-
-        Args:
-            execute_single_callback: Callback to execute a single PersonJob
-        """
         self._execute_single = execute_single_callback
 
     async def execute_batch(self, request: ExecutionRequest[PersonJobNode]) -> Envelope:
-        """Execute person job for each item in the batch.
-
-        Args:
-            request: Execution request containing node, context, and inputs
-
-        Returns:
-            Envelope containing batch execution results
-        """
+        """Execute person job for each batch item, returning aggregated results and errors."""
         node = request.node
         trace_id = request.execution_id or ""
 
@@ -85,14 +68,7 @@ class BatchExecutor:
         )
 
     def _get_batch_configuration(self, node: PersonJobNode) -> dict[str, Any]:
-        """Extract batch configuration from node.
-
-        Args:
-            node: PersonJobNode containing batch configuration
-
-        Returns:
-            Dictionary with batch configuration settings
-        """
+        """Extract batch configuration from node."""
         return {
             "input_key": getattr(node, "batch_input_key", "items"),
             "parallel": getattr(node, "batch_parallel", True),
@@ -102,16 +78,7 @@ class BatchExecutor:
     async def _execute_batch_parallel(
         self, batch_items: list[Any], request: ExecutionRequest[PersonJobNode], max_concurrent: int
     ) -> tuple[list[Any], list[dict[str, Any]]]:
-        """Execute batch items in parallel with concurrency control.
-
-        Args:
-            batch_items: List of items to process
-            request: Original execution request
-            max_concurrent: Maximum concurrent executions
-
-        Returns:
-            Tuple of (results, errors)
-        """
+        """Execute batch items in parallel with semaphore-based concurrency control."""
         results = []
         errors = []
 
@@ -141,15 +108,7 @@ class BatchExecutor:
     async def _execute_batch_sequential(
         self, batch_items: list[Any], request: ExecutionRequest[PersonJobNode]
     ) -> tuple[list[Any], list[dict[str, Any]]]:
-        """Execute batch items sequentially.
-
-        Args:
-            batch_items: List of items to process
-            request: Original execution request
-
-        Returns:
-            Tuple of (results, errors)
-        """
+        """Execute batch items sequentially."""
         results = []
         errors = []
 
@@ -167,17 +126,7 @@ class BatchExecutor:
     async def _execute_batch_item(
         self, item: Any, index: int, total: int, original_request: ExecutionRequest[PersonJobNode]
     ) -> dict[str, Any]:
-        """Execute a single item in the batch.
-
-        Args:
-            item: The batch item to process
-            index: Index of the item in the batch
-            total: Total number of items in the batch
-            original_request: The original execution request
-
-        Returns:
-            Formatted result dictionary
-        """
+        """Execute single batch item, creating isolated request with batch context."""
         node = original_request.node
 
         item_inputs = self._create_item_inputs(
@@ -196,17 +145,7 @@ class BatchExecutor:
     def _create_item_inputs(
         self, item: Any, index: int, total: int, original_request: ExecutionRequest[PersonJobNode]
     ) -> dict[str, Any]:
-        """Create inputs for a single batch item.
-
-        Args:
-            item: The batch item
-            index: Index of the item
-            total: Total number of items
-            original_request: Original execution request
-
-        Returns:
-            Dictionary of inputs for the item
-        """
+        """Create item inputs including batch metadata (_batch_index, _batch_total)."""
         node = original_request.node
         batch_input_key = getattr(node, "batch_input_key", "items")
 
@@ -226,17 +165,7 @@ class BatchExecutor:
         index: int,
         original_request: ExecutionRequest[PersonJobNode],
     ) -> ExecutionRequest[PersonJobNode]:
-        """Create an execution request for a single batch item.
-
-        Args:
-            node: The PersonJobNode
-            item_inputs: Inputs for the item
-            index: Index of the item
-            original_request: Original execution request
-
-        Returns:
-            New ExecutionRequest for the batch item
-        """
+        """Create execution request for batch item with unique execution_id."""
         return ExecutionRequest(
             node=node,
             context=original_request.context,
@@ -251,16 +180,7 @@ class BatchExecutor:
     def _create_empty_batch_output(
         self, node: PersonJobNode, batch_config: dict[str, Any], trace_id: str = ""
     ) -> Envelope:
-        """Create an Envelope for empty batch.
-
-        Args:
-            node: The PersonJobNode
-            batch_config: Batch configuration
-            trace_id: Execution trace ID
-
-        Returns:
-            Envelope with empty batch result
-        """
+        """Create Envelope for empty batch when no items found."""
         logger.warning(
             f"Batch mode enabled but no items found for key '{batch_config['input_key']}'"
         )
@@ -289,19 +209,7 @@ class BatchExecutor:
         batch_config: dict[str, Any],
         trace_id: str = "",
     ) -> Envelope:
-        """Create an Envelope containing batch execution results.
-
-        Args:
-            node: The PersonJobNode
-            batch_items: Original batch items
-            results: Successful results
-            errors: Error information
-            batch_config: Batch configuration
-            trace_id: Execution trace ID
-
-        Returns:
-            Envelope with batch execution results
-        """
+        """Create Envelope with aggregated batch results and metadata."""
         batch_output = {
             "total_items": len(batch_items),
             "successful": len(results),

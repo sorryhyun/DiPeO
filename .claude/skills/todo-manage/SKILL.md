@@ -5,141 +5,183 @@ description: Manage and organize TODO.md at project root - plan features, track 
 
 # TODO List Manager
 
-This guide is for managing and organizing the project TODO list (`TODO.md` at project root). Use this to plan work, track progress, and maintain an organized task management system.
+Manage and organize the project TODO list (`TODO.md` at project root). Create comprehensive, phase-based task plans for complex projects.
 
-**IMPORTANT**: Manage `TODO.md` at the project root, accessible via `/dipeotodos`.
+**Access**: View current TODO.md via `/dipeotodos` command
 
 ## Core Responsibilities
 
 ### 1. Task Planning & Organization
-- Break down feature requests into specific, actionable tasks
-- Organize by priority (High/Medium/Low), category, or project area
-- Create clear descriptions with acceptance criteria when appropriate
-- Add estimated effort or complexity indicators
-- Group related tasks into logical sections or milestones
-- Note which expert sub-agents are responsible for each task
+- Break down features into specific, actionable tasks
+- Organize by phases (3-5 recommended) based on dependencies
+- Add effort estimates (Small/Medium/Large with hours)
+- Note files affected and acceptance criteria
+- Include risks and mitigation strategies
 
 ### 2. Task Tracking & Updates
-- Mark tasks as complete when work is finished
-- Update task status and progress notes
-- Add blockers or dependencies when identified
-- Track who is working on what (if relevant)
-- Maintain timestamps for creation and completion
+- Mark tasks complete when finished
+- Update status and progress notes
+- Add blockers or dependencies
+- Maintain timestamps
 
 ### 3. Cleanup & Maintenance
-- Remove completed tasks after a reasonable period
-- Consolidate duplicate or overlapping tasks
-- Archive old completed tasks to separate section if needed
-- Reorganize for clarity and usability
-- Remove stale or obsolete tasks
+- Remove completed tasks after 1-2 weeks
+- Consolidate duplicate tasks
+- Remove stale/obsolete items
+- Keep file focused and current
 
-### 4. Proactive Management
-- Suggest next tasks based on priority and dependencies
-- Identify tasks that are blocked or need attention
-- Recommend breaking down large tasks
-- Flag tasks pending too long
+## What Makes TODO Management "Comprehensive"
 
-## Format Standards
+Use comprehensive format for projects with 3+ phases or 10+ tasks:
+
+### Required Elements
+1. **Phase-based organization** (3-5 phases)
+2. **Task details**: Action verb, effort estimate, files affected, acceptance criteria
+3. **Summary section**: Total effort, task count, files, risks
+4. **Clear context**: Goal, why this work, target outcome
+
+### Quick Format Structure
 
 ```markdown
 # DiPeO Project Todos
 
-## High Priority
-- [ ] Task description with clear action items
-  - Acceptance criteria or details
-  - Estimated effort: [Small/Medium/Large]
-  - Dependencies: [if any]
+## [Project Name] (Priority Level)
 
-## Medium Priority
-- [ ] Another task
+**Goal**: One-sentence description
+**Context**: Why this work is needed
+**Target**: End state
 
-## Low Priority / Future Enhancements
-- [ ] Nice-to-have features
+### Phase 1: [Phase Name] ([Estimated Effort])
+[Phase description]
 
-## In Progress
-- [ ] Currently being worked on
-  - Started: YYYY-MM-DD
-  - Assigned to: [name/agent]
+- [ ] [Action verb task description]
+  - [Implementation approach]
+  - Estimated effort: Medium (2-3 hours)
+  - Files: `path/to/file.py`
+  - Risk: Low/Medium/High
 
-## Completed (Recent)
-- [x] Completed task (YYYY-MM-DD)
+### Phase 2: [Phase Name] ([Estimated Effort])
+[Tasks...]
+
+---
+
+## Summary
+**Total estimated effort**: X-Y hours
+**Total tasks**: N tasks across M phases
+**Primary files affected**:
+- `file1.py` (major)
+- `file2.py` (minor)
+**Risk**: Low/Medium/High - [explanation]
+**Mitigation**: [how to reduce risk]
 ```
 
-## Phase-Based Organization (IMPORTANT)
+## Phase Organization
 
-When organizing TODO.md, **always group tasks into logical phases** (3-4 recommended):
-- **Phase 1**: Foundation/High Priority - immediate work with high impact
-- **Phase 2**: Structural Improvements - medium priority architectural work
-- **Phase 3**: Polish & Consistency - standardization and documentation
-- **Phase 4**: Future Improvements - low priority enhancements
+Typical phase structure:
+- **Phase 1**: Investigation/Foundation (2-3 hours)
+- **Phase 2**: Core Implementation (5-7 hours)
+- **Phase 3**: Integration & Testing (3-4 hours)
+- **Phase 4**: Documentation & Cleanup (2-3 hours)
+- **Phase 5**: Validation & Deployment (1-2 hours)
 
-**Key principles**:
-- Group by dependencies and logical workflow
-- Each phase should have clear focus and estimated effort
-- Remove completed tasks to keep file focused
-- Maintain phase structure when adding new tasks
-- Avoid scattered, unorganized lists
+## Scope Management
 
-## Scope Management & Communication
+**Workflow**:
+1. Read TODO.md first
+2. Break down into 3-5 phases with detailed tasks
+3. Communicate plan (task count, phases, effort, risks)
+4. Execute or iterate based on feedback
 
-**Be ambitious and proactive** in organizing and creating tasks.
+**Scope Sizing**:
+- **Small (1-5 tasks)**: Simple format, proceed directly
+- **Medium (6-15 tasks)**: Comprehensive format, 3-4 phases
+- **Large (15+ tasks)**: Comprehensive format, 4-5 phases
+- **Very Large (30+ tasks)**: Break into epics
 
-1. **Assess workload first**: Read TODO.md and assess total tasks
-2. **Set ambitious objectives**: Be comprehensive in scope
-3. **Communicate scope back**: Report tasks and categories, suggest execution plan
-4. **Batch work ambitiously**:
-   - Small (1-5 tasks): Proceed directly
-   - Medium (6-15 tasks): Organize comprehensively with full plan
-   - Large (15+ tasks): Organize into phases with multi-session strategy
-5. **Be proactive**: Suggest related improvements, break down large tasks, identify technical debt
-6. **Status reporting**: Summarize accomplishments, remaining tasks, next priorities
+## Quality Control
+
+Every comprehensive TODO must have:
+- ✅ 3-5 phases with effort estimates
+- ✅ Task details (action verb, effort, files)
+- ✅ Summary section (totals, files, risks)
+- ✅ Consistent format (`- [ ]` checkboxes)
+- ✅ Communication back to user with plan
+
+## Quick Example
+
+### ✅ Good (Comprehensive)
+```markdown
+## MCP SDK Migration (High Priority)
+
+**Goal**: Migrate from legacy to official SDK
+**Context**: Running dual implementations
+**Target**: SDK-only with HTTP transport
+
+### Phase 1: Investigation (2-3 hours)
+- [ ] Investigate SDK HTTP transport support
+  - Check if native HTTP available
+  - Estimated effort: Small (1-2 hours)
+  - Files: N/A (research)
+
+### Phase 2: Implementation (5-7 hours)
+- [ ] Enable SDK integration
+  - Implement FastAPI integration
+  - Create /mcp/messages endpoint
+  - Estimated effort: Medium (3-4 hours)
+  - Files: `mcp_sdk_server.py`
+  - Risk: Medium
+
+---
+
+## Summary
+**Total effort**: 14-18 hours
+**Total tasks**: 12 tasks across 5 phases
+**Files**: `mcp_sdk_server.py` (major), `router.py` (minor)
+**Risk**: Medium - breaking changes
+**Mitigation**: Maintain endpoint URL compatibility
+```
+
+### ❌ Bad (Not Comprehensive)
+```markdown
+## MCP Migration
+- [ ] Use SDK
+- [ ] Remove old code
+- [ ] Update docs
+```
+
+Problems: No phases, estimates, files, context, or summary.
 
 ## Operational Guidelines
 
-1. **Always read TODO.md first** before making changes
-2. **Be specific**: Tasks should be clear to anyone
-3. **Maintain context**: Include enough detail for future reference
-4. **Balance detail**: Enough info without overwhelming
-5. **Regular cleanup**: Remove completed tasks after 1-2 weeks
-6. **Preserve history**: Archive important completed tasks
-7. **Cross-reference**: Link to relevant files/issues when helpful
-8. **Prioritize ruthlessly**: Not everything can be high priority
-9. **Slash command integration**: Users can view via `/dipeotodos`
+1. **Always read TODO.md first**
+2. **Be specific**: Clear, actionable tasks
+3. **Maintain context**: Enough detail for future reference
+4. **Regular cleanup**: Remove completed tasks after 1-2 weeks
+5. **Prioritize ruthlessly**: Not everything is high priority
 
 ## Decision Framework
 
 **When adding tasks**:
-- Is it specific and actionable?
+- Specific and actionable?
 - Clear success criteria?
-- Appropriate priority level?
+- Appropriate priority?
 - Dependencies noted?
 
 **When cleaning up**:
-- Completed for more than 2 weeks?
-- Still relevant to project goals?
-- Archive rather than delete?
+- Completed >2 weeks ago?
+- Still relevant?
 - Related tasks to consolidate?
 
 **When prioritizing**:
 - Business/user impact?
 - Blocking dependencies?
 - Effort-to-value ratio?
-- Aligns with current focus?
-
-## Quality Control
-
-- Consistent checkbox syntax: `- [ ]` or `- [x]`
-- Priority sections clearly separated
-- Completed tasks have completion dates
-- Task descriptions clear and actionable
-- File structure clean and scannable
 
 ## Edge Cases
 
-- **No TODO.md exists**: Create at project root with clean structure starting with "# DiPeO Project Todos"
-- **Conflicting priorities**: Ask for clarification or use best judgment
+- **No TODO.md exists**: Create at project root with "# DiPeO Project Todos"
+- **Conflicting priorities**: Ask for clarification
 - **Unclear tasks**: Break into subtasks or ask questions
 - **Large cleanup needed**: Summarize and ask for confirmation
-- **Cross-project tasks**: Clearly indicate which component
 
-The goal is to maintain `TODO.md` as a reliable, up-to-date source of truth for what needs to be done, what's in progress, and what's been completed.
+For detailed examples, format templates, and comparison of good vs bad TODO lists, see [references/format-guide.md](references/format-guide.md).

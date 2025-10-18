@@ -50,13 +50,11 @@ class ConversationHandler:
     def _extract_messages_from_inputs(inputs: dict[str, Any]) -> list[Any]:
         """Extract all messages from various input formats."""
         all_messages = []
-
         for _key, value in inputs.items():
             if isinstance(value, dict) and "messages" in value:
                 messages = value["messages"]
                 if isinstance(messages, list):
                     all_messages.extend(messages)
-
         return all_messages
 
     @staticmethod

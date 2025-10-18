@@ -22,9 +22,6 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
 
     NODE_TYPE = NodeType.START.value
 
-    def __init__(self):
-        super().__init__()
-
     @property
     def node_class(self) -> type[StartNode]:
         return StartNode
@@ -59,7 +56,6 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         elif request.runtime and hasattr(request.runtime, "execution_id"):
             execution_id = request.runtime.execution_id
 
-        # Get state_store service from request (no caching)
         state_store = request.get_optional_service(STATE_STORE)
 
         if execution_id and state_store:
@@ -151,6 +147,5 @@ class StartNodeHandler(TypedNodeHandler[StartNode]):
         return None
 
     def post_execute(self, request: ExecutionRequest[StartNode], output: Envelope) -> Envelope:
-        """Post-execution hook to emit tokens."""
         self.emit_token_outputs(request, output)
         return output

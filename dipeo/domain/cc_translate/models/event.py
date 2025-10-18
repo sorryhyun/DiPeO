@@ -7,8 +7,6 @@ from typing import Any, Optional
 
 
 class EventType(Enum):
-    """Event type enumeration."""
-
     USER = "user"
     ASSISTANT = "assistant"
     SUMMARY = "summary"
@@ -19,8 +17,6 @@ class EventType(Enum):
 
 
 class EventRole(Enum):
-    """Event role enumeration."""
-
     USER = "user"
     ASSISTANT = "assistant"
     SYSTEM = "system"
@@ -28,8 +24,6 @@ class EventRole(Enum):
 
 @dataclass
 class ToolInfo:
-    """Information about tool usage in an event."""
-
     name: str
     input_params: dict[str, Any] = field(default_factory=dict)
     results: list[dict[str, Any]] = field(default_factory=list)
@@ -38,7 +32,6 @@ class ToolInfo:
     execution_time_ms: int | None = None
 
     def validate(self) -> list[str]:
-        """Validate tool information."""
         errors = []
 
         if not self.name:
@@ -55,19 +48,15 @@ class ToolInfo:
 
 @dataclass
 class EventContent:
-    """Content of an event."""
-
     text: str | None = None
     data: dict[str, Any] = field(default_factory=dict)
     attachments: list[dict[str, Any]] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def has_content(self) -> bool:
-        """Check if event has any content."""
         return bool(self.text or self.data or self.attachments)
 
     def to_dict(self) -> dict:
-        """Convert to dictionary."""
         return {
             "text": self.text,
             "data": self.data,
@@ -78,8 +67,6 @@ class EventContent:
 
 @dataclass
 class DomainEvent:
-    """Domain model representing an event."""
-
     uuid: str
     type: EventType
     timestamp: datetime
@@ -93,7 +80,6 @@ class DomainEvent:
     context: dict[str, Any] = field(default_factory=dict)
 
     def validate(self) -> list[str]:
-        """Validate event data integrity."""
         errors = []
 
         # Required fields
@@ -124,31 +110,24 @@ class DomainEvent:
         return errors
 
     def has_tool_use(self) -> bool:
-        """Check if event contains tool usage."""
         return self.tool_info is not None
 
     def get_tool_name(self) -> str | None:
-        """Get tool name if applicable."""
         return self.tool_info.name if self.tool_info else None
 
     def get_tool_results(self) -> list[dict[str, Any]]:
-        """Get tool results if applicable."""
         return self.tool_info.results if self.tool_info else []
 
     def is_user_event(self) -> bool:
-        """Check if this is a user event."""
         return self.type == EventType.USER
 
     def is_assistant_event(self) -> bool:
-        """Check if this is an assistant event."""
         return self.type == EventType.ASSISTANT
 
     def is_system_event(self) -> bool:
-        """Check if this is a system/meta event."""
         return self.type == EventType.SYSTEM or self.is_meta
 
     def to_dict(self) -> dict:
-        """Convert event to dictionary representation."""
         result = {
             "uuid": self.uuid,
             "type": self.type.value,
@@ -176,7 +155,6 @@ class DomainEvent:
 
     @classmethod
     def from_dict(cls, data: dict) -> "DomainEvent":
-        """Create DomainEvent from dictionary."""
         # Parse timestamp
         timestamp = data.get("timestamp")
         if isinstance(timestamp, str):

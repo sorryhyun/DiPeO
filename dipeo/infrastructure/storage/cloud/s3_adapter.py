@@ -14,8 +14,6 @@ logger = get_module_logger(__name__)
 
 
 class S3Adapter(LoggingMixin, InitializationMixin, BlobStorePort):
-    """AWS S3 implementation of BlobStorePort."""
-
     def __init__(self, bucket: str, client=None, region: str = "us-east-1"):
         InitializationMixin.__init__(self)
         self.bucket = bucket
