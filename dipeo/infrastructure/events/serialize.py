@@ -1,8 +1,4 @@
-"""Event serialization utilities for JSON streaming.
-
-This module provides centralized serialization for domain events,
-ensuring consistent format across all transport mechanisms.
-"""
+"""Event serialization for JSON streaming with consistent format."""
 
 from datetime import datetime
 from enum import Enum
@@ -13,17 +9,7 @@ from dipeo.domain.events import DomainEvent
 
 
 def serialize_for_json(data: dict[str, Any]) -> dict[str, Any]:
-    """Serialize event data for JSON transport.
-
-    Converts domain event data into a JSON-serializable format,
-    handling special types like UUID, datetime, etc.
-
-    Args:
-        data: Event data to serialize
-
-    Returns:
-        JSON-serializable dictionary
-    """
+    """Convert domain event data to JSON-serializable format (handles UUID, datetime, Enum)."""
 
     def convert_value(value: Any) -> Any:
         if isinstance(value, UUID):
@@ -47,15 +33,6 @@ def serialize_for_json(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def event_to_json_payload(event: "DomainEvent") -> dict[str, Any]:
-    """Convert a DomainEvent to JSON-serializable payload.
-
-    Args:
-        event: Domain event to serialize
-
-    Returns:
-        JSON-serializable dictionary with standard event structure
-    """
-
     payload_data = None
     if event.payload is not None:
         import dataclasses

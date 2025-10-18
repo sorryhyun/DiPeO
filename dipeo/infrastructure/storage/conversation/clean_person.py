@@ -1,8 +1,4 @@
-"""Clean in-memory implementation of PersonRepository focusing on persistence only.
-
-This implementation follows the repository pattern strictly by only handling
-data persistence and retrieval, without any business logic or object construction.
-"""
+"""Clean in-memory PersonRepository following strict repository pattern."""
 
 from dipeo.diagram_generated import LLMService, PersonID, PersonLLMConfig
 from dipeo.domain.conversation import Person
@@ -10,8 +6,6 @@ from dipeo.domain.conversation.ports import PersonRepository
 
 
 class CleanInMemoryPersonRepository(PersonRepository):
-    """Clean in-memory PersonRepository following strict repository pattern."""
-
     def __init__(self):
         self._persons: dict[PersonID, Person] = {}
 

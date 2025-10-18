@@ -1,8 +1,4 @@
-"""Session serializer for converting DomainSession to JSONL format.
-
-This module handles the serialization of preprocessed DomainSession objects
-back to JSONL format for storage and compatibility with Claude Code format.
-"""
+"""Session serializer for converting DomainSession to JSONL format."""
 
 import json
 from pathlib import Path
@@ -13,17 +9,7 @@ from dipeo.domain.cc_translate.models.session import DomainSession
 
 
 class SessionSerializer:
-    """Serializes DomainSession objects to various formats including JSONL."""
-
     def to_jsonl(self, session: DomainSession) -> str:
-        """Convert a DomainSession to JSONL format string.
-
-        Args:
-            session: The DomainSession to serialize
-
-        Returns:
-            JSONL formatted string with one event per line
-        """
         lines = []
         for event in session.events:
             event_dict = self._event_to_jsonl_dict(event)
@@ -35,29 +21,12 @@ class SessionSerializer:
         return ""
 
     def to_jsonl_file(self, session: DomainSession, file_path: Path) -> int:
-        """Write a DomainSession to a JSONL file.
-
-        Args:
-            session: The DomainSession to serialize
-            file_path: Path to write the JSONL file
-
-        Returns:
-            Number of bytes written
-        """
         jsonl_content = self.to_jsonl(session)
         file_path.write_text(jsonl_content, encoding="utf-8")
         return len(jsonl_content.encode("utf-8"))
 
     def _event_to_jsonl_dict(self, event: DomainEvent) -> dict[str, Any]:
-        """Convert a DomainEvent to JSONL dictionary format.
-
-        Args:
-            event: The DomainEvent to convert
-
-        Returns:
-            Dictionary in Claude Code JSONL format
-        """
-        # Basic event structure
+        """Convert DomainEvent to Claude Code JSONL format."""
         event_dict = {
             "type": event.type.value if hasattr(event.type, "value") else str(event.type),
             "timestamp": event.timestamp.isoformat()
@@ -172,15 +141,6 @@ class SessionSerializer:
     def calculate_size_reduction(
         self, original_path: Path, preprocessed_session: DomainSession
     ) -> tuple[int, int, float]:
-        """Calculate size reduction from preprocessing.
-
-        Args:
-            original_path: Path to original JSONL file
-            preprocessed_session: The preprocessed DomainSession
-
-        Returns:
-            Tuple of (original_size, preprocessed_size, reduction_percentage)
-        """
         original_size = original_path.stat().st_size
         preprocessed_jsonl = self.to_jsonl(preprocessed_session)
         preprocessed_size = len(preprocessed_jsonl.encode("utf-8"))

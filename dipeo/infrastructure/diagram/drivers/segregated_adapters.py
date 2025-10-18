@@ -231,20 +231,17 @@ class RepositoryAdapter(LoggingMixin, DiagramRepositoryPort):
 
             return diagram
         except Exception as e:
-            # Log warning with more detail about what kind of error occurred
             import pydantic
 
             if isinstance(e, pydantic.ValidationError):
                 self.log_warning(
                     f"Failed to validate diagram {diagram_id}: {e.error_count()} validation errors"
                 )
-                for error in e.errors()[:3]:  # Show first 3 errors
+                for error in e.errors()[:3]:
                     self.log_debug(f"  - {error['loc']}: {error['msg']}")
             else:
                 self.log_warning(f"Failed to get diagram {diagram_id}: {e}")
 
-            # Re-raise the exception so the caller can handle it
-            # This allows the resolver to create a minimal diagram with error info
             raise
 
     async def update(self, diagram_id: str, diagram: DomainDiagram) -> None:
@@ -337,7 +334,6 @@ class RepositoryAdapter(LoggingMixin, DiagramRepositoryPort):
                             break
                 elif item.is_dir():
                     # Skip the claude_code directory when scanning projects
-                    # Convert to string path and check if it contains the pattern
                     item_str = str(item).replace("\\", "/")
                     if "/projects/claude_code" in item_str:
                         continue

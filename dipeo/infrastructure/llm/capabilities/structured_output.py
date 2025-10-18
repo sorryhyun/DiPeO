@@ -17,7 +17,6 @@ class StructuredOutputHandler:
     """Handles structured output for different providers."""
 
     def __init__(self, provider: ProviderType):
-        """Initialize structured output handler for specific provider."""
         self.provider = provider
 
     def prepare_structured_output(
@@ -50,9 +49,7 @@ class StructuredOutputHandler:
             return None
 
     def _prepare_memory_selection_format(self) -> type[BaseModel] | dict[str, Any] | None:
-        """Prepare format for memory selection phase."""
         if self.provider == ProviderType.OPENAI:
-            # For OpenAI, return MemorySelectionOutput model directly
             return MemorySelectionOutput
         elif self.provider == ProviderType.ANTHROPIC:
             return {
@@ -67,9 +64,7 @@ class StructuredOutputHandler:
             return {}
 
     def _prepare_decision_evaluation_format(self) -> type[BaseModel] | dict[str, Any] | None:
-        """Prepare format for decision evaluation phase."""
         if self.provider == ProviderType.OPENAI:
-            # For OpenAI, return DecisionOutput model directly
             return DecisionOutput
         elif self.provider == ProviderType.ANTHROPIC:
             return {
@@ -95,33 +90,21 @@ class StructuredOutputHandler:
     def _prepare_openai_format(
         self, response_format: type[BaseModel] | dict[str, Any]
     ) -> type[BaseModel] | None:
-        """Prepare OpenAI structured output format.
-
-        For OpenAI's new parse() API:
-        - Pydantic models are returned as-is
-        - JSON schemas are converted to Pydantic models
-        - None for regular outputs
-        """
+        """For OpenAI's parse() API: Pydantic models as-is, JSON schemas converted to Pydantic."""
         if isinstance(response_format, type) and issubclass(response_format, BaseModel):
-            # Pydantic model - return as-is for parse()
             return response_format
         elif isinstance(response_format, dict):
-            # JSON schema - convert to Pydantic model for parse()
             return self._json_schema_to_pydantic(response_format)
         else:
-            # Unknown format - return None for regular output
             return None
 
     def _prepare_anthropic_format(
         self, response_format: type[BaseModel] | dict[str, Any]
     ) -> dict[str, Any]:
-        """Prepare Anthropic/Claude structured output format."""
         if isinstance(response_format, type) and issubclass(response_format, BaseModel):
-            # Pydantic model
             schema = response_format.model_json_schema()
             return {"type": "json", "json_schema": schema}
         elif isinstance(response_format, dict):
-            # Raw JSON schema
             return {"type": "json", "json_schema": response_format}
         else:
             return {"type": "json"}
@@ -129,13 +112,11 @@ class StructuredOutputHandler:
     def _prepare_google_format(
         self, response_format: type[BaseModel] | dict[str, Any]
     ) -> dict[str, Any]:
-        """Prepare Google/Gemini structured output format."""
+        """Gemini uses response_schema format instead of json_schema."""
         if isinstance(response_format, type) and issubclass(response_format, BaseModel):
-            # Pydantic model - Gemini uses response_schema
             schema = response_format.model_json_schema()
             return {"response_schema": schema}
         elif isinstance(response_format, dict):
-            # Raw JSON schema
             return {"response_schema": response_format}
         else:
             return {}
@@ -146,11 +127,9 @@ class StructuredOutputHandler:
         response_format: type[BaseModel] | None = None,
         execution_phase: ExecutionPhase = ExecutionPhase.DEFAULT,
     ) -> Any:
-        """Process and validate structured output from response."""
         if not raw_output:
             return None
 
-        # Parse JSON string if needed
         if isinstance(raw_output, str):
             try:
                 parsed = json.loads(raw_output)
@@ -160,7 +139,6 @@ class StructuredOutputHandler:
         else:
             parsed = raw_output
 
-        # Handle memory selection phase
         if execution_phase == ExecutionPhase.MEMORY_SELECTION:
             try:
                 return MemorySelectionOutput(**parsed)
@@ -168,7 +146,6 @@ class StructuredOutputHandler:
                 logger.error(f"Memory selection output validation failed: {e}")
                 return parsed
 
-        # Handle decision evaluation phase
         if execution_phase == ExecutionPhase.DECISION_EVALUATION:
             try:
                 return DecisionOutput(**parsed)
@@ -176,7 +153,6 @@ class StructuredOutputHandler:
                 logger.error(f"Decision output validation failed: {e}")
                 return parsed
 
-        # Validate against Pydantic model if provided
         if (
             response_format
             and isinstance(response_format, type)
@@ -191,12 +167,11 @@ class StructuredOutputHandler:
         return parsed
 
     def format_structured_output(self, output: Any) -> str:
-        """Format structured output for response."""
         if not output:
             return ""
 
         if isinstance(output, MemorySelectionOutput):
-            # For memory selection, return just the message IDs as a JSON array
+            # Return just message IDs as JSON array for memory selection
             return json.dumps(output.message_ids)
         elif isinstance(output, BaseModel):
             return json.dumps(output.model_dump())
@@ -204,7 +179,6 @@ class StructuredOutputHandler:
             return json.dumps(output)
 
     def _json_schema_to_pydantic(self, schema: dict[str, Any]) -> type[BaseModel]:
-        """Convert JSON schema to Pydantic model dynamically."""
         # Handle OpenAI's wrapped JSON schema format
         if "json_schema" in schema and isinstance(schema["json_schema"], dict):
             inner_schema = schema["json_schema"]
@@ -214,7 +188,6 @@ class StructuredOutputHandler:
             actual_schema = schema
             model_name = schema.get("name", "DynamicModel")
 
-        # Build field definitions from schema properties
         field_definitions = {}
         properties = actual_schema.get("properties", {})
         required = actual_schema.get("required", [])
@@ -226,11 +199,9 @@ class StructuredOutputHandler:
             else:
                 field_definitions[field_name] = (Optional[field_type], Field(default=None))
 
-        # Create the Pydantic model dynamically
         return create_model(model_name, **field_definitions)
 
     def _get_python_type(self, schema: dict[str, Any]) -> Any:
-        """Convert JSON schema type to Python type."""
         json_type = schema.get("type", "string")
 
         if json_type == "string":

@@ -8,23 +8,11 @@ from dipeo.domain.conversation.ports import PersonRepository
 
 
 class InMemoryPersonRepository(PersonRepository):
-    """In-memory PersonRepository that doesn't persist between executions."""
-
     def __init__(self, llm_service: Any | None = None):
-        """Initialize repository with optional LLM service.
-
-        Args:
-            llm_service: Optional LLM service for memory strategy
-        """
         self._persons: dict[PersonID, Person] = {}
         self._llm_service = llm_service
 
     def set_llm_service(self, llm_service: Any) -> None:
-        """Set LLM service for memory strategy creation.
-
-        Args:
-            llm_service: LLM service instance
-        """
         self._llm_service = llm_service
 
     def get(self, person_id: PersonID) -> Person:
@@ -41,18 +29,14 @@ class InMemoryPersonRepository(PersonRepository):
         name: str,
         llm_config: PersonLLMConfig,
     ) -> Person:
-        """Create person with memory strategy configured."""
         from dipeo.domain.conversation.memory_strategies import IntelligentMemoryStrategy
 
-        # Create memory strategy with LLM service if available
         memory_strategy = None
         if self._llm_service:
             memory_strategy = IntelligentMemoryStrategy(
                 llm_service=self._llm_service, person_repository=self
             )
 
-        # If no memory strategy created, use IntelligentMemoryStrategy without LLM service
-        # It will handle this gracefully by returning None when needed
         if not memory_strategy:
             memory_strategy = IntelligentMemoryStrategy()
 
