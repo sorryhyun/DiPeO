@@ -20,6 +20,51 @@ class ClaudeCodeResponseParser:
     """Parser for Claude Code responses with phase-specific handling."""
 
     @staticmethod
+    async def collect_response(response_iterator) -> tuple[str, dict | None]:
+        """Collect response from Claude Code SDK iterator.
+
+        Processes the async response iterator to extract both the final result text
+        and any tool invocation data (for structured outputs).
+
+        Args:
+            response_iterator: Async iterator from client.receive_response()
+
+        Returns:
+            Tuple of (result_text, tool_invocation_data)
+        """
+        result_text = ""
+        tool_invocation_data = None
+
+        logger.debug("[ClaudeCode] collect_response: Starting to collect from iterator")
+        async for message in response_iterator:
+            logger.debug(f"[ClaudeCode] collect_response: Received message type={type(message)}")
+
+            # Check for tool invocations in AssistantMessage
+            if hasattr(message, "content") and not hasattr(message, "result"):
+                for block in message.content:
+                    # Skip thinking blocks - only process tool_use blocks
+                    block_type = getattr(block, "type", None)
+                    if block_type == "thinking":
+                        continue
+                    if hasattr(block, "name") and hasattr(block, "input"):
+                        if block.name.startswith("mcp__dipeo_structured_output__"):
+                            tool_invocation_data = block.input
+                            logger.debug("[ClaudeCode] collect_response: Found tool invocation")
+                            break
+
+            # Process ResultMessage (final message, iterator auto-terminates after this)
+            if hasattr(message, "result"):
+                result_text = str(message.result)
+                logger.debug(
+                    f"[ClaudeCode] collect_response: Got result, length={len(result_text)}"
+                )
+
+        logger.debug(
+            f"[ClaudeCode] collect_response: Finished collecting. tool_data={tool_invocation_data is not None}"
+        )
+        return result_text, tool_invocation_data
+
+    @staticmethod
     def extract_usage_from_response(response_text: str) -> LLMUsage | None:
         """Extract token usage information from response metadata.
 

@@ -16,7 +16,6 @@ from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, Request
 from mcp.server import Server
-from mcp.server.fastapi import add_mcp_to_fastapi
 from mcp.types import (
     INTERNAL_ERROR,
     INVALID_PARAMS,
@@ -179,21 +178,15 @@ async def read_resource(uri: str) -> str:
             mcp_dir = PROJECT_ROOT / "projects" / "mcp-diagrams"
             if mcp_dir.exists():
                 for file in mcp_dir.glob("*.yaml"):
-                    result.append(
-                        {"name": file.stem, "path": str(file), "format": "light"}
-                    )
+                    result.append({"name": file.stem, "path": str(file), "format": "light"})
                 for file in mcp_dir.glob("*.json"):
-                    result.append(
-                        {"name": file.stem, "path": str(file), "format": "native"}
-                    )
+                    result.append({"name": file.stem, "path": str(file), "format": "native"})
 
             # Check examples directory
             examples_dir = PROJECT_ROOT / "examples" / "simple_diagrams"
             if examples_dir.exists():
                 for file in examples_dir.glob("*.yaml"):
-                    result.append(
-                        {"name": file.stem, "path": str(file), "format": "light"}
-                    )
+                    result.append({"name": file.stem, "path": str(file), "format": "light"})
 
             return result
 
@@ -228,7 +221,7 @@ def create_sdk_router() -> APIRouter:
     # Add MCP SDK to FastAPI
     # This creates /mcp/sse endpoint for Server-Sent Events transport
     # All routes added here will inherit the authentication dependency
-    add_mcp_to_fastapi(mcp_server, router)
+    # add_mcp_to_fastapi(mcp_server, router)
 
     logger.info("MCP SDK server initialized with official Python SDK and authentication")
 
@@ -236,4 +229,4 @@ def create_sdk_router() -> APIRouter:
 
 
 # Export for compatibility
-__all__ = ["mcp_server", "create_sdk_router"]
+__all__ = ["create_sdk_router", "mcp_server"]

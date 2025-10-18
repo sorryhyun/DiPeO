@@ -21,7 +21,7 @@ make dev-server       # Backend only (port 8000)
 
 ### Running Diagrams
 ```bash
-dipeo run examples/simple_diagrams/simple_iter --light --debug --timeout=40 --timing
+dipeo run examples/simple_diagrams/simple_iter --light --debug --timeout=40 --timing # simple_iter_cc for claude code adapter diagram
 dipeo run [diagram] --input-data '{"key": "value"}' --light --debug
 dipeo metrics --latest --breakdown  # Profile latest execution
 ```

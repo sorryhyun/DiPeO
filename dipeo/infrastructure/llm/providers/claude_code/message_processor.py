@@ -610,9 +610,7 @@ class ClaudeCodeMessageProcessor:
         Returns:
             Dictionary with Claude Code options ready for ClaudeCodeOptions
         """
-        options_dict = {
-            "system_prompt": system_prompt,
-        }
+        options_dict = {"system_prompt": system_prompt, "model": "claude-haiku-4-5-20251001"}
 
         # Add streaming flag if specified
         if stream:
