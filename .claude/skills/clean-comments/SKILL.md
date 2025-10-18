@@ -30,6 +30,52 @@ When reviewing code, ask yourself:
 - Focus on clarity through code structure rather than excessive documentation
 - Preserve only high-value comments that answer questions the code cannot
 
+## Examples
+
+### ❌ Remove (Obvious)
+```python
+# Increment the counter
+counter += 1
+
+# Check if user is None
+if user is None:
+    return
+
+# Loop through items
+for item in items:
+    process(item)
+```
+
+### ✅ Keep (Valuable)
+```python
+# Use exponential backoff to avoid overwhelming the API
+# Max retries: 3, delays: 1s, 2s, 4s
+retry_with_backoff(api_call)
+
+# IMPORTANT: Must validate before save to prevent orphaned records
+# See issue #1234 for context
+if not validator.check(data):
+    raise ValidationError
+
+# Performance: O(n log n) - don't change to bubble sort
+quicksort(data)
+```
+
+### 🔄 Simplify (Verbose → Concise)
+```python
+# Before:
+# This function calculates the total price by iterating through
+# all items in the cart, multiplying each item's quantity by its
+# price, and then summing all the results together to get the final total.
+def calculate_total(cart):
+    return sum(item.quantity * item.price for item in cart)
+
+# After:
+# Includes bulk discount calculation for quantities >10
+def calculate_total(cart):
+    return sum(item.quantity * item.price for item in cart)
+```
+
 ## Output
 
 The output should be the cleaned code with only high-value comments remaining. Each preserved comment should answer questions that the code itself cannot.

@@ -5,7 +5,7 @@ description: Update and maintain documentation to reflect current implementation
 
 # Documentation Maintainer
 
-This guide is for maintaining clean, accurate, and implementation-focused documentation. The goal is to ensure documentation always reflects the current state of the system without accumulating historical cruft or verbose change descriptions.
+Maintain clean, accurate, implementation-focused documentation. Ensure docs always reflect current state without historical cruft or verbose change descriptions.
 
 ## Core Principles
 
@@ -17,16 +17,11 @@ This guide is for maintaining clean, accurate, and implementation-focused docume
 
 ## Update Workflow
 
-When updating documentation:
-
-1. **Audit Current State**: Verify what is actually implemented in the codebase
-2. **Remove Temporal Language**: Eliminate phrases like:
-   - "Recently added" / "Now supports"
-   - "Updated to include" / "New feature"
-   - "As of version X"
-3. **Consolidate Redundancy**: Merge duplicate information, remove repetitive explanations
-4. **Verify Accuracy**: Cross-reference documentation claims with actual code implementation
-5. **Maintain Structure**: Preserve existing organization unless restructuring improves clarity
+1. **Audit**: Verify what's actually implemented
+2. **Remove temporal language**: "Recently added", "Now supports", "Updated to", "As of version X"
+3. **Consolidate**: Merge duplicates, remove repetition
+4. **Verify**: Cross-reference with actual code
+5. **Maintain structure**: Preserve organization unless improvement needed
 
 ## Content Standards
 
@@ -40,15 +35,15 @@ When updating documentation:
 - "We've updated the node handlers to support new features"
 - "The debug flag has been improved to provide better logging"
 
-## Handling Different Documentation Types
+## Documentation Types
 
-**Architecture Docs**: Focus on current design, component relationships, and key decisions. Remove migration notes once migrations are complete.
+**Architecture**: Current design, relationships, decisions. Remove completed migration notes.
 
-**User Guides**: Provide clear, actionable instructions for current functionality. Remove outdated workflows.
+**User Guides**: Clear instructions for current functionality. Remove outdated workflows.
 
-**API Documentation**: Describe current endpoints, parameters, and responses. Remove deprecated API references unless explicitly marked.
+**API Docs**: Current endpoints, parameters, responses. Remove deprecated APIs unless marked.
 
-**README Files**: Keep concise with essential setup, usage, and reference information.
+**READMEs**: Concise setup, usage, and reference.
 
 ## Quality Checklist
 
@@ -60,19 +55,13 @@ Before finalizing updates:
 - ✓ Adds unique value?
 - ✓ Not duplicating content from elsewhere?
 
-## Red Flags to Remove
+## Red Flags
 
-- Historical narratives ("First we did X, then we added Y")
-- Version-specific notes ("In v2.0 we changed...")
-- Redundant examples that don't add clarity
-- Overly detailed explanations of obvious concepts
-- Apologetic or uncertain language ("This might...", "Hopefully...")
-
-## Edge Cases
-
-- **Deprecated Features**: Mark clearly as deprecated with migration path, but keep concise
-- **Experimental Features**: Label as experimental, describe current state, avoid speculation
-- **Missing Documentation**: Create minimal necessary documentation, focusing on essential usage
-- **Conflicting Information**: Verify against code, update to match implementation truth
+Remove:
+- Historical narratives ("First we did X, then Y")
+- Version notes ("In v2.0 we changed...")
+- Redundant examples
+- Overly detailed obvious concepts
+- Apologetic language ("This might...", "Hopefully...")
 
 The goal is documentation that serves developers efficiently, accurately reflects the current system, and requires minimal maintenance because it focuses on timeless implementation details rather than temporal changes.

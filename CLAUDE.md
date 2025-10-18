@@ -98,6 +98,61 @@ make format             # Format Python
 DiPeO uses specialized subagents for complex tasks.
 Run agents in parallel when possible. [Agent docs](docs/agents/index.md)
 
+## Claude Code Skills
+
+DiPeO provides specialized skills for routine code quality and project management tasks. Access skills via the Skill tool.
+
+### todo-manage Skill
+
+**When to use**: For comprehensive TODO list management when working on multi-phase projects, complex migrations, or when planning feature implementations that require structured task tracking.
+
+**Use the `todo-manage` skill when:**
+- Planning multi-phase projects (3+ phases or 10+ tasks)
+- Organizing complex migrations or refactoring work
+- Breaking down large feature requests into structured task lists
+- User explicitly requests comprehensive TODO planning
+- Need to create organized, phase-based task breakdown with estimates
+
+**Examples:**
+
+<example>
+Context: User requests a major migration that requires multiple coordinated steps
+user: "We need to migrate from legacy MCP to SDK-only implementation"
+assistant: "I'll use the todo-manage skill to create a comprehensive, phase-based TODO list for this migration."
+<commentary>Use todo-manage for complex migrations requiring structured planning with phases, estimates, and dependencies.</commentary>
+</example>
+
+<example>
+Context: User wants to implement a large feature with many components
+user: "Add authentication system with OAuth, JWT, API keys, and role-based access control"
+assistant: "Let me use the todo-manage skill to break this down into a comprehensive TODO list organized by implementation phases."
+<commentary>Use todo-manage for large feature implementations that need structured task breakdown.</commentary>
+</example>
+
+<example>
+Context: User wants comprehensive project planning
+user: "Create a TODO list for implementing the new diagram export system"
+assistant: "I'll use the todo-manage skill to create a detailed, phase-organized TODO list with effort estimates and dependencies."
+<commentary>Use todo-manage when user explicitly requests TODO planning or when project complexity warrants structured task management.</commentary>
+</example>
+
+**Access TODO list**: Use `/dipeotodos` slash command to view current TODO.md
+
+**Don't use todo-manage for:**
+- Simple, single-task changes (use regular TodoWrite tool instead)
+- Quick bug fixes or minor updates
+- When you just need to mark existing TODOs as complete
+
+### Other Skills
+
+- **clean-comments**: Remove unnecessary comments while preserving valuable ones
+- **fix-typecheck**: Fix TypeScript type errors systematically
+- **import-refactor**: Update imports after moving/renaming files
+- **maintain-docs**: Keep documentation current with implementation
+- **separate-monolithic-python**: Break large Python files (>500 LOC) into modules
+
+See `.claude/skills/` for detailed skill documentation.
+
 ## Architecture Quick Reference
 
 ### Key Concepts
@@ -118,7 +173,7 @@ Run agents in parallel when possible. [Agent docs](docs/agents/index.md)
 - `/dipeo/models/src/` - TypeScript specs (source of truth)
 - `/dipeo/diagram_generated/` - Generated code (don't edit)
 
-See [Overall Architecture](docs/architecture/overall_architecture.md) for complete details.
+See [Overall Architecture](docs/architecture/README.md) for complete details.
 
 ## Adding New Features
 

@@ -5,538 +5,135 @@ description: Create new Claude Code skills with proper structure and best practi
 
 # Skill Generator
 
-Generate well-structured Claude Code skills through guided questions and intelligent recommendations.
+Generate concise, focused Claude Code skills through guided questions.
 
-## Overview
+## Process
 
-This skill helps create new Claude Code skills by:
-- Gathering requirements through targeted questions
-- Analyzing use cases to recommend optimal structure
-- Generating complete skill directories with SKILL.md and resources
-- Following Claude Code best practices automatically
+Follow these steps:
 
-## When to Use This Skill
+### 1. Understand the Purpose
 
-Trigger this skill when the user:
-- Wants to "create a skill" or "make a new skill"
-- Asks "how do I extend Claude's capabilities"
-- Needs help writing a SKILL.md file
-- Mentions creating custom workflows or tools for Claude Code
-
-## Skill Creation Process
-
-Follow these steps in order:
-
-### 1. Understand the Skill Purpose
-
-Ask targeted questions to understand what the skill should do:
-
-**Essential questions:**
+Ask:
 - "What should this skill help you accomplish?"
-- "Can you give me 3-5 concrete examples of requests this skill should handle?"
-- "What would you typically say to Claude that should trigger this skill?"
+- "Give me 2-3 concrete examples of when you'd use it"
+- "What would you say to Claude to trigger this?"
 
-**Example interaction:**
-```
-User: I want to create a skill for PDF processing
-Claude: Great! Let me help you create that skill. Can you give me 3-5 examples of requests you'd make? For instance:
-- "Extract text from this PDF"
-- "Merge multiple PDFs"
-- What else?
-```
+### 2. Recommend Structure
 
-### 2. Analyze and Recommend Structure
+Based on use cases:
+- **Workflow-based**: Sequential steps (pipeline, workflow)
+- **Task-based**: Distinct operations (toolkit with separate commands)
+- **Reference/Guidelines**: Standards or specs to follow
+- **Capabilities-based**: Integrated system with related features
 
-Based on the use cases, determine the optimal structure:
+### 3. Recommend Resources (if needed)
 
-**Workflow-based** - Use when:
-- Use cases involve sequential steps ("first X, then Y")
-- Contains keywords: "then", "after", "next", "step"
-- Example: Data pipeline (extract → transform → load)
+- **Scripts** (`scripts/`) - for automation or repetitive code
+- **References** (`references/`) - for API docs, schemas, specs
+- **Assets** (`assets/`) - for templates or boilerplate
 
-**Task-based** - Use when:
-- Use cases are distinct operations
-- Contains keywords: "create", "convert", "extract", "process"
-- Example: PDF toolkit (merge, split, rotate, extract)
+Most simple skills don't need resources.
 
-**Reference/Guidelines** - Use when:
-- Use cases reference standards or specifications
-- Contains keywords: "according to", "following", "guidelines"
-- Example: Brand guidelines, coding standards
+### 4. Generate SKILL.md
 
-**Capabilities-based** - Use when:
-- Multiple interrelated features
-- Integrated system with connected capabilities
-- Example: Product management, API integration
-
-**Show your analysis:**
-```
-Based on your use cases, I recommend a task-based structure because you mentioned distinct operations like "merge", "split", and "extract". 
-
-Would you like to proceed with this structure, or would you prefer a different approach?
-```
-
-### 3. Determine Required Resources
-
-Identify what the skill needs:
-
-**Scripts** (`scripts/`) - Recommend when:
-- Use cases mention automation or repetitive code
-- Operations are error-prone when written manually
-- Keywords: "automate", "script", "programmatically"
-- Example: PDF rotation, image processing, data transformation
-
-**References** (`references/`) - Recommend when:
-- Mentions API documentation, schemas, or specifications
-- Complex domain knowledge needed
-- Keywords: "api", "schema", "documentation", "guidelines"
-- Example: API reference docs, database schemas, company policies
-
-**Assets** (`assets/`) - Recommend when:
-- Mentions templates, boilerplate, or starter files
-- Keywords: "template", "format", "boilerplate"
-- Example: PowerPoint templates, HTML boilerplate, brand assets
-
-**Present recommendations:**
-```
-For this skill, I recommend including:
-✅ Scripts - for PDF manipulation code that would be rewritten often
-✅ References - for pdfplumber API documentation
-❌ Assets - not needed for this use case
-
-Does this sound right?
-```
-
-### 4. Generate the Skill
-
-Create the skill directory structure with all components:
-
-#### 4.1 Create Directory Structure
+Create directory and SKILL.md:
 
 ```bash
-# Personal skill
-mkdir -p ~/.claude/skills/[skill-name]
-
-# Project skill (for team sharing)
-mkdir -p .claude/skills/[skill-name]
+# Personal: ~/.claude/skills/[skill-name]/
+# Project: .claude/skills/[skill-name]/
 ```
 
-Use **hyphen-case** for skill names (e.g., `pdf-processor`, `api-helper`).
-
-#### 4.2 Generate SKILL.md
-
-Create a complete SKILL.md following this template:
+**SKILL.md template** (keep it concise - aim for <200 lines):
 
 ```yaml
 ---
-name: [skill-name]
-description: [Complete description with what it does AND when to use it. Include key trigger words.]
+name: [hyphen-case-name]
+description: [What it does + when to use + trigger keywords]
 ---
 
 # [Skill Title]
 
-## Overview
+[1-2 sentence overview]
 
-[1-2 sentences explaining what this skill enables]
+## [Main Section]
 
-## [Main Section - based on structure type]
+[Core instructions - keep focused]
 
-[Structure-specific content goes here]
+### [Subsection if needed]
 
-## [Additional sections as needed]
-
-[Supporting content]
+[Concrete examples, not lengthy explanations]
 ```
 
-**Critical SKILL.md requirements:**
-- Description must include BOTH what it does AND when to use it
-- Include trigger keywords users would naturally say
-- Use imperative/infinitive verb forms
-- Keep under 500 lines (split longer content into reference files)
-- Provide concrete examples, not just explanations
+**Key requirements:**
+- Description includes what, when, and triggers
+- Use hyphen-case for name
+- Keep concise - split long content to references/
+- Provide examples over explanations
+- Validate YAML frontmatter
 
-#### 4.3 Create Resource Files
+### 5. Show Result & Usage
 
-**For scripts:**
-```python
-#!/usr/bin/env python3
-"""
-[Script purpose]
-"""
-
-def main():
-    # Implementation here
-    pass
-
-if __name__ == "__main__":
-    main()
-```
-
-Make executable: `chmod +x scripts/*.py`
-
-**For references:**
-```markdown
-# Reference Documentation
-
-## Table of Contents
-- [Overview](#overview)
-- [Details](#details)
-
-## Overview
-[High-level explanation]
-
-## Details
-[Detailed information, API docs, schemas, etc.]
-```
-
-**For assets:**
-Place template files, images, or boilerplate directly in `assets/` directory.
-
-### 5. Generate Complete Example
-
-Show the user a complete, working example of their SKILL.md:
-
-````markdown
-Here's your complete SKILL.md:
-
-```yaml
----
-name: pdf-processor
-description: Extract text and tables from PDF files, fill forms, merge documents. Use when working with PDF files or when the user mentions PDFs, forms, or document extraction. Requires pypdf and pdfplumber packages.
----
-
-# PDF Processor
-
-## Overview
-
-Process PDF files including text extraction, form filling, and document merging.
-
-## Core Tasks
-
-### 1. Extract Text
-
-Use pdfplumber for text extraction:
-
-```python
-import pdfplumber
-with pdfplumber.open("doc.pdf") as pdf:
-    text = pdf.pages[0].extract_text()
-```
-
-### 2. Merge PDFs
-
-[Implementation details]
-
-### 3. Fill Forms
-
-See [scripts/fill_form.py](scripts/fill_form.py) for the form filling utility.
-
-## Requirements
-
-Install required packages:
-```bash
-pip install pypdf pdfplumber
-```
-```
-
-[Continue with scripts/references if needed]
-````
-
-### 6. Validate the Skill
-
-Check that the generated skill meets requirements:
-
-**Validation checklist:**
-- [ ] YAML frontmatter is valid (starts/ends with `---`)
-- [ ] Name uses hyphen-case (lowercase, hyphens only)
-- [ ] Description is complete and includes trigger keywords
-- [ ] Description mentions when to use the skill
-- [ ] No `<` or `>` characters in description
-- [ ] File is saved as `SKILL.md` (case-sensitive)
-- [ ] Required packages are listed in description or documentation
-- [ ] Scripts have execute permissions if included
-
-**Show validation results:**
-```
-✅ Validating your skill...
-✅ YAML frontmatter is valid
-✅ Skill name follows conventions
-✅ Description is complete and specific
-✅ All required files are in place
-
-Your skill is ready to use!
-```
-
-### 7. Provide Usage Instructions
-
-Explain how to use the new skill:
+Present the generated skill concisely and explain how to use it:
 
 ```
-Your skill is now available! Here's how to use it:
+Created: ~/.claude/skills/[name]/SKILL.md
 
-1. The skill is located at: ~/.claude/skills/pdf-processor/
-2. Restart Claude Code to load the skill
-3. Test it by asking: "Can you extract text from this PDF?"
+To use:
+1. Restart Claude Code
+2. Test with: "[example trigger phrase]"
 
-Claude will automatically use your skill when it matches the request.
-
-To share with your team:
-1. Move it to .claude/skills/ in your project
-2. Commit to git: git add .claude/skills/
-3. Team members get it automatically when they pull
+To share: Move to .claude/skills/ and commit
 ```
 
-## Structure Templates
+## Quick Templates
 
-### Workflow-Based Template
-
+**Workflow-based:**
 ```markdown
 ## Workflow
-
-Follow this process:
-
-### Step 1: [Initial Step]
-[What to do first]
-
-### Step 2: [Processing]
-[Main processing logic]
-
+### Step 1: [Action]
+### Step 2: [Process]
 ### Step 3: [Output]
-[Generate final output]
 ```
 
-### Task-Based Template
-
+**Task-based:**
 ```markdown
-## Core Tasks
-
-### 1. [Task Name]
-[Task description and usage]
-
-**Usage:**
-```[language]
-[Example code]
+## Tasks
+### 1. [Task]
+[Brief description + example]
+### 2. [Task]
+[Brief description + example]
 ```
 
-### 2. [Task Name]
-[Next task]
-```
-
-### Reference/Guidelines Template
-
+**Reference/Guidelines:**
 ```markdown
 ## Guidelines
-
-### Standards
-[Define standards]
-
-### Specifications
-[Technical specs]
-
-### Best Practices
-[Recommendations]
-
-### Examples
-[Concrete examples]
-```
-
-### Capabilities-Based Template
-
-```markdown
-## Core Capabilities
-
-### 1. [Capability Name]
-[Description and usage]
-
-### 2. [Capability Name]
-[Description and usage]
-
-### 3. Advanced Features
-[Additional capabilities]
+### [Category]
+[Standard/spec + example]
 ```
 
 ## Best Practices
 
-### Writing Effective Descriptions
+**Effective descriptions:**
+- State what it does + when to use + trigger words
+- ✅ "Extract PDF text, fill forms, merge docs. Use when working with PDFs."
+- ❌ "Helps with data" (too vague)
 
-**Good description checklist:**
-- ✅ States what the skill does clearly
-- ✅ Includes when to use it
-- ✅ Contains trigger keywords users would say
-- ✅ Mentions file types or technologies (if relevant)
-- ✅ Lists required packages (if any)
+**Keep it concise:**
+- Aim for <200 lines in SKILL.md
+- Move details to references/ files
+- Prefer examples over lengthy explanations
 
-**Examples:**
-
-❌ **Too vague:** "Helps with data"
-
-✅ **Specific:** "Analyze Excel spreadsheets, create pivot tables, and generate charts. Use when working with Excel files, spreadsheets, or analyzing tabular data in .xlsx format."
-
-❌ **Missing triggers:** "Processes PDF documents"
-
-✅ **With triggers:** "Extract text and tables from PDF files, fill forms, merge documents. Use when working with PDF files or when the user mentions PDFs, forms, or document extraction."
-
-### Progressive Disclosure
-
-Keep SKILL.md concise by moving detailed content to reference files:
-
-**In SKILL.md:**
-```markdown
-## Quick Start
-[Essential information only]
-
-For detailed API reference, see ./REFERENCE.md.
-For examples, see ./EXAMPLES.md.
+**Resource organization:**
+```
+skill-name/
+├── SKILL.md           # Main (required)
+├── references/        # Docs (optional)
+├── scripts/          # Utils (optional)
+└── assets/           # Templates (optional)
 ```
 
-**In REFERENCE.md:**
-```markdown
-# Complete API Reference
-[Comprehensive documentation]
-```
+## Common Issues
 
-This keeps the main skill file focused while providing depth when needed.
-
-### Resource Organization
-
-```
-my-skill/
-├── SKILL.md           # Main instructions (required)
-├── references/        # Detailed documentation (optional)
-│   ├── api.md        # API reference
-│   └── examples.md   # Extended examples
-├── scripts/          # Executable utilities (optional)
-│   └── helper.py     # Automation scripts
-└── assets/           # Templates and files (optional)
-    └── template.txt  # Output templates
-```
-
-**Guidelines:**
-- Delete unused directories
-- Reference files from SKILL.md clearly
-- Make scripts executable: `chmod +x scripts/*.py`
-- Keep SKILL.md under 500 lines
-
-## Common Patterns
-
-### Pattern 1: File Format Converter
-
-```yaml
----
-name: format-converter
-description: Convert between file formats including JSON, YAML, CSV, and XML. Use when converting data files or when the user mentions file format conversion.
----
-
-## Core Tasks
-
-### Convert JSON to YAML
-### Convert CSV to JSON
-### Convert XML to JSON
-```
-
-### Pattern 2: API Integration
-
-```yaml
----
-name: github-api
-description: Interact with GitHub API for repository management, issues, and pull requests. Use when working with GitHub, managing repositories, or automating GitHub tasks.
----
-
-## Core Tasks
-
-### 1. Repository Operations
-### 2. Issue Management
-### 3. Pull Request Handling
-
-## Resources
-See [references/api.md](references/api.md) for complete API documentation.
-```
-
-### Pattern 3: Code Quality Tool
-
-```yaml
----
-name: code-reviewer
-description: Review code for best practices, security issues, and performance. Use when reviewing code, checking pull requests, or analyzing code quality.
-allowed-tools: Read, Grep, Glob
----
-
-## Review Checklist
-1. Code organization
-2. Error handling
-3. Security concerns
-4. Performance
-5. Test coverage
-```
-
-## Troubleshooting Generated Skills
-
-If the generated skill doesn't work:
-
-**Skill not activating:**
-1. Check if description is specific enough with trigger keywords
-2. Verify YAML frontmatter is valid
-3. Confirm file is named `SKILL.md` exactly
-4. Restart Claude Code
-
-**Scripts not working:**
-1. Verify execute permissions: `chmod +x scripts/*.py`
-2. Check Python/package installation
-3. Use absolute imports in scripts
-
-**Reference files not loading:**
-1. Verify file paths use forward slashes
-2. Check files are referenced in SKILL.md
-3. Ensure markdown link syntax is correct
-
-## Examples
-
-### Example 1: Creating a Simple Skill
-
-**User request:** "Create a skill to help me write commit messages"
-
-**Your process:**
-1. Ask: "Can you give me examples of when you'd use this?"
-2. User provides: "After I stage changes" and "When reviewing diffs"
-3. Analyze: Simple, single-purpose → single file skill
-4. Generate SKILL.md with workflow: view diff → generate message
-5. Validate and confirm
-
-### Example 2: Creating a Complex Skill
-
-**User request:** "I need a skill for our company's API"
-
-**Your process:**
-1. Ask detailed questions about API usage patterns
-2. Gather 5+ use cases
-3. Analyze: Multiple operations → task-based structure
-4. Recommend: scripts for API client, references for API docs
-5. Generate complete skill with all resources
-6. Show file structure and usage instructions
-
-## Next Steps After Skill Creation
-
-After generating a skill, guide the user:
-
-1. **Test the skill:**
-   - Restart Claude Code
-   - Try example requests that should trigger it
-   - Verify it activates automatically
-
-2. **Iterate based on usage:**
-   - Ask user to try it on real tasks
-   - Collect feedback on what's missing
-   - Refine SKILL.md and resources
-
-3. **Share if needed:**
-   - Move to `.claude/skills/` for team sharing
-   - Commit to git
-   - Consider creating a plugin for broader distribution
-
-## References
-
-For more detailed information on skill creation:
-- Claude Code skill documentation
-- Best practices for skill authoring
-- Progressive disclosure patterns
-- Tool permission management with `allowed-tools`
+- **Skill not triggering**: Add more trigger keywords to description
+- **YAML invalid**: Check `---` markers are on their own lines
+- **Scripts fail**: `chmod +x scripts/*.py`

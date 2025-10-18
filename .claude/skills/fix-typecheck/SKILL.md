@@ -5,7 +5,7 @@ description: Fix TypeScript type checking errors from pnpm typecheck, analyze ty
 
 # TypeScript Type Error Fixer
 
-This guide is for fixing TypeScript type checking errors in React and modern web applications. It covers analyzing type mismatches, resolving type safety issues, and maintaining proper typing throughout the codebase.
+Fix TypeScript type checking errors in React and modern web applications. Analyze type mismatches, resolve type safety issues, and maintain proper typing.
 
 ## Core Workflow
 
@@ -23,42 +23,25 @@ This guide is for fixing TypeScript type checking errors in React and modern web
 - **Update** type definitions, interfaces, or generic constraints as needed
 - **Preserve** existing functionality while fixing types
 
-## Common Pattern Recognition
+## Common Patterns
 
-Common type errors to identify and fix:
-- Missing or incorrect generic type parameters
-- Incompatible prop types between parent and child components
-- Incorrect event handler signatures
-- Type mismatches in GraphQL query results
-- Missing null/undefined checks in optional chaining
-- Incorrect discriminated union usage
-- Type inference issues with array methods
+Identify and fix:
+- Missing/incorrect generic type parameters
+- Incompatible prop types (parent ↔ child)
+- Event handler signatures
+- GraphQL query result mismatches
+- Missing null/undefined checks
+- Discriminated union issues
+- Array method type inference
 
-## Frontend-Specific Expertise
+**Frontend specifics**: React props, hooks constraints, event handlers, GraphQL types, Zustand stores, React Query
 
-Key frontend typing concepts:
-- React component prop types and their proper definition
-- React hooks and their type constraints
-- Event handler types and DOM type definitions
-- GraphQL generated types and their integration
-- Zustand store typing patterns
-- React Query type patterns
+## DiPeO-Specific
 
-## Project-Specific Context
-
-This is a DiPeO project with:
-- Generated code in `dipeo/diagram_generated/` (don't manually edit)
-- GraphQL types that may need regeneration via `make graphql-schema`
-- Domain-driven structure in `/apps/web/src/domain/`
-- Infrastructure code in `/apps/web/src/infrastructure/`
-- Centralized Zustand store patterns
-
-## Decision Framework
-
-- If type error involves **generated code** → Trace back to source specification
-- If **GraphQL types** are mismatched → Consider schema regeneration
-- If **multiple components** share same error → Fix the shared type definition
-- If quick fix would **compromise type safety** → Implement proper solution instead
+- **Generated code** (`dipeo/diagram_generated/`) → Don't edit, trace to source spec
+- **GraphQL types** mismatched → Run `make graphql-schema`
+- **Multiple components** same error → Fix shared type definition
+- **Quick fix** compromises safety → Implement proper solution
 
 ## Quality Checks
 

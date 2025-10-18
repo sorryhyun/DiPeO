@@ -7,8 +7,7 @@ from strawberry.subscriptions import GRAPHQL_TRANSPORT_WS_PROTOCOL
 from dipeo.application.graphql import create_schema
 
 from .context import get_request_context
-from .mcp_sdk_server import create_sdk_router
-from .mcp_server import router as mcp_router
+from .mcp_sdk_server import create_info_router, create_messages_router
 from .webhooks import router as webhook_router
 
 
@@ -43,9 +42,11 @@ def setup_routes(app: FastAPI):
     # Include webhook router
     app.include_router(webhook_router)
 
-    # Include MCP server router (custom implementation - legacy)
-    app.include_router(mcp_router)
+    # Include MCP messages router (provides /mcp/messages JSON-RPC endpoint)
+    # Uses FastMCP SDK's tool registry but with custom FastAPI handler
+    mcp_messages_router = create_messages_router()
+    app.include_router(mcp_messages_router)
 
-    # Include MCP SDK router (official SDK implementation)
-    mcp_sdk_router = create_sdk_router()
-    app.include_router(mcp_sdk_router)
+    # Include MCP info router (provides /mcp/info and OAuth metadata endpoints)
+    mcp_info_router = create_info_router()
+    app.include_router(mcp_info_router)
