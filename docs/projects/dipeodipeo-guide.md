@@ -1,12 +1,12 @@
 # DiPeO AI Diagram Generation Guide
 
-## Overview
+## Overview {#overview}
 
 The `dipeodipeo` project demonstrates DiPeO's ultimate dog-fooding capability - using DiPeO diagrams to generate new DiPeO diagrams through AI. This meta-programming approach leverages Large Language Models (LLMs) with structured output to automatically create executable workflows from natural language descriptions.
 
 **Key Achievement**: DiPeO is mature enough to use itself to extend itself, creating a self-improving system where AI agents design new automation workflows.
 
-## System Architecture
+## System Architecture {#system-architecture}
 
 ```
 Natural Language Request → Prompt Engineering → AI Diagram Generation → Post-Processing → Executable Diagram
@@ -19,9 +19,9 @@ The system orchestrates three specialized AI agents:
 2. **Diagram Designer** - Creates structured DiPeO diagrams following best practices
 3. **Test Data Creator** - Generates realistic test data for diagram validation
 
-## Core Components
+## Core Components {#core-components}
 
-### 1. Light Diagram Models (`light_diagram_models.py`)
+### 1. Light Diagram Models (`light_diagram_models.py`) {#1-light-diagram-models-light_diagram_modelspy}
 
 Defines Pydantic models that provide structured output schemas for LLMs:
 
@@ -49,7 +49,7 @@ class LightDiagram(BaseModel):
 - Includes validation to ensure diagram correctness
 - Provides type safety for AI-generated outputs
 
-### 2. Generation Pipeline (`test.light.yaml`)
+### 2. Generation Pipeline (`test.light.yaml`) {#2-generation-pipeline-testlightyaml}
 
 The main workflow that orchestrates the generation process:
 
@@ -76,7 +76,7 @@ nodes:
     # Post-processes to clean YAML output
 ```
 
-### 3. Post-Processing (`process.py`)
+### 3. Post-Processing (`process.py`) {#3-post-processing-processpy}
 
 Cleans and formats AI-generated diagrams:
 
@@ -94,9 +94,9 @@ def process_diagram(inputs: Dict[str, Any]) -> str:
 - Ensures consistent key ordering
 - Uses literal scalar format (`|`) for code blocks
 
-### 4. Prompt Templates (`prompts/`)
+### 4. Prompt Templates (`prompts/`) {#4-prompt-templates-prompts}
 
-#### `diagram_generator.txt`
+#### `diagram_generator.txt` {#diagram_generatortxt}
 Contains comprehensive instructions for AI diagram generation:
 - Content type rules (never use 'empty')
 - Node positioning guidelines (x increment by 200-300)
@@ -104,15 +104,15 @@ Contains comprehensive instructions for AI diagram generation:
 - Code patterns for common tasks
 - Error handling requirements
 
-#### `prompt_generator.txt`
+#### `prompt_generator.txt` {#prompt_generatortxt}
 Guides the prompt engineer agent to create effective prompts
 
-#### `test_data_generator.txt`
+#### `test_data_generator.txt` {#test_data_generatortxt}
 Instructions for creating realistic test data in various formats
 
-## Generation Workflow
+## Generation Workflow {#generation-workflow}
 
-### Step 1: Define Requirements
+### Step 1: Define Requirements {#step-1-define-requirements}
 
 Create or update `request.txt` with your workflow description:
 ```text
@@ -124,13 +124,13 @@ Create a data processing pipeline that:
 5. Saves to JSON output
 ```
 
-### Step 2: Run Generation
+### Step 2: Run Generation {#step-2-run-generation}
 
 ```bash
 dipeo run projects/dipeodipeo/test --light --debug --timeout=60
 ```
 
-### Step 3: Review Generated Files
+### Step 3: Review Generated Files {#step-3-review-generated-files}
 
 **Generated Diagram**: `projects/dipeodipeo/generated/diagram.light.yaml`
 - Complete, executable DiPeO diagram
@@ -142,15 +142,15 @@ dipeo run projects/dipeodipeo/test --light --debug --timeout=60
 - Matches the expected input format
 - Can be used immediately with the generated diagram
 
-### Step 4: Execute Generated Diagram
+### Step 4: Execute Generated Diagram {#step-4-execute-generated-diagram}
 
 ```bash
 dipeo run projects/dipeodipeo/generated/diagram --light --debug
 ```
 
-## Advanced Features
+## Advanced Features {#advanced-features}
 
-### Dynamic Input Support
+### Dynamic Input Support {#dynamic-input-support}
 
 The system can accept runtime parameters instead of reading from files:
 
@@ -159,7 +159,7 @@ dipeo run projects/dipeodipeo/test --light \
   --input-data '{"user_requirements": "Create a web scraping workflow", "workflow_description": "Scrape product data from e-commerce sites"}'
 ```
 
-### Custom AI Models
+### Custom AI Models {#custom-ai-models}
 
 Configure different LLM providers and models in `test.light.yaml`:
 
@@ -171,7 +171,7 @@ persons:
     api_key_id: APIKEY_ANTHROPIC
 ```
 
-### Structured Output with Pydantic
+### Structured Output with Pydantic {#structured-output-with-pydantic}
 
 The system uses OpenAI's structured output feature with Pydantic models to ensure:
 - Valid diagram syntax
@@ -179,7 +179,7 @@ The system uses OpenAI's structured output feature with Pydantic models to ensur
 - Proper connection definitions
 - No missing required fields
 
-### Test Data Models (`test_data_models.py`)
+### Test Data Models (`test_data_models.py`) {#test-data-models-test_data_modelspy}
 
 Defines Pydantic schemas for test data generation:
 
@@ -195,9 +195,9 @@ class TestDataResponse(BaseModel):
     metadata: Dict[str, Any]
 ```
 
-## Best Practices and Guidelines
+## Best Practices and Guidelines {#best-practices-and-guidelines}
 
-### 1. AI Agent Configuration
+### 1. AI Agent Configuration {#1-ai-agent-configuration}
 
 **Prompt Engineer**:
 - Focuses on clarity and specificity
@@ -214,7 +214,7 @@ class TestDataResponse(BaseModel):
 - Follows the specified schema
 - Includes edge cases
 
-### 2. Content Type Rules
+### 2. Content Type Rules {#2-content-type-rules}
 
 The system enforces strict content type usage:
 - `raw_text` - Plain text, CSV, unstructured data
@@ -222,14 +222,14 @@ The system enforces strict content type usage:
 - `conversation_state` - LLM conversation contexts
 - **Never** `empty` - Provides no value
 
-### 3. Node Selection Strategy
+### 3. Node Selection Strategy {#3-node-selection-strategy}
 
 - **code_job** - All data processing and transformation
 - **person_job** - Only when AI analysis is required
 - **db** - File I/O operations
 - **No sub_diagram** - Use asyncio in code_job instead
 
-### 4. Error Handling
+### 4. Error Handling {#4-error-handling}
 
 Generated diagrams include:
 - Validation nodes after data loading
@@ -237,16 +237,16 @@ Generated diagrams include:
 - Try-except blocks in code
 - Detailed logging
 
-## Integration with DiPeO Ecosystem
+## Integration with DiPeO Ecosystem {#integration-with-dipeo-ecosystem}
 
-### Relationship to Code Generation
+### Relationship to Code Generation {#relationship-to-code-generation}
 
 While `/projects/codegen/` generates DiPeO's internal code from TypeScript specs, `dipeodipeo` generates user-facing diagrams from natural language. Together they demonstrate:
 
 - **codegen**: DiPeO building itself (infrastructure)
 - **dipeodipeo**: DiPeO extending itself (user workflows)
 
-### Dog-fooding Hierarchy
+### Dog-fooding Hierarchy {#dog-fooding-hierarchy}
 
 ```
 Level 1: DiPeO executes diagrams (basic capability)
@@ -256,9 +256,9 @@ Level 3: DiPeO diagrams generate new DiPeO diagrams (dipeodipeo)
 
 This recursive capability proves the platform's maturity and flexibility.
 
-## Common Use Cases
+## Common Use Cases {#common-use-cases}
 
-### 1. Rapid Prototyping
+### 1. Rapid Prototyping {#1-rapid-prototyping}
 
 Transform ideas into working diagrams in seconds:
 ```bash
@@ -266,7 +266,7 @@ echo "Create a workflow to analyze sentiment in customer reviews" > request.txt
 dipeo run projects/dipeodipeo/test --light
 ```
 
-### 2. Batch Diagram Creation
+### 2. Batch Diagram Creation {#2-batch-diagram-creation}
 
 Generate multiple related diagrams programmatically:
 ```python
@@ -285,32 +285,32 @@ for workflow in workflows:
     ])
 ```
 
-### 3. Template Generation
+### 3. Template Generation {#3-template-generation}
 
 Use as a starting point for complex diagrams:
 1. Generate basic structure with AI
 2. Manually refine and extend
 3. Add domain-specific logic
 
-## Limitations and Considerations
+## Limitations and Considerations {#limitations-and-considerations}
 
-### Current Limitations
+### Current Limitations {#current-limitations}
 
 1. **Complexity Ceiling**: Very complex multi-stage workflows may need manual refinement
 2. **Domain Knowledge**: AI may not understand specialized business logic
 3. **Performance Optimization**: Generated code may need optimization for large-scale data
 4. **Security**: Always review generated code for security implications
 
-### When to Use Manual Creation
+### When to Use Manual Creation {#when-to-use-manual-creation}
 
 - Mission-critical workflows requiring precise control
 - Highly optimized performance requirements
 - Complex integration with external systems
 - Workflows with sensitive security requirements
 
-## Troubleshooting
+## Troubleshooting {#troubleshooting}
 
-### Generated Diagram Won't Execute
+### Generated Diagram Won't Execute {#generated-diagram-wont-execute}
 
 1. Check for syntax errors:
    ```bash
@@ -321,14 +321,14 @@ Use as a starting point for complex diagrams:
 3. Ensure API keys are configured
 4. Check connection labels match node expectations
 
-### AI Generation Quality Issues
+### AI Generation Quality Issues {#ai-generation-quality-issues}
 
 1. Improve the prompt in `request.txt`
 2. Add specific examples to prompt templates
 3. Use more capable models (GPT-4, Claude)
 4. Provide sample test data for context
 
-### Post-Processing Errors
+### Post-Processing Errors {#post-processing-errors}
 
 If `format_yaml` fails:
 1. Check the raw AI output for malformed YAML
@@ -336,7 +336,7 @@ If `format_yaml` fails:
 3. Update `process.py` for new node types
 
 
-## Conclusion
+## Conclusion {#conclusion}
 
 The `dipeodipeo` project represents the pinnacle of DiPeO's self-referential capabilities. By using AI-powered DiPeO diagrams to generate new DiPeO diagrams, it creates a powerful feedback loop where the platform can extend and improve itself. This approach democratizes workflow automation, allowing users to describe what they want in natural language and receive executable solutions immediately.
 

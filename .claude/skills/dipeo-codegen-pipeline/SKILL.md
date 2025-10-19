@@ -35,15 +35,15 @@ Use `Skill(doc-lookup)` with these anchors when you need detailed context:
 
 **Overview & Ownership**:
 - `docs/agents/codegen-pipeline.md#overview` - Pipeline overview
-- `docs/agents/codegen-pipeline.md#ownership` - What you own
+- `docs/agents/codegen-pipeline.md#your-complete-ownership` - What you own
 
 **TypeScript Model Design (Part 1)**:
 - `docs/agents/codegen-pipeline.md#typescript-model-design` - Full Part 1
 - `docs/agents/codegen-pipeline.md#model-locations` - File structure
-- `docs/agents/codegen-pipeline.md#type-system-principles` - Design principles
-- `docs/agents/codegen-pipeline.md#naming-standards` - **CRITICAL**: snake_case rules
-- `docs/agents/codegen-pipeline.md#creating-node-types` - Workflow for new nodes
-- `docs/agents/codegen-pipeline.md#quality-checklist` - Pre-submit checklist
+- `docs/agents/codegen-pipeline.md#type-system-design-principles` - Design principles
+- `docs/agents/codegen-pipeline.md#2-naming-standards` - **CRITICAL**: snake_case rules
+- `docs/agents/codegen-pipeline.md#workflow-creating-new-node-types` - Workflow for new nodes
+- `docs/agents/codegen-pipeline.md#quality-assurance-checklist` - Pre-submit checklist
 
 **IR Builder System (Part 2)**:
 - `docs/agents/codegen-pipeline.md#ir-builder-system` - Full Part 2
@@ -60,16 +60,21 @@ Use `Skill(doc-lookup)` with these anchors when you need detailed context:
 - `docs/agents/codegen-pipeline.md#generation-workflow` - Complete make codegen workflow
 
 **Diagnosis (Part 4)**:
-- `docs/agents/codegen-pipeline.md#code-review-diagnosis` - Diagnosing generated code
-- `docs/agents/codegen-pipeline.md#critical-responsibility` - Your unique role
+- `docs/agents/codegen-pipeline.md#code-review-diagnosis` - Part 4 overview
+- `docs/agents/codegen-pipeline.md#tracing-generation-issues` - Diagnosing generated code
+- `docs/agents/codegen-pipeline.md#your-critical-responsibility` - Your unique role
+- `docs/agents/codegen-pipeline.md#generation-vs-runtime-issues` - Generation vs runtime issues
 
 **Workflows (Part 5)**:
-- `docs/agents/codegen-pipeline.md#codegen-workflow` - Full Part 5
-- `docs/agents/codegen-pipeline.md#complete-workflow` - End-to-end steps
+- `docs/agents/codegen-pipeline.md#codegen-workflow` - Part 5 overview
+- `docs/agents/codegen-pipeline.md#complete-workflow` - Full end-to-end steps
+- `docs/agents/codegen-pipeline.md#validation-levels` - make apply vs apply-test
+- `docs/agents/codegen-pipeline.md#critical-warnings` - Safety warnings
 
 **Collaboration (Part 6)**:
-- `docs/agents/codegen-pipeline.md#collaboration-escalation` - Full Part 6
-- `docs/agents/codegen-pipeline.md#engage-other-agents` - When to escalate
+- `docs/agents/codegen-pipeline.md#collaboration-escalation` - Part 6 overview
+- `docs/agents/codegen-pipeline.md#collaboration-protocols` - Collaboration protocols
+- `docs/agents/codegen-pipeline.md#when-to-engage-other-agents` - When to escalate
 
 **Example doc-lookup call**:
 ```bash
@@ -94,7 +99,7 @@ python .claude/skills/doc-lookup/scripts/section_search.py \
 ## Critical Reminder
 
 **You are the ONLY agent who diagnoses generated code internals.** If generated code looks wrong:
-1. Load diagnosis section: `Skill(doc-lookup)` with `code-review-diagnosis`
+1. Load diagnosis section: `Skill(doc-lookup)` with `tracing-generation-issues`
 2. Trace: TypeScript spec → IR JSON → Template → Generated Python
 3. Escalate to agent if root cause is complex (IR builder bug, template issue)
 

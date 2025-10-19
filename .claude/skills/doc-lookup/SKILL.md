@@ -41,12 +41,12 @@ When you know the anchor ID from router skills or previous lookups:
 
 ```bash
 python .claude/skills/doc-lookup/scripts/section_search.py \
-  --query "cli-flags" \
+  --query "cli-commands" \
   --paths docs/agents/backend-development.md \
   --top 1
 ```
 
-**Use when**: Router skills reference specific anchors (e.g., `#cli-flags`, `#mcp-tools`)
+**Use when**: Router skills reference specific anchors (e.g., `#cli-commands`, `#mcp-tools`)
 
 ### Pattern 2: Heading Search
 
@@ -135,11 +135,11 @@ Router skills should reference anchors for common lookups:
 
 ### CLI Commands
 - Full guide: `docs/agents/backend-development.md#cli-commands`
-- Flags reference: `docs/agents/backend-development.md#cli-flags`
+- Architecture: `docs/agents/backend-development.md#cli-architecture`
 
 ### MCP Server
-- Tools: `docs/features/mcp-server-integration.md#mcp-tools`
-- Registration: `docs/features/mcp-server-integration.md#tool-registration`
+- Tools: `docs/agents/backend-development.md#mcp-tools`
+- Available tools: `docs/features/mcp-server-integration.md#available-tools`
 
 ## Lookup Procedure
 1. Check if anchor is known → use exact anchor query
@@ -156,14 +156,14 @@ Router skills should reference anchors for common lookups:
 
 **Workflow**:
 ```bash
-# Look up CLI flags section
+# Look up CLI commands section
 python .claude/skills/doc-lookup/scripts/section_search.py \
-  --query "cli-flags" \
+  --query "cli-commands" \
   --paths docs/agents/backend-development.md \
   --top 1
 ```
 
-**Result**: Returns ~50 lines about CLI flag conventions, not 600-line full document
+**Result**: Returns ~50 lines about CLI commands and conventions, not 600-line full document
 
 ### Example 2: Understand MCP Tool Registration
 
@@ -208,11 +208,11 @@ python .claude/skills/doc-lookup/scripts/section_search.py \
 
 DiPeO documentation uses these anchor patterns:
 
-- **Commands**: `#cli-commands`, `#cli-flags`, `#cli-background`
-- **Architecture**: `#service-architecture`, `#eventbus`, `#service-registry`
-- **Features**: `#mcp-tools`, `#mcp-registration`, `#database-schema`
-- **Handlers**: `#handler-patterns`, `#node-handlers`, `#execution-flow`
-- **Codegen**: `#typescript-specs`, `#ir-builders`, `#code-generation`
+- **Commands**: `#cli-commands`, `#cli-architecture`, `#background-execution`
+- **Architecture**: `#service-architecture`, `#service-registry-pattern`, `#envelope-pattern-output`
+- **Features**: `#mcp-tools`, `#available-tools`, `#database-schema`
+- **Handlers**: `#node-handler-pattern`, `#when-adding-new-features`, `#your-responsibilities`
+- **Codegen**: `#type-system-design-principles`, `#ir-builder-architecture`, `#generation-workflow`
 
 See router skills for complete anchor indexes.
 

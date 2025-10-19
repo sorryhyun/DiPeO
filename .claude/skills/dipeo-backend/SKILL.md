@@ -33,6 +33,7 @@ Use `Skill(doc-lookup)` with these anchors when you need detailed context:
 **CLI System**:
 - `docs/agents/backend-development.md#cli-system` - Full CLI architecture
 - `docs/agents/backend-development.md#cli-commands` - Command examples
+- `docs/agents/backend-development.md#cli-architecture` - Parser/dispatcher/runner breakdown
 - `docs/agents/backend-development.md#background-execution` - Background execution
 
 **FastAPI Server**:
@@ -42,11 +43,21 @@ Use `Skill(doc-lookup)` with these anchors when you need detailed context:
 **Database & Persistence**:
 - `docs/agents/backend-development.md#database-schema` - SQLite schema
 - `docs/agents/backend-development.md#database-persistence` - Full DB section
+- `docs/agents/backend-development.md#message-store` - Conversation persistence
 
 **MCP Server**:
-- `docs/agents/backend-development.md#mcp-server` - MCP overview
+- `docs/agents/backend-development.md#mcp-server` - MCP architecture overview
 - `docs/agents/backend-development.md#mcp-tools` - Available tools
-- `docs/agents/backend-development.md#mcp-architecture` - MCP implementation
+- `docs/agents/backend-development.md#mcp-resources` - Resource implementations
+- `docs/agents/backend-development.md#mcp-architecture` - Implementation details
+- `docs/agents/backend-development.md#http-transport` - HTTP endpoint configuration
+- `docs/features/mcp-server-integration.md#quick-start` - Usage guide
+- `docs/features/mcp-server-integration.md#available-tools` - Tool catalog
+- `docs/features/mcp-server-integration.md#uploading-diagrams` - Push diagrams to MCP
+
+**Troubleshooting**:
+- `docs/agents/backend-development.md#troubleshooting` - Common debugging patterns
+- `docs/agents/backend-development.md#common-patterns` - Implementation patterns
 
 **Example doc-lookup call**:
 ```bash

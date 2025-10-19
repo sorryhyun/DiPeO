@@ -26,6 +26,26 @@ Maintain clean, accurate, implementation-focused documentation that works seamle
 6. **Test retrieval**: Verify key sections can be found with doc-lookup skill
 7. **Maintain structure**: Preserve organization unless improvement needed
 
+## Helper Scripts {#helper-scripts}
+
+The maintain-docs skill includes helper scripts for anchor management:
+
+```bash
+# Add anchors to documentation (dry-run first to preview)
+python .claude/skills/maintain-docs/scripts/add_doc_anchors.py <path> --dry-run
+python .claude/skills/maintain-docs/scripts/add_doc_anchors.py <path> [--recursive]
+
+# Validate router skill references
+python .claude/skills/maintain-docs/scripts/validate_doc_anchors.py
+
+# Or use Makefile shortcuts
+make docs-add-anchors-dry    # Preview anchor additions
+make docs-add-anchors        # Add anchors to features/formats/projects docs
+make docs-validate-anchors   # Validate router skill references
+```
+
+See [DOCUMENTATION_MANAGEMENT.md](references/DOCUMENTATION_MANAGEMENT.md) for complete guide.
+
 ## Anchor Guidelines {#anchor-guidelines}
 
 To enable effective doc-lookup, follow these anchor requirements:
@@ -41,6 +61,31 @@ Add explicit anchors `{#anchor-id}` to:
 - #### (level 4+) headings unless they're frequently referenced
 - Example headings or minor subsections
 - Temporary or subject-to-change sections
+
+### Anchor Granularity Policy
+
+**Prefer coarser anchors over fine-grained ones** to improve maintainability and usability:
+
+**Good (Coarser anchors)**:
+- `#cli-commands` for a section covering all CLI commands
+- `#mcp-tools` for a section listing all MCP tools
+- `#service-architecture` for service patterns overview
+
+**Avoid (Too granular)**:
+- `#cli-run-command`, `#cli-results-command`, `#cli-metrics-command` (separate anchors for each command)
+- `#mcp-dipeo-run-tool`, `#mcp-list-diagrams-tool` (separate anchors for each tool)
+- `#service-registry-registration`, `#service-registry-lookup` (separate anchors for minor subsections)
+
+**Rationale**:
+- **Easier maintenance**: Fewer anchors to manage when content evolves
+- **Better doc-lookup**: Router skills can reference one anchor instead of many
+- **Natural retrieval**: doc-lookup returns the whole section with context
+- **Less coupling**: Documentation structure can change without breaking references
+
+**When fine-grained anchors are acceptable**:
+- Distinct, complex subsections with >50 lines each
+- Subsections referenced independently across multiple docs
+- Different conceptual topics that happen to be in the same parent section
 
 ### Anchor Naming Conventions
 

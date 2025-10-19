@@ -2,7 +2,7 @@
 
 This guide explains how to expose DiPeO's diagram execution capabilities as an MCP (Model Context Protocol) server, allowing external LLM applications (like Claude) to execute DiPeO diagrams as tools.
 
-## Overview
+## Overview {#overview}
 
 DiPeO's MCP server integration provides:
 
@@ -14,7 +14,7 @@ DiPeO's MCP server integration provides:
 
 **Protocol Version**: MCP 2024-11-05 (SDK-based, not legacy HTTP/SSE)
 
-## Architecture
+## Architecture {#architecture}
 
 ```
 External LLM Client (Claude, etc.)
@@ -26,12 +26,12 @@ DiPeO CLI Runner
 Diagram Execution
 ```
 
-### Endpoints
+### Endpoints {#endpoints}
 
 - **GET /mcp/info** - Server information and capabilities
 - **POST /mcp/messages** - JSON-RPC 2.0 endpoint for tool calls and responses
 
-## Typical MCP Workflow
+## Typical MCP Workflow {#typical-mcp-workflow}
 
 The DiPeO MCP server enables the following workflow:
 
@@ -47,7 +47,7 @@ The DiPeO MCP server enables the following workflow:
 - **Immediate Availability**: Pushed diagrams are instantly available for execution
 - **Standard Protocol**: Uses JSON-RPC 2.0 and follows MCP specification
 
-## Quick Start
+## Quick Start {#quick-start}
 
 ### 1. Start DiPeO Server
 
@@ -94,7 +94,7 @@ curl -X POST http://localhost:8000/mcp/messages \
   }'
 ```
 
-### 3. Uploading Diagrams for MCP Access
+### 3. Uploading Diagrams for MCP Access {#uploading-diagrams}
 
 DiPeO provides a convenient way to make diagrams available via the MCP server using the `dipeo compile` command with the `--push-as` flag.
 
@@ -248,7 +248,7 @@ Your MCP server is now accessible at:
 - Info: `https://abc123.ngrok-free.app/mcp/info`
 - Messages: `https://abc123.ngrok-free.app/mcp/messages`
 
-## Quick Start: ChatGPT Integration
+## Quick Start: ChatGPT Integration {#quick-start-chatgpt-integration}
 
 For connecting DiPeO to ChatGPT:
 
@@ -265,7 +265,7 @@ This guide shows you how to:
 - ChatGPT integration
 - Password-protected access via ngrok basic auth
 
-## Using with Claude Desktop
+## Using with Claude Desktop {#using-with-claude-desktop}
 
 To use the MCP server with Claude Desktop:
 
@@ -361,7 +361,7 @@ Execute the analysis_workflow diagram with the following inputs:
 
 Claude Desktop will automatically format these requests into proper MCP tool calls.
 
-## Complete Example Workflow
+## Complete Example Workflow {#complete-example-workflow}
 
 Here's a complete end-to-end example of creating, uploading, and executing a diagram via MCP:
 
@@ -468,7 +468,7 @@ curl -s -X POST http://localhost:8000/mcp/messages \
   }' | python -m json.tool
 ```
 
-## Available Tools
+## Available Tools {#available-tools}
 
 ### dipeo_run
 
@@ -552,7 +552,7 @@ This tool starts diagram execution in a background process and returns a session
 }
 ```
 
-### see_result
+### see_result {#see_result}
 
 Check status and retrieve results of a background diagram execution started with `run_backend`.
 
@@ -604,7 +604,7 @@ Check status and retrieve results of a background diagram execution started with
 }
 ```
 
-### Async Execution Workflow
+### Async Execution Workflow {#async-execution-workflow}
 
 For long-running diagrams, use the async execution pattern:
 
@@ -652,9 +652,9 @@ dipeo results exec_9ebb3df7180a4a7383079680c28c6028
 # Output: Full execution status with results
 ```
 
-## Available Resources
+## Available Resources {#available-resources}
 
-### dipeo://diagrams
+### dipeo://diagrams {#dipeodiagrams}
 
 List available DiPeO diagrams in the examples directory.
 
@@ -683,17 +683,17 @@ List available DiPeO diagrams in the examples directory.
 }
 ```
 
-## Authentication
+## Authentication {#authentication}
 
 The MCP server supports flexible authentication for development and production use.
 
-### Authentication Options
+### Authentication Options {#authentication-options}
 
 1. **No Authentication** (Local Development) - Disabled authentication for rapid development
 2. **ngrok Basic Auth** (Development/Testing) - Password protection via ngrok
 3. **Custom Authentication** (Production) - Deploy to cloud with proper authentication
 
-### Quick Setup
+### Quick Setup {#quick-setup}
 
 **Development (No Auth):**
 ```bash
@@ -713,27 +713,27 @@ ngrok http 8000 --basic-auth="dipeo:your-secure-password"
 
 See [ChatGPT MCP Integration](./chatgpt-mcp-integration.md) for detailed setup instructions.
 
-## Security Considerations
+## Security Considerations {#security-considerations}
 
-### Production
+### Production {#production}
 
 - **Deploy to cloud**: Use a cloud provider with proper HTTPS and authentication
 - **Enable rate limiting**: Implement request rate limiting in middleware
 - **Configure CORS**: Restrict allowed origins in server configuration
 - **Monitor Access**: Enable logging with `DIPEO_LOG_LEVEL=DEBUG` and set up alerting
 
-### Development
+### Development {#development}
 
 - **Use ngrok basic auth**: Add password protection during development
 - **ngrok Tunnels**: Free tier has connection limits and changing URLs
 - **Don't Commit Secrets**: Use environment variables for passwords and ngrok auth tokens
 - **Firewall**: Only expose server via ngrok, not directly to internet
 
-## Troubleshooting
+## Troubleshooting {#troubleshooting}
 
-### Common Issues
+### Common Issues {#common-issues}
 
-#### 1. "Connection refused" when accessing ngrok URL
+#### 1. "Connection refused" when accessing ngrok URL {#1-connection-refused-when-accessing-ngrok-url}
 
 **Solution**: Ensure DiPeO server is running on port 8000
 ```bash
@@ -744,7 +744,7 @@ curl http://localhost:8000/health
 make dev-server
 ```
 
-#### 2. "Invalid JSON-RPC request"
+#### 2. "Invalid JSON-RPC request" {#2-invalid-json-rpc-request}
 
 **Solution**: Ensure request has correct format:
 ```json
@@ -756,21 +756,21 @@ make dev-server
 }
 ```
 
-#### 3. "Tool execution failed"
+#### 3. "Tool execution failed" {#3-tool-execution-failed}
 
 **Solution**: Check DiPeO logs
 ```bash
 tail -f .dipeo/logs/cli.log
 ```
 
-#### 4. "ngrok tunnel not established"
+#### 4. "ngrok tunnel not established" {#4-ngrok-tunnel-not-established}
 
 **Solutions**:
 - Verify ngrok auth token: `ngrok config check`
 - Check ngrok status: `ngrok diagnose`
 - Try restarting ngrok
 
-#### 5. "Diagram not found"
+#### 5. "Diagram not found" {#5-diagram-not-found}
 
 **Solution**: Use correct diagram path
 ```bash
@@ -785,7 +785,7 @@ curl http://localhost:8000/mcp/messages \
   }'
 ```
 
-### Debug Mode
+### Debug Mode {#debug-mode}
 
 Enable debug logging:
 
@@ -800,9 +800,9 @@ tail -f .dipeo/logs/server.log
 tail -f .dipeo/logs/cli.log
 ```
 
-## Advanced Usage
+## Advanced Usage {#advanced-usage}
 
-### Custom Diagram Execution
+### Custom Diagram Execution {#custom-diagram-execution}
 
 Execute diagrams with complex input data:
 
@@ -824,7 +824,7 @@ Execute diagrams with complex input data:
 }
 ```
 
-### Integration with Other MCP Clients
+### Integration with Other MCP Clients {#integration-with-other-mcp-clients}
 
 The MCP server follows the Model Context Protocol specification and can be used with any MCP-compatible client:
 
@@ -870,29 +870,29 @@ result = await call_mcp_tool(
 print(f"Result: {result}")
 ```
 
-## Performance Considerations
+## Performance Considerations {#performance-considerations}
 
-### Diagram Execution Timeouts
+### Diagram Execution Timeouts {#diagram-execution-timeouts}
 
 - Default timeout: 300 seconds (5 minutes)
 - Configure default via environment variable: `export MCP_DEFAULT_TIMEOUT=600`
 - Adjust per-request using `timeout` parameter in tool arguments
 
-### Connection Limits
+### Connection Limits {#connection-limits}
 
 - ngrok free tier: Limited connections per minute
 - Consider upgrading for production use
 - Or deploy to production infrastructure
 
-### Resource Usage
+### Resource Usage {#resource-usage}
 
 - Each diagram execution runs in the same process
 - Monitor memory usage for long-running diagrams
 - Consider implementing execution queuing for high load
 
-## Quick Reference
+## Quick Reference {#quick-reference}
 
-### Common MCP Endpoints
+### Common MCP Endpoints {#common-mcp-endpoints}
 
 ```bash
 # Get server info
@@ -930,7 +930,7 @@ curl -X POST http://localhost:8000/mcp/messages \
   }'
 ```
 
-### Common Diagram Operations
+### Common Diagram Operations {#common-diagram-operations}
 
 ```bash
 # Validate diagram only
@@ -949,7 +949,7 @@ ls -la projects/mcp-diagrams/
 dipeo run examples/simple_diagrams/simple_iter --light --debug
 ```
 
-### Environment Variables
+### Environment Variables {#environment-variables}
 
 ```bash
 # Disable authentication (development)
@@ -967,14 +967,14 @@ export MCP_DEFAULT_TIMEOUT=600
 export DIPEO_LOG_LEVEL=DEBUG
 ```
 
-## Next Steps
+## Next Steps {#next-steps}
 
 1. **Try the Example**: Execute `simple_iter` via MCP
 2. **Create Custom Diagrams**: Build diagrams for your use cases (see Light Diagram Guide)
 3. **Integrate with Applications**: Use MCP server in your LLM workflows
 4. **Scale to Production**: Deploy with proper authentication and monitoring
 
-## See Also
+## See Also {#see-also}
 
 - [ChatGPT MCP Integration](./chatgpt-mcp-integration.md) - ChatGPT-specific setup guide
 - [Comprehensive Light Diagram Guide](../formats/comprehensive_light_diagram_guide.md) - Complete reference for writing light diagrams

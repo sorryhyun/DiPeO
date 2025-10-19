@@ -1,6 +1,6 @@
 # Integrating Diagram Schema Generation into Codegen Pipeline
 
-## Current State
+## Current State {#current-state}
 
 **Node Schemas (auto-generated):**
 - Location: `dipeo/diagram_generated/schemas/nodes/*.schema.json`
@@ -13,9 +13,9 @@
 - Used for IDE autocomplete/validation
 - **Problem**: Hardcoded node definitions, can drift from TypeScript specs
 
-## Integration Plan
+## Integration Plan {#integration-plan}
 
-### Phase 1: Use Generated Node Schemas ✅
+### Phase 1: Use Generated Node Schemas ✅ {#phase-1-use-generated-node-schemas}
 
 **Revise `scripts/generate_light_diagram_schema.py` to:**
 1. Read generated node schemas from `dipeo/diagram_generated/schemas/nodes/`
@@ -28,7 +28,7 @@
 - No drift between node schemas and diagram schema
 - Automatic updates when node types change
 
-### Phase 2: Integrate into Codegen Pipeline
+### Phase 2: Integrate into Codegen Pipeline {#phase-2-integrate-into-codegen-pipeline}
 
 **Add diagram schema generation step to codegen workflow:**
 
@@ -75,7 +75,7 @@
      - {from: Generate Node Schemas, to: Generate Diagram Schema}
    ```
 
-### Phase 3: Validation & Testing
+### Phase 3: Validation & Testing {#phase-3-validation-testing}
 
 **Add validation step:**
 1. Verify all node types from TypeScript specs are included
@@ -93,7 +93,7 @@ make apply-test   # Apply changes
 # Open .light.yaml file, should get autocomplete
 ```
 
-## Implementation Order
+## Implementation Order {#implementation-order}
 
 1. ✅ **Revise script** to use generated node schemas (remove hardcoding)
 2. **Test standalone** script works with generated schemas
@@ -102,14 +102,14 @@ make apply-test   # Apply changes
 5. **Test full flow** with `make codegen`
 6. **Update CLAUDE.md** to document the integration
 
-## Benefits
+## Benefits {#benefits}
 
 - **Automatic sync**: Diagram schema auto-updates when node types change
 - **Staged workflow**: Schema changes reviewed via `make diff-staged`
 - **Single source of truth**: TypeScript specs → everything else
 - **No manual maintenance**: Schema generation is part of normal codegen flow
 
-## Files to Modify
+## Files to Modify {#files-to-modify}
 
 1. `scripts/generate_light_diagram_schema.py` - Use generated schemas
 2. `projects/codegen/diagrams/generate_backend_simplified.light.yaml` - Add generation step

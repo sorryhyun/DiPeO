@@ -7,7 +7,7 @@ This guide shows you how to connect DiPeO to ChatGPT using the MCP (Model Contex
 > - **Optional Authentication**: Uses ngrok's HTTP Basic Authentication for password protection
 > - **Production**: For production deployments, consider deploying to a cloud provider with proper authentication and HTTPS
 
-## Quick Start
+## Quick Start {#quick-start}
 
 ### 1. Configure DiPeO for No-Auth Access
 
@@ -186,7 +186,7 @@ Execute the simple_iter diagram using DiPeO
 
 ChatGPT will execute the diagram and show you the results!
 
-## Available MCP Tools
+## Available MCP Tools {#available-mcp-tools}
 
 ### dipeo_run
 
@@ -232,7 +232,7 @@ Fetch the content of a specific diagram.
 Show me the contents of the simple_iter diagram
 ```
 
-## Creating Diagrams for ChatGPT
+## Creating Diagrams for ChatGPT {#creating-diagrams-for-chatgpt}
 
 You can create diagrams and make them available to ChatGPT:
 
@@ -282,7 +282,7 @@ The diagram is now available to ChatGPT!
 Execute my_workflow using DiPeO
 ```
 
-## Troubleshooting
+## Troubleshooting {#troubleshooting}
 
 ### Testing Basic Auth Protection
 
@@ -339,7 +339,7 @@ Should return `Access-Control-Allow-Origin: https://chatgpt.com`
 tail -f .dipeo/logs/server.log
 ```
 
-### ngrok connection issues
+### ngrok connection issues {#ngrok-connection-issues}
 
 **Free tier limitations:**
 - ngrok free tier has connection limits
@@ -351,7 +351,7 @@ tail -f .dipeo/logs/server.log
 ngrok http 8000 --domain=your-static-domain.ngrok-free.app
 ```
 
-### "Tool execution failed"
+### "Tool execution failed" {#tool-execution-failed}
 
 **Check diagram exists:**
 ```bash
@@ -371,7 +371,7 @@ curl https://your-ngrok-url.ngrok-free.app/mcp/messages \
 tail -f .dipeo/logs/cli.log
 ```
 
-### Authentication errors (even with auth disabled)
+### Authentication errors (even with auth disabled) {#authentication-errors-even-with-auth-disabled}
 
 **Verify config:**
 ```bash
@@ -389,7 +389,7 @@ Should show:
 
 If not, verify your `.env` file has `MCP_AUTH_ENABLED=false` and restart the server.
 
-## Limitations
+## Limitations {#limitations}
 
 This development setup has some limitations:
 
@@ -398,7 +398,7 @@ This development setup has some limitations:
 3. **No rate limiting** - No built-in protection against abuse
 4. **Development focused** - For production, consider cloud deployment with proper authentication
 
-## Production Deployment
+## Production Deployment {#production-deployment}
 
 When you're ready for production:
 
@@ -408,9 +408,9 @@ When you're ready for production:
 4. **Monitor access** - Set up logging and alerting
 5. **Use environment secrets** - Store credentials securely
 
-## Advanced Usage
+## Advanced Usage {#advanced-usage}
 
-### Custom ChatGPT Origins
+### Custom ChatGPT Origins {#custom-chatgpt-origins}
 
 If you're using a custom ChatGPT deployment:
 
@@ -418,7 +418,7 @@ If you're using a custom ChatGPT deployment:
 export MCP_CHATGPT_ORIGINS=https://your-custom-chatgpt.com,https://chatgpt.com
 ```
 
-### IP-based Access Control
+### IP-based Access Control {#ip-based-access-control}
 
 While not implemented by default, you can add middleware to restrict by IP:
 
@@ -433,7 +433,7 @@ async def ip_filter(request: Request, call_next):
     return await call_next(request)
 ```
 
-### Logging MCP Requests
+### Logging MCP Requests {#logging-mcp-requests}
 
 Enable debug logging to see all MCP requests:
 
@@ -447,7 +447,7 @@ Check logs:
 tail -f .dipeo/logs/server.log | grep MCP
 ```
 
-## Complete Example Workflow
+## Complete Example Workflow {#complete-example-workflow}
 
 Here's a complete end-to-end example:
 
@@ -518,7 +518,7 @@ Execute the simple_iter diagram and show me the results
 Create a new greeting workflow, upload it to DiPeO, and execute it
 ```
 
-## Security Best Practices
+## Security Best Practices {#security-best-practices}
 
 1. **Use only on trusted networks** during development
 2. **Use ngrok basic auth** for password protection
@@ -527,7 +527,7 @@ Create a new greeting workflow, upload it to DiPeO, and execute it
 5. **Monitor server logs for suspicious activity**
 6. **Deploy to cloud with proper auth** for production use
 
-## See Also
+## See Also {#see-also}
 
 - [MCP Server Integration](./mcp-server-integration.md) - General MCP server documentation
 - [Comprehensive Light Diagram Guide](../formats/comprehensive_light_diagram_guide.md) - Creating diagrams

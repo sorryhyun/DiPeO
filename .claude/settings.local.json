@@ -64,7 +64,11 @@
       "Bash(curl -s http://localhost:8000/mcp/info)",
       "Bash(curl -s -X POST http://localhost:8000/mcp/messages:*)",
       "Bash(pgrep:*)",
-      "Skill(doc-lookup)"
+      "Skill(doc-lookup)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(while read file)",
+      "Skill(dipeo-codegen-pipeline)",
+      "Skill(dipeo-backend)"
     ],
     "deny": [],
     "ask": []

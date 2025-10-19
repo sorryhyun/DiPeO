@@ -1,168 +1,86 @@
-# dipeo-frontend-dev
+---
+name: dipeo-frontend-dev
+description: Router skill for DiPeO frontend (React, visual editor, GraphQL integration, TypeScript types). Use when task mentions React components, diagram editor, GraphQL hooks, or type errors. For simple tasks, handle directly; for complex work, escalate to dipeo-frontend-dev agent.
+allowed-tools: Read, Grep, Glob, Bash, Skill
+---
 
-**Router skill for DiPeO frontend development (React, visual editor, GraphQL integration)**
+# DiPeO Frontend Dev Router
 
-This is a **thin router skill** that provides decision criteria and documentation anchors for frontend development tasks. Use this skill to determine whether to handle the task directly or escalate to the full `dipeo-frontend-dev` agent.
+**Domain**: React components, visual diagram editor (XYFlow), GraphQL integration, TypeScript types in `/apps/web/src/`.
 
-## When to Use This Skill
+## Quick Decision: Skill or Agent?
 
-Use this skill when the task involves:
-- React components in `/apps/web/src/`
-- Visual diagram editor (XYFlow integration)
-- GraphQL queries/mutations using generated hooks
-- TypeScript type errors from `pnpm typecheck`
-- UI/UX styling and component patterns
-- State management with Zustand
-- Frontend debugging and troubleshooting
+### ✅ Handle Directly (This Skill)
+- **Simple fixes**: <20 lines, 1-2 files
+- **Quick type fixes**: Single TypeScript error in one file
+- **Documentation lookups**: "Where is X?", "What hooks are available?"
+- **Small styling changes**: Update component layout, add simple UI element
+- **Pattern reference**: GraphQL hook usage examples
 
-## Decision Criteria
+**Token cost**: ~1,500 tokens (router + targeted section)
 
-### Handle Directly (No Agent Needed)
+### ❌ Escalate to Agent
+- **TypeScript type fixing**: Multiple related errors, GraphQL schema mismatches, complex generics
+- **Feature implementation**: New diagram editor features, multi-step UI workflows
+- **Refactoring**: Component hierarchy changes, extracting shared logic
+- **Complex debugging**: Runtime errors across components, state synchronization issues
 
-**Simple, isolated tasks** that don't require complex analysis:
+**Agent**: `Task(dipeo-frontend-dev, "your detailed task description")`
 
-✅ **Quick fixes:**
-- Fix a single TypeScript type error in one file
-- Update a component's styling or layout
-- Add a new prop to an existing component
-- Fix an import statement or path
+## Documentation Sections (Load On-Demand)
 
-✅ **Small additions:**
-- Add a simple UI element to existing component
-- Update GraphQL hook usage (already familiar with pattern)
-- Add basic form validation
+Use `Skill(doc-lookup)` with these anchors when you need detailed context:
 
-✅ **Documentation lookups:**
-- "Where is component X defined?"
-- "What GraphQL hooks are available?"
-- "How do I use the form manager hooks?"
+**Core Responsibilities**:
+- `docs/agents/frontend-development.md#core-responsibilities` - What frontend dev owns
+- `docs/agents/frontend-development.md#react-components` - React patterns
+- `docs/agents/frontend-development.md#diagram-editor` - XYFlow guidance
+- `docs/agents/frontend-development.md#graphql-integration` - GraphQL patterns
+- `docs/agents/frontend-development.md#typescript-types` - Type safety practices
 
-### Escalate to dipeo-frontend-dev Agent
+**Technical Context**:
+- `docs/agents/frontend-development.md#technical-context` - Tech stack overview
+- `docs/agents/frontend-development.md#project-structure` - Directory structure
+- `docs/agents/frontend-development.md#dev-workflow` - Development workflow
 
-**Complex, multi-file tasks** requiring deep analysis:
+**Code Quality & Patterns**:
+- `docs/agents/frontend-development.md#code-quality-standards` - Quality standards
+- `docs/agents/frontend-development.md#component-patterns` - Best practices
+- `docs/agents/frontend-development.md#graphql-usage` - Query/mutation examples
+- `docs/agents/frontend-development.md#state-management-zustand` - Zustand patterns
 
-🔴 **TypeScript type fixing:**
-- Multiple related type errors across files
-- Type errors involving GraphQL schema mismatches
-- Complex generic type issues
-- Type system refactoring
+**Constraints**:
+- `docs/agents/frontend-development.md#constraints` - Important constraints
+- `docs/agents/frontend-development.md#escalation` - When to escalate
 
-🔴 **Feature implementation:**
-- Add new diagram editor features (custom nodes, edges)
-- Implement new UI workflows (multi-step forms, wizards)
-- Integrate new GraphQL operations with UI
-- Add state management for new features
-
-🔴 **Refactoring:**
-- Restructure component hierarchy
-- Extract shared logic into hooks
-- Update component patterns across multiple files
-
-🔴 **Debugging:**
-- Track down runtime errors across components
-- Fix GraphQL integration issues
-- Resolve state synchronization problems
-
-## Documentation Anchors
-
-Use `Skill(doc-lookup)` with these anchors to retrieve specific sections from `docs/agents/frontend-development.md`:
-
-### Core Responsibilities
-- `#core-responsibilities` - Overview of frontend dev responsibilities
-- `#react-components` - React component development patterns
-- `#diagram-editor` - Visual diagram editor (XYFlow) guidance
-- `#graphql-integration` - GraphQL integration patterns
-- `#typescript-types` - TypeScript and type safety practices
-
-### Technical Context
-- `#technical-context` - Complete tech stack overview
-- `#tech-stack` - Technologies used (React 19, XYFlow, Apollo, Zustand, etc.)
-- `#project-structure` - Frontend directory structure
-- `#dev-workflow` - Development workflow steps
-
-### Code Quality & Patterns
-- `#code-quality` - Code quality standards overview
-- `#component-patterns` - Component best practices
-- `#graphql-usage` - GraphQL query/mutation patterns with examples
-- `#state-management-general` - General state management guidance
-- `#state-management-zustand` - Zustand-specific patterns
-- `#styling` - TailwindCSS and styling approach
-- `#infrastructure-services` - ConversionService, NodeService, ValidationService
-- `#node-system` - Node configs and component composition
-- `#common-patterns` - Custom hooks, factories, error boundaries
-
-### Constraints & Guidelines
-- `#constraints` - Important constraints (never edit generated files, etc.)
-- `#escalation` - When to escalate to backend/codegen agents
-- `#quality-checklist` - Pre-completion quality checklist
-
-## Example Workflows
-
-### Pattern 1: Direct Handling (Simple Fix)
-```
-User: "Fix the TypeScript error in DiagramEditor.tsx line 42"
-→ Load this router skill
-→ Review decision criteria
-→ Task is simple (single file, single error)
-→ Read file, fix error directly
-→ Run pnpm typecheck to verify
-```
-
-### Pattern 2: Router + Doc-Lookup (Focused Task)
-```
-User: "How do I use the generated GraphQL hooks?"
-→ Load this router skill
-→ Determine need for GraphQL usage patterns
-→ Skill(doc-lookup) --query "graphql-usage"
-→ Provide guidance from retrieved section
-```
-
-### Pattern 3: Escalate to Agent (Complex Task)
-```
-User: "Add a new custom node type to the diagram editor with configuration panel"
-→ Load this router skill
-→ Review decision criteria
-→ Complex: involves multiple files, XYFlow integration, state management
-→ Task(dipeo-frontend-dev, "Add custom webhook node with config panel")
-→ Agent handles implementation with access to doc-lookup as needed
-```
-
-## Cross-References
-
-### Related Agents
-- **dipeo-backend**: If GraphQL schema needs modification
-- **dipeo-codegen-pipeline**: If TypeScript model definitions need updates
-- **dipeo-package-maintainer**: If new node types need backend handlers
-
-### Related Skills
-- **doc-lookup**: Extract specific documentation sections by anchor
-- **clean-comments**: Clean up component comments after implementation
-- **maintain-docs**: Update frontend documentation after major changes
-
-## Quick Commands
-
+**Example doc-lookup call**:
 ```bash
-# Type checking
-pnpm typecheck
-
-# Development server
-make dev-web  # Port 3000
-
-# Monitor mode
-# http://localhost:3000/?monitor=true
-
-# GraphQL schema regeneration (if backend schema changed)
-make graphql-schema
+python .claude/skills/doc-lookup/scripts/section_search.py \
+  --query "graphql-usage" \
+  --paths docs/agents/frontend-development.md \
+  --top 1
 ```
+
+## Escalation to Other Agents
+
+**To dipeo-backend**: GraphQL schema modifications, server API changes
+**To dipeo-codegen-pipeline**: TypeScript model definitions, generated type issues
+**To dipeo-package-maintainer**: New node type backend handlers
+
+## Typical Workflow
+
+1. **Assess complexity**: Simple fix vs. complex implementation
+2. **If simple**: Load relevant section via `Skill(doc-lookup)`, make change directly
+3. **If complex**: Escalate with `Task(dipeo-frontend-dev, "task details")`
+4. **Always verify**: Run `pnpm typecheck` before finalizing
 
 ## Key Constraints
 
-1. **NEVER modify generated files** in `/apps/web/src/__generated__/`
-2. **ALWAYS use generated hooks** for GraphQL operations
-3. **Run `pnpm typecheck`** before finalizing changes
-4. **Prefer editing over creating** new files
-5. **Follow existing patterns** - review similar components first
+- **NEVER modify** `/apps/web/src/__generated__/` files
+- **ALWAYS use** generated GraphQL hooks
+- **Run** `pnpm typecheck` before finalizing
+- **Prefer editing** over creating new files
 
 ---
 
-**Remember**: This is a router skill for decision-making and documentation access. For complex tasks, escalate to the full `dipeo-frontend-dev` agent which can perform deeper analysis and multi-file modifications.
+**Token savings**: ~90% reduction (1,500 vs. 15,000 tokens) for focused tasks

@@ -1,6 +1,6 @@
 # Code Generation Guide
 
-## Overview
+## Overview {#overview}
 
 DiPeO uses a diagram-driven, IR-based (Intermediate Representation) code generation pipeline that "dog-foods" its own execution engine. All code generation is orchestrated through DiPeO diagrams, maintaining type safety from TypeScript node specifications to GraphQL queries and Python handlers.
 
@@ -8,7 +8,7 @@ DiPeO uses a diagram-driven, IR-based (Intermediate Representation) code generat
 
 **IR-Based Architecture**: The system uses intermediate representation JSON files as a single source of truth, eliminating duplication and centralizing extraction logic in dedicated IR builders.
 
-## Codegen Project Structure
+## Codegen Project Structure {#codegen-project-structure}
 
 The code generation system is organized in `/projects/codegen/`:
 
@@ -38,7 +38,7 @@ projects/codegen/
 - **frontend_ir.json** - Component configs, Zod schemas, field definitions
 - **strawberry_ir.json** - GraphQL operations, types, input definitions
 
-## Generation Flow
+## Generation Flow {#generation-flow}
 
 ```
 1. Node Specifications (TypeScript in /dipeo/models/src/)
@@ -67,7 +67,7 @@ projects/codegen/
 - **Syntax Validation**: Default validation ensures generated code is syntactically correct
 - **Single Source of Truth**: TypeScript → IR → Generated code ensures consistency
 
-### Stage 1: TypeScript Parsing & Caching
+### Stage 1: TypeScript Parsing & Caching {#stage-1-typescript-parsing-caching}
 
 **Source**: All TypeScript files in `/dipeo/models/src/`
 **Cache**: `/temp/*.json` (AST JSON files)
@@ -75,7 +75,7 @@ projects/codegen/
 
 The system automatically discovers and parses all TypeScript files, caching their AST for subsequent IR building.
 
-### Stage 2: Build Intermediate Representation
+### Stage 2: Build Intermediate Representation {#stage-2-build-intermediate-representation}
 
 **Source**: Cached AST files
 **IR Builders**:
@@ -83,7 +83,7 @@ The system automatically discovers and parses all TypeScript files, caching thei
 - `frontend_ir_builder.py` → `frontend_ir.json` (components, schemas, fields)
 - `strawberry_ir_builder.py` → `strawberry_ir.json` (GraphQL operations, types)
 
-### Stage 3: Unified Code Generation from IR
+### Stage 3: Unified Code Generation from IR {#stage-3-unified-code-generation-from-ir}
 
 **Source**: IR JSON files
 **Diagrams**:
@@ -113,7 +113,7 @@ The `generate_all` diagram orchestrates all generation in parallel:
 - Zod validation schemas
 - Frontend registry
 
-### Stage 4: Apply Staged Changes
+### Stage 4: Apply Staged Changes {#stage-4-apply-staged-changes}
 
 **Action**: Manual copy from `/dipeo/diagram_generated_staged/` → `/dipeo/diagram_generated/`  
 **Validation**: Syntax-only by default (Python compilation check)
@@ -123,14 +123,14 @@ Use `make apply-syntax-only` or `make apply` to move staged backend code to acti
 - Ability to review changes before applying
 - Rollback safety if generation has issues
 
-### Stage 5: Export GraphQL Schema
+### Stage 5: Export GraphQL Schema {#stage-5-export-graphql-schema}
 
 **Command**: `make graphql-schema`  
 **Output**: `/apps/server/schema.graphql`
 
 Exports the complete GraphQL schema from the application layer, capturing all types and operations from the generated Strawberry types.
 
-### Stage 6: GraphQL TypeScript Generation
+### Stage 6: GraphQL TypeScript Generation {#stage-6-graphql-typescript-generation}
 
 **Source**: `/apps/web/src/__generated__/queries/*.graphql` + `/apps/server/schema.graphql`  
 **Output**: `/apps/web/src/__generated__/graphql.tsx`  
@@ -141,9 +141,9 @@ Generates fully typed:
 - React hooks (useQuery, useMutation, useSubscription)
 - Apollo Client integration code
 
-## Commands
+## Commands {#commands}
 
-### Recommended Workflow
+### Recommended Workflow {#recommended-workflow}
 
 ```bash
 # Step 1: Build TypeScript models (if changed)
@@ -165,13 +165,13 @@ make apply                 # Apply with full mypy type checking
 make graphql-schema        # Export schema and generate TypeScript types
 ```
 
-### Quick Commands
+### Quick Commands {#quick-commands}
 
 ```bash
 make codegen-auto         # DANGEROUS: Runs generate_all + auto-apply + GraphQL schema
 ```
 
-### Staging Commands
+### Staging Commands {#staging-commands}
 
 ```bash
 make diff-staged           # Compare staged vs active generated files
@@ -182,7 +182,7 @@ make apply-syntax-only     # Apply with syntax validation only
 make backup-generated      # Backup before applying changes
 ```
 
-### Direct Diagram Execution (Advanced)
+### Direct Diagram Execution (Advanced) {#direct-diagram-execution-advanced}
 
 ```bash
 # Generate everything (models + frontend)
@@ -196,7 +196,7 @@ dipeo run codegen/diagrams/models/generate_backend_models_single --light \
 dipeo run codegen/diagrams/generate_backend_simplified --light --debug
 ```
 
-## Dog-fooding Architecture
+## Dog-fooding Architecture {#dog-fooding-architecture}
 
 DiPeO's code generation exemplifies "dog-fooding" - using DiPeO diagrams to generate DiPeO's own code:
 
@@ -209,7 +209,7 @@ DiPeO's code generation exemplifies "dog-fooding" - using DiPeO diagrams to gene
 
 This approach proves DiPeO's maturity - the platform is robust enough to build itself using sophisticated IR-based meta-programming.
 
-## Why The Staging Approach Matters
+## Why The Staging Approach Matters {#why-the-staging-approach-matters}
 
 The staging directory (`diagram_generated_staged`) serves critical purposes:
 
@@ -219,9 +219,9 @@ The staging directory (`diagram_generated_staged`) serves critical purposes:
 4. **Rollback Safety**: Easy to discard bad generations
 5. **Frontend Dependency**: Frontend reads from applied (not staged) models
 
-## Adding New Features
+## Adding New Features {#adding-new-features}
 
-### Adding a New Node Type
+### Adding a New Node Type {#adding-a-new-node-type}
 
 1. **Create node specification**:
    ```typescript
@@ -284,7 +284,7 @@ The staging directory (`diagram_generated_staged`) serves critical purposes:
    - GraphQL types and operations
    - Validation schemas
 
-### Handler Scaffolding
+### Handler Scaffolding {#handler-scaffolding}
 
 When adding new node types, DiPeO can automatically generate handler stubs to jumpstart backend implementation:
 
@@ -332,7 +332,7 @@ When adding new node types, DiPeO can automatically generate handler stubs to ju
    - Envelope pattern implementation
    - Examples for common service usage
 
-### Adding New GraphQL Queries/Mutations
+### Adding New GraphQL Queries/Mutations {#adding-new-graphql-queriesmutations}
 
 1. **For existing entities**, modify the query generator:
    ```python
@@ -375,7 +375,7 @@ When adding new node types, DiPeO can automatically generate handler stubs to ju
    cd apps/web && pnpm codegen  # Generate TypeScript from updated schema
    ```
 
-## Current IR-Based Generation System
+## Current IR-Based Generation System {#current-ir-based-generation-system}
 
 The code generation system uses IR-based patterns with key features:
 
@@ -400,7 +400,7 @@ Example pattern:
       # ... other context
 ```
 
-## Custom Template System
+## Custom Template System {#custom-template-system}
 
 DiPeO uses Jinja2 templates with custom filters:
 
@@ -419,15 +419,15 @@ DiPeO uses Jinja2 templates with custom filters:
 - `/projects/codegen/code/frontend/` - React/TypeScript generation
 - All use external files for testability and reuse
 
-## Key Files and Directories
+## Key Files and Directories {#key-files-and-directories}
 
-### Source Files
+### Source Files {#source-files}
 - `/dipeo/models/src/` - TypeScript specifications (source of truth)
   - `/node-specs/` - Node type definitions
   - `/core/` - Core domain types
   - `/codegen/` - Code generation mappings
 
-### Code Generation System
+### Code Generation System {#code-generation-system}
 - `/projects/codegen/diagrams/` - DiPeO diagrams orchestrating generation
   - `generate_all.light.yaml` - Master orchestration
   - `generate_backend_simplified.light.yaml` - Backend from IR
@@ -446,19 +446,19 @@ DiPeO uses Jinja2 templates with custom filters:
   - `/frontend/` - TypeScript/React templates
   - `/strawberry/` - GraphQL/Strawberry templates
 
-### Generated Files (DO NOT EDIT)
+### Generated Files (DO NOT EDIT) {#generated-files-do-not-edit}
 - `/dipeo/diagram_generated_staged/` - Staging directory for preview
 - `/dipeo/diagram_generated/` - Active generated Python code
 - `/apps/web/src/__generated__/` - Generated frontend code
 - `/temp/` - Cached AST files (git-ignored)
 
-### Configuration
+### Configuration {#configuration}
 - `/apps/web/codegen.yml` - GraphQL code generator config
 - `Makefile` - Orchestrates the generation pipeline
 
-## Architecture Notes
+## Architecture Notes {#architecture-notes}
 
-### Architecture Patterns
+### Architecture Patterns {#architecture-patterns}
 
 The system uses modern architectural patterns:
 - **Mixin-based Services**: Optional composition for flexible service design
@@ -468,7 +468,7 @@ The system uses modern architectural patterns:
 - **Snake_case Naming**: Python conventions with Pydantic aliases for GraphQL compatibility
 - **Generated Enums**: All enums generated from TypeScript specifications
 
-### Why Make Commands Over Master Diagrams
+### Why Make Commands Over Master Diagrams {#why-make-commands-over-master-diagrams}
 
 The codebase uses Make commands rather than a single master diagram because:
 - **Better error handling**: Make stops on first error
@@ -477,7 +477,7 @@ The codebase uses Make commands rather than a single master diagram because:
 - **Standard tooling**: Developers know Make
 - **IR Inspection**: Can examine intermediate JSON files
 
-### Two-Stage GraphQL Generation
+### Two-Stage GraphQL Generation {#two-stage-graphql-generation}
 
 The system generates GraphQL in two stages:
 1. **DiPeO generates queries** from domain knowledge
@@ -489,7 +489,7 @@ This provides:
 - **Flexibility**: Can customize queries without changing schema
 - **Consistency**: All queries follow same patterns
 
-### IR-Based Code Organization
+### IR-Based Code Organization {#ir-based-code-organization}
 
 All generation logic flows through IR builders:
 - **IR Builders**: Centralized extraction logic in `*_ir_builder.py` files
@@ -499,7 +499,7 @@ All generation logic flows through IR builders:
 - Supports code reuse across diagrams
 - IR files can be inspected for debugging in `projects/codegen/ir/`
 
-## Best Practices
+## Best Practices {#best-practices}
 
 1. **Never edit generated files** - They will be overwritten
 2. **Run `make codegen` after any spec changes** - Rebuilds IR and regenerates code
@@ -511,7 +511,7 @@ All generation logic flows through IR builders:
    - Mutations: `Create{Entity}`, `Update{Entity}`, `Delete{Entity}`
    - Subscriptions: `{Entity}Updates`
 
-## Troubleshooting
+## Troubleshooting {#troubleshooting}
 
 **Missing types after adding node**:
 ```bash
@@ -544,6 +544,6 @@ cat projects/codegen/ir/strawberry_ir.json | jq '.operations[0]'
   make graphql-schema
   ```
 
-## Conclusion
+## Conclusion {#conclusion}
 
 DiPeO's IR-based code generation system demonstrates the platform's maturity through its dog-fooding approach. By using DiPeO diagrams to orchestrate the generation of DiPeO's own code through intermediate representation, the system proves its robustness and capabilities. The IR architecture eliminates duplication, centralizes extraction logic, and provides a single source of truth for all generation targets. Combined with staging directories and parallel batch processing, this shows how visual programming can handle sophisticated meta-programming tasks while maintaining type safety from TypeScript specifications through IR to Python models and GraphQL operations.

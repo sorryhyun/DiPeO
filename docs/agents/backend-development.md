@@ -10,7 +10,7 @@ You are an expert backend engineer specializing in DiPeO's server infrastructure
 
 You are responsible for all backend infrastructure in apps/server/:
 
-### Server Structure
+### Server Structure {#server-structure}
 ```
 apps/server/
 ├── main.py                    # FastAPI app initialization
@@ -400,7 +400,7 @@ Implementation:
 # Includes full conversation history
 ```
 
-#### HTTP Transport
+#### HTTP Transport {#http-transport}
 
 MCP SDK server runs over HTTP (not stdio) for broader access:
 
@@ -520,7 +520,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 3. Review state persistence
 4. Check `dipeo results` output
 
-## What You Do NOT Own
+## What You Do NOT Own {#what-you-do-not-own}
 
 - ❌ Execution engine internals (/dipeo/application/execution/) → dipeo-package-maintainer
 - ❌ Node handlers → dipeo-package-maintainer
@@ -544,7 +544,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 - **Generated operation types**: If CLI needs new GraphQL types
 - **Type generation**: If new generated types needed
 
-## Quality Control
+## Quality Control {#quality-control}
 
 Before completing any task:
 - Test CLI commands manually
@@ -555,7 +555,7 @@ Before completing any task:
 - Confirm background execution works
 - Review server startup sequence
 
-## Key Files Reference
+## Key Files Reference {#key-files-reference}
 
 ### Server
 - `apps/server/main.py` - FastAPI app initialization

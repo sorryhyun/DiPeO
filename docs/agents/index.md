@@ -2,55 +2,55 @@
 
 This directory contains detailed development guides for DiPeO's specialized Claude Code subagents. Each guide provides comprehensive context, workflows, and best practices for its respective domain.
 
-## Core Development Agents
+## Core Development Agents {#core-development-agents}
 
-### [Package Maintainer](package-maintainer.md)
+### [Package Maintainer](package-maintainer.md) {#package-maintainer}
 **Agent**: `dipeo-package-maintainer`
 **Domain**: Runtime Python code in `/dipeo/` - execution engine, handlers, service architecture
 **Key Areas**: `/dipeo/application/`, `/dipeo/domain/`, `/dipeo/infrastructure/` (EXCLUDING codegen)
 **Role**: Implements runtime execution logic, consumes generated code as read-only dependency
 **Responsibilities**: Node handlers, GraphQL resolvers, EventBus, EnhancedServiceRegistry, LLM infrastructure
 
-### [Backend Development](backend-development.md)
+### [Backend Development](backend-development.md) {#backend-development}
 **Agent**: `dipeo-backend`
 **Domain**: FastAPI server, CLI, database, and MCP integration in `apps/server/`
 **Key Areas**: FastAPI server, CLI commands, SQLite database, MCP server
 **Role**: Owns all backend infrastructure - server lifecycle, command-line interface, persistence, MCP protocol
 **Responsibilities**: GraphQL endpoint, dipeo run/results/metrics/compile/export commands, database schema, message store
 
-### [Code Generation Pipeline](codegen-pipeline.md)
+### [Code Generation Pipeline](codegen-pipeline.md) {#code-generation-pipeline}
 **Agent**: `dipeo-codegen-pipeline`
 **Domain**: Complete TypeScript → IR → Python/GraphQL pipeline
 **Key Areas**: `/dipeo/models/src/` (TypeScript specs), `/dipeo/infrastructure/codegen/` (IR builders), `dipeo/diagram_generated/` (generated code)
 **Role**: Owns entire codegen flow - design TypeScript models, build IR, generate Python/GraphQL, diagnose generated code
 **Responsibilities**: TypeScript model design, IR builder system, code generation, generated code diagnosis, type conversion
 
-### [Frontend Development](frontend-development.md)
+### [Frontend Development](frontend-development.md) {#frontend-development}
 **Agent**: `dipeo-frontend-dev`
 **Domain**: React components, visual diagram editor (XYFlow), GraphQL integration
 **Key Areas**: `/apps/web/src/`, TypeScript/React, GraphQL hooks
 
-## Feature-Specific Agents
+## Feature-Specific Agents {#feature-specific-agents}
 
-### [DiPeOCC Conversion](dipeocc-conversion.md)
+### [DiPeOCC Conversion](dipeocc-conversion.md) {#dipeocc-conversion}
 **Agent**: `dipeocc-converter`
 **Domain**: Converting Claude Code sessions to DiPeO diagrams
 **Key Areas**: Session parsing, diagram generation, workflow replay
 
 
-## Utility Agents
+## Utility Agents {#utility-agents}
 
-### [Code Auditing](code-auditing.md)
+### [Code Auditing](code-auditing.md) {#code-auditing}
 **Agent**: `codebase-auditor`
 **Domain**: Targeted code analysis for security, performance, quality
 **Key Areas**: Pattern detection, issue identification, audit reports
 
 
-## Agent Documentation Access Pattern
+## Agent Documentation Access Pattern {#agent-documentation-access-pattern}
 
 DiPeO uses a **router skills + progressive disclosure** pattern for agent documentation access, achieving 80-90% token reduction vs. automatic injection.
 
-### Router Skills
+### Router Skills {#router-skills}
 
 Router skills provide thin (~50-100 lines) decision support for each agent domain:
 
@@ -64,7 +64,7 @@ Router skills provide thin (~50-100 lines) decision support for each agent domai
 2. **Stable documentation anchors**: References to specific sections in agent docs
 3. **Escalation paths**: Clear guidance on when to use other agents/skills
 
-### Progressive Documentation Loading
+### Progressive Documentation Loading {#progressive-documentation-loading}
 
 Instead of automatic injection, use **doc-lookup skill** to load specific sections:
 
@@ -73,7 +73,7 @@ Instead of automatic injection, use **doc-lookup skill** to load specific sectio
 Skill(doc-lookup) --query "cli-commands" --paths docs/agents/backend-development.md
 ```
 
-### Workflow Patterns
+### Workflow Patterns {#workflow-patterns}
 
 **Pattern 1: Router → Direct Handling (Simple Task)**
 ```
@@ -101,7 +101,7 @@ Skill(dipeo-backend)                             # Load router
 → Agent loads additional sections via doc-lookup as needed
 ```
 
-### Benefits
+### Benefits {#benefits}
 
 - **Token efficiency**: 80-90% reduction (1.5k vs 15k tokens per task)
 - **Progressive disclosure**: Load only relevant sections
@@ -109,7 +109,7 @@ Skill(dipeo-backend)                             # Load router
 - **Single source of truth**: Skills reference docs, don't duplicate content
 - **No drift**: Stable anchors ensure consistency
 
-### Documentation Anchors
+### Documentation Anchors {#documentation-anchors}
 
 Each agent guide contains stable anchors (heading IDs) for targeted section retrieval:
 
@@ -140,7 +140,7 @@ Each agent guide contains stable anchors (heading IDs) for targeted section retr
 
 See individual agent guides for complete anchor lists.
 
-## How to Use These Guides
+## How to Use These Guides {#how-to-use-these-guides}
 
 Each agent guide contains:
 - **Role & Responsibilities**: What the agent does
@@ -151,13 +151,13 @@ Each agent guide contains:
 - **Troubleshooting**: Common issues and solutions
 - **Related Documentation**: Links to other relevant docs
 
-## When to Reference
+## When to Reference {#when-to-reference}
 
 - **Main agent**: Uses brief routing logic in `.claude/agents/*.md` frontmatter
 - **Subagents**: Reference these detailed guides via `docs/agents/[guide].md` syntax
 - **Developers**: Read these guides to understand agent capabilities and constraints
 
-## Related Documentation
+## Related Documentation {#related-documentation}
 
 - [Documentation Index](../index.md) - Complete documentation overview
 - [Overall Architecture](../architecture/README.md) - System architecture

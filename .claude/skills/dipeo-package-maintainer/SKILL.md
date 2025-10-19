@@ -33,28 +33,31 @@ Use `Skill(doc-lookup)` with these anchors when you need detailed context:
 
 **Core Architecture**:
 - `docs/agents/package-maintainer.md#overview` - High-level overview
-- `docs/agents/package-maintainer.md#domain-of-expertise` - What you own
-- `docs/agents/package-maintainer.md#ownership-boundaries` - What you DON'T own
+- `docs/agents/package-maintainer.md#core-architectural-principles` - Architecture overview
+- `docs/agents/package-maintainer.md#your-domain-of-expertise` - What you own
+- `docs/agents/package-maintainer.md#what-you-do-not-own` - Ownership boundaries
+- `docs/agents/package-maintainer.md#generated-code-dipeodiagram_generated-read-only` - Generated code boundaries
 
 **Code Layers**:
-- `docs/agents/package-maintainer.md#application-layer` - Handlers, GraphQL, services
-- `docs/agents/package-maintainer.md#domain-layer` - Domain logic, compilation
-- `docs/agents/package-maintainer.md#infrastructure-layer` - LLM, state, EventBus
+- `docs/agents/package-maintainer.md#application-layer-dipeoapplication` - Handlers, GraphQL, services
+- `docs/agents/package-maintainer.md#domain-layer-dipeodomain` - Domain logic, compilation
+- `docs/agents/package-maintainer.md#infrastructure-layer-dipeoinfrastructure-partial-ownership` - LLM, state, EventBus
 
 **Implementation Guidance**:
-- `docs/agents/package-maintainer.md#new-node-handlers` - Creating handlers
-- `docs/agents/package-maintainer.md#service-modifications` - ServiceRegistry usage
-- `docs/agents/package-maintainer.md#graphql-resolvers` - GraphQL application layer
+- `docs/agents/package-maintainer.md#your-responsibilities` - Core responsibilities
+- `docs/agents/package-maintainer.md#when-adding-new-features` - Creating handlers and features
+- `docs/agents/package-maintainer.md#service-architecture` - Mixins, EventBus, patterns
+- `docs/agents/package-maintainer.md#llm-integration` - LLM provider architecture
 
 **Code Patterns**:
-- `docs/agents/package-maintainer.md#envelope-pattern` - Output pattern
+- `docs/agents/package-maintainer.md#envelope-pattern-output` - Output pattern
 - `docs/agents/package-maintainer.md#service-registry-pattern` - DI pattern
 - `docs/agents/package-maintainer.md#node-handler-pattern` - Handler structure
-- `docs/agents/package-maintainer.md#diagram-access-pattern` - Correct diagram queries
+- `docs/agents/package-maintainer.md#diagram-access-pattern-do` - Correct diagram queries
 
 **Reference**:
 - `docs/agents/package-maintainer.md#key-import-paths` - Common imports
-- `docs/agents/package-maintainer.md#escalation-paths` - When to escalate
+- `docs/agents/package-maintainer.md#when-you-need-help-escalation-paths` - When to escalate
 
 **Example doc-lookup call**:
 ```bash
