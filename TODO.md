@@ -1,111 +1,159 @@
 # DiPeO Project Todos
 
-## MCP SDK Migration (High Priority)
+## Fix Background Execution Timeout State Bug (High Priority) - IN PROGRESS
 
-**Goal**: Fully migrate from legacy MCP implementation to official MCP Python SDK, removing all custom JSON-RPC handling.
+**Goal**: Properly update execution state when background executions timeout
 
-**Context**: Currently running dual MCP implementations:
-- Legacy: `mcp_server.py` with manual JSON-RPC 2.0 handling
-- SDK: `mcp_sdk_server.py` with official SDK but incomplete integration
+**Context**: Discovered that when `dipeo run --background` times out, the background process is killed but the state store is never updated. Executions remain in "running" state forever, creating zombie states.
 
-**Target**: SDK-only implementation with HTTP JSON-RPC transport support
+**Target**: Background executions that timeout should have their state updated to "failed" with timeout error information
 
-### Phase 1: SDK Investigation & Setup
-- [ ] Investigate MCP SDK v1.16.0 HTTP transport capabilities
-  - Check if SDK supports HTTP JSON-RPC natively (not just SSE)
-  - Review `mcp.server` module for HTTP transport options
-  - Document SDK limitations vs legacy implementation
+**Root Cause Identified**:
+- `MetricsObserver` was responsible for persisting execution state, but only subscribed to metrics-related events
+- `EXECUTION_ERROR` events (including timeouts) were published to `message_router` but not `event_bus`, so observers never saw them
+- `update_status()` deliberately doesn't persist final states (COMPLETED, FAILED, ABORTED) to avoid race conditions with MetricsObserver
+
+**Solution Implemented**:
+- ✅ Created `ResultObserver` with single responsibility: persist execution state changes
+- ✅ Registered `ResultObserver` in `cli_runner.py` to subscribe to EXECUTION_STARTED, EXECUTION_COMPLETED, EXECUTION_ERROR
+- ✅ Updated timeout handling to publish `EXECUTION_ERROR` to both `message_router` AND `event_bus`
+
+**Current Blocker**:
+- State is being updated in cache (`update_status` works) but NOT persisting to database
+- `persist_entry()` is being called but database still shows "running" status
+- Need to investigate why `persist_entry(use_full_sync=True)` isn't committing to database
+- Possibly related to Pydantic model immutability or cache entry not being properly marked dirty
+
+### Tasks
+
+- [x] Investigate timeout state persistence issue
+  - Root cause: Events not reaching observers + state not persisting to DB
+  - Files analyzed: `cli_runner.py`, `metrics_observer.py`, `state_store.py`
+
+- [x] Create ResultObserver for state persistence
+  - Implemented `ResultObserver` class in `dipeo/application/execution/observers/result_observer.py`
+  - Single responsibility: persist execution state changes to database
+  - Subscribes to: EXECUTION_STARTED, EXECUTION_COMPLETED, EXECUTION_ERROR
+
+- [x] Register ResultObserver in cli_runner.py
+  - Added ResultObserver creation and event subscription
+  - Ensured proper start/stop lifecycle management
+  - Files: `apps/server/src/dipeo_server/cli/cli_runner.py`
+
+- [x] Publish EXECUTION_ERROR to event_bus
+  - Updated timeout handling to publish to both message_router and event_bus
+  - Files: `apps/server/src/dipeo_server/cli/cli_runner.py`
+
+- [ ] Fix database persistence issue (BLOCKED)
+  - State updates in cache but not in database (.dipeo/data/dipeo_state.db)
+  - `persist_entry(use_full_sync=True)` called but no commit happening
+  - Need to debug why database writes aren't persisting
   - Estimated effort: Small (1-2 hours)
+  - Files: `dipeo/application/execution/observers/result_observer.py`, `dipeo/infrastructure/execution/state/persistence_manager.py`
+  - Risk: Low - isolated to persistence logic
 
-- [ ] Determine HTTP transport strategy
-  - Option A: Use SDK's built-in HTTP support (if available)
-  - Option B: Create custom HTTP wrapper for SDK
-  - Option C: Implement HTTP JSON-RPC handler that delegates to SDK
-  - Document decision and rationale
-  - Estimated effort: Small (1 hour)
-
-### Phase 2: Core SDK Implementation
-- [ ] Enable SDK integration in `mcp_sdk_server.py`
-  - Uncomment and implement proper SDK FastAPI integration
-  - Create HTTP JSON-RPC endpoint at `/mcp/messages` (backward compatible)
-  - Ensure authentication works with SDK endpoints
-  - Test tool execution via HTTP POST
-  - Estimated effort: Medium (3-4 hours)
-
-- [ ] Migrate `/mcp/info` endpoint to SDK router
-  - Copy logic from `mcp_server.py:326-388`
-  - Integrate with SDK server instance for tool/resource listing
-  - Maintain authentication dependency
-  - Test response format matches legacy
-  - File: `apps/server/src/dipeo_server/api/mcp_sdk_server.py`
-  - Estimated effort: Small (1 hour)
-
-- [ ] Migrate OAuth metadata endpoint to SDK router
-  - Copy logic from `mcp_server.py:393-414`
-  - Ensure `/.well-known/oauth-authorization-server` works
-  - Required by MCP spec for authentication discovery
-  - Test metadata response
-  - File: `apps/server/src/dipeo_server/api/mcp_sdk_server.py`
+- [ ] Test timeout scenarios thoroughly
+  - Test background execution timeout
+  - Verify state is properly persisted to database
+  - Test process cleanup
   - Estimated effort: Small (30 min)
+  - Risk: Low - testing only
 
-### Phase 3: Legacy Removal
-- [ ] Remove legacy MCP implementation
-  - Delete `apps/server/src/dipeo_server/api/mcp_server.py`
-  - Keep `mcp_utils.py` (shared logic)
-  - Estimated effort: Small (15 min)
-
-- [ ] Update router configuration
-  - Remove `mcp_server` import in `router.py`
-  - Remove `app.include_router(mcp_router)` line
-  - Ensure only SDK router is registered
-  - File: `apps/server/src/dipeo_server/api/router.py`
-  - Estimated effort: Small (15 min)
-
-### Phase 4: Testing & Validation
-- [ ] Test SDK endpoints with authentication
-  - Test `/mcp/messages` with JWT bearer token
-  - Test `/mcp/messages` with API key
-  - Test unauthenticated requests (if MCP_AUTH_REQUIRED=false)
-  - Test tool execution (dipeo_run)
-  - Test resource listing (dipeo://diagrams)
-  - Estimated effort: Medium (2 hours)
-
-- [ ] Test backward compatibility
-  - Verify existing curl commands from docs still work
-  - Test with Claude Desktop integration
-  - Test with ngrok exposure
-  - Estimated effort: Medium (2 hours)
-
-### Phase 5: Documentation Updates
-- [ ] Update MCP server integration docs
-  - Update endpoint URLs in `docs/features/mcp-server-integration.md`
-  - Document any SDK-specific behavior changes
-  - Update curl examples if needed
-  - Remove references to legacy implementation
-  - Estimated effort: Medium (2 hours)
-
-- [ ] Update OAuth authentication docs
-  - Review `docs/features/mcp-oauth-authentication.md`
-  - Ensure SDK authentication flow is documented
-  - Update any code examples
-  - Estimated effort: Small (1 hour)
-
-- [ ] Update CLAUDE.md if needed
-  - Check for MCP endpoint references
-  - Update quick start examples
-  - Estimated effort: Small (30 min)
+- [ ] Add process monitoring for background executions (OPTIONAL)
+  - Track background process PIDs
+  - Detect when processes die unexpectedly
+  - Clean up zombie states on server restart
+  - Estimated effort: Medium (2-3 hours)
+  - Files: `apps/server/src/dipeo_server/cli/entry_point.py`
+  - Risk: Medium - process management complexity
+  - Note: May not be needed once persistence is fixed
 
 ---
 
-## Summary
-**Total estimated effort**: 14-18 hours
-**Primary files affected**:
-- `apps/server/src/dipeo_server/api/mcp_sdk_server.py` (major updates)
-- `apps/server/src/dipeo_server/api/router.py` (minor cleanup)
-- `apps/server/src/dipeo_server/api/mcp_server.py` (delete)
-- `docs/features/mcp-server-integration.md` (updates)
-- `docs/features/mcp-oauth-authentication.md` (review/updates)
+**Total estimated effort**: 2-4 hours remaining
+**Completed tasks**: 4/7
+**Risk**: Low - mostly debugging persistence issue
 
-**Dependencies**: None - can proceed immediately
-**Risk**: Medium - breaking change for existing MCP clients if endpoints change
-**Mitigation**: Maintain `/mcp/messages` endpoint URL for backward compatibility
+---
+
+## Improve Async Execution Results Output (Medium Priority)
+
+**Goal**: Enhance `dipeo results` command to show meaningful execution outputs and conversation history
+
+**Context**: Currently `dipeo results` shows basic status info (executed_nodes, status, LLM usage) but doesn't show the actual messages/interactions that occurred during execution. Users need to see what was actually done, not just metadata.
+
+**Target**: Rich output showing conversation history, node outputs with actual content, and final results
+
+### Tasks
+
+- [ ] Enhance `dipeo results` output to include conversation history
+  - Extract and format messages from executed person_job nodes
+  - Show user prompts and assistant responses
+  - Include timestamps for each interaction
+  - Estimated effort: Small (1-2 hours)
+  - Files: `apps/server/src/dipeo_server/cli/cli_runner.py`
+  - Risk: Low - read-only enhancement
+
+- [ ] Include actual node output content in results
+  - Currently showing `node_outputs` as stringified objects
+  - Parse and extract meaningful content from envelopes
+  - Show final output content (e.g., from endpoint nodes)
+  - Estimated effort: Small (1 hour)
+  - Files: `apps/server/src/dipeo_server/cli/cli_runner.py`
+  - Risk: Low - formatting improvement
+
+- [ ] Add `--verbose` flag for detailed output
+  - Default: Show summary with final results and key messages
+  - Verbose: Show full conversation history, all node outputs, metadata
+  - Estimated effort: Small (30 min)
+  - Files: `apps/server/src/dipeo_server/cli/entry_point.py`
+  - Risk: Low - optional flag
+
+- [ ] Update MCP `see_result` to return rich output
+  - Include conversation history in MCP tool response
+  - Format for easy consumption by LLM clients
+  - Estimated effort: Small (30 min)
+  - Files: `apps/server/src/dipeo_server/api/mcp_sdk_server.py`
+  - Risk: Low - backward compatible addition
+
+---
+
+**Total estimated effort**: 3-4 hours
+**Total tasks**: 4 tasks
+**Risk**: Low - all enhancements are additive and don't break existing functionality
+
+---
+
+## Recently Completed
+
+### CLI Background Execution & MCP Simplification ✅
+**Completed**: 2025-10-19
+**Total effort**: ~10 hours (13 tasks across 4 phases)
+
+**Achievements**:
+- ✅ Added native background execution support to DiPeO CLI
+- ✅ Implemented `dipeo run --background` command with subprocess isolation
+- ✅ Implemented `dipeo results <session_id>` command for async result retrieval
+- ✅ Simplified MCP server to use CLI commands (removed complex execution matching)
+- ✅ Cleaned up mcp_utils.py (removed execution_id parameter)
+- ✅ Fully tested CLI and MCP async execution workflow
+- ✅ Updated documentation (MCP integration guide + CLAUDE.md)
+
+**Key benefits delivered**:
+1. **Clean separation**: CLI owns execution, MCP just calls it
+2. **Reusable**: Background execution available to all CLI users, not just MCP
+3. **Simpler**: No complex execution matching heuristics
+4. **Testable**: Can test background execution without server
+5. **Maintainable**: Single source of truth for execution tracking
+
+**Files modified**:
+- `apps/server/src/dipeo_server/cli/cli_runner.py` - Added execution_id parameter and show_results method
+- `apps/server/src/dipeo_server/cli/entry_point.py` - Added --background flag and results command
+- `apps/server/src/dipeo_server/api/mcp_sdk_server.py` - Simplified run_backend and see_result to use CLI
+- `apps/server/src/dipeo_server/api/mcp_utils.py` - Removed execution_id parameter
+- `docs/features/mcp-server-integration.md` - Added async execution documentation
+- `CLAUDE.md` - Added async CLI commands section
+
+---
+
+_Use `/dipeotodos` to view this file anytime._

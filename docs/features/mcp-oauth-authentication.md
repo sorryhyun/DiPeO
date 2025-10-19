@@ -1,5 +1,15 @@
 # MCP OAuth 2.1 Authentication
 
+> **⚠️ DEPRECATED**: This OAuth 2.1 implementation has been simplified in favor of ngrok basic authentication for ease of use.
+>
+> **Current Setup**: DiPeO now uses **ngrok basic auth** (username:password in URL) for MCP connections. See:
+> - [ChatGPT MCP with Basic Auth](./chatgpt-basic-auth-setup.md) - **Recommended setup**
+> - [ChatGPT MCP Integration](./chatgpt-mcp-integration.md) - General MCP guide
+>
+> This document is kept for reference only and describes the **old** OAuth 2.1 implementation that has been removed.
+
+---
+
 This document provides comprehensive information about OAuth 2.1 authentication for the DiPeO MCP server, as required by the MCP specification (2025-03-26).
 
 ## Overview

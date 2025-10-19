@@ -74,6 +74,66 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
             )
 
         elif args.command == "run":
+            # Handle background execution
+            if hasattr(args, "background") and args.background:
+                import subprocess
+                import uuid
+
+                # Generate execution_id
+                execution_id = f"exec_{uuid.uuid4().hex}"
+
+                # Build command args for subprocess (without --background)
+                cmd_args = [
+                    sys.executable,
+                    "-m",
+                    "dipeo_server.cli.entry_point",
+                    "run",
+                    args.diagram,
+                ]
+
+                if args.debug:
+                    cmd_args.append("--debug")
+                if args.timing:
+                    cmd_args.append("--timing")
+                if args.timeout != 300:
+                    cmd_args.extend(["--timeout", str(args.timeout)])
+                if hasattr(args, "simple") and args.simple:
+                    cmd_args.append("--simple")
+                if hasattr(args, "no_interactive") and args.no_interactive:
+                    cmd_args.append("--no-interactive")
+
+                # Format options
+                if hasattr(args, "light") and args.light:
+                    cmd_args.append("--light")
+                elif hasattr(args, "native") and args.native:
+                    cmd_args.append("--native")
+                elif hasattr(args, "readable") and args.readable:
+                    cmd_args.append("--readable")
+
+                # Input data options
+                if hasattr(args, "inputs") and args.inputs:
+                    cmd_args.extend(["--inputs", args.inputs])
+                elif hasattr(args, "input_data") and args.input_data:
+                    cmd_args.extend(["--input-data", args.input_data])
+
+                # Add execution_id as environment variable
+                env = os.environ.copy()
+                env["DIPEO_EXECUTION_ID"] = execution_id
+
+                # Start subprocess in background
+                subprocess.Popen(
+                    cmd_args,
+                    env=env,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    start_new_session=True,
+                )
+
+                # Return session_id immediately
+                print(json.dumps({"session_id": execution_id, "status": "started"}))
+                return True
+
+            # Normal (foreground) execution
             format_type = None
             if hasattr(args, "light") and args.light:
                 format_type = "light"
@@ -89,6 +149,9 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
             elif hasattr(args, "input_data") and args.input_data:
                 input_variables = json.loads(args.input_data)
 
+            # Check for execution_id from environment (for background execution)
+            execution_id = os.environ.get("DIPEO_EXECUTION_ID")
+
             return await cli.run_diagram(
                 diagram=args.diagram,
                 debug=args.debug,
@@ -98,6 +161,7 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
                 use_unified=True,
                 simple=hasattr(args, "simple") and args.simple,
                 interactive=not (hasattr(args, "no_interactive") and args.no_interactive),
+                execution_id=execution_id,
             )
 
         elif args.command == "convert":
@@ -221,6 +285,9 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
                 format_filter=getattr(args, "format", None),
             )
 
+        elif args.command == "results":
+            return await cli.show_results(session_id=args.session_id)
+
         else:
             print(f"Unknown command: {args.command}")
             return False
@@ -267,6 +334,11 @@ def create_parser() -> argparse.ArgumentParser:
         "--no-interactive",
         action="store_true",
         help="Disable interactive user input (user_response nodes return empty)",
+    )
+    run_parser.add_argument(
+        "--background",
+        action="store_true",
+        help="Run execution in background and return session_id immediately",
     )
 
     # Input data options
@@ -439,17 +511,35 @@ def create_parser() -> argparse.ArgumentParser:
 
     # Compile command
     compile_parser = subparsers.add_parser("compile", help="Validate and compile diagram")
-    compile_parser.add_argument("diagram", nargs="?", help="Path to diagram file or diagram name (optional with --stdin)")
+    compile_parser.add_argument(
+        "diagram", nargs="?", help="Path to diagram file or diagram name (optional with --stdin)"
+    )
     compile_parser.add_argument("--check-only", action="store_true", help="Only validate structure")
     compile_parser.add_argument("--json", action="store_true", help="Output as JSON")
-    compile_parser.add_argument("--stdin", action="store_true", help="Read diagram content from stdin")
-    compile_parser.add_argument("--push-as", dest="push_as", type=str, help="Push compiled diagram to MCP directory with specified filename (works with --stdin)")
-    compile_parser.add_argument("--target-dir", dest="target_dir", type=str, help="Target directory for --push-as (default: projects/mcp-diagrams/)")
+    compile_parser.add_argument(
+        "--stdin", action="store_true", help="Read diagram content from stdin"
+    )
+    compile_parser.add_argument(
+        "--push-as",
+        dest="push_as",
+        type=str,
+        help="Push compiled diagram to MCP directory with specified filename (works with --stdin)",
+    )
+    compile_parser.add_argument(
+        "--target-dir",
+        dest="target_dir",
+        type=str,
+        help="Target directory for --push-as (default: projects/mcp-diagrams/)",
+    )
 
     # Format options
     compile_format_group = compile_parser.add_mutually_exclusive_group()
-    compile_format_group.add_argument("--light", action="store_true", help="Use light format (YAML)")
-    compile_format_group.add_argument("--native", action="store_true", help="Use native format (JSON)")
+    compile_format_group.add_argument(
+        "--light", action="store_true", help="Use light format (YAML)"
+    )
+    compile_format_group.add_argument(
+        "--native", action="store_true", help="Use native format (JSON)"
+    )
     compile_format_group.add_argument(
         "--readable", action="store_true", help="Use readable format (YAML)"
     )
@@ -464,6 +554,14 @@ def create_parser() -> argparse.ArgumentParser:
         type=str,
         choices=["light", "native", "readable"],
         help="Filter by diagram format",
+    )
+
+    # Results command
+    results_parser = subparsers.add_parser(
+        "results", help="Query execution status and results by session_id"
+    )
+    results_parser.add_argument(
+        "session_id", help="Execution/session ID (format: exec_[32-char-hex])"
     )
 
     return parser

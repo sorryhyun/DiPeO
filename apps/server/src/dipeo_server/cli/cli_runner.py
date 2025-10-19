@@ -48,8 +48,14 @@ class CLIRunner:
         use_unified: bool = True,
         simple: bool = False,
         interactive: bool = True,
+        execution_id: str | None = None,
     ) -> bool:
-        """Execute a diagram using direct service calls."""
+        """Execute a diagram using direct service calls.
+
+        Args:
+            execution_id: Optional custom execution ID (format: exec_[32-char-hex]).
+                         If not provided, a new UUID will be generated.
+        """
         try:
             state_store = self.registry.resolve(STATE_STORE)
             message_router = self.registry.resolve(MESSAGE_ROUTER)
@@ -84,7 +90,19 @@ class CLIRunner:
                 "diagram_source_path": diagram,
             }
 
-            execution_id = ExecutionID(f"exec_{uuid.uuid4().hex}")
+            # Use provided execution_id or generate new one
+            if execution_id:
+                # Validate format: exec_[32-char-hex]
+                import re
+
+                if not re.match(r"^exec_[0-9a-f]{32}$", execution_id):
+                    raise ValueError(
+                        f"Invalid execution_id format: {execution_id}. "
+                        f"Expected format: exec_[32-char-hex]"
+                    )
+                exec_id = ExecutionID(execution_id)
+            else:
+                exec_id = ExecutionID(f"exec_{uuid.uuid4().hex}")
 
             # Convert domain_diagram to native format for frontend
             native_data = None
@@ -96,15 +114,35 @@ class CLIRunner:
                     "persons": [person.model_dump() for person in (domain_diagram.persons or [])],
                 }
 
-            # Create and subscribe MetricsObserver if debug or timing enabled
+            # Create and subscribe observers
             metrics_observer = None
+            result_observer = None
             event_forwarder = None
+
+            from dipeo.application.registry.keys import EVENT_BUS
+            from dipeo.domain.events import EventType
+
+            event_bus = self.registry.resolve(EVENT_BUS)
+
+            # Always create ResultObserver to persist execution state changes
+            from dipeo.application.execution.observers import ResultObserver
+
+            result_observer = ResultObserver(state_store=state_store)
+
+            # Subscribe to execution-level events
+            result_events = [
+                EventType.EXECUTION_STARTED,
+                EventType.EXECUTION_COMPLETED,
+                EventType.EXECUTION_ERROR,
+            ]
+            await event_bus.subscribe(result_events, result_observer)
+            await result_observer.start()
+            logger.debug("ResultObserver created and subscribed")
+
+            # Create MetricsObserver only if debug or timing enabled
             if debug or os.getenv("DIPEO_TIMING_ENABLED") == "true":
                 from dipeo.application.execution.observers import MetricsObserver
-                from dipeo.application.registry.keys import EVENT_BUS
-                from dipeo.domain.events import EventType
 
-                event_bus = self.registry.resolve(EVENT_BUS)
                 metrics_observer = MetricsObserver(event_bus=event_bus, state_store=state_store)
 
                 # Subscribe to metrics events
@@ -124,7 +162,7 @@ class CLIRunner:
                 if await self.session_manager.is_server_available():
                     from dipeo_server.cli.handlers import EventForwarder
 
-                    event_forwarder = EventForwarder(execution_id=str(execution_id))
+                    event_forwarder = EventForwarder(execution_id=str(exec_id))
 
                     # Subscribe to node AND execution events
                     forward_events = [
@@ -139,7 +177,7 @@ class CLIRunner:
 
             # Register CLI session for monitor mode support
             await self.session_manager.register_cli_session(
-                execution_id=str(execution_id),
+                execution_id=str(exec_id),
                 diagram_name=diagram,
                 diagram_format="native",
                 diagram_data=native_data or diagram_data,
@@ -154,7 +192,7 @@ class CLIRunner:
                 async for update in use_case.execute_diagram(
                     diagram=domain_diagram,
                     options=options,
-                    execution_id=str(execution_id),
+                    execution_id=str(exec_id),
                     interactive_handler=cli_interactive_handler if interactive else None,
                 ):
                     last_update = update
@@ -165,7 +203,7 @@ class CLIRunner:
                     success = True
                     await asyncio.sleep(0.1)
 
-                result = await state_store.get_execution(str(execution_id))
+                result = await state_store.get_execution(str(exec_id))
 
                 if not success and result:
                     success = result.status == Status.COMPLETED
@@ -188,17 +226,19 @@ class CLIRunner:
                 try:
                     from dipeo.domain.events import execution_error
 
-                    result = await state_store.get_execution(str(execution_id))
+                    result = await state_store.get_execution(str(exec_id))
                     if result and result.status == Status.RUNNING:
                         logger.warning(
-                            f"Execution {execution_id} still RUNNING after timeout. "
+                            f"Execution {exec_id} still RUNNING after timeout. "
                             f"Executed nodes: {result.executed_nodes}"
                         )
                         event = execution_error(
-                            execution_id=str(execution_id),
+                            execution_id=str(exec_id),
                             error_message=f"Execution timed out after {timeout} seconds",
                         )
+                        # Publish to both message_router (WebSocket) and event_bus (observers)
                         await message_router.publish(event)
+                        await event_bus.publish(event)
                 except Exception as update_err:
                     logger.error(f"Failed to update execution state after timeout: {update_err}")
 
@@ -211,7 +251,7 @@ class CLIRunner:
                 if not simple:
                     print(f"\n❌ Execution timed out after {timeout} seconds")
 
-                await self.session_manager.unregister_cli_session(str(execution_id))
+                await self.session_manager.unregister_cli_session(str(exec_id))
 
                 return False
             finally:
@@ -225,7 +265,12 @@ class CLIRunner:
                     await metrics_observer.stop()
                     logger.debug("MetricsObserver stopped")
 
-                await self.session_manager.unregister_cli_session(str(execution_id))
+                # Stop result observer if it was created
+                if result_observer:
+                    await result_observer.stop()
+                    logger.debug("ResultObserver stopped")
+
+                await self.session_manager.unregister_cli_session(str(exec_id))
 
             return success
 
@@ -428,7 +473,9 @@ class CLIRunner:
             # Handle stdin input
             if use_stdin:
                 if not format_type:
-                    print("❌ Format type is required with --stdin (use --light, --native, or --readable)")
+                    print(
+                        "❌ Format type is required with --stdin (use --light, --native, or --readable)"
+                    )
                     return False
 
                 # Read content from stdin
@@ -439,13 +486,14 @@ class CLIRunner:
 
                 # Create temporary file
                 suffix = ".yaml" if format_type in ["light", "readable"] else ".json"
-                temp_file = tempfile.NamedTemporaryFile(mode='w', suffix=suffix, delete=False)
-                temp_file.write(stdin_content)
-                temp_file.close()
-                source_path = temp_file.name
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=suffix, delete=False
+                ) as temp_file:
+                    temp_file.write(stdin_content)
+                    source_path = temp_file.name
 
                 if not output_json:
-                    print(f"📥 Reading diagram from stdin...")
+                    print("📥 Reading diagram from stdin...")
             elif not diagram_path:
                 print("❌ Either diagram path or --stdin is required")
                 return False
@@ -662,4 +710,105 @@ class CLIRunner:
             import traceback
 
             traceback.print_exc()
+            return False
+
+    async def show_results(self, session_id: str) -> bool:
+        """Query execution status and results by session_id.
+
+        Args:
+            session_id: Execution/session ID (format: exec_[32-char-hex])
+
+        Returns:
+            True if query succeeded, False otherwise
+        """
+        import json
+        import re
+
+        try:
+            # Validate session_id format
+            if not re.match(r"^exec_[0-9a-f]{32}$", session_id):
+                print(
+                    json.dumps(
+                        {
+                            "error": f"Invalid session_id format: {session_id}",
+                            "expected_format": "exec_[32-char-hex]",
+                        }
+                    )
+                )
+                return False
+
+            # Get state_store from registry
+            state_store = self.registry.resolve(STATE_STORE)
+
+            # Query execution
+            result = await state_store.get_execution(session_id)
+
+            if not result:
+                print(
+                    json.dumps(
+                        {"error": f"Execution not found: {session_id}", "session_id": session_id}
+                    )
+                )
+                return False
+
+            # Build response
+            response = {
+                "session_id": session_id,
+                "status": result.status.value
+                if hasattr(result.status, "value")
+                else str(result.status),
+            }
+
+            # Add diagram_id if available
+            if hasattr(result, "diagram_id") and result.diagram_id:
+                response["diagram_id"] = result.diagram_id
+
+            # Add executed_nodes if available
+            if hasattr(result, "executed_nodes") and result.executed_nodes:
+                response["executed_nodes"] = result.executed_nodes
+
+            # Add error if available
+            if hasattr(result, "error") and result.error:
+                response["error"] = result.error
+
+            # Add node_outputs if available
+            if hasattr(result, "node_outputs") and result.node_outputs:
+                response["node_outputs"] = {k: str(v) for k, v in result.node_outputs.items()}
+
+            # Add LLM usage if available
+            if hasattr(result, "llm_usage") and result.llm_usage:
+                response["llm_usage"] = {
+                    "input_tokens": result.llm_usage.input
+                    if hasattr(result.llm_usage, "input")
+                    else 0,
+                    "output_tokens": result.llm_usage.output
+                    if hasattr(result.llm_usage, "output")
+                    else 0,
+                    "total_tokens": result.llm_usage.total
+                    if hasattr(result.llm_usage, "total")
+                    else 0,
+                }
+
+            # Add timestamps if available
+            if hasattr(result, "started_at") and result.started_at:
+                response["started_at"] = (
+                    result.started_at.isoformat()
+                    if hasattr(result.started_at, "isoformat")
+                    else str(result.started_at)
+                )
+            if hasattr(result, "ended_at") and result.ended_at:
+                response["ended_at"] = (
+                    result.ended_at.isoformat()
+                    if hasattr(result.ended_at, "isoformat")
+                    else str(result.ended_at)
+                )
+
+            print(json.dumps(response, indent=2))
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to query execution results: {e}")
+            print(
+                json.dumps({"error": f"Failed to query execution: {e!s}", "session_id": session_id})
+            )
             return False

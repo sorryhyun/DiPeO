@@ -23,6 +23,20 @@ def setup_middleware(app: FastAPI):
         "http://127.0.0.1:3000",
     ]
 
+    # Add ChatGPT origins for MCP integration
+    chatgpt_origins = os.environ.get("MCP_CHATGPT_ORIGINS", "")
+    if chatgpt_origins:
+        origins.extend(chatgpt_origins.split(","))
+
+    # Default ChatGPT origins (if not configured)
+    if not chatgpt_origins:
+        origins.extend(
+            [
+                "https://chatgpt.com",
+                "https://chat.openai.com",
+            ]
+        )
+
     if os.environ.get("ENVIRONMENT", "development") == "development":
         origins.append("*")
 

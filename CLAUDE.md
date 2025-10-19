@@ -21,8 +21,19 @@ make dev-server       # Backend only (port 8000)
 
 ### Running Diagrams
 ```bash
+# Synchronous execution (wait for completion)
 dipeo run examples/simple_diagrams/simple_iter --light --debug --timeout=40 --timing # simple_iter_cc for claude code adapter diagram
 dipeo run [diagram] --input-data '{"key": "value"}' --light --debug
+
+# Asynchronous execution (background)
+dipeo run examples/simple_diagrams/simple_iter --light --background --timeout=40
+# Output: {"session_id": "exec_...", "status": "started"}
+
+# Check execution status and results
+dipeo results exec_9ebb3df7180a4a7383079680c28c6028
+# Output: Full execution status with results, LLM usage, etc.
+
+# Profile executions
 dipeo metrics --latest --breakdown  # Profile latest execution
 ```
 

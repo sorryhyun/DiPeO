@@ -130,7 +130,6 @@ async def execute_diagram_shared(
             interactive=False,  # Non-interactive for MCP
         )
 
-        # Return result
         return DiagramExecutionResult(
             success=success,
             diagram=diagram,
