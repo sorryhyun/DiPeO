@@ -2,29 +2,29 @@
 
 DiPeO provides webhook integration for sending HTTP requests to external services and receiving webhooks from external providers.
 
-## Overview
+## Overview {#overview}
 
 DiPeO supports two webhook capabilities:
 
 1. **Receiving Webhooks**: External services send webhooks to DiPeO's HTTP endpoint
 2. **Sending Webhooks**: Diagrams send HTTP requests to external endpoints via hook nodes
 
-## Architecture
+## Architecture {#architecture}
 
-### Components
+### Components {#components}
 
 1. **Webhook Gateway** (`/webhooks/{provider}`): HTTP endpoint receiving webhooks from external services
 2. **Event Bus**: Distributes webhook events internally
 3. **Hook Node**: Sends HTTP requests to webhook endpoints
 4. **Provider Registry**: Manages webhook configurations per provider
 
-### Event Flow
+### Event Flow {#event-flow}
 
 ```
 External Service → Webhook Gateway → Validate → Normalize → Event Bus → Hook Node → Diagram Execution
 ```
 
-## Setting Up Webhook Reception
+## Setting Up Webhook Reception {#setting-up-webhook-reception}
 
 ### 1. Configure Provider Manifest
 
@@ -69,9 +69,9 @@ For example:
 - Slack: `https://your-dipeo-server.com/webhooks/slack`
 - Stripe: `https://your-dipeo-server.com/webhooks/stripe`
 
-## Using Webhooks in Diagrams
+## Using Webhooks in Diagrams {#using-webhooks-in-diagrams}
 
-### Sending Outgoing Webhooks
+### Sending Outgoing Webhooks {#sending-outgoing-webhooks}
 
 Use the `hook` node to send HTTP requests to external webhook endpoints:
 
@@ -88,7 +88,7 @@ Use the `hook` node to send HTTP requests to external webhook endpoints:
       timeout: 30  # Optional: request timeout in seconds
 ```
 
-### Processing Webhook Responses
+### Processing Webhook Responses {#processing-webhook-responses}
 
 Webhook responses are available to downstream nodes:
 
@@ -102,7 +102,7 @@ Webhook responses are available to downstream nodes:
       result = f"Webhook returned: {status}"
 ```
 
-### Complete Example
+### Complete Example {#complete-example}
 
 ```yaml
 version: light
@@ -152,9 +152,9 @@ connections:
     to: End
 ```
 
-## Security
+## Security {#security}
 
-### Signature Validation
+### Signature Validation {#signature-validation}
 
 DiPeO automatically validates webhook signatures when configured:
 
@@ -169,7 +169,7 @@ metadata:
 Supported algorithms:
 - `hmac_sha256` (Most common - GitHub, Slack, Stripe)
 
-### Best Practices
+### Best Practices {#best-practices}
 
 1. **Always use signature validation** for production webhooks
 2. **Set appropriate timeouts** to avoid hanging diagrams
@@ -177,9 +177,9 @@ Supported algorithms:
 4. **Store secrets securely** in environment variables
 5. **Monitor webhook endpoints** for failures and attacks
 
-## Testing Webhooks
+## Testing Webhooks {#testing-webhooks}
 
-### Test Endpoint
+### Test Endpoint {#test-endpoint}
 
 Check webhook configuration:
 ```bash
@@ -204,7 +204,7 @@ Response:
 }
 ```
 
-### Local Testing
+### Local Testing {#local-testing}
 
 Use ngrok or similar for local webhook testing:
 
@@ -219,16 +219,16 @@ ngrok http 8000
 # https://abc123.ngrok.io/webhooks/github
 ```
 
-## Troubleshooting
+## Troubleshooting {#troubleshooting}
 
-### Common Issues
+### Common Issues {#common-issues}
 
 1. **"Provider not found"**: Ensure provider manifest is loaded
 2. **"Invalid signature"**: Check webhook secret configuration
 3. **"Timeout waiting for webhook"**: Increase timeout or check filters
 4. **"Event not received"**: Verify webhook URL and provider configuration
 
-### Debug Mode
+### Debug Mode {#debug-mode}
 
 Enable debug logging to see webhook processing:
 
@@ -237,9 +237,9 @@ export DIPEO_LOG_LEVEL=DEBUG
 dipeo run webhook_diagram --debug
 ```
 
-## Advanced Usage
+## Advanced Usage {#advanced-usage}
 
-### Conditional Webhook Sending
+### Conditional Webhook Sending {#conditional-webhook-sending}
 
 Send webhooks based on conditions:
 
@@ -261,7 +261,7 @@ connections:
     to: Send Success Webhook
 ```
 
-### Multiple Webhook Endpoints
+### Multiple Webhook Endpoints {#multiple-webhook-endpoints}
 
 Send notifications to multiple services:
 
@@ -281,9 +281,9 @@ Send notifications to multiple services:
       url: https://discord.com/api/webhooks/...
 ```
 
-## API Reference
+## API Reference {#api-reference}
 
-### Webhook Gateway Endpoint
+### Webhook Gateway Endpoint {#webhook-gateway-endpoint}
 
 **POST** `/webhooks/{provider}`
 
@@ -303,7 +303,7 @@ Receives webhooks from external providers.
 }
 ```
 
-### Hook Node Configuration
+### Hook Node Configuration {#hook-node-configuration}
 
 **Outgoing Webhook:**
 
@@ -318,7 +318,7 @@ props:
     timeout: number          # Optional: Request timeout in seconds (default: 30)
 ```
 
-## See Also
+## See Also {#see-also}
 
 - [Provider SDK Documentation](../projects/code-generation-guide.md)
 - [Hook Node Reference](../nodes/hook.md)

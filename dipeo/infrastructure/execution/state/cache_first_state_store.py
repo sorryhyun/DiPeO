@@ -108,11 +108,8 @@ class CacheFirstStateStore(StateStorePort, ExecutionStateService, ExecutionCache
     async def cleanup(self):
         """Cleanup resources."""
         self._running = False
-
-        logger.info("[CLEANUP] Starting cleanup - persisting all dirty entries")
         # Persist all dirty cache entries
         await self._persist_all_dirty()
-        logger.info("[CLEANUP] Finished persisting all dirty entries")
 
         # Stop cache manager background tasks
         await self._cache_manager.stop_background_tasks()
@@ -243,7 +240,7 @@ class CacheFirstStateStore(StateStorePort, ExecutionStateService, ExecutionCache
             await self.update_node_status(
                 execution_id, event.scope.node_id, Status.FAILED, error=error_msg
             )
-        elif event_type == EventType.EXECUTION_FAILED:
+        elif event_type == EventType.EXECUTION_ERROR:
             error_msg = None
             if hasattr(event, "data") and event.data:
                 error_msg = event.data.get("error", str(event.data))
@@ -297,10 +294,11 @@ class CacheFirstStateStore(StateStorePort, ExecutionStateService, ExecutionCache
         # logger.debug(f"Critical event persisted immediately for execution {execution_id}")
 
     async def _persist_all_dirty(self):
-        """Persist all dirty cache entries."""
+        """Persist all dirty cache entries with full sync to ensure visibility."""
         dirty_entries = await self._cache_manager.get_all_dirty_entries()
         for exec_id, entry in dirty_entries:
-            await self._persistence_manager.persist_entry(exec_id, entry)
+            # Use full sync during cleanup to ensure data is visible to external processes
+            await self._persistence_manager.persist_entry(exec_id, entry, use_full_sync=True)
 
     def _log_metrics(self):
         """Log current metrics."""

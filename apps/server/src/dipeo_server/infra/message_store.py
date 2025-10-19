@@ -89,3 +89,29 @@ class MessageStore:
                     }
                 )
             return messages
+
+    async def get_execution_messages(self, execution_id: str) -> list[dict[str, Any]]:
+        """Get all messages for an execution, ordered by creation time."""
+        async with (
+            aiosqlite.connect(self.db_path) as db,
+            db.execute(
+                """SELECT id, node_id, person_id, content, token_count, created_at
+                   FROM messages
+                   WHERE execution_id = ?
+                   ORDER BY created_at""",
+                (execution_id,),
+            ) as cursor,
+        ):
+            messages = []
+            async for row in cursor:
+                messages.append(
+                    {
+                        "id": row[0],
+                        "node_id": row[1],
+                        "person_id": row[2],
+                        "content": json.loads(row[3]),
+                        "token_count": row[4],
+                        "timestamp": row[5],
+                    }
+                )
+            return messages

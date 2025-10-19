@@ -2,9 +2,9 @@
 
 DiPeO supports three diagram formats, each optimized for different use cases. All formats are interconvertible without data loss.
 
-## Format Overview
+## Format Overview {#format-overview}
 
-### 1. Domain JSON
+### 1. Domain JSON {#1-domain-json}
 
 The canonical DomainDiagram format used for system operations:
 
@@ -23,7 +23,7 @@ The canonical DomainDiagram format used for system operations:
 
 **Note:** React Flow UI properties (draggable, selectable) are applied at runtime by the DiagramAdapter and are not persisted.
 
-### 2. Light YAML
+### 2. Light YAML {#2-light-yaml}
 
 A simplified, human-readable format for diagram authoring:
 
@@ -44,7 +44,7 @@ A simplified, human-readable format for diagram authoring:
 
 See [Comprehensive Light Diagram Guide](comprehensive_light_diagram_guide.md) for complete documentation.
 
-### 3. Readable YAML
+### 3. Readable YAML {#3-readable-yaml}
 
 An alternative representation optimized for workflow comprehension:
 
@@ -62,7 +62,7 @@ An alternative representation optimized for workflow comprehension:
 
 **Recommended for:** Understanding and communicating workflow logic.
 
-## Format Conversion
+## Format Conversion {#format-conversion}
 
 All formats are interconvertible using DiPeO's conversion tools:
 
@@ -77,7 +77,7 @@ dipeo convert diagram.json --format readable
 dipeo convert diagram.light.yaml --format native
 ```
 
-## Choosing a Format
+## Choosing a Format {#choosing-a-format}
 
 | Format | Best For | File Extension |
 |--------|----------|----------------|
@@ -85,7 +85,7 @@ dipeo convert diagram.light.yaml --format native
 | Light YAML | Development, version control | `.light.yaml` |
 | Readable YAML | Documentation, comprehension | `.readable.yaml` |
 
-## Related Documentation
+## Related Documentation {#related-documentation}
 
 - [Comprehensive Light Diagram Guide](comprehensive_light_diagram_guide.md) - Complete Light format documentation
 - [Overall Architecture](../architecture/overall_architecture.md) - System architecture overview

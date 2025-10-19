@@ -2,22 +2,22 @@
 
 DiPeO supports Claude Code SDK as an LLM provider, enabling integration with Anthropic's Claude Code for advanced AI agent capabilities.
 
-## Installation
+## Installation {#installation}
 
-### Prerequisites
+### Prerequisites {#prerequisites}
 
 The Claude Code SDK is already included in DiPeO's dependencies. No additional installation required.
 
-## Configuration
+## Configuration {#configuration}
 
-### API Key Setup
+### API Key Setup {#api-key-setup}
 
 Use your Anthropic API key (same as regular Claude):
 ```bash
 export ANTHROPIC_API_KEY=your-api-key-here
 ```
 
-### DiPeO Configuration
+### DiPeO Configuration {#dipeo-configuration}
 
 In your diagram YAML files, configure a person to use Claude Code:
 
@@ -33,7 +33,7 @@ persons:
     max_turns: 5  # Maximum conversation turns
 ```
 
-### Session Management Environment Variables
+### Session Management Environment Variables {#session-management-environment-variables}
 
 - `DIPEO_CLAUDE_FORK_SESSION` – Controls whether the Claude Code adapter uses
   the SDK's **fork session** capability for efficient session management.
@@ -45,21 +45,21 @@ persons:
   individual requests. This provides both efficiency (no cold start) and
   isolation (each request gets its own forked session with clean state).
 
-## Supported Models
+## Supported Models {#supported-models}
 
 - `claude-code` - Default Claude Code model
 - `claude-code-sdk` - Alias for Claude Code
 
 Note: Claude Code uses its own model endpoint and doesn't follow the typical model naming conventions used by other providers like `gpt-5-nano-2025-08-07`.
 
-## Service Aliases
+## Service Aliases {#service-aliases}
 
 The following service names are recognized:
 - `claude-code` (primary)
 - `claude-sdk`
 - `claude_code`
 
-## Example Usage
+## Example Usage {#example-usage}
 
 ```yaml
 version: light
@@ -122,14 +122,14 @@ connections:
     to: Save Analysis
 ```
 
-## Key Differences from Regular Claude
+## Key Differences from Regular Claude {#key-differences-from-regular-claude}
 
 1. **Streaming-First Architecture**: Claude Code uses streaming responses by default
 2. **Context Manager Pattern**: Client lifecycle managed via async context managers
 3. **Multi-Turn Support**: Built-in conversation management with configurable max turns
 4. **Different API Pattern**: Uses `ClaudeSDKClient` instead of traditional API clients
 
-## Memory Management for Claude Code
+## Memory Management for Claude Code {#memory-management-for-claude-code}
 
 Claude Code agents support DiPeO's intelligent memory management system. See the [Memory System Design](../architecture/detailed/memory_system_design.md) for complete details.
 
@@ -184,7 +184,7 @@ nodes:
 
 **Backward Compatibility:** Diagrams using legacy `memory_profile` settings are automatically converted to the supported memory configuration format.
 
-## Tool Support
+## Tool Support {#tool-support}
 
 Claude Code supports structured output via MCP tools:
 
@@ -195,12 +195,12 @@ These tools enable:
 - **Memory Selection**: LLM-driven selection of relevant context
 - **Condition Evaluation**: Binary decision making for `llm_decision` condition nodes
 
-## Limitations
+## Limitations {#limitations}
 
 - Response API pattern is not available
 - Models list API returns predefined list
 
-## Advanced Example: Code Review Workflow
+## Advanced Example: Code Review Workflow {#advanced-example-code-review-workflow}
 
 Here's a more comprehensive example showing Claude Code in a code review workflow:
 
@@ -360,14 +360,14 @@ This example demonstrates:
 - Template-based report generation
 - Modern light diagram format with proper node positioning and connections
 
-## Running Diagrams
+## Running Diagrams {#running-diagrams}
 
 Execute diagrams with Claude Code agents:
 ```bash
 dipeo run examples/test_claude_code --light --debug
 ```
 
-## Best Practices for Claude Code Integration
+## Best Practices for Claude Code Integration {#best-practices-for-claude-code-integration}
 
 ### 1. Optimal Memory Configuration
 
@@ -448,25 +448,25 @@ nodes:
       expression: not response_check["valid"]
 ```
 
-## Troubleshooting
+## Troubleshooting {#troubleshooting}
 
-### Import Error
+### Import Error {#import-error}
 If you see `ImportError: claude-code-sdk is required`:
 ```bash
 make install  # Reinstall dependencies
 ```
 
-### Service Not Available
+### Service Not Available {#service-not-available}
 If Claude Code service is not available, check that the ANTHROPIC_API_KEY is configured properly in your environment.
 
-### Rate Limiting
+### Rate Limiting {#rate-limiting}
 The adapter includes automatic retry logic with exponential backoff for rate limit errors.
 
-## Claude Code Session Conversion
+## Claude Code Session Conversion {#claude-code-session-conversion}
 
 DiPeO can convert Claude Code conversation sessions into executable diagrams using the `dipeocc` command.
 
-### What are Claude Code Sessions?
+### What are Claude Code Sessions? {#what-are-claude-code-sessions}
 
 Claude Code automatically saves all conversations as JSONL files in:
 ```
@@ -479,7 +479,7 @@ These sessions contain:
 - Timestamps and conversation flow
 - Complete context for replay and analysis
 
-### Converting Sessions to Diagrams
+### Converting Sessions to Diagrams {#converting-sessions-to-diagrams}
 
 Use the `dipeocc` command to convert sessions:
 
@@ -497,7 +497,7 @@ dipeocc convert --latest --auto-execute
 dipeocc watch --interval 30
 ```
 
-### Tool Mapping
+### Tool Mapping {#tool-mapping}
 
 Claude Code tools are automatically mapped to DiPeO nodes:
 
@@ -512,7 +512,7 @@ Claude Code tools are automatically mapped to DiPeO nodes:
 | TodoWrite | DB node | Task tracking |
 | WebFetch | API job | Web content retrieval |
 
-### Example Converted Diagram
+### Example Converted Diagram {#example-converted-diagram}
 
 A typical Claude Code session converts to:
 
@@ -557,7 +557,7 @@ connections:
     to: Read Source File
 ```
 
-### Benefits of Session Conversion
+### Benefits of Session Conversion {#benefits-of-session-conversion}
 
 1. **Replay Workflows**: Re-execute past Claude Code sessions
 2. **Share Solutions**: Convert successful sessions to shareable diagrams
@@ -565,9 +565,9 @@ connections:
 4. **Build Libraries**: Create reusable patterns from common tasks
 5. **Analyze Performance**: Review execution patterns and optimize
 
-### Advanced Usage
+### Advanced Usage {#advanced-usage}
 
-#### Optimizations
+#### Optimizations {#optimizations}
 
 ```bash
 # Merge consecutive file reads
@@ -580,7 +580,7 @@ dipeocc convert --latest --simplify
 dipeocc convert --latest --output-dir projects/my_workflows
 ```
 
-#### Batch Processing
+#### Batch Processing {#batch-processing}
 
 ```bash
 # Convert multiple sessions
@@ -589,14 +589,14 @@ for session in $(dipeocc list | grep Session | awk '{print $3}'); do
 done
 ```
 
-#### Continuous Integration
+#### Continuous Integration {#continuous-integration}
 
 ```bash
 # Watch and auto-convert new sessions
 dipeocc watch --auto-execute --interval 60
 ```
 
-### Output Structure
+### Output Structure {#output-structure}
 
 Converted sessions are saved as:
 ```
@@ -609,6 +609,6 @@ projects/claude_code/
 └── latest.light.yaml -> sessions/{latest}/diagram.light.yaml
 ```
 
-### Full Documentation
+### Full Documentation {#full-documentation}
 
 For complete details on session conversion, see the [DiPeOCC Guide](../projects/dipeocc-guide.md).

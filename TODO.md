@@ -1,111 +1,86 @@
 # DiPeO Project Todos
 
-## MCP SDK Migration (High Priority)
+---
 
-**Goal**: Fully migrate from legacy MCP implementation to official MCP Python SDK, removing all custom JSON-RPC handling.
+## Current Tasks
 
-**Context**: Currently running dual MCP implementations:
-- Legacy: `mcp_server.py` with manual JSON-RPC 2.0 handling
-- SDK: `mcp_sdk_server.py` with official SDK but incomplete integration
-
-**Target**: SDK-only implementation with HTTP JSON-RPC transport support
-
-### Phase 1: SDK Investigation & Setup
-- [ ] Investigate MCP SDK v1.16.0 HTTP transport capabilities
-  - Check if SDK supports HTTP JSON-RPC natively (not just SSE)
-  - Review `mcp.server` module for HTTP transport options
-  - Document SDK limitations vs legacy implementation
-  - Estimated effort: Small (1-2 hours)
-
-- [ ] Determine HTTP transport strategy
-  - Option A: Use SDK's built-in HTTP support (if available)
-  - Option B: Create custom HTTP wrapper for SDK
-  - Option C: Implement HTTP JSON-RPC handler that delegates to SDK
-  - Document decision and rationale
-  - Estimated effort: Small (1 hour)
-
-### Phase 2: Core SDK Implementation
-- [ ] Enable SDK integration in `mcp_sdk_server.py`
-  - Uncomment and implement proper SDK FastAPI integration
-  - Create HTTP JSON-RPC endpoint at `/mcp/messages` (backward compatible)
-  - Ensure authentication works with SDK endpoints
-  - Test tool execution via HTTP POST
-  - Estimated effort: Medium (3-4 hours)
-
-- [ ] Migrate `/mcp/info` endpoint to SDK router
-  - Copy logic from `mcp_server.py:326-388`
-  - Integrate with SDK server instance for tool/resource listing
-  - Maintain authentication dependency
-  - Test response format matches legacy
-  - File: `apps/server/src/dipeo_server/api/mcp_sdk_server.py`
-  - Estimated effort: Small (1 hour)
-
-- [ ] Migrate OAuth metadata endpoint to SDK router
-  - Copy logic from `mcp_server.py:393-414`
-  - Ensure `/.well-known/oauth-authorization-server` works
-  - Required by MCP spec for authentication discovery
-  - Test metadata response
-  - File: `apps/server/src/dipeo_server/api/mcp_sdk_server.py`
-  - Estimated effort: Small (30 min)
-
-### Phase 3: Legacy Removal
-- [ ] Remove legacy MCP implementation
-  - Delete `apps/server/src/dipeo_server/api/mcp_server.py`
-  - Keep `mcp_utils.py` (shared logic)
-  - Estimated effort: Small (15 min)
-
-- [ ] Update router configuration
-  - Remove `mcp_server` import in `router.py`
-  - Remove `app.include_router(mcp_router)` line
-  - Ensure only SDK router is registered
-  - File: `apps/server/src/dipeo_server/api/router.py`
-  - Estimated effort: Small (15 min)
-
-### Phase 4: Testing & Validation
-- [ ] Test SDK endpoints with authentication
-  - Test `/mcp/messages` with JWT bearer token
-  - Test `/mcp/messages` with API key
-  - Test unauthenticated requests (if MCP_AUTH_REQUIRED=false)
-  - Test tool execution (dipeo_run)
-  - Test resource listing (dipeo://diagrams)
-  - Estimated effort: Medium (2 hours)
-
-- [ ] Test backward compatibility
-  - Verify existing curl commands from docs still work
-  - Test with Claude Desktop integration
-  - Test with ngrok exposure
-  - Estimated effort: Medium (2 hours)
-
-### Phase 5: Documentation Updates
-- [ ] Update MCP server integration docs
-  - Update endpoint URLs in `docs/features/mcp-server-integration.md`
-  - Document any SDK-specific behavior changes
-  - Update curl examples if needed
-  - Remove references to legacy implementation
-  - Estimated effort: Medium (2 hours)
-
-- [ ] Update OAuth authentication docs
-  - Review `docs/features/mcp-oauth-authentication.md`
-  - Ensure SDK authentication flow is documented
-  - Update any code examples
-  - Estimated effort: Small (1 hour)
-
-- [ ] Update CLAUDE.md if needed
-  - Check for MCP endpoint references
-  - Update quick start examples
-  - Estimated effort: Small (30 min)
+_No active tasks. See Future Enhancements below for potential improvements._
 
 ---
 
-## Summary
-**Total estimated effort**: 14-18 hours
-**Primary files affected**:
-- `apps/server/src/dipeo_server/api/mcp_sdk_server.py` (major updates)
-- `apps/server/src/dipeo_server/api/router.py` (minor cleanup)
-- `apps/server/src/dipeo_server/api/mcp_server.py` (delete)
-- `docs/features/mcp-server-integration.md` (updates)
-- `docs/features/mcp-oauth-authentication.md` (review/updates)
+## Future Enhancements
 
-**Dependencies**: None - can proceed immediately
-**Risk**: Medium - breaking change for existing MCP clients if endpoints change
-**Mitigation**: Maintain `/mcp/messages` endpoint URL for backward compatibility
+### Granular Domain Skills
+Create more focused router skills for specific sub-domains:
+- `backend-cli`: CLI-specific guidance (~30 lines)
+- `backend-mcp`: MCP server-specific guidance (~30 lines)
+- `backend-db`: Database-specific guidance (~30 lines)
+- `codegen-typescript`: TypeScript model design patterns
+- `codegen-ir`: IR builder implementation
+- `codegen-graphql`: GraphQL schema generation
+
+### Enhanced doc-lookup Features
+- Support for including multiple sections in one query
+- Anchor suggestion when exact match not found
+- Section dependency graph (e.g., "handler patterns" → "service architecture")
+
+### Skill Composition
+- Allow skills to reference prerequisite skills
+- Build skill dependency chains for complex topics
+
+### Automated Sync
+- Script to detect when `docs/agents/*.md` changes
+- Validate router skills still reference valid anchors
+- CI/CD integration for documentation validation
+
+---
+
+## Completed (2025-10-19)
+
+### Documentation Anchor Coverage ✅
+
+**Summary**: Added comprehensive explicit anchors to all documentation files to enable efficient doc-lookup skill usage.
+
+**Key Achievements**:
+- ✅ Added 641 anchors across 21 documentation files
+  - Features: 197 anchors across 7 files
+  - Formats: 76 anchors across 2 files
+  - Projects: 162 anchors across 4 files
+  - Agents: 206 anchors across 7 files (total now 313 anchors)
+- ✅ Fixed all 12 broken anchor references in router skills
+- ✅ All 68 anchor references now valid (0 broken)
+
+**Files Updated**:
+- `.claude/skills/dipeo-codegen-pipeline/SKILL.md` - Fixed 5 broken anchor refs
+- `.claude/skills/dipeo-package-maintainer/SKILL.md` - Fixed 4 broken anchor refs
+- `.claude/skills/doc-lookup/SKILL.md` - Fixed 3 broken anchor refs
+
+**Impact**:
+- doc-lookup skill can now precisely locate any documentation section
+- Router skills have stable, validated anchor references
+- 641 anchors provide fine-grained documentation access
+
+---
+
+### Agent Documentation Migration: PreToolUse Hook → Skills ✅
+
+**Summary**: Migrated from automatic documentation injection to on-demand skill-based loading using thin router skills + doc-lookup.
+
+**Key Achievements**:
+- 80-90% token reduction (1,500 vs 15,000 tokens per task)
+- Created 3 router skills (dipeo-backend, dipeo-package-maintainer, dipeo-codegen-pipeline)
+- Added 60 stable anchors to agent/architecture documentation
+- Removed PreToolUse hook, archived injection script
+- Updated CLAUDE.md and docs/agents/index.md with new patterns
+
+**Infrastructure Created**:
+- `.claude/skills/doc-lookup/` - Section search by anchor/keyword
+- `.claude/skills/maintain-docs/` - Documentation maintenance with helper scripts
+  - `scripts/add_doc_anchors.py` - Add anchors to markdown files
+  - `scripts/validate_doc_anchors.py` - Validate router skill references
+  - `references/DOCUMENTATION_MANAGEMENT.md` - Complete documentation management guide
+- Makefile targets: `docs-add-anchors`, `docs-validate-anchors`, `docs-update`
+
+---
+
+_Use `/dipeotodos` to view this file anytime._

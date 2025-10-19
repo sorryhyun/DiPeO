@@ -16,21 +16,13 @@ from dipeo_server.cli import CLIRunner
 
 logger = get_module_logger(__name__)
 
-# Configuration
 DEFAULT_MCP_TIMEOUT = int(os.environ.get("MCP_DEFAULT_TIMEOUT", "300"))
 DEBUG_MODE = os.environ.get("DIPEO_DEBUG", "false").lower() == "true"
 
 
 @dataclass
 class DiagramExecutionResult:
-    """Result of a diagram execution.
-
-    Attributes:
-        success: Whether the execution succeeded
-        diagram: Name/path of the diagram executed
-        format_type: Format type used
-        error: Error message if execution failed
-    """
+    """Result of a diagram execution."""
 
     success: bool
     diagram: str
@@ -38,14 +30,6 @@ class DiagramExecutionResult:
     error: Optional[str] = None
 
     def to_json(self, indent: int = 2) -> str:
-        """Convert result to JSON string.
-
-        Args:
-            indent: JSON indentation level
-
-        Returns:
-            JSON string representation
-        """
         data = {
             "success": self.success,
             "diagram": self.diagram,
@@ -63,8 +47,6 @@ class DiagramExecutionResult:
 
 
 class DiagramExecutionError(Exception):
-    """Exception raised during diagram execution validation or execution."""
-
     pass
 
 
@@ -75,33 +57,13 @@ async def execute_diagram_shared(
     timeout: int = DEFAULT_MCP_TIMEOUT,
     validate_inputs: bool = True,
 ) -> DiagramExecutionResult:
-    """Execute a DiPeO diagram with shared logic.
-
-    This function contains the core diagram execution logic shared between
-    the legacy MCP server and the SDK-based implementation.
-
-    Args:
-        diagram: Path or name of the diagram to execute
-        input_data: Optional input variables for the diagram
-        format_type: Diagram format type (light, native, readable)
-        timeout: Execution timeout in seconds
-        validate_inputs: Whether to validate input parameters (default: True)
-
-    Returns:
-        DiagramExecutionResult with execution status and details
-
-    Raises:
-        DiagramExecutionError: If validation fails or execution encounters an error
-    """
-    # Validate required parameters
+    """Execute a DiPeO diagram with shared logic between MCP implementations."""
     if not diagram:
         raise DiagramExecutionError("diagram parameter is required")
 
-    # Validate input_data type (if validation enabled)
     if validate_inputs and input_data is not None and not isinstance(input_data, dict):
         raise DiagramExecutionError("input_data must be a dictionary")
 
-    # Validate format_type (if validation enabled)
     if validate_inputs:
         valid_formats = ["light", "native", "readable"]
         if format_type not in valid_formats:
@@ -112,13 +74,9 @@ async def execute_diagram_shared(
     try:
         logger.info(f"Executing diagram via MCP: {diagram}")
 
-        # Get the container
         container = get_container()
-
-        # Create CLI runner
         cli = CLIRunner(container)
 
-        # Execute the diagram
         success = await cli.run_diagram(
             diagram=diagram,
             debug=False,
@@ -126,11 +84,10 @@ async def execute_diagram_shared(
             format_type=format_type,
             input_variables=input_data if input_data else None,
             use_unified=True,
-            simple=True,  # Use simple output for MCP
-            interactive=False,  # Non-interactive for MCP
+            simple=True,
+            interactive=False,
         )
 
-        # Return result
         return DiagramExecutionResult(
             success=success,
             diagram=diagram,
@@ -140,7 +97,6 @@ async def execute_diagram_shared(
     except Exception as e:
         logger.error(f"Error executing diagram via MCP: {e}", exc_info=True)
 
-        # Sanitize error message - don't expose full stack traces in production
         error_msg = str(e) if DEBUG_MODE else "Diagram execution failed"
 
         return DiagramExecutionResult(

@@ -1,6 +1,6 @@
 # DiPeOCC - Claude Code Session Converter Guide
 
-## Overview
+## Overview {#overview}
 
 `dipeocc` (DiPeO Claude Code) is a powerful command-line tool that converts Claude Code session records (JSONL files) into executable DiPeO diagrams. This enables you to:
 
@@ -9,9 +9,9 @@
 - Modify and enhance automated workflows
 - Share reproducible AI-driven processes with your team
 
-## How It Works
+## How It Works {#how-it-works}
 
-### Session Storage
+### Session Storage {#session-storage}
 
 Claude Code automatically saves all conversation sessions as JSONL files in:
 ```
@@ -24,7 +24,7 @@ Each session file contains:
 - Timestamps and conversation flow
 - Session metadata
 
-### Conversion Process
+### Conversion Process {#conversion-process}
 
 The `dipeocc` command:
 1. **Parses** JSONL session files to extract conversation events
@@ -32,7 +32,7 @@ The `dipeocc` command:
 3. **Generates** executable Light format diagrams
 4. **Creates** metadata for tracking and analysis
 
-### Node Mapping Strategy
+### Node Mapping Strategy {#node-mapping-strategy}
 
 | Claude Code Tool | DiPeO Node Type | Description |
 |-----------------|-----------------|-------------|
@@ -46,9 +46,9 @@ The `dipeocc` command:
 | Glob/Grep | `code_job` | Search operations |
 | WebFetch | `api_job` | Web content retrieval |
 
-## Quick Start
+## Quick Start {#quick-start}
 
-### List Available Sessions
+### List Available Sessions {#list-available-sessions}
 
 ```bash
 # Show recent sessions with summary
@@ -71,7 +71,7 @@ Output:
      File: 03070ee3-c2d8-488b-a11e-ce8d5ac1f1ec.jsonl
 ```
 
-### Convert a Session
+### Convert a Session {#convert-a-session}
 
 ```bash
 # Convert the latest session
@@ -87,7 +87,7 @@ dipeocc convert --latest --auto-execute
 dipeocc convert --latest --merge-reads --simplify
 ```
 
-### Monitor for New Sessions
+### Monitor for New Sessions {#monitor-for-new-sessions}
 
 ```bash
 # Watch for new sessions and convert automatically
@@ -97,7 +97,7 @@ dipeocc watch
 dipeocc watch --interval 60 --auto-execute
 ```
 
-### Analyze Session Statistics
+### Analyze Session Statistics {#analyze-session-statistics}
 
 ```bash
 # Show detailed session statistics
@@ -110,7 +110,7 @@ Output includes:
 - File operations summary
 - Bash commands executed
 
-## Output Structure
+## Output Structure {#output-structure}
 
 Generated diagrams are organized as:
 
@@ -127,9 +127,9 @@ projects/claude_code/
 └── latest.light.yaml → sessions/{latest}/diagram.light.yaml
 ```
 
-## Advanced Usage
+## Advanced Usage {#advanced-usage}
 
-### Custom Output Directory
+### Custom Output Directory {#custom-output-directory}
 
 ```bash
 # Save to specific location
@@ -138,7 +138,7 @@ dipeocc convert --latest \
   --format light
 ```
 
-### Optimization Flags
+### Optimization Flags {#optimization-flags}
 
 ```bash
 # Merge consecutive file reads for cleaner diagrams
@@ -151,7 +151,7 @@ dipeocc convert session-id --simplify
 dipeocc convert --latest --merge-reads --simplify
 ```
 
-### Different Output Formats
+### Different Output Formats {#different-output-formats}
 
 ```bash
 # Light format (default) - human-readable YAML
@@ -164,9 +164,9 @@ dipeocc convert --latest --format native
 dipeocc convert --latest --format readable
 ```
 
-## Executing Generated Diagrams
+## Executing Generated Diagrams {#executing-generated-diagrams}
 
-### Direct Execution
+### Direct Execution {#direct-execution}
 
 ```bash
 # Run a converted diagram
@@ -176,7 +176,7 @@ dipeo run projects/claude_code/sessions/{session-id}/diagram.light.yaml --debug
 dipeo run projects/claude_code/latest.light.yaml --debug
 ```
 
-### Auto-Execution
+### Auto-Execution {#auto-execution}
 
 ```bash
 # Convert and execute in one command
@@ -186,9 +186,9 @@ dipeocc convert --latest --auto-execute
 dipeocc watch --auto-execute
 ```
 
-## Example Workflow
+## Example Workflow {#example-workflow}
 
-### 1. Interactive Development Session
+### 1. Interactive Development Session {#1-interactive-development-session}
 
 ```bash
 # Start a Claude Code session to develop a feature
@@ -204,7 +204,7 @@ cat projects/claude_code/latest.light.yaml
 dipeo run projects/claude_code/latest.light.yaml --debug
 ```
 
-### 2. Continuous Monitoring
+### 2. Continuous Monitoring {#2-continuous-monitoring}
 
 ```bash
 # In one terminal, watch for new sessions
@@ -214,7 +214,7 @@ dipeocc watch --interval 30
 # Each session automatically converts to a diagram
 ```
 
-### 3. Batch Processing
+### 3. Batch Processing {#3-batch-processing}
 
 ```bash
 # List all sessions
@@ -226,7 +226,7 @@ for session_id in $(grep "Session:" sessions.txt | awk '{print $3}'); do
 done
 ```
 
-## Diagram Structure
+## Diagram Structure {#diagram-structure}
 
 A typical converted diagram includes:
 
@@ -279,21 +279,21 @@ connections:
     to: Execute Command
 ```
 
-## Best Practices
+## Best Practices {#best-practices}
 
-### 1. Session Management
+### 1. Session Management {#1-session-management}
 
 - **Regular Conversion**: Convert important sessions promptly to preserve workflows
 - **Use Metadata**: Check `metadata.json` for session context and statistics
 - **Clean Up**: Periodically archive old session files and diagrams
 
-### 2. Optimization Strategy
+### 2. Optimization Strategy {#2-optimization-strategy}
 
 - **Use `--merge-reads`** when sessions have many consecutive file reads
 - **Use `--simplify`** for overview diagrams without detailed results
 - **Keep originals** before applying heavy optimizations
 
-### 3. Workflow Enhancement
+### 3. Workflow Enhancement {#3-workflow-enhancement}
 
 After conversion, you can:
 - **Edit the diagram** to add error handling
@@ -301,16 +301,16 @@ After conversion, you can:
 - **Modify prompts** to improve AI responses
 - **Add parallel processing** for better performance
 
-### 4. Team Collaboration
+### 4. Team Collaboration {#4-team-collaboration}
 
 - **Share diagrams** via version control
 - **Document sessions** with meaningful names
 - **Create templates** from successful patterns
 - **Build libraries** of reusable workflows
 
-## Troubleshooting
+## Troubleshooting {#troubleshooting}
 
-### Session Not Found
+### Session Not Found {#session-not-found}
 
 ```bash
 # Check session directory
@@ -320,7 +320,7 @@ ls -la ~/.claude/projects/-home-*/
 dipeocc list | grep "your-session-id"
 ```
 
-### Conversion Errors
+### Conversion Errors {#conversion-errors}
 
 ```bash
 # Enable debug mode
@@ -330,7 +330,7 @@ dipeocc convert --latest --debug
 cat .dipeo/logs/server.log
 ```
 
-### Execution Issues
+### Execution Issues {#execution-issues}
 
 ```bash
 # Validate generated diagram
@@ -340,13 +340,13 @@ dipeo stats projects/claude_code/latest.light.yaml
 dipeo run projects/claude_code/latest.light.yaml --debug
 ```
 
-## Architecture Details
+## Architecture Details {#architecture-details}
 
-### Session Parser
+### Session Parser {#session-parser}
 - **Location**: `dipeo/infrastructure/claude_code/session_parser.py`
 - **Functionality**: Parses JSONL files and extracts structured events
 
-### Session Translator
+### Session Translator {#session-translator}
 - **Location**: `dipeo/domain/diagram/cc_translate/`
 - **Functionality**: Maps Claude Code events to DiPeO nodes and connections
 - **Components**:
@@ -355,7 +355,7 @@ dipeo run projects/claude_code/latest.light.yaml --debug
   - `diff_utils.py`: Enhanced diff generation with full-context support
   - `text_utils.py`: Text extraction and unescaping
 
-### Enhanced Diff Generation
+### Enhanced Diff Generation {#enhanced-diff-generation}
 - **High-Fidelity Diffs**: When available, uses complete original file content from `toolUseResult` payloads to generate accurate unified diffs
 - **Fallback Strategy**: Gracefully degrades to snippet-based diffs when full context is unavailable
 - **YAML-Optimized Output**: Normalizes diff strings for clean YAML literal blocks without escaped newlines
@@ -365,12 +365,12 @@ dipeo run projects/claude_code/latest.light.yaml --debug
   - Clean, readable YAML output
   - Better end-to-end diff application without manual fixes
 
-### CLI Command
+### CLI Command {#cli-command}
 - **Location**: `apps/server/src/dipeo_server/cli/commands/claude_code_command.py`
 - **Functionality**: Orchestrates conversion process and file management
 
 
-## Related Documentation
+## Related Documentation {#related-documentation}
 
 - [Claude Code Integration Guide](../features/claude-code-integration.md) - Using Claude Code as an LLM provider
 - [Light Diagram Format](../formats/comprehensive_light_diagram_guide.md) - Understanding generated diagrams
