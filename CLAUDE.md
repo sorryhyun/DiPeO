@@ -104,6 +104,19 @@ pnpm typecheck          # TypeScript checking
 make format             # Format Python
 ```
 
+### Documentation
+```bash
+make schema-docs        # Generate database schema docs
+# Generates docs/database-schema.md (markdown) and docs/database-schema.sql (SQL reference)
+
+python scripts/generate_light_diagram_schema.py  # Generate JSON Schema for light diagram format
+# Reads auto-generated node schemas from diagram_generated/schemas/nodes/
+# Generates dipeo/diagram_generated/schemas/dipeo-light.schema.json
+# Enables IDE autocompletion and validation for .light.yaml diagrams
+# Add "$schema: https://dipeo.dev/schemas/light-v1.json" to diagram files to enable
+# NOTE: Run 'make codegen' first to generate node schemas
+```
+
 ## Claude Code Subagents
 
 DiPeO uses specialized subagents for complex tasks.
@@ -177,6 +190,7 @@ See `.claude/skills/` for detailed skill documentation.
 - **Service Registry**: EnhancedServiceRegistry with type categorization, audit trails
 - **Event System**: Unified EventBus protocol
 - **Output Pattern**: Envelope pattern via EnvelopeFactory
+- **Database**: SQLite at `.dipeo/data/dipeo_state.db` - see [Database Schema](docs/database-schema.md) (auto-generated via `make schema-docs`)
 
 ### Key Directories
 - `/apps/server/` - FastAPI backend + CLI
@@ -225,6 +239,8 @@ See [Developer Guide](docs/guides/developer-guide-diagrams.md#adding-new-diagram
 - Default LLM: `gpt-5-nano-2025-08-07`
 - Backend: port 8000, Frontend: port 3000
 - Debug with `--debug` flag, check `.dipeo/logs/cli.log`
+- **Database**: SQLite at `.dipeo/data/dipeo_state.db` with 3 tables (executions, messages, transitions)
+  - Schema docs: `docs/database-schema.md` (regenerate with `make schema-docs`)
 - Formal test suite under development
 
 ## Common Issues & Solutions

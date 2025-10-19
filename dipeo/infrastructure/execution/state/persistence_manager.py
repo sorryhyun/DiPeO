@@ -138,6 +138,9 @@ class PersistenceManager:
 
         async with atime_phase(str(execution_id), "system", "db_serialize"):
             state_dict = entry.state.model_dump()
+            logger.debug(
+                f"[persist_entry] Persisting {execution_id}: status={entry.state.status}, status.value={entry.state.status.value}, use_full_sync={use_full_sync}"
+            )
 
         # Use enhanced durability for critical writes
         if use_full_sync:
@@ -152,7 +155,10 @@ class PersistenceManager:
                     json.dumps(state_dict.get("metrics")) if state_dict.get("metrics") else None
                 )
 
-                await self.execute(
+                logger.debug(
+                    f"[persist_entry] Executing UPSERT for {execution_id}: status={entry.state.status.value}, error={entry.state.error}"
+                )
+                cursor = await self.execute(
                     """
                     INSERT INTO executions
                     (execution_id, status, diagram_id, started_at, ended_at,
@@ -191,11 +197,27 @@ class PersistenceManager:
                         datetime.now().isoformat(),
                     ),
                 )
+                logger.debug(f"[persist_entry] UPSERT executed, rows affected: {cursor.rowcount}")
+
+                # Verify what was written
+                verify_cursor = await self.execute(
+                    "SELECT status, error FROM executions WHERE execution_id = ?", (execution_id,)
+                )
+                verify_row = await loop.run_in_executor(self._executor, verify_cursor.fetchone)
+                logger.debug(f"[persist_entry] Verification query result: {verify_row}")
 
             # Force commit for critical writes
             if use_full_sync:
                 async with atime_phase(str(execution_id), "system", "db_commit"):
                     await loop.run_in_executor(self._executor, self._conn.commit)
+                    # Force WAL checkpoint to flush data to main database file
+                    # In WAL mode, data is written to WAL first and only moved to main DB during checkpoint
+                    logger.debug(f"[persist_entry] Forcing WAL checkpoint for {execution_id}")
+                    cursor = await loop.run_in_executor(
+                        self._executor, self._conn.execute, "PRAGMA wal_checkpoint(FULL)"
+                    )
+                    result = await loop.run_in_executor(self._executor, cursor.fetchone)
+                    logger.debug(f"[persist_entry] WAL checkpoint result: {result}")
 
         finally:
             # Restore normal synchronous mode after critical write

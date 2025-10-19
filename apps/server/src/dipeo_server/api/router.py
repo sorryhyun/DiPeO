@@ -18,7 +18,6 @@ def create_graphql_router(context_getter=None, container=None):
     if not container:
         container = get_container()
 
-    # Create the schema with the service registry
     schema = create_schema(container.registry)
 
     return GraphQLRouter(
@@ -34,19 +33,13 @@ def create_graphql_router(context_getter=None, container=None):
 
 
 def setup_routes(app: FastAPI):
-    """Configure all API routes for the application."""
-
     graphql_router = create_graphql_router(context_getter=get_request_context)
     app.include_router(graphql_router, prefix="")
 
-    # Include webhook router
     app.include_router(webhook_router)
 
-    # Include MCP messages router (provides /mcp/messages JSON-RPC endpoint)
-    # Uses FastMCP SDK's tool registry but with custom FastAPI handler
     mcp_messages_router = create_messages_router()
     app.include_router(mcp_messages_router)
 
-    # Include MCP info router (provides /mcp/info and OAuth metadata endpoints)
     mcp_info_router = create_info_router()
     app.include_router(mcp_info_router)

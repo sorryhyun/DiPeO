@@ -1,7 +1,7 @@
 # Now using uv for Python dependency management
 # Activate virtual environment with: source .venv/bin/activate
 
-.PHONY: install install-dev install-uv sync-deps parse-typescript codegen codegen-auto codegen-watch codegen-status dev-server dev-web dev-all clean clean-staged help lint-server lint-web lint-cli format graphql-schema diff-staged validate-staged validate-staged-syntax apply apply-syntax-only backup-generated
+.PHONY: install install-dev install-uv sync-deps parse-typescript codegen codegen-auto codegen-watch codegen-status dev-server dev-web dev-all clean clean-staged help lint-server lint-web lint-cli format graphql-schema diff-staged validate-staged validate-staged-syntax apply apply-syntax-only backup-generated schema-docs
 
 # Default target
 help:
@@ -31,6 +31,9 @@ help:
 	@echo "Quality & Testing:"
 	@echo "  make lint-{server, web, cli} - Run linters"
 	@echo "  make format       - Format all code"
+	@echo ""
+	@echo "Documentation:"
+	@echo "  make schema-docs  - Generate database schema documentation"
 	@echo ""
 	@echo "Staging Management:"
 	@echo "  make validate-staged - Validate staged files with mypy type checking"
@@ -301,3 +304,9 @@ clean:
 	rm -rf .dipeo/logs/*.log 2>/dev/null || true
 	rm -rf temp/codegen temp/core temp/specifications 2>/dev/null || true
 	@echo "Clean complete."
+
+# Generate database schema documentation
+schema-docs:
+	@echo "Generating database schema documentation..."
+	@python scripts/generate_db_schema_docs.py
+	@echo "Schema documentation generated in docs/"
