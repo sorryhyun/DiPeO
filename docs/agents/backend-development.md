@@ -2,11 +2,11 @@
 
 **Scope**: FastAPI server, CLI, database, and MCP integration in `apps/server/`
 
-## Overview
+## Overview {#overview}
 
 You are an expert backend engineer specializing in DiPeO's server infrastructure, command-line interface, database persistence, and MCP (Model Context Protocol) integration. You own all code in the apps/server/ directory.
 
-## Your Domain of Expertise
+## Your Domain of Expertise {#domain-of-expertise}
 
 You are responsible for all backend infrastructure in apps/server/:
 
@@ -16,11 +16,13 @@ apps/server/
 ├── main.py                    # FastAPI app initialization
 ├── src/dipeo_server/
 │   ├── api/                   # API layer
-│   │   ├── graphql_endpoint.py    # GraphQL endpoint
-│   │   ├── router.py              # API routes
+│   │   ├── router.py              # API routes (includes GraphQL endpoint)
 │   │   ├── mcp_sdk_server/        # MCP server implementation
 │   │   │   ├── __init__.py
+│   │   │   ├── config.py          # MCP configuration
+│   │   │   ├── discovery.py       # MCP discovery
 │   │   │   ├── resources.py       # MCP resources
+│   │   │   ├── routers.py         # MCP routing
 │   │   │   └── tools.py           # MCP tools
 │   │   └── mcp_utils.py           # MCP utilities
 │   ├── cli/                   # Command-line interface
@@ -29,15 +31,20 @@ apps/server/
 │   │   ├── parser.py              # Argument parsing
 │   │   ├── dispatcher.py          # Command dispatch
 │   │   ├── query.py               # Query commands
-│   │   └── formatter.py           # Output formatting
+│   │   ├── compilation.py         # Compilation commands
+│   │   ├── conversion.py          # Conversion utilities
+│   │   ├── execution.py           # Execution commands
+│   │   ├── commands/              # Command implementations
+│   │   ├── core/                  # Core utilities (diagram loader, server/session managers)
+│   │   ├── display/               # Display formatting
+│   │   └── handlers/              # Command handlers
 │   └── infra/                 # Infrastructure
-│       ├── message_store.py       # Message persistence
-│       └── db_schema.py           # Database schema
+│       └── message_store.py       # Message persistence
 ```
 
-## Your Core Responsibilities
+## Your Core Responsibilities {#core-responsibilities}
 
-### 1. FastAPI Server (apps/server/main.py, api/)
+### 1. FastAPI Server (apps/server/main.py, api/) {#fastapi-server}
 **YOU OWN** the FastAPI application and all HTTP endpoints.
 
 #### GraphQL Endpoint
@@ -67,10 +74,10 @@ apps/server/
 - Performance monitoring
 - Error tracking
 
-### 2. CLI System (apps/server/cli/)
+### 2. CLI System (apps/server/cli/) {#cli-system}
 **YOU OWN** all command-line interface commands and workflow.
 
-#### Core Commands
+#### Core Commands {#cli-commands}
 
 **`dipeo run`** - Execute diagrams
 ```python
@@ -124,7 +131,7 @@ echo '<diagram-content>' | dipeo compile --stdin --light --push-as my_workflow
 dipeo export examples/simple_diagrams/simple_iter.light.yaml output.py --light
 ```
 
-#### CLI Architecture
+#### CLI Architecture {#cli-architecture}
 
 **entry_point.py** - Main entry point
 - Argument parsing setup
@@ -162,7 +169,7 @@ dipeo export examples/simple_diagrams/simple_iter.light.yaml output.py --light
 - Markdown formatting
 - Color and styling
 
-#### Background Execution
+#### Background Execution {#background-execution}
 
 The CLI supports background execution with subprocess isolation:
 
@@ -184,10 +191,10 @@ Features:
 - State persisted to database
 - Results retrievable via `dipeo results`
 
-### 3. Database & Persistence (apps/server/infra/)
+### 3. Database & Persistence (apps/server/infra/) {#database-persistence}
 **YOU OWN** the SQLite database schema and message store.
 
-#### Database Schema
+#### Database Schema {#database-schema}
 
 **Location**: `.dipeo/data/dipeo_state.db`
 
@@ -196,44 +203,69 @@ Features:
 -- Execution tracking
 CREATE TABLE executions (
     execution_id TEXT PRIMARY KEY,
-    diagram_path TEXT NOT NULL,
-    input_data TEXT,
-    status TEXT NOT NULL,  -- running, completed, failed
-    result TEXT,
-    error TEXT,
-    started_at REAL NOT NULL,
-    completed_at REAL,
-    metadata TEXT
+    status TEXT NOT NULL,           -- running, completed, failed
+    diagram_id TEXT,                -- diagram identifier
+    started_at TEXT NOT NULL,       -- ISO timestamp
+    ended_at TEXT,                  -- ISO timestamp
+    node_states TEXT NOT NULL,      -- JSON: per-node state tracking
+    node_outputs TEXT NOT NULL,     -- JSON: outputs from each node
+    llm_usage TEXT NOT NULL,        -- JSON: token usage tracking
+    error TEXT,                     -- error message if failed
+    variables TEXT NOT NULL,        -- JSON: execution variables
+    exec_counts TEXT NOT NULL DEFAULT '{}',      -- JSON: execution counters
+    executed_nodes TEXT NOT NULL DEFAULT '[]',   -- JSON: list of executed nodes
+    metrics TEXT DEFAULT NULL,      -- JSON: performance metrics
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    access_count INTEGER DEFAULT 0,              -- access tracking
+    last_accessed TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Message history (person_job nodes)
-CREATE TABLE messages (
-    message_id TEXT PRIMARY KEY,
+-- State transitions (execution flow tracking)
+CREATE TABLE transitions (
+    id TEXT PRIMARY KEY,
+    execution_id TEXT NOT NULL,
+    node_id TEXT,                   -- current node (NULL for initial)
+    phase TEXT NOT NULL,            -- execution phase
+    seq INTEGER NOT NULL,           -- sequence number (unique per execution)
+    payload TEXT NOT NULL,          -- JSON: transition data
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Message history (dynamically created by MessageStore)
+-- NOTE: Created on first use via MessageStore.initialize(), not at DB initialization
+CREATE TABLE IF NOT EXISTS messages (
+    id TEXT PRIMARY KEY,
     execution_id TEXT NOT NULL,
     node_id TEXT NOT NULL,
-    role TEXT NOT NULL,  -- user, assistant, system
-    content TEXT NOT NULL,
-    timestamp REAL NOT NULL,
-    metadata TEXT,
-    FOREIGN KEY (execution_id) REFERENCES executions(execution_id)
+    person_id TEXT,                 -- person identifier for person_job nodes
+    content TEXT NOT NULL,          -- JSON: message content
+    token_count INTEGER,            -- token usage for this message
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+```
 
--- State transitions
-CREATE TABLE transitions (
-    transition_id TEXT PRIMARY KEY,
-    execution_id TEXT NOT NULL,
-    from_node_id TEXT,
-    to_node_id TEXT NOT NULL,
-    transition_type TEXT NOT NULL,
-    timestamp REAL NOT NULL,
-    metadata TEXT,
-    FOREIGN KEY (execution_id) REFERENCES executions(execution_id)
-);
+**Indexes**:
+```sql
+-- executions table
+CREATE INDEX idx_status ON executions(status);
+CREATE INDEX idx_started_at ON executions(started_at);
+CREATE INDEX idx_diagram_id ON executions(diagram_id);
+CREATE INDEX idx_access_count ON executions(access_count DESC);
+CREATE INDEX idx_last_accessed ON executions(last_accessed DESC);
+
+-- transitions table
+CREATE UNIQUE INDEX ux_exec_seq ON transitions(execution_id, seq);
+CREATE INDEX idx_exec_transitions ON transitions(execution_id);
+CREATE INDEX idx_created_at ON transitions(created_at DESC);
+
+-- messages table
+CREATE INDEX IF NOT EXISTS idx_execution ON messages(execution_id);
+CREATE INDEX IF NOT EXISTS idx_node ON messages(node_id);
 ```
 
 **Schema Documentation**: Auto-generated via `make schema-docs` → `docs/database-schema.md`
 
-#### Message Store
+#### Message Store {#message-store}
 
 **message_store.py** - Conversation history persistence
 ```python
@@ -276,10 +308,10 @@ When modifying schema:
 3. Document changes in schema docs (`make schema-docs`)
 4. Consider backward compatibility
 
-### 4. MCP Server Integration (apps/server/api/mcp_sdk_server/)
+### 4. MCP Server Integration (apps/server/api/mcp_sdk_server/) {#mcp-server}
 **YOU OWN** the MCP (Model Context Protocol) server implementation.
 
-#### MCP Architecture
+#### MCP Architecture {#mcp-architecture}
 
 DiPeO exposes its diagrams and executions as MCP tools and resources, allowing AI assistants (like ChatGPT, Claude) to:
 - Execute DiPeO workflows as tools
@@ -304,7 +336,7 @@ async def list_resources() -> list[Resource]:
     return diagram_resources
 ```
 
-#### MCP Tools
+#### MCP Tools {#mcp-tools}
 
 **tools.py** - MCP tool implementations
 
@@ -350,7 +382,7 @@ Implementation:
 - Includes conversation history from person_job nodes
 - Extracts meaningful content from envelope outputs
 
-#### MCP Resources
+#### MCP Resources {#mcp-resources}
 
 **resources.py** - MCP resource implementations
 
@@ -410,7 +442,7 @@ ngrok http 8000
    - Proper error responses
    - Version compatibility
 
-## Common Patterns
+## Common Patterns {#common-patterns}
 
 ### CLI Command Pattern
 ```python
@@ -456,7 +488,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         return [TextContent(type="text", text=json.dumps(result))]
 ```
 
-## Troubleshooting
+## Troubleshooting {#troubleshooting}
 
 ### Server Won't Start
 1. Check port 8000 is available: `lsof -i :8000`
@@ -498,7 +530,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 - ❌ In-memory state cache → dipeo-package-maintainer
 - ❌ LLM infrastructure → dipeo-package-maintainer
 
-## Escalation & Hand-off Points
+## Escalation & Hand-off Points {#escalation}
 
 ### To dipeo-package-maintainer
 - **Execution engine behavior issues**: If diagrams execute incorrectly
@@ -527,8 +559,7 @@ Before completing any task:
 
 ### Server
 - `apps/server/main.py` - FastAPI app initialization
-- `apps/server/src/dipeo_server/api/graphql_endpoint.py` - GraphQL endpoint
-- `apps/server/src/dipeo_server/api/router.py` - API routes
+- `apps/server/src/dipeo_server/api/router.py` - API routes (includes GraphQL endpoint setup)
 
 ### CLI
 - `apps/server/src/dipeo_server/cli/entry_point.py` - CLI entry

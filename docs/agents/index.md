@@ -46,6 +46,89 @@ This directory contains detailed development guides for DiPeO's specialized Clau
 **Key Areas**: Pattern detection, issue identification, audit reports
 
 
+## Agent Documentation Access Pattern
+
+DiPeO uses a **router skills + progressive disclosure** pattern for agent documentation access, achieving 80-90% token reduction vs. automatic injection.
+
+### Router Skills
+
+Router skills provide thin (~50-100 lines) decision support for each agent domain:
+
+- **Skill(dipeo-backend)**: Backend server, CLI, database, MCP integration
+- **Skill(dipeo-package-maintainer)**: Runtime Python, handlers, service architecture
+- **Skill(dipeo-codegen-pipeline)**: TypeScript → IR → Python/GraphQL pipeline
+
+**What Router Skills Provide:**
+1. **Decision criteria**: When to handle directly vs. invoke full agent
+2. **Stable documentation anchors**: References to specific sections in agent docs
+3. **Escalation paths**: Clear guidance on when to use other agents/skills
+
+### Progressive Documentation Loading
+
+Instead of automatic injection, use **doc-lookup skill** to load specific sections:
+
+```bash
+# Example: Load specific CLI documentation section
+Skill(doc-lookup) --query "cli-commands" --paths docs/agents/backend-development.md
+```
+
+### Workflow Patterns
+
+**Pattern 1: Router → Direct Handling (Simple Task)**
+```
+Skill(dipeo-backend)           # Load router (~50 lines)
+→ Review decision criteria
+→ Task is simple, handle directly
+→ Cost: ~1,000 tokens
+```
+
+**Pattern 2: Router → Doc-Lookup → Solve (Focused Task)**
+```
+Skill(dipeo-backend)                        # Load router
+→ Identify need for CLI section
+→ Skill(doc-lookup) --query "cli-commands"  # Load ~50 lines
+→ Solve with targeted context
+→ Cost: ~1,500 tokens (vs. 15,000 with auto-injection)
+```
+
+**Pattern 3: Router → Escalate to Agent (Complex Task)**
+```
+Skill(dipeo-backend)                             # Load router
+→ Review decision criteria
+→ Task is complex (multi-file, architectural)
+→ Task(dipeo-backend, "Add CLI command")         # Invoke full agent
+→ Agent loads additional sections via doc-lookup as needed
+```
+
+### Benefits
+
+- **Token efficiency**: 80-90% reduction (1.5k vs 15k tokens per task)
+- **Progressive disclosure**: Load only relevant sections
+- **Agent autonomy**: Agents request context when needed (not automatic)
+- **Single source of truth**: Skills reference docs, don't duplicate content
+- **No drift**: Stable anchors ensure consistency
+
+### Documentation Anchors
+
+Each agent guide contains stable anchors (heading IDs) for targeted section retrieval:
+
+**backend-development.md anchors:**
+- `#cli-implementation` - CLI architecture and commands
+- `#mcp-server` - MCP server integration
+- `#database-schema` - SQLite schema and persistence
+
+**package-maintainer.md anchors:**
+- `#handler-patterns` - Node handler implementation
+- `#service-architecture` - EnhancedServiceRegistry, EventBus
+- `#graphql-resolvers` - Application layer GraphQL resolvers
+
+**codegen-pipeline.md anchors:**
+- `#typescript-specs` - Model design in /dipeo/models/src/
+- `#ir-builders` - IR generation infrastructure
+- `#generated-code-diagnosis` - Debugging generated code
+
+See individual agent guides for complete anchor lists.
+
 ## How to Use These Guides
 
 Each agent guide contains:

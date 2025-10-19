@@ -63,23 +63,11 @@
       "Skill(separate-monolithic-python)",
       "Bash(curl -s http://localhost:8000/mcp/info)",
       "Bash(curl -s -X POST http://localhost:8000/mcp/messages:*)",
-      "Bash(pgrep:*)"
+      "Bash(pgrep:*)",
+      "Skill(doc-lookup)"
     ],
     "deny": [],
     "ask": []
-  },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 scripts/inject-agent-docs.py"
-          }
-        ]
-      }
-    ]
   },
   "additionalDirectories": [
     ".claude/commands"

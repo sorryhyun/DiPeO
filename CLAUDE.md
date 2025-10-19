@@ -111,10 +111,6 @@ make schema-docs        # Generate database schema docs
 
 python scripts/generate_light_diagram_schema.py  # Generate JSON Schema for light diagram format
 # Reads auto-generated node schemas from diagram_generated/schemas/nodes/
-# Generates dipeo/diagram_generated/schemas/dipeo-light.schema.json
-# Enables IDE autocompletion and validation for .light.yaml diagrams
-# Add "$schema: https://dipeo.dev/schemas/light-v1.json" to diagram files to enable
-# NOTE: Run 'make codegen' first to generate node schemas
 ```
 
 ## Claude Code Subagents
@@ -145,6 +141,68 @@ DiPeO uses specialized subagents for complex tasks. The agent structure is organ
 ## Claude Code Skills
 
 DiPeO provides specialized skills for routine code quality and project management tasks. Access skills via the Skill tool.
+
+### Router Skills (Agent Documentation)
+
+Router skills provide on-demand access to agent documentation with 80-90% token reduction vs. automatic injection.
+
+**Available Router Skills:**
+- **dipeo-backend**: Backend server, CLI, database, MCP integration guidance
+- **dipeo-package-maintainer**: Runtime Python code, handlers, service architecture
+- **dipeo-codegen-pipeline**: TypeScript → IR → Python/GraphQL pipeline
+
+**How Router Skills Work:**
+
+Router skills are **thin** (~50-100 lines) and provide:
+1. **Decision criteria**: When to handle directly vs. escalate to full agent
+2. **Stable documentation anchors**: References to specific sections in `docs/`
+3. **Escalation paths**: Clear guidance on when to invoke other agents/skills
+
+**Usage Pattern:**
+
+```bash
+# Pattern 1: Router + direct handling (simple task)
+Skill(dipeo-backend)  # Load 50-line router
+# Review decision criteria → task is simple → handle directly
+# Cost: ~1,000 tokens
+
+# Pattern 2: Router + doc-lookup + solve (focused task)
+Skill(dipeo-backend)  # Load router
+Skill(doc-lookup) --query "cli-commands"  # Get specific section (~50 lines)
+# Solve problem with targeted context
+# Cost: ~1,500 tokens (vs. 15,000 with auto-injection)
+
+# Pattern 3: Router + escalate to agent (complex task)
+Skill(dipeo-backend)  # Load router, review decision criteria
+Task(dipeo-backend, "Add new CLI command with validation")
+# Agent can load additional sections via doc-lookup as needed
+```
+
+**doc-lookup Helper Skill:**
+
+The `doc-lookup` skill extracts specific documentation sections by anchor or keyword:
+
+```bash
+# Retrieve specific section by anchor
+python .claude/skills/doc-lookup/scripts/section_search.py \
+  --query "cli-commands" \
+  --paths docs/agents/backend-development.md \
+  --top 1
+
+# Search across multiple docs
+Skill(doc-lookup) --query "mcp-server-implementation"
+```
+
+**Benefits:**
+- **Progressive disclosure**: Load only relevant sections as needed
+- **Agent autonomy**: Agents decide what context they need
+- **Single source of truth**: Docs remain in `docs/`, no duplication
+- **Token efficiency**: 80-90% reduction (1.5k vs 15k tokens per task)
+
+**When to Use:**
+- Before invoking a full agent with Task tool (to check if task is simple enough to handle directly)
+- During agent execution (to load specific documentation sections)
+- When exploring what an agent can do (decision criteria and scope)
 
 ### todo-manage Skill
 

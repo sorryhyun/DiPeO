@@ -1,5 +1,7 @@
 # GraphQL Layer Architecture
 
+<a id="overview"></a>
+
 ## Overview
 
 The GraphQL layer provides a production-ready, type-safe architecture for all API operations.
@@ -11,6 +13,8 @@ The GraphQL layer provides a production-ready, type-safe architecture for all AP
 - **Clean separation of concerns** using a 3-tier architecture
 - **Centralized operation mapping** via OperationExecutor with runtime validation
 - **Envelope system integration** for standardized data flow
+
+<a id="architecture-overview"></a>
 
 ## Architecture Overview
 
@@ -28,6 +32,8 @@ The GraphQL layer uses a clean 3-tier architecture that separates code generatio
 │  (Runtime mapping and validation)                              │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+<a id="generated-layer"></a>
 
 ### 1. Generated Layer (Automated)
 **Location**: `/dipeo/diagram_generated/graphql/`
@@ -77,6 +83,8 @@ class ExecuteDiagramOperation:
 - **Automatic Updates**: Regenerated when TypeScript definitions change
 - **Cross-Language**: Same operations available in both TypeScript and Python
 
+<a id="application-layer"></a>
+
 ### 2. Application Layer (Manual Implementation)
 **Location**: `/dipeo/application/graphql/`
 
@@ -94,13 +102,21 @@ This layer contains the business logic and resolver implementations that handle 
 │   │   ├── person.py                # Person mutations
 │   │   ├── cli_session.py           # CLI session mutations
 │   │   └── upload.py                # Upload mutations
-│   ├── query_resolvers.py           # All query resolvers (771 lines)
+│   ├── query_resolvers/             # Query resolvers by entity (~1,064 lines total)
+│   │   ├── api_keys.py              # API key queries
+│   │   ├── cli_sessions.py          # CLI session queries
+│   │   ├── diagrams.py              # Diagram queries
+│   │   ├── executions.py            # Execution queries
+│   │   ├── persons.py               # Person queries
+│   │   ├── prompts.py               # Prompt queries
+│   │   ├── providers.py             # Provider queries
+│   │   └── system.py                # System queries
 │   ├── subscription_resolvers.py    # Subscription resolvers
 │   └── base_subscription_resolver.py # Subscription base classes
 ├── resolvers/
 │   └── provider_resolver.py         # ProviderResolver (only class-based resolver)
 ├── graphql_types/                   # GraphQL type definitions
-└── operation_executor.py            # Central operation mapping (353 lines)
+└── operation_executor.py            # Central operation mapping (~388 lines)
 ```
 
 **Note**: The Query, Mutation, and Subscription classes are generated in `/dipeo/diagram_generated/graphql/generated_schema.py`
@@ -135,8 +151,10 @@ async def create_api_key(registry: ServiceRegistry, input: CreateApiKeyInput) ->
 - **Type Safety**: Generated types for inputs and results throughout
 - **Exception**: ProviderResolver remains class-based for stateful provider registry caching
 
+<a id="execution-layer"></a>
+
 ### 3. Execution Layer (Runtime Mapping)
-**Location**: `/dipeo/application/graphql/operation_executor.py` (353 lines)
+**Location**: `/dipeo/application/graphql/operation_executor.py` (~388 lines)
 
 This layer provides runtime mapping between operations and their resolver implementations with automatic discovery and type-safe validation.
 
@@ -171,6 +189,8 @@ class OperationExecutor:
 - **Type Safety**: Variable and result validation at runtime
 - **Performance**: Module caching reduces import overhead
 - **Maintainability**: Single consistent pattern across all 50 operations
+
+<a id="dipeo-integration"></a>
 
 ## Integration with DiPeO Systems
 
@@ -222,6 +242,8 @@ async def execute_diagram(registry: ServiceRegistry, input: ExecuteDiagramInput)
     
     return ExecutionResult.success_result(execution_id=execution.id)
 ```
+
+<a id="code-generation-workflow"></a>
 
 ## Code Generation Workflow
 
