@@ -1,13 +1,11 @@
-# ChatGPT MCP Integration (Simplified - No OAuth)
+# ChatGPT MCP Integration
 
-This guide shows you how to connect DiPeO to ChatGPT using the MCP (Model Context Protocol) **without OAuth authentication** for local development and testing.
+This guide shows you how to connect DiPeO to ChatGPT using the MCP (Model Context Protocol) for local development and testing.
 
-> **⚠️ Security Notice**: This setup disables authentication and is only suitable for:
-> - Local development on your machine
-> - Testing ChatGPT integration
-> - Trusted network environments
->
-> For production deployments with authentication, see [MCP OAuth Authentication](./mcp-oauth-authentication.md).
+> **⚠️ Security Notice**:
+> - **Development Only**: This setup is designed for local development and testing
+> - **Optional Authentication**: Uses ngrok's HTTP Basic Authentication for password protection
+> - **Production**: For production deployments, consider deploying to a cloud provider with proper authentication and HTTPS
 
 ## Quick Start
 
@@ -67,7 +65,25 @@ ngrok http 8000 --basic-auth="dipeo:$PASS"
 
 **Save the password!** You'll need it for ChatGPT configuration.
 
-👉 **See [ChatGPT MCP with Basic Auth](./chatgpt-basic-auth-setup.md)** for complete guide on password-protected setup.
+**Using ngrok Config File** (for persistent configuration):
+
+Save to `ngrok.yml`:
+```yaml
+version: "2"
+authtoken: YOUR_NGROK_AUTH_TOKEN
+
+tunnels:
+  dipeo-mcp:
+    proto: http
+    addr: 8000
+    auth: "dipeo:your-secure-password-here"
+    inspect: true
+```
+
+Then start with:
+```bash
+ngrok start dipeo-mcp
+```
 
 ### 4. Verify MCP Server
 
@@ -114,6 +130,19 @@ You should see:
 **If you used ngrok --basic-auth**, use this URL format instead:
 ```
 https://dipeo:your-password@your-ngrok-url.ngrok-free.app/mcp/messages
+```
+
+**Note on Special Characters:** If your password contains special characters, URL-encode them:
+- `@` → `%40`
+- `:` → `%3A`
+- `#` → `%23`
+- `&` → `%26`
+
+Example: `p@ss:word#123` becomes `https://dipeo:p%40ss%3Aword%23123@your-ngrok-url.ngrok-free.app/mcp/messages`
+
+**Tip:** Use alphanumeric passwords to avoid encoding issues:
+```bash
+openssl rand -base64 16 | tr -dc 'a-zA-Z0-9'
 ```
 
 #### Option B: ChatGPT Desktop (Config File)
@@ -255,7 +284,44 @@ Execute my_workflow using DiPeO
 
 ## Troubleshooting
 
+### Testing Basic Auth Protection
+
+Before connecting ChatGPT, verify your ngrok basic auth is working:
+
+**Test 1: Without Password (Should Fail)**
+```bash
+# Try accessing without credentials
+curl https://abc123.ngrok-free.app/mcp/info
+
+# Should return:
+# HTTP 401 Unauthorized
+# WWW-Authenticate: Basic realm="ngrok"
+```
+
+**Test 2: With Password (Should Succeed)**
+```bash
+# Access with credentials
+curl -u "dipeo:your-password" https://abc123.ngrok-free.app/mcp/info
+
+# Should return server info (200 OK)
+```
+
+**Test 3: Wrong Password (Should Fail)**
+```bash
+# Try with wrong password
+curl -u "dipeo:wrong-password" https://abc123.ngrok-free.app/mcp/info
+
+# Should return:
+# HTTP 401 Unauthorized
+```
+
 ### ChatGPT can't connect
+
+**Error: 401 Unauthorized**
+
+- Verify password in ngrok output matches ChatGPT configuration
+- Check URL includes credentials: `https://user:pass@url`
+- Ensure special characters are URL-encoded (see above)
 
 **Check CORS:**
 ```bash
@@ -325,23 +391,22 @@ If not, verify your `.env` file has `MCP_AUTH_ENABLED=false` and restart the ser
 
 ## Limitations
 
-This no-auth setup has some limitations:
+This development setup has some limitations:
 
-1. **No access control** - Anyone with your ngrok URL can execute diagrams
-2. **No rate limiting** - No protection against abuse
-3. **ngrok dependency** - Requires ngrok tunnel for ChatGPT access
-4. **Development only** - Not suitable for production
+1. **ngrok dependency** - Free tier has connection limits and changing URLs
+2. **Basic auth only** - Password-based authentication (consider upgrading ngrok for IP restrictions)
+3. **No rate limiting** - No built-in protection against abuse
+4. **Development focused** - For production, consider cloud deployment with proper authentication
 
-## Upgrading to OAuth
+## Production Deployment
 
-When you're ready for production, upgrade to OAuth 2.1:
+When you're ready for production:
 
-1. Set up an OAuth provider (Auth0, Keycloak, etc.)
-2. Configure DiPeO with OAuth settings
-3. Update `.env` to enable authentication
-4. ChatGPT will automatically use OAuth flow
-
-See [MCP OAuth Authentication](./mcp-oauth-authentication.md) for details.
+1. **Deploy to cloud** - Use a cloud provider with HTTPS and proper authentication
+2. **Upgrade ngrok** - Get static domains and IP restrictions
+3. **Add rate limiting** - Implement request rate limiting in middleware
+4. **Monitor access** - Set up logging and alerting
+5. **Use environment secrets** - Store credentials securely
 
 ## Advanced Usage
 
@@ -453,18 +518,17 @@ Execute the simple_iter diagram and show me the results
 Create a new greeting workflow, upload it to DiPeO, and execute it
 ```
 
-## Security Best Practices (Even Without OAuth)
+## Security Best Practices
 
-1. **Use only on trusted networks**
-2. **Don't expose sensitive data in diagrams**
-3. **Rotate ngrok URLs frequently**
-4. **Monitor server logs for suspicious activity**
-5. **Consider IP whitelisting if deploying to cloud**
-6. **Upgrade to OAuth before production use**
+1. **Use only on trusted networks** during development
+2. **Use ngrok basic auth** for password protection
+3. **Don't expose sensitive data in diagrams**
+4. **Rotate passwords and ngrok URLs frequently**
+5. **Monitor server logs for suspicious activity**
+6. **Deploy to cloud with proper auth** for production use
 
 ## See Also
 
 - [MCP Server Integration](./mcp-server-integration.md) - General MCP server documentation
-- [MCP OAuth Authentication](./mcp-oauth-authentication.md) - Production authentication setup
 - [Comprehensive Light Diagram Guide](../formats/comprehensive_light_diagram_guide.md) - Creating diagrams
-- [Diagram Compilation](./diagram-to-python-export.md) - Understanding diagram compilation
+- [Diagram to Python Export](./diagram-to-python-export.md) - Export diagrams as standalone scripts

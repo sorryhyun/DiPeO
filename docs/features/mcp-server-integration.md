@@ -248,24 +248,22 @@ Your MCP server is now accessible at:
 - Info: `https://abc123.ngrok-free.app/mcp/info`
 - Messages: `https://abc123.ngrok-free.app/mcp/messages`
 
-## Quick Start: ChatGPT (No Authentication)
+## Quick Start: ChatGPT Integration
 
-For a **simplified setup without OAuth** (local development + ChatGPT only):
+For connecting DiPeO to ChatGPT:
 
-👉 **See [ChatGPT MCP Integration (Simplified)](./chatgpt-mcp-integration.md)**
+👉 **See [ChatGPT MCP Integration](./chatgpt-mcp-integration.md)**
 
 This guide shows you how to:
-- Disable authentication for local testing
-- Configure CORS for ChatGPT origins
-- Connect ChatGPT to your local DiPeO server via ngrok
+- Configure DiPeO for MCP access
+- Use ngrok for HTTPS tunneling (with optional basic auth)
+- Connect ChatGPT to your DiPeO server
 - Execute diagrams from ChatGPT
 
-**Use this approach if:**
-- You're testing locally
-- You don't need authentication
-- You only want ChatGPT + localhost access
-
-**For production with OAuth**, continue with the sections below.
+**Use this approach for:**
+- Local development and testing
+- ChatGPT integration
+- Password-protected access via ngrok basic auth
 
 ## Using with Claude Desktop
 
@@ -687,13 +685,13 @@ List available DiPeO diagrams in the examples directory.
 
 ## Authentication
 
-The MCP server supports OAuth 2.1 authentication for secure integration with LLM services.
+The MCP server supports flexible authentication for development and production use.
 
 ### Authentication Options
 
-1. **OAuth 2.1 JWT** (Production) - Industry-standard authentication with external providers
-2. **API Keys** (Development) - Simple authentication for local testing
-3. **No Authentication** (Local Development) - Disabled authentication for rapid development
+1. **No Authentication** (Local Development) - Disabled authentication for rapid development
+2. **ngrok Basic Auth** (Development/Testing) - Password protection via ngrok
+3. **Custom Authentication** (Production) - Deploy to cloud with proper authentication
 
 ### Quick Setup
 
@@ -703,30 +701,32 @@ export MCP_AUTH_ENABLED=false
 make dev-server
 ```
 
-**API Key (Testing):**
+**With ngrok Basic Auth (Recommended for Development):**
 ```bash
-export MCP_AUTH_ENABLED=true
-export MCP_API_KEY_ENABLED=true
-export MCP_API_KEYS="dev-key-123"
+# Start DiPeO with auth disabled (ngrok handles it)
+export MCP_AUTH_ENABLED=false
 make dev-server
+
+# In another terminal, start ngrok with basic auth
+ngrok http 8000 --basic-auth="dipeo:your-secure-password"
 ```
 
-**OAuth 2.1 (Production):**
-See [MCP OAuth Authentication Guide](./mcp-oauth-authentication.md) for complete setup instructions including Auth0, Google OAuth, and custom providers.
+See [ChatGPT MCP Integration](./chatgpt-mcp-integration.md) for detailed setup instructions.
 
 ## Security Considerations
 
 ### Production
 
-- **Use OAuth 2.1**: See [MCP OAuth Authentication](./mcp-oauth-authentication.md)
-- **Enable HTTPS**: Required for OAuth and production deployments
+- **Deploy to cloud**: Use a cloud provider with proper HTTPS and authentication
+- **Enable rate limiting**: Implement request rate limiting in middleware
 - **Configure CORS**: Restrict allowed origins in server configuration
-- **Monitor Access**: Enable logging with `DIPEO_LOG_LEVEL=DEBUG`
+- **Monitor Access**: Enable logging with `DIPEO_LOG_LEVEL=DEBUG` and set up alerting
 
 ### Development
 
+- **Use ngrok basic auth**: Add password protection during development
 - **ngrok Tunnels**: Free tier has connection limits and changing URLs
-- **Don't Commit Secrets**: Use environment variables for ngrok auth tokens
+- **Don't Commit Secrets**: Use environment variables for passwords and ngrok auth tokens
 - **Firewall**: Only expose server via ngrok, not directly to internet
 
 ## Troubleshooting
@@ -976,8 +976,8 @@ export DIPEO_LOG_LEVEL=DEBUG
 
 ## See Also
 
+- [ChatGPT MCP Integration](./chatgpt-mcp-integration.md) - ChatGPT-specific setup guide
 - [Comprehensive Light Diagram Guide](../formats/comprehensive_light_diagram_guide.md) - Complete reference for writing light diagrams
-- [MCP OAuth Authentication](./mcp-oauth-authentication.md) - Production authentication setup
 - [Webhook Integration](./webhook-integration.md) - Alternative integration method
 - [Diagram-to-Python Export](./diagram-to-python-export.md) - Export diagrams as standalone scripts
 - [DiPeO CLI Documentation](../developer-guide.md) - CLI command reference

@@ -57,6 +57,7 @@ Router skills provide thin (~50-100 lines) decision support for each agent domai
 - **Skill(dipeo-backend)**: Backend server, CLI, database, MCP integration
 - **Skill(dipeo-package-maintainer)**: Runtime Python, handlers, service architecture
 - **Skill(dipeo-codegen-pipeline)**: TypeScript → IR → Python/GraphQL pipeline
+- **Skill(dipeo-frontend-dev)**: React components, visual diagram editor, GraphQL integration, TypeScript types
 
 **What Router Skills Provide:**
 1. **Decision criteria**: When to handle directly vs. invoke full agent
@@ -126,6 +127,16 @@ Each agent guide contains stable anchors (heading IDs) for targeted section retr
 - `#typescript-specs` - Model design in /dipeo/models/src/
 - `#ir-builders` - IR generation infrastructure
 - `#generated-code-diagnosis` - Debugging generated code
+
+**frontend-development.md anchors:**
+- `#react-components` - React component development patterns
+- `#diagram-editor` - Visual diagram editor (XYFlow) guidance
+- `#graphql-integration` - GraphQL integration patterns
+- `#typescript-types` - TypeScript and type safety practices
+- `#component-patterns` - Component best practices
+- `#graphql-usage` - GraphQL query/mutation patterns with examples
+- `#state-management-general` - General state management guidance
+- `#state-management-zustand` - Zustand-specific patterns
 
 See individual agent guides for complete anchor lists.
 

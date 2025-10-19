@@ -2,6 +2,27 @@
 """
 Hook script to inject documentation when Task tool launches agents.
 Receives JSON via stdin with tool_input containing subagent_type.
+
+⚠️ DEPRECATION NOTICE ⚠️
+This script is deprecated and will be removed in a future version.
+
+Migration Path:
+- Agent definitions now reference router skills via Skill(dipeo-backend), etc.
+- Router skills provide decision criteria + stable documentation anchors (~50-100 lines)
+- Use Skill(doc-lookup) to load specific sections on-demand (progressive disclosure)
+- This achieves 80-90% token reduction vs. automatic injection (1.5k vs 15k tokens)
+
+Benefits of new approach:
+1. Progressive disclosure: Load only relevant sections as needed
+2. Agent autonomy: Agents decide what docs they need, not orchestrator
+3. Single source of truth: Docs remain in docs/, skills just reference them
+4. No drift: Skills reference docs via stable anchors, don't duplicate content
+5. Composability: Can layer skills (backend-cli, backend-mcp) as investigation deepens
+
+See TODO.md "Agent Documentation Migration: PreToolUse Hook → Skills" for details.
+
+This script remains functional during transition period but is no longer the
+recommended approach for agent documentation.
 """
 
 import json

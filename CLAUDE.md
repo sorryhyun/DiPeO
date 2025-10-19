@@ -150,6 +150,7 @@ Router skills provide on-demand access to agent documentation with 80-90% token 
 - **dipeo-backend**: Backend server, CLI, database, MCP integration guidance
 - **dipeo-package-maintainer**: Runtime Python code, handlers, service architecture
 - **dipeo-codegen-pipeline**: TypeScript → IR → Python/GraphQL pipeline
+- **dipeo-frontend-dev**: React components, visual diagram editor, GraphQL integration, TypeScript types
 
 **How Router Skills Work:**
 
