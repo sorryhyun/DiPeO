@@ -150,7 +150,10 @@ async def run_cli_command(args: argparse.Namespace) -> bool:
             )
 
         elif args.command == "results":
-            return await cli.show_results(session_id=args.session_id)
+            return await cli.show_results(
+                session_id=args.session_id,
+                verbose=getattr(args, "verbose", False),
+            )
 
         else:
             print(f"Unknown command: {args.command}")

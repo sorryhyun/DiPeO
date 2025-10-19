@@ -11,22 +11,22 @@ from pathlib import Path
 # Map subagent_type to documentation file(s)
 # Each value can be either a single string or a list of strings
 AGENT_DOCS_MAP = {
-    "dipeo-codegen-specialist": [
+    "dipeo-package-maintainer": [
+        "docs/agents/package-maintainer.md",
+        "docs/architecture/README.md",
+        "docs/architecture/detailed/graphql-layer.md",
+    ],
+    "dipeo-backend": [
+        "docs/agents/backend-development.md",
+        "docs/architecture/README.md",
+        "docs/features/mcp-server-integration.md",
+        "docs/database-schema.md",
+    ],
+    "dipeo-codegen-pipeline": [
         "docs/agents/codegen-pipeline.md",
         "docs/projects/code-generation-guide.md",
         "docs/architecture/README.md",
-        "docs/formats/comprehensive_light_diagram_guide.md",
-    ],
-    "typescript-model-designer": [
-        "docs/agents/typescript-model-design.md",
-        "docs/projects/code-generation-guide.md",
         "docs/architecture/detailed/graphql-layer.md",
-    ],
-    "dipeo-core-python": [
-        "docs/agents/core-python-development.md",
-        "docs/architecture/README.md",
-        "docs/architecture/detailed/graphql-layer.md",
-        "docs/projects/code-generation-guide.md",
     ],
     "dipeo-frontend-dev": [
         "docs/agents/frontend-development.md",

@@ -55,6 +55,10 @@ class ResultObserver(EventBus):
     async def consume(self, event: DomainEvent) -> None:
         """Process domain events related to execution state persistence."""
         try:
+            # Skip lightweight executions (sub-diagrams that don't need DB persistence)
+            if event.meta and event.meta.get("is_lightweight"):
+                return
+
             if event.type == EventType.EXECUTION_STARTED:
                 await self._handle_execution_started(event)
             elif event.type == EventType.EXECUTION_COMPLETED:
@@ -71,16 +75,6 @@ class ResultObserver(EventBus):
         """
         execution_id = event.scope.execution_id
 
-        try:
-            # Create execution state is already handled by the execution engine
-            # We just log for tracking purposes
-            logger.debug(f"[ResultObserver] Execution started: {execution_id}")
-        except Exception as e:
-            logger.error(
-                f"[ResultObserver] Failed to handle execution start for {execution_id}: {e}",
-                exc_info=True,
-            )
-
     async def _handle_execution_completed(self, event: DomainEvent) -> None:
         """Handle execution completion event.
 
@@ -92,7 +86,6 @@ class ResultObserver(EventBus):
             await self.state_store.update_status(
                 execution_id=execution_id, status=Status.COMPLETED, error=None
             )
-            logger.info(f"[ResultObserver] Persisted COMPLETED status for {execution_id}")
         except Exception as e:
             logger.error(
                 f"[ResultObserver] Failed to persist completion for {execution_id}: {e}",

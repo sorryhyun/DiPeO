@@ -92,9 +92,19 @@ async def run_backend(
 
 @mcp_server.tool()
 async def see_result(session_id: str) -> list[TextContent]:
-    """Check status and retrieve results of a background execution."""
+    """Check status and retrieve results of a background execution.
+
+    Returns rich output including conversation history, node outputs, and execution metadata.
+    """
     try:
-        cmd_args = [sys.executable, "-m", "dipeo_server.cli.entry_point", "results", session_id]
+        cmd_args = [
+            sys.executable,
+            "-m",
+            "dipeo_server.cli.entry_point",
+            "results",
+            session_id,
+            "--verbose",
+        ]
 
         proc = await asyncio.create_subprocess_exec(
             *cmd_args,

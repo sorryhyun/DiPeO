@@ -119,8 +119,28 @@ python scripts/generate_light_diagram_schema.py  # Generate JSON Schema for ligh
 
 ## Claude Code Subagents
 
-DiPeO uses specialized subagents for complex tasks.
-Run agents in parallel when possible. [Agent docs](docs/agents/index.md)
+DiPeO uses specialized subagents for complex tasks. The agent structure is organized by domain:
+
+### Core Development Agents
+
+- **dipeo-package-maintainer**: Runtime Python code in /dipeo/ (execution handlers, service architecture, domain models)
+  - Use for: Node handlers, GraphQL resolvers, EventBus, EnhancedServiceRegistry, LLM infrastructure
+  - Excludes: Code generation, backend server, CLI
+
+- **dipeo-backend**: FastAPI server, CLI, database, and MCP integration in apps/server/
+  - Use for: Server configuration, CLI commands (run, results, metrics, compile, export), database schema, MCP server
+
+- **dipeo-codegen-pipeline**: Complete TypeScript → IR → Python/GraphQL pipeline
+  - Use for: TypeScript model design, IR builders, code generation, generated code diagnosis
+  - Owns: /dipeo/models/src/ (TypeScript specs), /dipeo/infrastructure/codegen/ (IR builders), generated code review
+
+### Other Agents
+
+- **dipeo-frontend-dev**: React components, visual diagram editor, GraphQL integration
+- **codebase-auditor**: Targeted code analysis for security, performance, quality
+- **dipeocc-converter**: Converting Claude Code sessions to DiPeO diagrams
+
+**Best Practice**: Run agents in parallel when possible. See [Agent docs](docs/agents/index.md) for detailed guides.
 
 ## Claude Code Skills
 

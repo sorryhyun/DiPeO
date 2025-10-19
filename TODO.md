@@ -1,137 +1,170 @@
 # DiPeO Project Todos
 
-## Fix Background Execution Timeout State Bug (High Priority) - IN PROGRESS
-
-**Goal**: Properly update execution state when background executions timeout
-
-**Context**: Discovered that when `dipeo run --background` times out, the background process is killed but the state store is never updated. Executions remain in "running" state forever, creating zombie states.
-
-**Target**: Background executions that timeout should have their state updated to "failed" with timeout error information
-
-**Root Cause Identified**:
-- `MetricsObserver` was responsible for persisting execution state, but only subscribed to metrics-related events
-- `EXECUTION_ERROR` events (including timeouts) were published to `message_router` but not `event_bus`, so observers never saw them
-- `update_status()` deliberately doesn't persist final states (COMPLETED, FAILED, ABORTED) to avoid race conditions with MetricsObserver
-
-**Solution Implemented**:
-- ✅ Created `ResultObserver` with single responsibility: persist execution state changes
-- ✅ Registered `ResultObserver` in `cli_runner.py` to subscribe to EXECUTION_STARTED, EXECUTION_COMPLETED, EXECUTION_ERROR
-- ✅ Updated timeout handling to publish `EXECUTION_ERROR` to both `message_router` AND `event_bus`
-
-**Progress Summary**:
-- ✅ **Root cause identified**: Multiple issues including events not reaching observers, timeout handler only checking RUNNING state, EventForwarder overwriting status
-- ✅ **ResultObserver implemented**: Successfully persists FAILED status to database with proper error messages
-- ✅ **WAL checkpoint added**: Database writes complete successfully with verification
-- ⚠️ **External reader issue discovered**: Internal verification shows correct data, but external processes see stale state
-
-**Current Blocker**:
-- **Symptom**: External processes (`dipeo results`, `sqlite3` CLI) read stale "running" status
-- **Confirmed working**: Internal verification query shows correct `('failed', 'Execution timed out after 1 seconds')`
-- **Confirmed working**: WAL checkpoint completes successfully: `(0, 7, 7)` - 7 pages checkpointed
-- **Root cause unknown**: WAL isolation, connection pooling, or checkpoint timing issue
-- **Impact**: Timeout handling works internally but results aren't visible to other processes
-
-### Remaining Task
-
-- [ ] Debug external reader stale data issue (BLOCKED)
-  - **Symptom**: `dipeo results` and `sqlite3` CLI both show "running" status
-  - **Confirmed working**: Internal verification shows `('failed', 'Execution timed out after 1 seconds')`
-  - **Confirmed working**: WAL checkpoint: `(0, 7, 7)` - 7 pages successfully checkpointed
-  - **Investigation needed**:
-    - Why do external processes see stale snapshot despite successful WAL checkpoint?
-    - Possible causes: WAL reader isolation, database connection pooling, timing issues
-    - Try: Force reader to open new connection, check WAL mode settings, test with TRUNCATE checkpoint
-  - Estimated effort: Medium (2-3 hours)
-  - Files: `dipeo/infrastructure/execution/state/persistence_manager.py`, `dipeo/infrastructure/execution/state/cache_first_state_store.py`
-  - Risk: Medium - may require WAL mode changes or connection pool adjustments
-
 ---
 
-**Summary**:
-- **Completed**: 7/7 core tasks - timeout detection, event publishing, observer creation, WAL checkpointing all working
-- **Remaining**: 1 task - external process isolation issue (internal writes verified correct)
-- **Effort remaining**: 2-3 hours
-- **Status**: Core functionality works, but external readers need investigation
+## In Progress
 
----
+### Agent Documentation Migration: PreToolUse Hook → Skills 🚧
+**Started**: 2025-10-19
+**Estimated effort**: ~6 hours (7 tasks across 5 phases)
 
-## Improve Async Execution Results Output (Medium Priority)
+**Goal**: Migrate from automatic documentation injection via PreToolUse hook to on-demand skill-based documentation loading. This reduces context bloat, provides granular control, and enables better separation between documentation (skills) and execution (agents).
 
-**Goal**: Enhance `dipeo results` command to show meaningful execution outputs and conversation history
+**Architectural Context**:
 
-**Context**: Currently `dipeo results` shows basic status info (executed_nodes, status, LLM usage) but doesn't show the actual messages/interactions that occurred during execution. Users need to see what was actually done, not just metadata.
+This migration represents a fundamental shift in how DiPeO's specialized agents access documentation:
 
-**Target**: Rich output showing conversation history, node outputs with actual content, and final results
+**Current Architecture (Automatic Injection)**:
+- PreToolUse hook intercepts every Task tool invocation
+- `inject-agent-docs.py` automatically injects 1500+ lines before agent starts
+- **Problem**: Claude Code (orchestrator) decides what docs to load based on agent type
+- **Limitation**: All-or-nothing - loads entire doc set even if only small portion needed
+- **Cost**: High token usage, context bloat, reduced reasoning space
 
-### Tasks
+**New Architecture (Agent-Driven Retrieval)**:
+- Skills provide documentation on-demand via `Skill(agent-name)` invocation
+- **Key change**: Sub-agents themselves decide when they need documentation
+- **Responsibility shift**: From orchestrator (Claude Code) → to sub-agent (specialized agent)
+- **Granularity**: Sub-agents can request specific skill subdomains (e.g., `Skill(backend-cli)` vs `Skill(backend-mcp)`)
+- **Decision support**: Skills include criteria for when to escalate to full agent invocation
 
-- [ ] Enhance `dipeo results` output to include conversation history
-  - Extract and format messages from executed person_job nodes
-  - Show user prompts and assistant responses
-  - Include timestamps for each interaction
-  - Estimated effort: Small (1-2 hours)
-  - Files: `apps/server/src/dipeo_server/cli/cli_runner.py`
-  - Risk: Low - read-only enhancement
+**Why This Matters**:
+1. **Autonomy**: Sub-agents gain agency to request context when needed, not receive it automatically
+2. **Efficiency**: Only load relevant documentation for the specific task at hand
+3. **Composability**: Can layer skills (load backend-cli, then backend-mcp) as investigation deepens
+4. **Separation of Concerns**: Skills = knowledge retrieval, Agents = task execution
+5. **Scalability**: Easy to add targeted sub-domain skills without polluting agent definitions
 
-- [ ] Include actual node output content in results
-  - Currently showing `node_outputs` as stringified objects
-  - Parse and extract meaningful content from envelopes
-  - Show final output content (e.g., from endpoint nodes)
-  - Estimated effort: Small (1 hour)
-  - Files: `apps/server/src/dipeo_server/cli/cli_runner.py`
-  - Risk: Low - formatting improvement
+**Usage Pattern Shift**:
+```
+# OLD: Automatic (orchestrator decides)
+Task(dipeo-backend, "Fix CLI bug")
+→ PreToolUse hook injects ALL backend docs (CLI + MCP + DB + Server)
 
-- [ ] Add `--verbose` flag for detailed output
-  - Default: Show summary with final results and key messages
-  - Verbose: Show full conversation history, all node outputs, metadata
-  - Estimated effort: Small (30 min)
-  - Files: `apps/server/src/dipeo_server/cli/entry_point.py`
-  - Risk: Low - optional flag
+# NEW: On-demand (agent decides)
+Task(dipeo-backend, "Fix CLI bug")
+→ Agent thinks: "I need CLI context"
+→ Agent invokes: Skill(backend-cli)
+→ Gets targeted CLI docs only
+→ Completes fix with minimal context
+```
 
-- [ ] Update MCP `see_result` to return rich output
-  - Include conversation history in MCP tool response
-  - Format for easy consumption by LLM clients
-  - Estimated effort: Small (30 min)
-  - Files: `apps/server/src/dipeo_server/api/mcp_sdk_server.py`
-  - Risk: Low - backward compatible addition
+This aligns with DiPeO's philosophy of autonomous, intelligent agents that manage their own information needs rather than receiving predetermined context bundles.
 
----
+**Planned Tasks**:
 
-**Total estimated effort**: 3-4 hours
-**Total tasks**: 4 tasks
-**Risk**: Low - all enhancements are additive and don't break existing functionality
+**Phase 1: Investigation & Planning** ✅
+- [x] Analyze current injection system (PreToolUse hook + inject-agent-docs.py)
+- [x] Review agent structure (.claude/agents/ + docs/agents/)
+- [x] Examine skill structure and patterns
+- [x] Design hybrid skill architecture
 
----
+**Phase 2: Create Main Agent Skills**
+- [ ] Create `dipeo-backend` skill
+  - Use `Skill(generate-skill)` to scaffold structure
+  - Copy content from `docs/agents/backend-development.md`
+  - Add "When to Invoke Agent" section with decision criteria
+  - Add cross-references to architecture docs and related skills
 
-## Recently Completed
+- [ ] Create `dipeo-package-maintainer` skill
+  - Use `Skill(generate-skill)` to scaffold structure
+  - Copy content from `docs/agents/package-maintainer.md`
+  - Add decision criteria for agent invocation vs. direct handling
+  - Add escalation guidance to other agents
 
-### CLI Background Execution & MCP Simplification ✅
-**Completed**: 2025-10-19
-**Total effort**: ~10 hours (13 tasks across 4 phases)
+- [ ] Create `dipeo-codegen-pipeline` skill
+  - Use `Skill(generate-skill)` to scaffold structure
+  - Copy content from `docs/agents/codegen-pipeline.md`
+  - Add workflow guidance (TypeScript → IR → Python/GraphQL)
+  - Add troubleshooting and common patterns
 
-**Achievements**:
-- ✅ Added native background execution support to DiPeO CLI
-- ✅ Implemented `dipeo run --background` command with subprocess isolation
-- ✅ Implemented `dipeo results <session_id>` command for async result retrieval
-- ✅ Simplified MCP server to use CLI commands (removed complex execution matching)
-- ✅ Cleaned up mcp_utils.py (removed execution_id parameter)
-- ✅ Fully tested CLI and MCP async execution workflow
-- ✅ Updated documentation (MCP integration guide + CLAUDE.md)
+**Phase 3: Update Agent Definitions**
+- [ ] Modify `.claude/agents/dipeo-backend.md`
+  - Add "For detailed docs: use Skill(dipeo-backend)" to frontmatter description
+  - Simplify content to focus on brief scope and examples
 
-**Key benefits delivered**:
-1. **Clean separation**: CLI owns execution, MCP just calls it
-2. **Reusable**: Background execution available to all CLI users, not just MCP
-3. **Simpler**: No complex execution matching heuristics
-4. **Testable**: Can test background execution without server
-5. **Maintainable**: Single source of truth for execution tracking
+- [ ] Modify `.claude/agents/dipeo-package-maintainer.md`
+  - Add skill reference to frontmatter description
+  - Keep ownership boundaries and examples
 
-**Files modified**:
-- `apps/server/src/dipeo_server/cli/cli_runner.py` - Added execution_id parameter and show_results method
-- `apps/server/src/dipeo_server/cli/entry_point.py` - Added --background flag and results command
-- `apps/server/src/dipeo_server/api/mcp_sdk_server.py` - Simplified run_backend and see_result to use CLI
-- `apps/server/src/dipeo_server/api/mcp_utils.py` - Removed execution_id parameter
-- `docs/features/mcp-server-integration.md` - Added async execution documentation
-- `CLAUDE.md` - Added async CLI commands section
+- [ ] Modify `.claude/agents/dipeo-codegen-pipeline.md`
+  - Add skill reference to frontmatter description
+  - Maintain clarity on what agent owns vs. doesn't own
+
+- [ ] Update `scripts/inject-agent-docs.py`
+  - Add deprecation notice in header comments
+  - Explain migration to skills
+
+**Phase 4: Remove PreToolUse Hook**
+- [ ] Remove hook from `.claude/settings.local.json`
+  - Delete PreToolUse hook configuration block
+  - Verify no other hooks depend on injection script
+
+- [ ] Archive injection script
+  - Create `scripts/deprecated/` directory if needed
+  - Move `inject-agent-docs.py` to `scripts/deprecated/inject-agent-docs.py`
+  - Add README explaining why it was deprecated
+
+**Phase 5: Testing & Validation**
+- [ ] Test agent invocation without hook
+  - Invoke `Task(dipeo-backend)` and verify it works
+  - Invoke `Skill(dipeo-backend)` and verify docs load
+  - Test workflow: skill → docs → decide → maybe invoke agent
+
+- [ ] Update documentation
+  - Update `CLAUDE.md` to explain skill-based docs
+  - Update `docs/agents/index.md` with new workflow
+  - Add usage examples to README
+
+**Files to be created**:
+- `.claude/skills/dipeo-backend/SKILL.md`
+- `.claude/skills/dipeo-package-maintainer/SKILL.md`
+- `.claude/skills/dipeo-codegen-pipeline/SKILL.md`
+- `scripts/deprecated/` (directory)
+- `scripts/deprecated/inject-agent-docs.py` (moved)
+- `scripts/deprecated/README.md`
+
+**Files to be modified**:
+- `.claude/agents/dipeo-backend.md` - Add skill reference, simplify content
+- `.claude/agents/dipeo-package-maintainer.md` - Add skill reference, simplify content
+- `.claude/agents/dipeo-codegen-pipeline.md` - Add skill reference, simplify content
+- `.claude/settings.local.json` - Remove PreToolUse hook
+- `CLAUDE.md` - Add skills section, update agent usage
+- `docs/agents/index.md` - Document new skill-based workflow
+
+**Files to be deleted**:
+- PreToolUse hook block in `.claude/settings.local.json`
+
+**Benefits to be delivered**:
+1. **On-demand loading**: Only load docs when needed, reducing context bloat
+2. **Granular control**: Can have multiple skills per domain for targeted documentation
+3. **Better separation**: Skills for docs, agents for execution
+4. **Flexibility**: Invoke skill for context, then decide whether to use agent
+5. **Scalability**: Easy to add granular skills (e.g., `backend-cli`, `backend-mcp`) later
+6. **Performance**: Reduced token usage by avoiding automatic injection
+7. **Decision support**: Skills include criteria for when to invoke agents
+
+**Usage examples**:
+```bash
+# Get backend documentation on-demand
+Skill(dipeo-backend)
+
+# Review docs, decide simple enough to handle directly
+# (make change without invoking agent)
+
+# Or invoke agent if complex
+Task(dipeo-backend, "Add new CLI command for metrics export")
+
+# Hybrid workflow: skill for context + agent for execution
+Skill(dipeo-codegen-pipeline)  # Load TypeScript → Python pipeline docs
+Task(dipeo-codegen-pipeline, "Add new node type for webhooks")
+```
+
+**Future enhancements** (optional):
+- Add granular skills: `backend-cli`, `backend-mcp`, `backend-db`
+- Add granular skills: `codegen-typescript`, `codegen-ir`, `codegen-graphql`
+- Cross-reference skills in agent definitions
+- Create skill invocation shortcuts in CLAUDE.md
 
 ---
 

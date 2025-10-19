@@ -53,6 +53,9 @@ class PersistenceManager:
             conn.execute("PRAGMA cache_size=10000")
             conn.execute("PRAGMA temp_store=MEMORY")
             conn.execute("PRAGMA mmap_size=268435456")
+            # Disable auto-checkpoint so we control when WAL is checkpointed
+            # Default is 1000 pages, we set to 0 to disable and do manual checkpoints
+            conn.execute("PRAGMA wal_autocheckpoint=0")
             return conn
 
         self._conn = await loop.run_in_executor(self._executor, _connect_sync)
@@ -136,15 +139,13 @@ class PersistenceManager:
 
         from dipeo.infrastructure.timing import atime_phase
 
+        loop = asyncio.get_event_loop()
+
         async with atime_phase(str(execution_id), "system", "db_serialize"):
             state_dict = entry.state.model_dump()
-            logger.debug(
-                f"[persist_entry] Persisting {execution_id}: status={entry.state.status}, status.value={entry.state.status.value}, use_full_sync={use_full_sync}"
-            )
 
         # Use enhanced durability for critical writes
         if use_full_sync:
-            loop = asyncio.get_event_loop()
             await loop.run_in_executor(
                 self._executor, self._conn.execute, "PRAGMA synchronous=FULL"
             )
@@ -155,9 +156,6 @@ class PersistenceManager:
                     json.dumps(state_dict.get("metrics")) if state_dict.get("metrics") else None
                 )
 
-                logger.debug(
-                    f"[persist_entry] Executing UPSERT for {execution_id}: status={entry.state.status.value}, error={entry.state.error}"
-                )
                 cursor = await self.execute(
                     """
                     INSERT INTO executions
@@ -197,27 +195,23 @@ class PersistenceManager:
                         datetime.now().isoformat(),
                     ),
                 )
-                logger.debug(f"[persist_entry] UPSERT executed, rows affected: {cursor.rowcount}")
 
                 # Verify what was written
                 verify_cursor = await self.execute(
                     "SELECT status, error FROM executions WHERE execution_id = ?", (execution_id,)
                 )
                 verify_row = await loop.run_in_executor(self._executor, verify_cursor.fetchone)
-                logger.debug(f"[persist_entry] Verification query result: {verify_row}")
 
-            # Force commit for critical writes
+            # Force immediate persistence for critical writes
             if use_full_sync:
-                async with atime_phase(str(execution_id), "system", "db_commit"):
-                    await loop.run_in_executor(self._executor, self._conn.commit)
-                    # Force WAL checkpoint to flush data to main database file
-                    # In WAL mode, data is written to WAL first and only moved to main DB during checkpoint
-                    logger.debug(f"[persist_entry] Forcing WAL checkpoint for {execution_id}")
+                async with atime_phase(str(execution_id), "system", "db_sync"):
+                    # In autocommit mode (isolation_level=None), commit() does nothing
+                    # Instead, force a WAL checkpoint to ensure data is written to main DB
+                    # and visible to other processes
                     cursor = await loop.run_in_executor(
-                        self._executor, self._conn.execute, "PRAGMA wal_checkpoint(FULL)"
+                        self._executor, self._conn.execute, "PRAGMA wal_checkpoint(RESTART)"
                     )
                     result = await loop.run_in_executor(self._executor, cursor.fetchone)
-                    logger.debug(f"[persist_entry] WAL checkpoint result: {result}")
 
         finally:
             # Restore normal synchronous mode after critical write

@@ -62,8 +62,8 @@
       "Skill(maintain-docs)",
       "Skill(separate-monolithic-python)",
       "Bash(curl -s http://localhost:8000/mcp/info)",
-      "Bash(curl -s -X POST http://localhost:8000/mcp/messages -H *)",
-      "Bash(pgrep -f \"dipeo.*server\")"
+      "Bash(curl -s -X POST http://localhost:8000/mcp/messages:*)",
+      "Bash(pgrep:*)"
     ],
     "deny": [],
     "ask": []

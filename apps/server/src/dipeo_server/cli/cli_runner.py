@@ -120,9 +120,9 @@ class CLIRunner:
             target_dir=target_dir,
         )
 
-    async def show_results(self, session_id: str) -> bool:
+    async def show_results(self, session_id: str, verbose: bool = False) -> bool:
         """Query execution status and results by session_id."""
-        return await self.query.show_results(session_id=session_id)
+        return await self.query.show_results(session_id=session_id, verbose=verbose)
 
     async def list_diagrams(
         self, output_json: bool = False, format_filter: str | None = None

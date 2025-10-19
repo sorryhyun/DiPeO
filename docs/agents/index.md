@@ -4,28 +4,31 @@ This directory contains detailed development guides for DiPeO's specialized Clau
 
 ## Core Development Agents
 
-### [Core Python Development](core-python-development.md)
-**Agent**: `dipeo-core-python`
-**Domain**: Backend Python business logic, execution handlers, runtime infrastructure, service architecture
-**Key Areas**: `/dipeo/application/`, `/dipeo/domain/`, `/dipeo/infrastructure/` (runtime only, not codegen)
-**Role**: Consumes generated code as read-only dependency, implements application logic
+### [Package Maintainer](package-maintainer.md)
+**Agent**: `dipeo-package-maintainer`
+**Domain**: Runtime Python code in `/dipeo/` - execution engine, handlers, service architecture
+**Key Areas**: `/dipeo/application/`, `/dipeo/domain/`, `/dipeo/infrastructure/` (EXCLUDING codegen)
+**Role**: Implements runtime execution logic, consumes generated code as read-only dependency
+**Responsibilities**: Node handlers, GraphQL resolvers, EventBus, EnhancedServiceRegistry, LLM infrastructure
+
+### [Backend Development](backend-development.md)
+**Agent**: `dipeo-backend`
+**Domain**: FastAPI server, CLI, database, and MCP integration in `apps/server/`
+**Key Areas**: FastAPI server, CLI commands, SQLite database, MCP server
+**Role**: Owns all backend infrastructure - server lifecycle, command-line interface, persistence, MCP protocol
+**Responsibilities**: GraphQL endpoint, dipeo run/results/metrics/compile/export commands, database schema, message store
+
+### [Code Generation Pipeline](codegen-pipeline.md)
+**Agent**: `dipeo-codegen-pipeline`
+**Domain**: Complete TypeScript → IR → Python/GraphQL pipeline
+**Key Areas**: `/dipeo/models/src/` (TypeScript specs), `/dipeo/infrastructure/codegen/` (IR builders), `dipeo/diagram_generated/` (generated code)
+**Role**: Owns entire codegen flow - design TypeScript models, build IR, generate Python/GraphQL, diagnose generated code
+**Responsibilities**: TypeScript model design, IR builder system, code generation, generated code diagnosis, type conversion
 
 ### [Frontend Development](frontend-development.md)
 **Agent**: `dipeo-frontend-dev`
 **Domain**: React components, visual diagram editor (XYFlow), GraphQL integration
 **Key Areas**: `/apps/web/src/`, TypeScript/React, GraphQL hooks
-
-### [TypeScript Model Design](typescript-model-design.md)
-**Agent**: `typescript-model-designer`
-**Domain**: TypeScript specifications - single source of truth for domain models
-**Key Areas**: `/dipeo/models/src/` (owns all TypeScript source)
-**Role**: Designs specs, coordinates with codegen-specialist for generation validation
-
-### [Code Generation Pipeline](codegen-pipeline.md)
-**Agent**: `dipeo-codegen-specialist`
-**Domain**: **Bridge agent** - owns entire codegen infrastructure & generated code diagnosis
-**Key Areas**: `/dipeo/infrastructure/codegen/` (full ownership), generated code review
-**Role**: Validates specs, runs pipeline, diagnoses generated code, coordinates between TS & Python
 
 ## Feature-Specific Agents
 

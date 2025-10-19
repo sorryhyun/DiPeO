@@ -298,3 +298,8 @@ def _add_results_command(subparsers):
     results_parser.add_argument(
         "session_id", help="Execution/session ID (format: exec_[32-char-hex])"
     )
+    results_parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Show detailed output including full conversation history, all node outputs, and metadata",
+    )
