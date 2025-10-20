@@ -4,12 +4,13 @@
  * Displays a list of diagram executions with status and timing information
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { Status } from '@dipeo/models';
 import { useGraphQLQuery } from '../hooks/use-graphql-query';
 import { WidgetLayout } from '../components/WidgetLayout';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { StatusBadge, Status } from '../components/StatusBadge';
+import { StatusBadge } from '../components/StatusBadge';
 import { LIST_EXECUTIONS_QUERY } from '../__generated__/queries/all-queries';
 import type { ListExecutionsQuery } from '../__generated__/graphql';
 import '../shared/index.css';
@@ -44,7 +45,7 @@ function ExecutionList() {
     >
       {/* Status Filter */}
       <div className="mb-4 flex gap-2 flex-wrap">
-        {['all', 'running', 'completed', 'failed', 'pending'].map((status) => (
+        {['all', Status.RUNNING, Status.COMPLETED, Status.FAILED, Status.PENDING].map((status) => (
           <button
             key={status}
             onClick={() => setStatusFilter(status as Status | 'all')}
@@ -54,7 +55,7 @@ function ExecutionList() {
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            {status.charAt(0).toUpperCase() + status.slice(1)}
+            {status === 'all' ? 'All' : status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()}
           </button>
         ))}
       </div>

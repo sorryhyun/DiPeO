@@ -2,16 +2,16 @@
  * Status badge component for execution states
  */
 
-import React from 'react';
-
-export type Status = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+import { Status } from '@dipeo/models';
 
 interface StatusBadgeProps {
   status: Status;
   className?: string;
 }
 
-const statusConfig: Record<Status, { label: string; color: string; bg: string }> = {
+type StatusKey = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'aborted' | 'paused' | 'skipped' | 'maxiter_reached';
+
+const statusConfig: Record<StatusKey, { label: string; color: string; bg: string }> = {
   pending: {
     label: 'Pending',
     color: 'text-gray-700',
@@ -37,10 +37,32 @@ const statusConfig: Record<Status, { label: string; color: string; bg: string }>
     color: 'text-orange-700',
     bg: 'bg-orange-100',
   },
+  aborted: {
+    label: 'Aborted',
+    color: 'text-orange-700',
+    bg: 'bg-orange-100',
+  },
+  paused: {
+    label: 'Paused',
+    color: 'text-yellow-700',
+    bg: 'bg-yellow-100',
+  },
+  skipped: {
+    label: 'Skipped',
+    color: 'text-gray-600',
+    bg: 'bg-gray-100',
+  },
+  maxiter_reached: {
+    label: 'Max Iter',
+    color: 'text-purple-700',
+    bg: 'bg-purple-100',
+  },
 };
 
 export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
-  const config = statusConfig[status] || statusConfig.pending;
+  // Convert Status enum to lowercase string key
+  const statusKey = status.toLowerCase() as StatusKey;
+  const config = statusConfig[statusKey] || statusConfig.pending;
 
   return (
     <span
