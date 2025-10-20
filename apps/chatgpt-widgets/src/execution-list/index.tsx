@@ -8,6 +8,7 @@ import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useGraphQLQuery } from '../hooks/use-graphql-query';
 import { WidgetLayout } from '../components/WidgetLayout';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { StatusBadge, Status } from '../components/StatusBadge';
 import '../shared/index.css';
 
@@ -141,5 +142,9 @@ function ExecutionList() {
 const rootElement = document.getElementById('execution-list-root');
 if (rootElement) {
   const root = createRoot(rootElement);
-  root.render(<ExecutionList />);
+  root.render(
+    <ErrorBoundary>
+      <ExecutionList />
+    </ErrorBoundary>
+  );
 }

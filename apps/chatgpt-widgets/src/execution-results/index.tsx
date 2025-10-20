@@ -13,6 +13,7 @@ import { createRoot } from 'react-dom/client';
 import { useWidgetProps } from '../hooks/use-widget-state';
 import { useGraphQLQuery } from '../hooks/use-graphql-query';
 import { WidgetLayout } from '../components/WidgetLayout';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { StatusBadge, Status } from '../components/StatusBadge';
 import '../shared/index.css';
 
@@ -119,5 +120,9 @@ function ExecutionResults() {
 const rootElement = document.getElementById('execution-results-root');
 if (rootElement) {
   const root = createRoot(rootElement);
-  root.render(<ExecutionResults />);
+  root.render(
+    <ErrorBoundary>
+      <ExecutionResults />
+    </ErrorBoundary>
+  );
 }

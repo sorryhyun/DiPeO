@@ -31,22 +31,35 @@ export function useWidgetState<T = any>(): T | null {
   });
 
   useEffect(() => {
-    // Poll for state if not immediately available
+    // Poll for state if not immediately available using exponential backoff
     if (!state) {
-      const checkInterval = setInterval(() => {
+      let delay = 100; // Start at 100ms
+      const maxDelay = 2000; // Cap at 2 seconds
+      const maxAttempts = 10; // Try up to 10 times
+      let attempts = 0;
+      let timeoutId: NodeJS.Timeout;
+
+      const poll = () => {
         if (window.oai?.widget?.getState) {
           const currentState = window.oai.widget.getState();
           if (currentState) {
             setState(currentState as T);
-            clearInterval(checkInterval);
+            return;
           }
         }
-      }, 100);
 
-      // Stop checking after 5 seconds
-      setTimeout(() => clearInterval(checkInterval), 5000);
+        attempts++;
+        if (attempts < maxAttempts) {
+          delay = Math.min(delay * 1.5, maxDelay);
+          timeoutId = setTimeout(poll, delay);
+        }
+      };
 
-      return () => clearInterval(checkInterval);
+      poll();
+
+      return () => {
+        if (timeoutId) clearTimeout(timeoutId);
+      };
     }
   }, [state]);
 

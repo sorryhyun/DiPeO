@@ -8,6 +8,7 @@ import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useGraphQLQuery } from '../hooks/use-graphql-query';
 import { WidgetLayout } from '../components/WidgetLayout';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import '../shared/index.css';
 
 interface DiagramInfo {
@@ -126,5 +127,9 @@ function DiagramList() {
 const rootElement = document.getElementById('diagram-list-root');
 if (rootElement) {
   const root = createRoot(rootElement);
-  root.render(<DiagramList />);
+  root.render(
+    <ErrorBoundary>
+      <DiagramList />
+    </ErrorBoundary>
+  );
 }

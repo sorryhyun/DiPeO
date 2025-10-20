@@ -5,7 +5,9 @@ import fg from 'fast-glob';
 import path from 'node:path';
 
 function buildInputs() {
-  const files = fg.sync('src/**/index.tsx', { dot: false });
+  // Build from HTML files so Vite emits HTML pages
+  // Server utilities expect hashed *.html files in static/widgets
+  const files = fg.sync('src/**/index.html', { dot: false });
   return Object.fromEntries(
     files.map((f) => [path.basename(path.dirname(f)), path.resolve(f)])
   );
