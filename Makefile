@@ -1,7 +1,7 @@
 # Now using uv for Python dependency management
 # Activate virtual environment with: source .venv/bin/activate
 
-.PHONY: install install-dev install-uv sync-deps parse-typescript codegen codegen-auto codegen-watch codegen-status dev-server dev-web dev-all clean clean-staged help lint-server lint-web lint-cli format graphql-schema diff-staged validate-staged validate-staged-syntax apply apply-syntax-only backup-generated schema-docs docs-add-anchors-dry docs-add-anchors docs-validate-anchors docs-update
+.PHONY: install install-dev install-uv sync-deps parse-typescript codegen codegen-auto codegen-watch codegen-status dev-server dev-web dev-widgets dev-all clean clean-staged help lint-server lint-web lint-cli format graphql-schema diff-staged validate-staged validate-staged-syntax apply apply-syntax-only backup-generated schema-docs docs-add-anchors-dry docs-add-anchors docs-validate-anchors docs-update build-widgets
 
 # Default target
 help:
@@ -27,6 +27,8 @@ help:
 	@echo "  make dev-all      - Run both backend and frontend servers"
 	@echo "  make dev-server   - Run backend server"
 	@echo "  make dev-web      - Run frontend server"
+	@echo "  make dev-widgets  - Run widgets dev server"
+	@echo "  make build-widgets - Build ChatGPT widgets"
 	@echo ""
 	@echo "Quality & Testing:"
 	@echo "  make lint-{server, web, cli} - Run linters"
@@ -156,6 +158,9 @@ dev-server:
 dev-web:
 	pnpm -F web dev
 
+dev-widgets:
+	pnpm -F @dipeo/chatgpt-widgets dev
+
 # Run both servers in parallel
 dev-all:
 	@echo "Starting all development servers..."
@@ -163,6 +168,12 @@ dev-all:
 	(make dev-server 2>&1 | sed 's/^/[server] /' &) && \
 	(sleep 3 && make dev-web 2>&1 | sed 's/^/[web] /' &) && \
 	wait
+
+# Build ChatGPT widgets
+build-widgets:
+	@echo "Building ChatGPT widgets..."
+	pnpm -F @dipeo/chatgpt-widgets build
+	@echo "Widgets built to apps/server/static/widgets/"
 
 # Export GraphQL schema
 graphql-schema:
