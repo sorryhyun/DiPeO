@@ -9,8 +9,6 @@ from dipeo.infrastructure.integrations.adapters import DBOperationsAdapter
 
 
 class DBOperationsDomainService:
-    """Backward compatibility wrapper for DBOperationsDomainService."""
-
     ALLOWED_OPERATIONS = ["prompt", "read", "write", "append", "update"]
 
     def __init__(self, file_system: FileSystemPort, validation_service: DataValidator):

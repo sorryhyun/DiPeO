@@ -1,5 +1,4 @@
-import logging
-from typing import TYPE_CHECKING, TypeVar
+from typing import TypeVar
 
 from pydantic import BaseModel
 
@@ -8,9 +7,6 @@ from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.enums import NodeType
 
 from .base import TypedNodeHandler
-
-if TYPE_CHECKING:
-    pass
 
 T = TypeVar("T", bound=BaseModel)
 

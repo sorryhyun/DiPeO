@@ -11,8 +11,6 @@ from typing import Any, Optional
 
 @dataclass
 class SessionEvent:
-    """Represents a single event in a Claude Code session."""
-
     type: str  # user/assistant/summary
     uuid: str
     message: dict[str, Any]
@@ -29,8 +27,6 @@ class SessionEvent:
 
     @classmethod
     def from_json(cls, data: dict[str, Any]) -> "SessionEvent":
-        """Create SessionEvent from JSON data."""
-        # Handle missing or invalid timestamp
         timestamp = datetime.now()
         if "timestamp" in data:
             with contextlib.suppress(ValueError, AttributeError):
@@ -81,8 +77,6 @@ class SessionEvent:
 
 @dataclass
 class ConversationTurn:
-    """Represents a user-assistant interaction pair."""
-
     user_event: SessionEvent
     assistant_event: SessionEvent | None = None
     tool_events: list[SessionEvent] = field(default_factory=list)
@@ -91,8 +85,6 @@ class ConversationTurn:
 
 @dataclass
 class SessionMetadata:
-    """Metadata about a Claude Code session."""
-
     session_id: str
     start_time: datetime | None = None
     end_time: datetime | None = None
@@ -102,16 +94,12 @@ class SessionMetadata:
 
 
 class ClaudeCodeSession:
-    """Parser and analyzer for Claude Code session JSONL files."""
-
     def __init__(self, session_id: str):
-        """Initialize session with given ID."""
         self.session_id = session_id
         self.events: list[SessionEvent] = []
         self.metadata = SessionMetadata(session_id=session_id)
 
     def load_from_file(self, file_path: Path) -> None:
-        """Load session events from a JSONL file."""
         if not file_path.exists():
             raise FileNotFoundError(f"Session file not found: {file_path}")
 
@@ -214,11 +202,9 @@ class ClaudeCodeSession:
                     parent_event.tool_use_result = result_payload
 
     def parse_events(self) -> list[SessionEvent]:
-        """Parse and return all session events."""
         return self.events
 
     def extract_tool_usage(self) -> dict[str, int]:
-        """Extract and count tool usage from events."""
         tool_counts = defaultdict(int)
 
         for event in self.events:
@@ -228,7 +214,6 @@ class ClaudeCodeSession:
         return dict(tool_counts)
 
     def get_conversation_flow(self) -> list[ConversationTurn]:
-        """Extract conversation flow as user-assistant pairs with meta events."""
         turns = []
         current_turn = None
         pending_meta_events = []  # Collect meta events before each turn
@@ -273,7 +258,6 @@ class ClaudeCodeSession:
         return turns
 
     def get_file_operations(self) -> dict[str, list[str]]:
-        """Extract all file operations (Read, Write, Edit) from the session."""
         operations = defaultdict(list)
 
         for event in self.events:
@@ -285,7 +269,6 @@ class ClaudeCodeSession:
         return dict(operations)
 
     def get_bash_commands(self) -> list[str]:
-        """Extract all bash commands executed in the session."""
         commands = []
 
         for event in self.events:
@@ -296,7 +279,6 @@ class ClaudeCodeSession:
         return commands
 
     def _is_command_wrapper_event(self, event: SessionEvent) -> bool:
-        """Check if a user event is a command wrapper or empty stdout that should be skipped."""
         if event.type != "user":
             return False
 
@@ -318,7 +300,6 @@ class ClaudeCodeSession:
         return False
 
     def _update_metadata(self) -> None:
-        """Update session metadata based on parsed events."""
         if not self.events:
             return
 
@@ -329,7 +310,6 @@ class ClaudeCodeSession:
         self.metadata.file_operations = self.get_file_operations()
 
     def get_summary_stats(self) -> dict[str, Any]:
-        """Get summary statistics about the session."""
         stats = {
             "session_id": self.session_id,
             "total_events": len(self.events),
@@ -355,7 +335,6 @@ class ClaudeCodeSession:
 
 
 def find_session_files(base_dir: Path, limit: int = 50) -> list[Path]:
-    """Find Claude Code session JSONL files in the given directory."""
     session_files = []
 
     if not base_dir.exists():
@@ -373,7 +352,6 @@ def find_session_files(base_dir: Path, limit: int = 50) -> list[Path]:
 
 
 def extract_session_timestamp(file_path: Path) -> datetime | None:
-    """Extract the first timestamp from a session file for directory naming."""
     if not file_path.exists():
         return None
 
@@ -396,13 +374,10 @@ def extract_session_timestamp(file_path: Path) -> datetime | None:
 
 
 def format_timestamp_for_directory(timestamp: datetime) -> str:
-    """Format timestamp for directory naming (YYYY-MM-DD_HH-MM-SS)."""
     return timestamp.strftime("%Y-%m-%d_%H-%M-%S")
 
 
 def parse_session_file(file_path: Path) -> ClaudeCodeSession:
-    """Convenience function to parse a session file."""
-    # Extract session ID from filename (assuming format: session-{id}.jsonl)
     session_id = file_path.stem.replace("session-", "")
 
     session = ClaudeCodeSession(session_id)

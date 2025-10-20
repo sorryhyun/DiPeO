@@ -1,9 +1,4 @@
-"""
-DiPeO Domain Models
-
-This package contains the shared domain models for the DiPeO project.
-These models are auto-generated from TypeScript definitions.
-"""
+"""DiPeO domain layer with core business logic and abstractions."""
 
 __version__ = "1.0.0"
 

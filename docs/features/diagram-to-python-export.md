@@ -2,7 +2,7 @@
 
 DiPeO diagrams can be exported to standalone Python scripts that run without the DiPeO runtime.
 
-## Overview
+## Overview {#overview}
 
 The export feature converts DiPeO diagrams into self-contained Python scripts focusing on:
 - ✅ **LLM calls** (person_job nodes) → Direct API calls using OpenAI/Anthropic SDKs
@@ -12,15 +12,15 @@ The export feature converts DiPeO diagrams into self-contained Python scripts fo
 
 **Not included**: DB state management, monitor logic, or advanced runtime features.
 
-## Usage
+## Usage {#usage}
 
-### CLI Command
+### CLI Command {#cli-command}
 
 ```bash
 dipeo export <diagram> <output.py> [--light|--native|--readable]
 ```
 
-### Examples
+### Examples {#examples}
 
 ```bash
 # Export a light format diagram
@@ -30,9 +30,9 @@ dipeo export examples/simple_diagrams/simple_iter_code.light.yaml output.py --li
 python output.py
 ```
 
-## Supported Node Types
+## Supported Node Types {#supported-node-types}
 
-### Start Node
+### Start Node {#start-node}
 Generates a print statement indicating execution start.
 
 ```python
@@ -40,7 +40,7 @@ Generates a print statement indicating execution start.
 print("Starting execution...")
 ```
 
-### Code Job Node
+### Code Job Node {#code-job-node}
 Executes inline Python code directly.
 
 ```python
@@ -49,7 +49,7 @@ a = 1
 result = f"Value: {a}"
 ```
 
-### Person Job Node (LLM Calls)
+### Person Job Node (LLM Calls) {#person-job-node-llm-calls}
 Generates API calls to OpenAI or Anthropic.
 
 **OpenAI/GPT:**
@@ -79,7 +79,7 @@ response = await anthropic_client.messages.create(
 output = response.content[0].text
 ```
 
-### Condition Node
+### Condition Node {#condition-node}
 Translates to Python if/else or while loops.
 
 ```python
@@ -92,7 +92,7 @@ else:
     pass
 ```
 
-### DB Node (File Operations)
+### DB Node (File Operations) {#db-node-file-operations}
 Uses Python's file I/O.
 
 **Read:**
@@ -109,7 +109,7 @@ db_path.parent.mkdir(parents=True, exist_ok=True)
 db_path.write_text(str(content))
 ```
 
-### Endpoint Node
+### Endpoint Node {#endpoint-node}
 Saves final results to a file.
 
 ```python
@@ -120,7 +120,7 @@ output_path.write_text(str(result))
 print(f"✅ Saved output to {output_path}")
 ```
 
-## Complete Example
+## Complete Example {#complete-example}
 
 **Input** (`simple_iter_code.light.yaml`):
 ```yaml
@@ -204,7 +204,7 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-## Environment Variables
+## Environment Variables {#environment-variables}
 
 For diagrams with person_job nodes, set the appropriate API keys:
 
@@ -219,7 +219,7 @@ export ANTHROPIC_API_KEY="your-api-key"
 python output.py
 ```
 
-## Dependencies
+## Dependencies {#dependencies}
 
 Exported scripts require:
 - Python 3.10+
@@ -233,16 +233,9 @@ Install dependencies:
 pip install openai anthropic
 ```
 
-## Limitations
+## Limitations {#limitations}
 
 - Complex control flow may require manual adjustment
-- Sub-diagrams are not yet supported
-- Batch execution needs manual implementation
-- Some advanced node types may generate TODO comments
-
-## Future Enhancements
-
-- Sub-diagram support via function calls
-- Batch processing patterns
-- More sophisticated control flow detection
-- Error handling and retry logic
+- Sub-diagrams are not supported
+- Batch execution requires manual implementation
+- Advanced node types may generate TODO comments for manual completion

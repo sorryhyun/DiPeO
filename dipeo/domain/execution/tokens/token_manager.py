@@ -38,23 +38,14 @@ class TokenManager:
         self._execution_tracker = execution_tracker
 
         self._epoch: int = 0
-
-        # Token counting and consumption tracking
         self._token_counter = TokenCounter()
-
-        # Token storage: (edge, epoch, seq) -> Envelope
         self._edge_tokens: dict[tuple[EdgeRef, int, int], Envelope] = {}
-
-        # Edge topology maps
         self._in_edges: dict[NodeID, list[EdgeRef]] = {}
         self._out_edges: dict[NodeID, list[EdgeRef]] = {}
-
-        # Condition branch tracking
         self._branch_decisions: dict[NodeID, str] = {}
 
         self._build_edge_maps()
 
-        # Initialize readiness evaluator
         self._readiness_evaluator = TokenReadinessEvaluator(
             diagram=self.diagram,
             in_edges=self._in_edges,

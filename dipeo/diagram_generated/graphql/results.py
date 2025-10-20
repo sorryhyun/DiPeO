@@ -3,7 +3,7 @@ DO NOT EDIT - Generated unified result types for GraphQL operations
 
 This file provides type-safe result types for all GraphQL operations,
 following the Envelope pattern from the domain layer.
-Generated at: 2025-10-12T13:15:10.539155
+Generated at: 2025-10-19T16:24:20.683828
 """
 
 import strawberry

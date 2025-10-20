@@ -1,9 +1,12 @@
 # DiPeO (Diagrammed People & Organizations) – Architecture & Flow
 
+<a id="architecture-overview"></a>
 
 DiPeO is an open-source platform that lets developers **design, run and monitor multi-agent AI workflows** as diagrams instead of raw code. The project is organized as a **monorepo** with container-based dependency injection, end-to-end code generation, and a sophisticated memory model for agent conversations.
 
 ---
+
+<a id="repository-layout"></a>
 
 ## 1. Repository layout
 
@@ -15,6 +18,8 @@ DiPeO is an open-source platform that lets developers **design, run and monitor 
 | **`diagram_generated*/`** | Auto-generated code                                | Pydantic models, node handlers, GraphQL schema, TS hooks                                |
 
 ---
+
+<a id="applications-overview"></a>
 
 ## 2. Applications Overview
 
@@ -66,6 +71,8 @@ dipeo metrics --latest --breakdown
 
 ---
 
+<a id="high-level-architecture"></a>
+
 ## 3. High-level architecture
 
 | Layer                        | Purpose                                      | Key tech                                                                                                            |
@@ -75,6 +82,8 @@ dipeo metrics --latest --breakdown
 | **Core library**<br>`dipeo/` | Domain models, execution engine, memory      | Event-driven architecture, async runtime, Pydantic, DI service registry                                             |
 
 ---
+
+<a id="dependency-injection"></a>
 
 ## 4. Dependency-injection containers
 
@@ -107,6 +116,8 @@ All three share a single **ServiceRegistry**, making service resolution explicit
 
 ---
 
+<a id="code-generation-pipeline"></a>
+
 ## 5. Code-generation pipeline
 
 1. **Define** nodes in TypeScript specs (`*.spec.ts`).
@@ -119,6 +130,8 @@ All three share a single **ServiceRegistry**, making service resolution explicit
 
 ---
 
+<a id="memory-conversation"></a>
+
 ## 6. Memory & conversation model
 
 * Every message goes into a **global, immutable conversation log**.
@@ -130,6 +143,8 @@ All three share a single **ServiceRegistry**, making service resolution explicit
   * **GOLDFISH** – Complete memory reset between executions for stateless agents.
 
 ---
+
+<a id="node-handler-system"></a>
 
 ## 7. Node Handler System
 
@@ -216,6 +231,8 @@ Handlers follow clean architecture principles:
 - **Application layer** orchestrates between domain and infrastructure
 - Handlers never directly call external services - always through injected dependencies
 
+<a id="execution-flow"></a>
+
 ## 8. Execution flow (simplified)
 
 ```mermaid
@@ -289,6 +306,8 @@ Execution performance is controlled through `/dipeo/config/execution.py`:
 
 ---
 
+<a id="event-driven-architecture"></a>
+
 ## 11. Event-Driven Architecture
 
 The system uses a fully event-driven architecture for execution and monitoring:
@@ -315,6 +334,8 @@ This architecture enables:
 - **Configurable Concurrency**: Adjustable parallelism via `ENGINE_MAX_CONCURRENT` setting
 
 ---
+
+<a id="graphql-layer-architecture"></a>
 
 ## 11. GraphQL Layer Architecture
 

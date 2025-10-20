@@ -25,12 +25,7 @@ from dipeo.infrastructure.diagram.adapters import UnifiedSerializerAdapter
 logger = get_module_logger(__name__)
 
 
-# Standalone resolver functions for use with OperationExecutor
 async def execute_diagram(registry: ServiceRegistry, input: ExecuteDiagramInput) -> ExecutionResult:
-    """
-    Resolver for ExecuteDiagram operation.
-    Uses the generated EXECUTE_DIAGRAM_MUTATION query string.
-    """
     try:
         state_store = registry.resolve(STATE_STORE)
         message_router = registry.resolve(MESSAGE_ROUTER)

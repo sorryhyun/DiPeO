@@ -21,8 +21,19 @@ make dev-server       # Backend only (port 8000)
 
 ### Running Diagrams
 ```bash
-dipeo run examples/simple_diagrams/simple_iter --light --debug --timeout=40 --timing
+# Synchronous execution (wait for completion)
+dipeo run examples/simple_diagrams/simple_iter --light --debug --timeout=40 --timing # simple_iter_cc for claude code adapter diagram
 dipeo run [diagram] --input-data '{"key": "value"}' --light --debug
+
+# Asynchronous execution (background)
+dipeo run examples/simple_diagrams/simple_iter --light --background --timeout=40
+# Output: {"session_id": "exec_...", "status": "started"}
+
+# Check execution status and results
+dipeo results exec_9ebb3df7180a4a7383079680c28c6028
+# Output: Full execution status with results, LLM usage, etc.
+
+# Profile executions
 dipeo metrics --latest --breakdown  # Profile latest execution
 ```
 
@@ -93,10 +104,158 @@ pnpm typecheck          # TypeScript checking
 make format             # Format Python
 ```
 
+### Documentation
+```bash
+make schema-docs        # Generate database schema docs
+# Generates docs/database-schema.md (markdown) and docs/database-schema.sql (SQL reference)
+
+python scripts/generate_light_diagram_schema.py  # Generate JSON Schema for light diagram format
+# Reads auto-generated node schemas from diagram_generated/schemas/nodes/
+```
+
 ## Claude Code Subagents
 
-DiPeO uses specialized subagents for complex tasks.
-Run agents in parallel when possible. [Agent docs](docs/agents/index.md)
+DiPeO uses specialized subagents for complex tasks. The agent structure is organized by domain:
+
+### Core Development Agents
+
+- **dipeo-package-maintainer**: Runtime Python code in /dipeo/ (execution handlers, service architecture, domain models)
+  - Use for: Node handlers, GraphQL resolvers, EventBus, EnhancedServiceRegistry, LLM infrastructure
+  - Excludes: Code generation, backend server, CLI
+
+- **dipeo-backend**: FastAPI server, CLI, database, and MCP integration in apps/server/
+  - Use for: Server configuration, CLI commands (run, results, metrics, compile, export), database schema, MCP server
+
+- **dipeo-codegen-pipeline**: Complete TypeScript → IR → Python/GraphQL pipeline
+  - Use for: TypeScript model design, IR builders, code generation, generated code diagnosis
+  - Owns: /dipeo/models/src/ (TypeScript specs), /dipeo/infrastructure/codegen/ (IR builders), generated code review
+
+### Other Agents
+
+- **dipeo-frontend-dev**: React components, visual diagram editor, GraphQL integration
+- **codebase-auditor**: Targeted code analysis for security, performance, quality
+- **dipeocc-converter**: Converting Claude Code sessions to DiPeO diagrams
+
+**Best Practice**: Run agents in parallel when possible. See [Agent docs](docs/agents/index.md) for detailed guides.
+
+## Claude Code Skills
+
+DiPeO provides specialized skills for routine code quality and project management tasks. Access skills via the Skill tool.
+
+### Router Skills (Agent Documentation)
+
+Router skills provide on-demand access to agent documentation with 80-90% token reduction vs. automatic injection.
+
+**Available Router Skills:**
+- **dipeo-backend**: Backend server, CLI, database, MCP integration guidance
+- **dipeo-package-maintainer**: Runtime Python code, handlers, service architecture
+- **dipeo-codegen-pipeline**: TypeScript → IR → Python/GraphQL pipeline
+- **dipeo-frontend-dev**: React components, visual diagram editor, GraphQL integration, TypeScript types
+
+**How Router Skills Work:**
+
+Router skills are **thin** (~50-100 lines) and provide:
+1. **Decision criteria**: When to handle directly vs. escalate to full agent
+2. **Stable documentation anchors**: References to specific sections in `docs/`
+3. **Escalation paths**: Clear guidance on when to invoke other agents/skills
+
+**Usage Pattern:**
+
+```bash
+# Pattern 1: Router + direct handling (simple task)
+Skill(dipeo-backend)  # Load 50-line router
+# Review decision criteria → task is simple → handle directly
+# Cost: ~1,000 tokens
+
+# Pattern 2: Router + doc-lookup + solve (focused task)
+Skill(dipeo-backend)  # Load router
+Skill(doc-lookup) --query "cli-commands"  # Get specific section (~50 lines)
+# Solve problem with targeted context
+# Cost: ~1,500 tokens (vs. 15,000 with auto-injection)
+
+# Pattern 3: Router + escalate to agent (complex task)
+Skill(dipeo-backend)  # Load router, review decision criteria
+Task(dipeo-backend, "Add new CLI command with validation")
+# Agent can load additional sections via doc-lookup as needed
+```
+
+**doc-lookup Helper Skill:**
+
+The `doc-lookup` skill extracts specific documentation sections by anchor or keyword:
+
+```bash
+# Retrieve specific section by anchor
+python .claude/skills/doc-lookup/scripts/section_search.py \
+  --query "cli-commands" \
+  --paths docs/agents/backend-development.md \
+  --top 1
+
+# Search across multiple docs
+Skill(doc-lookup) --query "mcp-server-implementation"
+```
+
+**Benefits:**
+- **Progressive disclosure**: Load only relevant sections as needed
+- **Agent autonomy**: Agents decide what context they need
+- **Single source of truth**: Docs remain in `docs/`, no duplication
+- **Token efficiency**: 80-90% reduction (1.5k vs 15k tokens per task)
+
+**When to Use:**
+- Before invoking a full agent with Task tool (to check if task is simple enough to handle directly)
+- During agent execution (to load specific documentation sections)
+- When exploring what an agent can do (decision criteria and scope)
+
+### todo-manage Skill
+
+**When to use**: For comprehensive TODO list management when working on multi-phase projects, complex migrations, or when planning feature implementations that require structured task tracking.
+
+**Use the `todo-manage` skill when:**
+- Planning multi-phase projects (3+ phases or 10+ tasks)
+- Organizing complex migrations or refactoring work
+- Breaking down large feature requests into structured task lists
+- User explicitly requests comprehensive TODO planning
+- Need to create organized, phase-based task breakdown with estimates
+
+**Examples:**
+
+<example>
+Context: User requests a major migration that requires multiple coordinated steps
+user: "We need to migrate from legacy MCP to SDK-only implementation"
+assistant: "I'll use the todo-manage skill to create a comprehensive, phase-based TODO list for this migration."
+<commentary>Use todo-manage for complex migrations requiring structured planning with phases, estimates, and dependencies.</commentary>
+</example>
+
+<example>
+Context: User wants to implement a large feature with many components
+user: "Add authentication system with OAuth, JWT, API keys, and role-based access control"
+assistant: "Let me use the todo-manage skill to break this down into a comprehensive TODO list organized by implementation phases."
+<commentary>Use todo-manage for large feature implementations that need structured task breakdown.</commentary>
+</example>
+
+<example>
+Context: User wants comprehensive project planning
+user: "Create a TODO list for implementing the new diagram export system"
+assistant: "I'll use the todo-manage skill to create a detailed, phase-organized TODO list with effort estimates and dependencies."
+<commentary>Use todo-manage when user explicitly requests TODO planning or when project complexity warrants structured task management.</commentary>
+</example>
+
+**Access TODO list**: Use `/dipeotodos` slash command to view current TODO.md
+
+**Don't use todo-manage for:**
+- Simple, single-task changes (use regular TodoWrite tool instead)
+- Quick bug fixes or minor updates
+- When you just need to mark existing TODOs as complete
+
+### Other Skills
+
+- **clean-comments**: Remove unnecessary comments while preserving valuable ones
+- **import-refactor**: Update imports after moving/renaming files
+- **maintain-docs**: Keep documentation current with implementation
+- **separate-monolithic-python**: Break large Python files (>500 LOC) into modules
+
+**Note**: TypeScript type fixing is handled by the **dipeo-frontend-dev** agent.
+
+See `.claude/skills/` for detailed skill documentation.
 
 ## Architecture Quick Reference
 
@@ -110,6 +269,7 @@ Run agents in parallel when possible. [Agent docs](docs/agents/index.md)
 - **Service Registry**: EnhancedServiceRegistry with type categorization, audit trails
 - **Event System**: Unified EventBus protocol
 - **Output Pattern**: Envelope pattern via EnvelopeFactory
+- **Database**: SQLite at `.dipeo/data/dipeo_state.db` - see [Database Schema](docs/database-schema.md) (auto-generated via `make schema-docs`)
 
 ### Key Directories
 - `/apps/server/` - FastAPI backend + CLI
@@ -118,7 +278,7 @@ Run agents in parallel when possible. [Agent docs](docs/agents/index.md)
 - `/dipeo/models/src/` - TypeScript specs (source of truth)
 - `/dipeo/diagram_generated/` - Generated code (don't edit)
 
-See [Overall Architecture](docs/architecture/overall_architecture.md) for complete details.
+See [Overall Architecture](docs/architecture/README.md) for complete details.
 
 ## Adding New Features
 
@@ -158,6 +318,8 @@ See [Developer Guide](docs/guides/developer-guide-diagrams.md#adding-new-diagram
 - Default LLM: `gpt-5-nano-2025-08-07`
 - Backend: port 8000, Frontend: port 3000
 - Debug with `--debug` flag, check `.dipeo/logs/cli.log`
+- **Database**: SQLite at `.dipeo/data/dipeo_state.db` with 3 tables (executions, messages, transitions)
+  - Schema docs: `docs/database-schema.md` (regenerate with `make schema-docs`)
 - Formal test suite under development
 
 ## Common Issues & Solutions

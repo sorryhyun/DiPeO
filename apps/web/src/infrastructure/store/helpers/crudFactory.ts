@@ -46,7 +46,7 @@ export function createCrudActions<T extends Entity, ID extends EntityId>(
 
       options?.onAdd?.(state, entity);
       // Use Draft type for immer state
-      recordHistory(state as Draft<UnifiedStore>);
+      recordHistory(state as any);
 
       return entity.id as ID;
     },
@@ -65,7 +65,7 @@ export function createCrudActions<T extends Entity, ID extends EntityId>(
         }
 
         // Use Draft type for immer state
-        recordHistory(state as Draft<UnifiedStore>);
+        recordHistory(state as any);
       }
     },
 
@@ -83,7 +83,7 @@ export function createCrudActions<T extends Entity, ID extends EntityId>(
       }
 
       // Use Draft type for immer state
-      recordHistory(state as Draft<UnifiedStore>);
+      recordHistory(state as any);
     }
   };
 }

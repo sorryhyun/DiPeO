@@ -116,11 +116,4 @@ def compute_special_inputs(node: ExecutableNode, ctx: ExecutionContext) -> dict[
             if key not in special_inputs:
                 special_inputs[key] = value
 
-    if (
-        node.type == NodeType.PERSON_JOB
-        or node.type == NodeType.CONDITION
-        or node.type == NodeType.API_JOB
-    ):
-        pass
-
     return special_inputs

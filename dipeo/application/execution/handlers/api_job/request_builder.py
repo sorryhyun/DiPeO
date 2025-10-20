@@ -6,7 +6,6 @@ from dipeo.diagram_generated.enums import HttpMethod
 
 
 def parse_json_inputs(headers: Any, params: Any, body: Any, auth_config: Any) -> dict[str, Any]:
-    """Returns dict with 'error' key if parsing fails."""
     result = {
         "headers": headers or {},
         "params": params or {},

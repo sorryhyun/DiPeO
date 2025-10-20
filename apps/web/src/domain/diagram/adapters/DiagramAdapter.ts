@@ -22,9 +22,8 @@
  */
 
 import { Node as RFNode, Edge as RFEdge, Connection, Node, Edge } from '@xyflow/react';
-import { ArrowID, DomainArrow, DomainHandle, DomainNode, NodeID, DomainDiagram, diagramArraysToMaps, NodeType } from '@/infrastructure/types';
+import { ArrowID, DomainArrow, DomainHandle, DomainNode, NodeID, DomainDiagram, diagramArraysToMaps, NodeType, ContentType } from '@/infrastructure/types';
 import { JsonDict, HandleDirection, HandleLabel } from '@dipeo/models';
-import { ContentType } from '@/__generated__/graphql';
 import { generateId } from '@/infrastructure/types/utilities';
 import { createHandleIndex, getHandlesForNode, findHandleByLabel } from '../utils/handleIndex';
 import { Converters } from '@/infrastructure/converters';
@@ -263,7 +262,7 @@ export class DiagramAdapter {
       data: Object.keys(restData).length > 0 ? restData : undefined
     };
 
-    if (content_type !== undefined && content_type !== null) {
+    if (content_type !== undefined && content_type !== null && typeof content_type === 'string') {
       domainArrow.content_type = content_type as ContentType;
     }
     if (label !== undefined && label !== null && typeof label === 'string') {

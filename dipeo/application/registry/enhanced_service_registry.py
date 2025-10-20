@@ -47,11 +47,11 @@ class EnhancedServiceKey[T]:
     final: bool = False  # Cannot be overridden even in dev/test
     immutable: bool = False  # Cannot be overridden after first registration
     service_type: ServiceType = ServiceType.APPLICATION
-    description: str = ""  # Human-readable description
-    dependencies: tuple[str, ...] = field(default_factory=tuple)  # Service dependencies
+    description: str = ""
+    dependencies: tuple[str, ...] = field(default_factory=tuple)
 
     def __class_getitem__(cls, item):
-        """Enable EnhancedServiceKey[ServiceType] syntax for type hints only."""
+        """Enable EnhancedServiceKey[ServiceType] syntax."""
         return cls
 
     def __str__(self) -> str:
@@ -88,10 +88,8 @@ class EnhancedServiceRegistry:
 
         # Safety rails
         self._frozen = False
-        self._frozen_services: set[str] = set()  # Partially frozen services
-        self._immutable_services: set[str] = (
-            set()
-        )  # Services that cannot be overridden after first registration
+        self._frozen_services: set[str] = set()
+        self._immutable_services: set[str] = set()
 
         # Configuration
         settings = get_settings()
@@ -146,19 +144,16 @@ class EnhancedServiceRegistry:
             # Store the key metadata
             self._service_keys[key.name] = key
 
-            # Register the service
             if callable(service) and not hasattr(service, "__self__"):
                 self._factories[key.name] = service
-                self._services.pop(key.name, None)  # Remove any existing instance
+                self._services.pop(key.name, None)
             else:
                 self._services[key.name] = service
-                self._factories.pop(key.name, None)  # Remove any existing factory
+                self._factories.pop(key.name, None)
 
-            # Mark as immutable if specified
             if key.immutable:
                 self._immutable_services.add(key.name)
 
-            # Record audit trail
             self._record_action(
                 key.name,
                 "override" if exists else "register",
@@ -168,7 +163,7 @@ class EnhancedServiceRegistry:
             )
 
     def resolve(self, key: EnhancedServiceKey[T]) -> T:
-        """Resolve a service with type safety and enhanced error reporting."""
+        """Resolve a service with type safety."""
         with self._lock:
             if key.name in self._services:
                 self._resolve_hits[key.name] = self._resolve_hits.get(key.name, 0) + 1
@@ -190,7 +185,6 @@ class EnhancedServiceRegistry:
                     )
                     raise RuntimeError(f"Failed to create service '{key.name}': {e}") from e
 
-            # Enhanced error message with suggestions
             available_services = sorted(self.list_services())
             similar_services = [s for s in available_services if key.name.lower() in s.lower()]
 
@@ -203,14 +197,12 @@ class EnhancedServiceRegistry:
             raise KeyError(error_msg)
 
     def get(self, key: EnhancedServiceKey[T], default: T | None = None) -> T | None:
-        """Get a service with optional default."""
         try:
             return self.resolve(key)
         except KeyError:
             return default
 
     def has(self, key: EnhancedServiceKey[T]) -> bool:
-        """Check if a service is registered."""
         with self._lock:
             return key.name in self._services or key.name in self._factories
 
@@ -227,12 +219,10 @@ class EnhancedServiceRegistry:
         caller_info = self._get_caller_info()
 
         with self._lock:
-            # Check if service exists
             exists = key.name in self._services or key.name in self._factories
             if not exists:
                 return
 
-            # Check constraints
             stored_key = self._service_keys.get(key.name)
             if stored_key and not force:
                 if stored_key.final:
@@ -259,14 +249,12 @@ class EnhancedServiceRegistry:
                         f"Cannot unregister frozen service '{key.name}' without force=True"
                     )
 
-            # Remove the service
             self._services.pop(key.name, None)
             self._factories.pop(key.name, None)
             self._service_keys.pop(key.name, None)
             self._immutable_services.discard(key.name)
             self._frozen_services.discard(key.name)
 
-            # Record audit trail
             self._record_action(key.name, "unregister", caller_info, True)
 
     def clear(self, *, force: bool = False) -> None:
@@ -291,7 +279,6 @@ class EnhancedServiceRegistry:
                 )
                 raise RuntimeError("Cannot clear registry in production without force=True")
 
-            # Check for final services
             final_services = [
                 name for name, key in self._service_keys.items() if key.final and not force
             ]
@@ -316,23 +303,17 @@ class EnhancedServiceRegistry:
             self._record_action("*", "clear", caller_info, True)
 
     def list_services(self) -> list[str]:
-        """List all registered service names."""
         with self._lock:
             return list(set(self._services.keys()) | set(self._factories.keys()))
 
     def report_unused(self) -> list[str]:
-        """Return keys that were registered but never resolved."""
         with self._lock:
             registered = set(self._services) | set(self._factories)
             used = set(k for k, n in self._resolve_hits.items() if n > 0)
             return sorted(registered - used)
 
     def freeze(self, services: list[str] | None = None) -> None:
-        """Freeze the registry or specific services to prevent further modifications.
-
-        Args:
-            services: List of service names to freeze. If None, freezes entire registry.
-        """
+        """Freeze registry or specific services to prevent modifications."""
         caller_info = self._get_caller_info()
 
         with self._lock:
@@ -348,15 +329,7 @@ class EnhancedServiceRegistry:
             self._record_action(target, action, caller_info, True)
 
     def unfreeze(self, services: list[str] | None = None, *, force: bool = False) -> None:
-        """Unfreeze the registry or specific services.
-
-        Args:
-            services: List of service names to unfreeze. If None, unfreezes entire registry.
-            force: Force unfreezing even in production
-
-        Raises:
-            RuntimeError: If attempting to unfreeze in production without force
-        """
+        """Unfreeze registry or specific services (requires force=True in production)."""
         caller_info = self._get_caller_info()
 
         with self._lock:
@@ -384,14 +357,6 @@ class EnhancedServiceRegistry:
             self._record_action(target, action, caller_info, True)
 
     def is_frozen(self, service: str | None = None) -> bool:
-        """Check if registry or specific service is frozen.
-
-        Args:
-            service: Service name to check. If None, checks entire registry.
-
-        Returns:
-            True if frozen, False otherwise
-        """
         with self._lock:
             if service is None:
                 return self._frozen
@@ -399,27 +364,15 @@ class EnhancedServiceRegistry:
 
     @contextmanager
     def temporary_override(self, overrides: dict[EnhancedServiceKey[Any], Any]):
-        """Context manager for temporary service overrides (testing only).
-
-        Args:
-            overrides: Dictionary of service keys to temporary values
-
-        Yields:
-            None
-
-        Raises:
-            RuntimeError: If used in production environment
-        """
+        """Context manager for temporary service overrides (testing only)."""
         if self._environment == "production":
             raise RuntimeError("Temporary overrides not allowed in production")
 
         caller_info = self._get_caller_info()
         original_values = {}
 
-        # Store original values and apply overrides
         with self._lock:
             for key, value in overrides.items():
-                # Store original if it exists
                 if key.name in self._services:
                     original_values[key] = ("service", self._services[key.name])
                 elif key.name in self._factories:
@@ -427,7 +380,6 @@ class EnhancedServiceRegistry:
                 else:
                     original_values[key] = None
 
-                # Apply override
                 if callable(value) and not hasattr(value, "__self__"):
                     self._factories[key.name] = value
                     self._services.pop(key.name, None)
@@ -446,11 +398,9 @@ class EnhancedServiceRegistry:
         try:
             yield
         finally:
-            # Restore original values
             with self._lock:
                 for key, original in original_values.items():
                     if original is None:
-                        # Service didn't exist originally, remove it
                         self._services.pop(key.name, None)
                         self._factories.pop(key.name, None)
                     else:
@@ -473,38 +423,16 @@ class EnhancedServiceRegistry:
     def override(
         self, key: EnhancedServiceKey[T], service: T | Callable[[], T], *, reason: str = ""
     ) -> None:
-        """Explicitly override a service (sugar for register with override=True).
-
-        Args:
-            key: Service key to override
-            service: New service instance or factory
-            reason: Reason for override (for audit trail)
-        """
+        """Explicitly override a service."""
         self.register(key, service, override=True, override_reason=reason)
 
     def get_audit_trail(self, service: str | None = None) -> list[RegistrationRecord]:
-        """Get audit trail for all services or a specific service.
-
-        Args:
-            service: Service name to filter by. If None, returns all records.
-
-        Returns:
-            List of registration records
-        """
         with self._lock:
             if service is None:
                 return self._audit_trail.copy()
             return [record for record in self._audit_trail if record.service_key == service]
 
     def get_service_info(self, service: str) -> dict[str, Any] | None:
-        """Get comprehensive information about a service.
-
-        Args:
-            service: Service name
-
-        Returns:
-            Service information dictionary or None if not found
-        """
         with self._lock:
             if service not in self._services and service not in self._factories:
                 return None
@@ -526,11 +454,7 @@ class EnhancedServiceRegistry:
             }
 
     def validate_dependencies(self) -> list[str]:
-        """Validate that all service dependencies are satisfied.
-
-        Returns:
-            List of missing dependencies
-        """
+        """Return list of missing dependencies."""
         missing = []
         with self._lock:
             for service_name, key in self._service_keys.items():
@@ -540,7 +464,6 @@ class EnhancedServiceRegistry:
         return missing
 
     def create_child(self, **services: object) -> ChildServiceRegistry:
-        """Create a child registry with inheritance."""
         return ChildServiceRegistry(parent=self, **services)
 
     def _check_registration_constraints(
@@ -551,22 +474,18 @@ class EnhancedServiceRegistry:
         override_reason: str | None,
         caller_info: str,
     ) -> None:
-        """Check all registration constraints."""
-        # Check if registry is frozen
         if self._frozen and exists and not override:
             self._record_action(
                 key.name, "register_failed", caller_info, False, error_message="Registry is frozen"
             )
             raise RuntimeError(f"Registry is frozen; refusing to rebind '{key.name}'")
 
-        # Check if specific service is frozen
         if key.name in self._frozen_services and not override:
             self._record_action(
                 key.name, "register_failed", caller_info, False, error_message="Service is frozen"
             )
             raise RuntimeError(f"Service '{key.name}' is frozen; use override=True if necessary")
 
-        # Check final constraint
         stored_key = self._service_keys.get(key.name)
         if stored_key and stored_key.final and self._environment != "testing":
             self._record_action(
@@ -580,7 +499,6 @@ class EnhancedServiceRegistry:
                 f"Cannot override final service '{key.name}' (except in testing environment)"
             )
 
-        # Check immutable constraint
         if key.name in self._immutable_services:
             self._record_action(
                 key.name,
@@ -591,7 +509,6 @@ class EnhancedServiceRegistry:
             )
             raise RuntimeError(f"Cannot override immutable service '{key.name}'")
 
-        # Check general override policy
         if exists and not (override or self._allow_override):
             self._record_action(
                 key.name,
@@ -605,7 +522,6 @@ class EnhancedServiceRegistry:
                 f"(env={self._environment}, allow_override={self._allow_override})"
             )
 
-        # Require reason for overrides in production
         if (
             exists
             and override
@@ -632,7 +548,6 @@ class EnhancedServiceRegistry:
         error_message: str | None = None,
         override_reason: str | None = None,
     ) -> None:
-        """Record an action in the audit trail."""
         if not self._enable_audit:
             return
 
@@ -647,7 +562,6 @@ class EnhancedServiceRegistry:
             override_reason=override_reason,
         )
 
-        # Keep audit trail bounded
         if len(self._audit_trail) > self._audit_max_records:
             # Keep last 80% of max records when trimming
             keep_count = int(self._audit_max_records * 0.8)
@@ -657,11 +571,9 @@ class EnhancedServiceRegistry:
 
     @staticmethod
     def _get_caller_info() -> str:
-        """Get caller information for audit trail."""
         import inspect
 
         try:
-            # Skip this method and the calling registry method
             frame = inspect.currentframe()
             if frame and frame.f_back and frame.f_back.f_back:
                 caller_frame = frame.f_back.f_back
@@ -669,13 +581,11 @@ class EnhancedServiceRegistry:
                 line_no = caller_frame.f_lineno
                 func_name = caller_frame.f_code.co_name
 
-                # Make path relative to project root
                 if "/DiPeO/" in filename:
                     filename = filename.split("/DiPeO/", 1)[1]
 
                 return f"{filename}:{line_no} in {func_name}()"
         except (AttributeError, KeyError):
-            # Specific exceptions that might occur when inspecting frames
             pass
 
         return "unknown:0 in unknown()"
@@ -685,14 +595,11 @@ class ChildServiceRegistry(EnhancedServiceRegistry):
     """Service registry with parent inheritance and enhanced safety."""
 
     def __init__(self, parent: EnhancedServiceRegistry, **services: object) -> None:
-        # Inherit parent's configuration but allow overrides for testing
         super().__init__(
-            allow_override=True,  # Child registries allow overrides by default
+            allow_override=True,
             enable_audit=parent._enable_audit,
         )
         self._parent = parent
-
-        # Set environment from parent
         self._environment = parent._environment
 
         for name, service in services.items():
@@ -700,22 +607,18 @@ class ChildServiceRegistry(EnhancedServiceRegistry):
             self.register(key, service)
 
     def resolve(self, key: EnhancedServiceKey[T]) -> T:
-        """Resolve a service, checking parent if not found locally."""
         try:
             return super().resolve(key)
         except KeyError:
             return self._parent.resolve(key)
 
     def has(self, key: EnhancedServiceKey[T]) -> bool:
-        """Check if a service is registered in self or parent."""
         return super().has(key) or self._parent.has(key)
 
     def has_local(self, key: EnhancedServiceKey[T]) -> bool:
-        """Check if service exists in local registry only."""
         return super().has(key)
 
     def get_service_info(self, service: str) -> dict[str, Any] | None:
-        """Get service info, checking local first then parent."""
         info = super().get_service_info(service)
         if info is not None:
             info["source"] = "local"
@@ -727,38 +630,25 @@ class ChildServiceRegistry(EnhancedServiceRegistry):
         return parent_info
 
 
-# Decorator functions for creating enhanced service keys
 def final_service(name: str, **kwargs) -> EnhancedServiceKey[Any]:
-    """Create a final service key that cannot be overridden."""
     return EnhancedServiceKey[Any](name=name, final=True, **kwargs)
 
 
 def immutable_service(name: str, **kwargs) -> EnhancedServiceKey[Any]:
-    """Create an immutable service key that cannot be overridden after first registration."""
     return EnhancedServiceKey[Any](name=name, immutable=True, **kwargs)
 
 
 def core_service(name: str, **kwargs) -> EnhancedServiceKey[Any]:
-    """Create a core infrastructure service key."""
     return EnhancedServiceKey[Any](name=name, service_type=ServiceType.CORE, **kwargs)
 
 
 def domain_service(name: str, **kwargs) -> EnhancedServiceKey[Any]:
-    """Create a domain service key."""
     return EnhancedServiceKey[Any](name=name, service_type=ServiceType.DOMAIN, **kwargs)
 
 
-# Context manager for test-safe service registration
 @contextmanager
 def test_registry_context(base_registry: EnhancedServiceRegistry | None = None):
-    """Create a test-safe registry context.
-
-    Args:
-        base_registry: Base registry to inherit from. If None, creates isolated registry.
-
-    Yields:
-        EnhancedServiceRegistry: Test registry instance
-    """
+    """Create a test-safe registry context for testing."""
     if base_registry is None:
         test_registry = EnhancedServiceRegistry(allow_override=True, enable_audit=True)
         test_registry._environment = "testing"
@@ -768,10 +658,8 @@ def test_registry_context(base_registry: EnhancedServiceRegistry | None = None):
     try:
         yield test_registry
     finally:
-        # Cleanup is automatic when context exits
         pass
 
 
-# Backward compatibility aliases (maintain old ServiceKey interface)
 ServiceKey = EnhancedServiceKey
 ServiceRegistry = EnhancedServiceRegistry

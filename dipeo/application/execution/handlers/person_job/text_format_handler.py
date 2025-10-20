@@ -42,7 +42,7 @@ class TextFormatHandler:
         return None
 
     def _load_from_file(self, file_path: str) -> str | None:
-        """Load Pydantic models from external file."""
+        """Load Pydantic model definition from external file."""
         if not os.path.isabs(file_path):
             file_path = os.path.join(self._base_dir, file_path)
 
@@ -54,7 +54,6 @@ class TextFormatHandler:
                 logger.error(f"Failed to read text_format_file {file_path}: {e}")
         else:
             logger.warning(f"text_format_file not found: {file_path}")
-
         return None
 
     def _compile_pydantic_model(self, content: str) -> type[BaseModel] | None:

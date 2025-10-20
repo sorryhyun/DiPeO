@@ -82,12 +82,14 @@ class TypedExecutionEngine:
 
             # Initialize the unified event pipeline
             parent_execution_id = options.get("parent_execution_id")
+            is_lightweight = options.get("is_lightweight", False)
             event_pipeline = EventPipeline(
                 execution_id=str(execution_state.id),
                 diagram_id=str(execution_state.diagram_id),
                 event_bus=self.event_bus,
                 state_tracker=context.state,
                 parent_execution_id=parent_execution_id,
+                is_lightweight=is_lightweight,
             )
 
             from dipeo.infrastructure.execution.logging_handler import setup_execution_logging

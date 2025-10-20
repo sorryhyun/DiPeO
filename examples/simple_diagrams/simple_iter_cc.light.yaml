@@ -38,21 +38,11 @@ nodes:
     memorize_to: ALL_MESSAGES
     person: person 1
 connections:
-- from: start
-  to: printer
-  content_type: raw_text
-- from: printer
-  to: condition
-  content_type: conversation_state
-- from: condition_condfalse
-  to: printer
-  content_type: conversation_state
-- from: condition_condtrue
-  to: ask
-  content_type: conversation_state
-- from: ask
-  to: endpoint
-  content_type: raw_text
+- { from: start,      to: printer,      content_type: raw_text }
+- { from: printer,      to: condition,      content_type: conversation_state }
+- { from: "condition[condfalse]",      to: printer,      content_type: conversation_state }
+- { from: "condition[condtrue]",      to: ask,      content_type: conversation_state }
+- { from: ask,      to: endpoint,      content_type: raw_text }
 persons:
   person 1:
     service: claude-code

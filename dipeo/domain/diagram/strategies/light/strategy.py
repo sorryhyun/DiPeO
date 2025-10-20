@@ -64,7 +64,6 @@ class LightYamlStrategy(_YamlMixin, BaseConversionStrategy):
         )
         diagram_dict = self.transformer.apply_format_transformations(diagram_dict, data)
 
-        # Convert to array-based format and validate
         array_based_dict = diagram_maps_to_arrays(diagram_dict)
 
         if "metadata" in diagram_dict:

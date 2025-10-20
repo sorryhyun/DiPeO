@@ -186,11 +186,16 @@ export function createEntitySubscription<TData = any, TVariables extends Operati
 ) {
   return (variables?: TVariables, overrideOptions?: SubscriptionHookOptions<TData, TVariables>) => {
     // Determine the fetch policy, excluding cache-and-network which is not valid for subscriptions
-    const fetchPolicy = config.cacheStrategy === 'cache-and-network'
-      ? 'network-only'
-      : (config.cacheStrategy as 'cache-first' | 'network-only' | 'no-cache' | 'cache-only' | undefined) ||
-        config.options?.fetchPolicy ||
-        overrideOptions?.fetchPolicy;
+    // Convert cache-and-network to network-only for subscriptions
+    const convertForSubscription = (policy: string | undefined): 'cache-first' | 'network-only' | 'no-cache' | 'cache-only' | 'standby' | undefined => {
+      if (policy === 'cache-and-network') return 'network-only';
+      return policy as 'cache-first' | 'network-only' | 'no-cache' | 'cache-only' | 'standby' | undefined;
+    };
+
+    const fetchPolicy: 'cache-first' | 'network-only' | 'no-cache' | 'cache-only' | 'standby' | undefined =
+      convertForSubscription(config.cacheStrategy) ||
+      convertForSubscription(config.options?.fetchPolicy) ||
+      convertForSubscription(overrideOptions?.fetchPolicy);
 
     const mergedOptions: SubscriptionHookOptions<TData, TVariables> = {
       ...config.options,

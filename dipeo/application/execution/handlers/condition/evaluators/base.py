@@ -9,35 +9,18 @@ from dipeo.domain.execution.context.execution_context import ExecutionContext
 
 
 class EvaluationResult(TypedDict):
-    """Result of condition evaluation."""
-
     result: bool
     metadata: dict[str, Any]
     output_data: dict[str, Any] | None
 
 
 class ConditionEvaluator(Protocol):
-    """Protocol for condition-specific evaluators."""
-
     async def evaluate(
         self, node: ConditionNode, context: ExecutionContext, inputs: dict[str, Any]
-    ) -> EvaluationResult:
-        """Evaluate the condition.
-
-        Args:
-            node: The condition node
-            context: Execution context (contains diagram)
-            inputs: Input data
-
-        Returns:
-            Evaluation result with metadata
-        """
-        ...
+    ) -> EvaluationResult: ...
 
 
 class BaseConditionEvaluator(ABC):
-    """Base class for condition evaluators with common functionality."""
-
     def extract_node_outputs(self, context: ExecutionContext) -> dict[str, Any]:
         node_outputs = {}
         all_nodes = context.diagram.get_nodes_by_type(None) or context.diagram.nodes

@@ -10,21 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 def serialize_data(data: Any, format_type: str | None) -> str:
-    """Serialize data to string based on format type.
-
-    Args:
-        data: Data to serialize (dict, list, or any object)
-        format_type: Format type ("json", "yaml", "text", or None)
-
-    Returns:
-        Serialized string representation
-
-    Example:
-        >>> serialize_data({"key": "value"}, "json")
-        '{\n  "key": "value"\n}'
-        >>> serialize_data({"key": "value"}, "yaml")
-        'key: value\n'
-    """
+    """Serialize data to JSON, YAML, or text string."""
     if format_type == "json":
         return json.dumps(data, indent=2)
     elif format_type == "yaml":
@@ -37,21 +23,7 @@ def serialize_data(data: Any, format_type: str | None) -> str:
 
 
 def deserialize_data(content: str, format_type: str | None) -> Any:
-    """Deserialize string content based on format type.
-
-    Args:
-        content: String content to deserialize
-        format_type: Format type ("json", "yaml", "text", or None)
-
-    Returns:
-        Deserialized data (dict, list, str, or original content on error)
-
-    Example:
-        >>> deserialize_data('{"key": "value"}', "json")
-        {'key': 'value'}
-        >>> deserialize_data('key: value', "yaml")
-        {'key': 'value'}
-    """
+    """Parse JSON/YAML content, returning original string on parse errors."""
     if not content:
         return content
 

@@ -40,7 +40,10 @@ class CompletionHandlers(LoggingMixin):
     ) -> MemorySelectionOutput:
         """Direct memory selection without domain adapter."""
         if not criteria or not criteria.strip():
-            return MemorySelectionOutput([])
+            return MemorySelectionOutput(message_ids=[])
+
+        if not candidate_messages:
+            return MemorySelectionOutput(message_ids=[])
 
         trace_id = kwargs.get("trace_id", kwargs.get("execution_id", ""))
         node_id = "memory_selector"

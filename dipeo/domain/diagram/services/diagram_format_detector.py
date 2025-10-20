@@ -73,13 +73,11 @@ class DiagramFormatDetector:
     def validate_diagram_structure(
         self, data: DomainDiagram | dict[str, Any], format: DiagramFormat | None = None
     ) -> None:
-        # Convert DomainDiagram to dict for validation
         if isinstance(data, DomainDiagram):
             data = data.model_dump()
         elif not isinstance(data, dict):
             raise ValidationError("Diagram data must be a DomainDiagram or dictionary")
 
-        # Auto-detect format if not provided
         if format is None:
             is_light_format = data.get("version") == "light" or (
                 isinstance(data.get("nodes"), list) and "connections" in data and "persons" in data
@@ -167,7 +165,6 @@ class DiagramFormatDetector:
 
         patterns = []
 
-        # Check if already has valid extension
         has_valid_extension = any(
             diagram_id.endswith(ext) for ext in [".light.yaml", ".native.json", ".readable.yaml"]
         )
@@ -176,7 +173,6 @@ class DiagramFormatDetector:
             patterns.append(diagram_id)
             return patterns
 
-        # Add patterns with format-specific extensions
         for format in formats:
             ext = self.get_file_extension(format)
             patterns.append(f"{diagram_id}{ext}")
@@ -197,14 +193,12 @@ class DiagramFormatDetector:
     def transform_for_export(
         self, diagram: DomainDiagram | dict[str, Any], target_format: DiagramFormat
     ) -> dict[str, Any]:
-        # Convert DomainDiagram to dict if needed
         if isinstance(diagram, DomainDiagram):
             diagram = diagram.model_dump()
 
         cleaned = self._clean_enum_values(diagram)
 
         if target_format == DiagramFormat.LIGHT:
-            # Simplify metadata for light format
             if "metadata" in cleaned:
                 cleaned["metadata"] = {
                     k: v
@@ -212,7 +206,6 @@ class DiagramFormatDetector:
                     if k in ["name", "version", "description"]
                 }
         elif target_format == DiagramFormat.READABLE:
-            # Add readable annotations
             if "nodes" in cleaned:
                 for node in cleaned["nodes"]:
                     if "type" in node:

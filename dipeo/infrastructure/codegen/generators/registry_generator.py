@@ -1,7 +1,6 @@
-"""Simple generator for frontend node registry imports - Version 2.
-Handles glob results directly without intermediate extraction.
-"""
+"""Generator for frontend node registry imports."""
 
+from pathlib import Path
 from typing import Any
 
 from dipeo.infrastructure.codegen.templates.filters.case_filters import CaseFilters
@@ -9,16 +8,7 @@ from dipeo.infrastructure.codegen.utils import parse_dipeo_output
 
 
 def extract_node_types_from_glob(glob_results: dict[str, Any]) -> list[str]:
-    """Extract node types directly from glob results.
-
-    Args:
-        glob_results: Dict with file paths as keys from DB glob operation
-
-    Returns:
-        List of node type strings
-    """
-    from pathlib import Path
-
+    """Extract node types from glob results containing file paths."""
     node_types = []
 
     for filepath in glob_results:
@@ -79,8 +69,7 @@ def generate_simple_registry(node_types: list[str]) -> str:
 
 
 def main(inputs: dict[str, Any]) -> dict[str, Any]:
-    """Entry point for code_job node - handles glob results directly."""
-
+    """Entry point for code_job node."""
     raw_results = inputs["default"]
 
     if isinstance(raw_results, str):

@@ -1,6 +1,6 @@
 # Comprehensive DiPeO Light Diagram Guide
 
-## Table of Contents
+## Table of Contents {#table-of-contents}
 
 1. [Introduction](#introduction)
    - [Key Principles](#key-principles)
@@ -16,11 +16,11 @@
 10. [Production Patterns](#production-patterns)
 11. [Debugging and Troubleshooting](#debugging-and-troubleshooting)
 
-## Introduction
+## Introduction {#introduction}
 
 DiPeO Light format is a human-readable YAML syntax for creating executable diagrams. It's designed for rapid prototyping, complex orchestration, and production workflows. This guide covers everything from basic concepts to advanced patterns used in DiPeO's own code generation system.
 
-### Key Principles
+### Key Principles {#key-principles}
 
 1. **Label-based Identity**: Nodes are identified by human-readable labels instead of UUIDs
 2. **Explicit Data Flow**: Connection labels define variable names for downstream nodes
@@ -28,7 +28,7 @@ DiPeO Light format is a human-readable YAML syntax for creating executable diagr
 4. **Composability**: Diagrams can be nested and composed via sub-diagrams
 5. **Visual Execution**: All diagrams can be visualized and monitored in real-time
 
-### IDE Support and Auto-completion
+### IDE Support and Auto-completion {#ide-support-and-auto-completion}
 
 DiPeO provides comprehensive JSON Schema for IDE support with auto-completion, real-time validation, and inline documentation.
 
@@ -67,9 +67,9 @@ nodes:
 - Field alias mappings (e.g., `language` ⟷ `code_type`)
 - Connection validation
 
-## Core Concepts
+## Core Concepts {#core-concepts}
 
-### Diagram Structure
+### Diagram Structure {#diagram-structure}
 
 ```yaml
 version: light  # Required version identifier
@@ -98,7 +98,7 @@ connections:
     label: variable_name    # Variable name in target node
 ```
 
-### Shorthand Notation for Node Properties
+### Shorthand Notation for Node Properties {#shorthand-notation-for-node-properties}
 
 **One of DiPeO's most convenient features**: You can specify node properties **directly** without the `props:` wrapper!
 
@@ -148,7 +148,7 @@ nodes:
       timeout: 30
 ```
 
-### Field Compatibility and Mapping
+### Field Compatibility and Mapping {#field-compatibility-and-mapping}
 
 DiPeO provides backward compatibility through automatic field mapping:
 
@@ -161,7 +161,7 @@ DiPeO provides backward compatibility through automatic field mapping:
 
 These mappings ensure existing diagrams continue to work while supporting newer field names. You can use either name in shorthand or traditional notation.
 
-### Connection Syntax
+### Connection Syntax {#connection-syntax}
 
 DiPeO supports two equivalent YAML syntaxes for connections:
 
@@ -179,7 +179,7 @@ connections:
 connections:
   # Simple connection
   - {from: Source Node, to: Target Node}
-  
+
   # With additional properties
   - {from: Source Node, to: Target Node, content_type: raw_text, label: variable_name}
 ```
@@ -189,16 +189,119 @@ Both formats are functionally identical. The compact format is useful for:
 - Keeping related connections visually grouped
 - Reducing file length for large diagrams
 
-### Node Labels and References
+### Handle Syntax for Connections {#handle-syntax-for-connections}
+
+When connecting to specific handles (input/output ports) on nodes, DiPeO supports two syntaxes:
+
+**Bracket Syntax (Recommended):**
+```yaml
+connections:
+  # Explicit handle references using brackets
+  - {from: "condition[condtrue]", to: success_handler, content_type: conversation_state}
+  - {from: "condition[condfalse]", to: retry_handler, content_type: conversation_state}
+  - {from: start, to: "analyzer[first]", content_type: raw_text}
+```
+
+**Underscore Syntax (Legacy):**
+```yaml
+connections:
+  # Implicit handle references using underscores
+  - {from: condition_condtrue, to: success_handler, content_type: conversation_state}
+  - {from: condition_condfalse, to: retry_handler, content_type: conversation_state}
+  - {from: start, to: analyzer_first, content_type: raw_text}
+```
+
+**Key Differences:**
+
+| Feature | Bracket Syntax | Underscore Syntax |
+|---------|---------------|-------------------|
+| Readability | More explicit and clear | Can be ambiguous |
+| Validation | Strict - errors on invalid handles | Permissive - auto-creates handles |
+| Export | Normalized on export | Converted to bracket syntax |
+| Quoting | Requires quotes in flow syntax | No quotes needed |
+| Recommended | ✅ Yes | For backward compatibility only |
+
+**YAML Quoting Requirements:**
+
+When using bracket syntax in compact (flow) format, **you must quote the value**:
+
+```yaml
+# ✅ Correct - quoted bracket syntax
+connections:
+  - {from: "condition[condtrue]", to: next_node}
+
+# ❌ Wrong - unquoted will cause YAML parse error
+connections:
+  - {from: condition[condtrue], to: next_node}
+
+# ✅ Alternative - use multi-line format (no quotes needed)
+connections:
+  - from: condition[condtrue]
+    to: next_node
+```
+
+**Available Handles by Node Type:**
+
+Different node types have different available handles:
+
+| Node Type | Input Handles | Output Handles |
+|-----------|---------------|----------------|
+| `start` | None | `default` |
+| `endpoint` | `default` | None |
+| `condition` | `default` | `condtrue`, `condfalse` |
+| `person_job` | `first`, `default` | `default` |
+| `user_response` | `default` | `default` |
+| `db` | `default` | `default` |
+| Most others | `default` | `default` |
+
+**Validation:**
+
+- **Bracket syntax** performs strict validation - the diagram will fail to load if you reference a handle that doesn't exist for that node type
+- **Underscore syntax** is permissive - missing handles are auto-created with type `ANY`
+- Use bracket syntax to catch errors early during diagram development
+
+**Examples:**
+
+```yaml
+nodes:
+- label: condition
+  type: condition
+  position: {x: 300, y: 200}
+  condition_type: detect_max_iterations
+
+- label: continue_loop
+  type: person_job
+  position: {x: 500, y: 100}
+  person: assistant
+
+- label: end_loop
+  type: person_job
+  position: {x: 500, y: 300}
+  person: assistant
+
+connections:
+  # ✅ Valid - condtrue is a valid output handle for condition nodes
+  - {from: "condition[condtrue]", to: end_loop, content_type: conversation_state}
+
+  # ✅ Valid - condfalse is a valid output handle for condition nodes
+  - {from: "condition[condfalse]", to: continue_loop, content_type: conversation_state}
+
+  # ❌ Invalid - would fail validation (myhandle doesn't exist for condition)
+  # - {from: "condition[myhandle]", to: continue_loop}
+  # Error: Handle 'myhandle' does not exist as output handle for node 'condition' of type 'condition'.
+  # Available output handles: ['condtrue', 'condfalse']
+```
+
+### Node Labels and References {#node-labels-and-references}
 
 - Labels must be unique within a diagram
 - Spaces in labels are allowed: `label: Data Processing Step`
 - Duplicate labels auto-increment: `Process` → `Process~1`
-- Condition nodes create special handles: `Check Value_condtrue`, `Check Value_condfalse`
+- When using handles, prefer bracket syntax over underscore suffix for clarity
 
-## Node Types Reference
+## Node Types Reference {#node-types-reference}
 
-### 1. START Node
+### 1. START Node {#1-start-node}
 
 Entry point for diagram execution. Every diagram must have exactly one.
 
@@ -219,7 +322,7 @@ Entry point for diagram execution. Every diagram must have exactly one.
 - Variables are accessible via template syntax: `{{config.timeout}}`
 - Can be triggered manually or automatically
 
-### 2. PERSON_JOB Node
+### 2. PERSON_JOB Node {#2-person_job-node}
 
 Executes prompts with LLM agents, supporting iteration and memory management.
 
@@ -277,11 +380,11 @@ The `prompt_file` property allows you to reference external prompt files instead
   - Version controlling prompts separately
 - If both `prompt_file` and inline prompts are specified, the external file takes precedence
 
-### 3. CODE_JOB Node
+### 3. CODE_JOB Node {#3-code_job-node}
 
 Executes code in multiple languages with full access to input variables.
 
-#### Inline Code
+#### Inline Code {#inline-code}
 
 **Using Shorthand Notation (Recommended):**
 ```yaml
@@ -317,7 +420,7 @@ Executes code in multiple languages with full access to input variables.
       result = process(data)
 ```
 
-#### External Code (Recommended for Complex Logic)
+#### External Code (Recommended for Complex Logic) {#external-code-recommended-for-complex-logic}
 
 **Using Shorthand Notation:**
 ```yaml
@@ -379,7 +482,7 @@ def validate_data(raw_data, **kwargs):
 - External files relative to project root
 - Function receives all inputs as keyword arguments
 
-### 4. CONDITION Node
+### 4. CONDITION Node {#4-condition-node}
 
 Controls flow based on boolean expressions, built-in conditions, or LLM-based decisions.
 
@@ -448,7 +551,7 @@ The evaluator intelligently parses LLM responses to extract boolean decisions:
 - `NodeLabel_condtrue`: When condition evaluates to true
 - `NodeLabel_condfalse`: When condition evaluates to false
 
-### 5. DB Node
+### 5. DB Node {#5-db-node}
 
 File system operations for reading/writing data.
 
@@ -513,7 +616,7 @@ File system operations for reading/writing data.
 - Glob patterns (with `glob: true`): Expands to all matching files, returns as dictionary
 - JSON files are NOT auto-parsed unless `serialize_json: true` is set
 
-### 6. ENDPOINT Node
+### 6. ENDPOINT Node {#6-endpoint-node}
 
 Saves results to files with format conversion.
 
@@ -532,7 +635,7 @@ Saves results to files with format conversion.
 - `yaml`: Converts to YAML format
 - `txt`/`md`: Saves text content as-is
 
-### 7. API_JOB Node
+### 7. API_JOB Node {#7-api_job-node}
 
 HTTP requests with template support.
 
@@ -557,7 +660,7 @@ HTTP requests with template support.
 - Automatic JSON serialization for body
 - Response available as text to downstream nodes
 
-### 8. SUB_DIAGRAM Node
+### 8. SUB_DIAGRAM Node {#8-sub_diagram-node}
 
 Execute another diagram as a node, enabling modular composition.
 
@@ -589,7 +692,7 @@ Execute another diagram as a node, enabling modular composition.
 - `batch_parallel`: Run batch items concurrently
 - `ignoreIfSub`: Skip if already running as sub-diagram
 
-### 9. TEMPLATE_JOB Node
+### 9. TEMPLATE_JOB Node {#9-template_job-node}
 
 Advanced template rendering with Jinja2.
 
@@ -612,7 +715,7 @@ Advanced template rendering with Jinja2.
 - Direct file output
 - Access to all upstream variables
 
-### 10. USER_RESPONSE Node
+### 10. USER_RESPONSE Node {#10-user_response-node}
 
 Interactive user input during execution.
 
@@ -626,7 +729,7 @@ Interactive user input during execution.
     validation_type: text  # or number, boolean
 ```
 
-### 11. HOOK Node
+### 11. HOOK Node {#11-hook-node}
 
 Execute external hooks like shell commands, webhooks, Python scripts, or file operations.
 
@@ -668,7 +771,7 @@ Execute external hooks like shell commands, webhooks, Python scripts, or file op
         data: "{{input_data}}"
 ```
 
-### 12. INTEGRATED_API Node
+### 12. INTEGRATED_API Node {#12-integrated_api-node}
 
 Execute operations on various API providers (Notion, Slack, GitHub, etc.).
 
@@ -698,7 +801,7 @@ Execute operations on various API providers (Notion, Slack, GitHub, etc.).
     api_key_id: APIKEY_SLACK_XXX
 ```
 
-### 13. JSON_SCHEMA_VALIDATOR Node
+### 13. JSON_SCHEMA_VALIDATOR Node {#13-json_schema_validator-node}
 
 Validate JSON data against a schema.
 
@@ -719,7 +822,7 @@ Validate JSON data against a schema.
     strict: true  # Fail on validation errors
 ```
 
-### 14. TYPESCRIPT_AST Node
+### 14. TYPESCRIPT_AST Node {#14-typescript_ast-node}
 
 Parse and analyze TypeScript code using Abstract Syntax Tree.
 
@@ -736,9 +839,9 @@ Parse and analyze TypeScript code using Abstract Syntax Tree.
 ```
 
 
-## Data Flow and Variable Resolution
+## Data Flow and Variable Resolution {#data-flow-and-variable-resolution}
 
-### Connection Labels Are Critical
+### Connection Labels Are Critical {#connection-labels-are-critical}
 
 Connection labels define variable names in the target node:
 
@@ -763,7 +866,7 @@ connections:
   # Templates: {{raw_data}}, {{config}}
 ```
 
-### Content Types
+### Content Types {#content-types}
 
 Control how data transforms between nodes:
 
@@ -784,16 +887,16 @@ Control how data transforms between nodes:
   content_type: object
 ```
 
-### Variable Scope and Propagation
+### Variable Scope and Propagation {#variable-scope-and-propagation}
 
 1. **Start Node Variables**: Available globally via `custom_data`
 2. **Connection Variables**: Scoped to target node
 3. **Code Variables**: `result` or return value propagates
 4. **Template Variables**: All upstream variables accessible
 
-## Advanced Patterns
+## Advanced Patterns {#advanced-patterns}
 
-### 1. Iterative Processing with Conditions
+### 1. Iterative Processing with Conditions {#1-iterative-processing-with-conditions}
 
 ```yaml
 nodes:
@@ -835,7 +938,7 @@ connections:
     to: Save Results
 ```
 
-### 2. Multi-Agent Debate Pattern
+### 2. Multi-Agent Debate Pattern {#2-multi-agent-debate-pattern}
 
 ```yaml
 persons:
@@ -891,7 +994,7 @@ nodes:
       # No memorize_to = keep all messages
 ```
 
-### 3. LLM-Based Quality Control
+### 3. LLM-Based Quality Control {#3-llm-based-quality-control}
 
 Using `llm_decision` for automated quality checks in code generation:
 
@@ -963,7 +1066,7 @@ connections:
 
 This pattern ensures generated code meets quality standards before deployment, using AI to evaluate code quality objectively.
 
-### 4. Error Handling and Retry Logic
+### 4. Error Handling and Retry Logic {#4-error-handling-and-retry-logic}
 
 ```yaml
 nodes:
@@ -1002,7 +1105,7 @@ nodes:
         result = retry_count
 ```
 
-### 4. Dynamic Batch Processing
+### 4. Dynamic Batch Processing {#4-dynamic-batch-processing}
 
 ```yaml
 nodes:
@@ -1048,9 +1151,9 @@ nodes:
         }
 ```
 
-## Sub-Diagrams and Modular Composition
+## Sub-Diagrams and Modular Composition {#sub-diagrams-and-modular-composition}
 
-### Basic Sub-Diagram Usage
+### Basic Sub-Diagram Usage {#basic-sub-diagram-usage}
 
 ```yaml
 # Parent diagram
@@ -1072,7 +1175,7 @@ nodes:
       passInputData: true  # Pass all variables to sub-diagram
 ```
 
-### Batch Processing with Sub-Diagrams
+### Batch Processing with Sub-Diagrams {#batch-processing-with-sub-diagrams}
 
 ```yaml
 # Parent diagram - processes multiple files
@@ -1095,7 +1198,7 @@ nodes:
       batch_parallel: true
 ```
 
-### Conditional Sub-Diagram Execution
+### Conditional Sub-Diagram Execution {#conditional-sub-diagram-execution}
 
 ```yaml
 nodes:
@@ -1133,9 +1236,9 @@ connections:
     to: Run Dev Pipeline
 ```
 
-## Error Handling and Resilience
+## Error Handling and Resilience {#error-handling-and-resilience}
 
-### 1. Graceful Degradation
+### 1. Graceful Degradation {#1-graceful-degradation}
 
 ```yaml
 nodes:
@@ -1174,7 +1277,7 @@ connections:
     to: Process Data
 ```
 
-### 2. Validation and Error Collection
+### 2. Validation and Error Collection {#2-validation-and-error-collection}
 
 ```yaml
 nodes:
@@ -1212,7 +1315,7 @@ nodes:
       file_path: files/logs/validation_errors.json
 ```
 
-### 3. Timeout and Circuit Breaker Pattern
+### 3. Timeout and Circuit Breaker Pattern {#3-timeout-and-circuit-breaker-pattern}
 
 ```yaml
 nodes:
@@ -1240,9 +1343,9 @@ nodes:
             result = {"circuit_open": False, "state": state}
 ```
 
-## Performance Optimization
+## Performance Optimization {#performance-optimization}
 
-### 1. Parallel Execution Strategies
+### 1. Parallel Execution Strategies {#1-parallel-execution-strategies}
 
 ```yaml
 # Parallel data fetching
@@ -1267,7 +1370,7 @@ nodes:
       batch_parallel: true  # Fetch all sources concurrently
 ```
 
-### 2. Caching Strategies
+### 2. Caching Strategies {#2-caching-strategies}
 
 ```yaml
 nodes:
@@ -1295,7 +1398,7 @@ nodes:
             result = {"hit": False, "cache_file": cache_file}
 ```
 
-### 3. Batch vs Sequential Processing
+### 3. Batch vs Sequential Processing {#3-batch-vs-sequential-processing}
 
 ```yaml
 # Choose strategy based on data size
@@ -1326,16 +1429,16 @@ nodes:
       expression: use_batch
 ```
 
-## Best Practices
+## Best Practices {#best-practices}
 
-### 1. Node Organization
+### 1. Node Organization {#1-node-organization}
 
 - **Group related nodes visually**: Use x-coordinates to show flow progression
 - **Use descriptive labels**: `Validate User Input` not `Step 3`
 - **Consistent positioning**: Increment x by 200-400 for readability
 - **Handle positions**: Use `flipped` property for cleaner layouts
 
-### 2. Variable Naming
+### 2. Variable Naming {#2-variable-naming}
 
 ```yaml
 connections:
@@ -1350,7 +1453,7 @@ connections:
     label: data
 ```
 
-### 3. External Code Organization
+### 3. External Code Organization {#3-external-code-organization}
 
 **When to Use External Code Files:**
 - Code longer than 10-15 lines
@@ -1403,7 +1506,7 @@ files/
     # filePath: files/code/processors/data_processor.py
 ```
 
-### 4. Error Messages and Logging
+### 4. Error Messages and Logging {#4-error-messages-and-logging}
 
 ```yaml
 - label: Process with Logging
@@ -1423,7 +1526,7 @@ files/
           result = {"success": False, "error": str(e)}
 ```
 
-### 5. Testing Diagrams
+### 5. Testing Diagrams {#5-testing-diagrams}
 
 ```yaml
 # Test harness diagram
@@ -1457,9 +1560,9 @@ nodes:
             raise AssertionError(f"{len(failures)} tests failed")
 ```
 
-## Production Patterns
+## Production Patterns {#production-patterns}
 
-### 1. Configuration Management
+### 1. Configuration Management {#1-configuration-management}
 
 ```yaml
 nodes:
@@ -1481,7 +1584,7 @@ nodes:
         result = config
 ```
 
-### 2. Monitoring and Metrics
+### 2. Monitoring and Metrics {#2-monitoring-and-metrics}
 
 ```yaml
 nodes:
@@ -1512,7 +1615,7 @@ nodes:
         result = metrics
 ```
 
-### 3. Graceful Shutdown
+### 3. Graceful Shutdown {#3-graceful-shutdown}
 
 ```yaml
 nodes:
@@ -1540,7 +1643,7 @@ nodes:
       expression: not status["shutdown"] and current_item < total_items
 ```
 
-### 4. Deployment Patterns
+### 4. Deployment Patterns {#4-deployment-patterns}
 
 ```yaml
 # Blue-green deployment checker
@@ -1563,9 +1666,9 @@ nodes:
             result = {"deploy": True, "current": current, "target": target}
 ```
 
-## Debugging and Troubleshooting
+## Debugging and Troubleshooting {#debugging-and-troubleshooting}
 
-### 1. Debug Mode Execution
+### 1. Debug Mode Execution {#1-debug-mode-execution}
 
 ```bash
 # Run with debug output
@@ -1578,7 +1681,7 @@ dipeo run my_diagram --light --debug --timeout=300
 dipeo run my_diagram --light --debug --input-data '{"user_id": 123}'
 ```
 
-### 2. Debugging Nodes
+### 2. Debugging Nodes {#2-debugging-nodes}
 
 ```yaml
 - label: Debug State
@@ -1595,7 +1698,7 @@ dipeo run my_diagram --light --debug --input-data '{"user_id": 123}'
       result = input_data
 ```
 
-### 3. Execution Monitoring
+### 3. Execution Monitoring {#3-execution-monitoring}
 
 ```yaml
 # Add monitoring nodes
@@ -1609,7 +1712,7 @@ dipeo run my_diagram --light --debug --input-data '{"user_id": 123}'
       result = input_data
 ```
 
-### 4. Common Issues and Solutions
+### 4. Common Issues and Solutions {#4-common-issues-and-solutions}
 
 **Issue: Variable not found in template**
 ```yaml
@@ -1646,7 +1749,7 @@ expression: score > 80  # 'score' might be string
 expression: float(score) > 80  # Explicit conversion
 ```
 
-### 5. Performance Profiling
+### 5. Performance Profiling {#5-performance-profiling}
 
 ```yaml
 nodes:
@@ -1673,7 +1776,7 @@ nodes:
             f.write(s.getvalue())
 ```
 
-## Conclusion
+## Conclusion {#conclusion}
 
 DiPeO Light format provides a powerful, readable way to create complex workflows. By understanding the node types, data flow patterns, and best practices outlined in this guide, you can create efficient, maintainable, and production-ready diagrams.
 
@@ -1687,7 +1790,7 @@ Key takeaways:
 
 The examples and patterns shown here are derived from DiPeO's own code generation system, demonstrating that Light format can handle sophisticated real-world workflows while remaining readable and maintainable.
 
-## Complete Node Types Reference
+## Complete Node Types Reference {#complete-node-types-reference}
 
 DiPeO currently supports **15 node types**:
 

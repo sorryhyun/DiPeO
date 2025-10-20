@@ -10,8 +10,6 @@ from .session import DomainSession
 
 
 class ProcessingStage(Enum):
-    """Processing stage enumeration."""
-
     INITIAL = "initial"
     PREPROCESSED = "preprocessed"
     CONVERTED = "converted"
@@ -20,8 +18,6 @@ class ProcessingStage(Enum):
 
 
 class ChangeType(Enum):
-    """Type of change made during processing."""
-
     EVENT_PRUNED = "event_pruned"
     FIELD_REMOVED = "field_removed"
     EVENT_MODIFIED = "event_modified"
@@ -32,8 +28,6 @@ class ChangeType(Enum):
 
 @dataclass
 class ProcessingChange:
-    """Record of a change made during processing."""
-
     stage: ProcessingStage
     change_type: ChangeType
     description: str
@@ -42,7 +36,6 @@ class ProcessingChange:
     details: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
-        """Convert to dictionary."""
         return {
             "stage": self.stage.value,
             "change_type": self.change_type.value,
@@ -55,8 +48,6 @@ class ProcessingChange:
 
 @dataclass
 class ProcessingStats:
-    """Statistics about the processing."""
-
     total_events_input: int = 0
     total_events_output: int = 0
     events_pruned: int = 0
@@ -66,7 +57,6 @@ class ProcessingStats:
     memory_usage_mb: float | None = None
 
     def get_reduction_ratio(self) -> float:
-        """Calculate the reduction ratio."""
         if self.total_events_input == 0:
             return 0.0
         return 1.0 - (self.total_events_output / self.total_events_input)
@@ -87,8 +77,6 @@ class ProcessingStats:
 
 @dataclass
 class ConversionMapping:
-    """Mapping between source and converted elements."""
-
     source_id: str
     target_id: str
     element_type: str  # event, node, connection
@@ -96,7 +84,6 @@ class ConversionMapping:
     confidence: float = 1.0  # confidence in the mapping
 
     def to_dict(self) -> dict:
-        """Convert to dictionary."""
         return {
             "source_id": self.source_id,
             "target_id": self.target_id,
@@ -108,9 +95,6 @@ class ConversionMapping:
 
 @dataclass
 class PreprocessedData:
-    """Domain model for preprocessed session data."""
-
-    # Core data
     session: DomainSession
     stage: ProcessingStage = ProcessingStage.INITIAL
 
@@ -130,14 +114,12 @@ class PreprocessedData:
     extracted_patterns: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
-        """Initialize processed events from session if not set."""
         if not self.processed_events and self.session.events:
             self.processed_events = self.session.events.copy()
             self.stats.total_events_input = len(self.session.events)
             self.stats.total_events_output = len(self.processed_events)
 
     def validate(self) -> list[str]:
-        """Validate preprocessed data integrity."""
         errors = []
 
         # Validate session
@@ -165,7 +147,6 @@ class PreprocessedData:
         target_id: str | None = None,
         details: dict | None = None,
     ) -> None:
-        """Record a processing change."""
         change = ProcessingChange(
             stage=self.stage,
             change_type=change_type,
@@ -183,7 +164,6 @@ class PreprocessedData:
         transformation: str,
         confidence: float = 1.0,
     ) -> None:
-        """Add a conversion mapping."""
         mapping = ConversionMapping(
             source_id=source_id,
             target_id=target_id,
@@ -194,11 +174,9 @@ class PreprocessedData:
         self.mappings.append(mapping)
 
     def update_stage(self, new_stage: ProcessingStage) -> None:
-        """Update the processing stage."""
         self.stage = new_stage
 
     def prune_event(self, event_uuid: str, reason: str) -> bool:
-        """Prune an event from processed events."""
         initial_count = len(self.processed_events)
         self.processed_events = [e for e in self.processed_events if e.uuid != event_uuid]
 
@@ -214,7 +192,6 @@ class PreprocessedData:
         return False
 
     def get_processing_summary(self) -> dict:
-        """Get a summary of the processing."""
         return {
             "session_id": self.session.session_id,
             "stage": self.stage.value,
@@ -230,7 +207,6 @@ class PreprocessedData:
         }
 
     def to_dict(self) -> dict:
-        """Convert to dictionary representation."""
         return {
             "session": self.session.to_dict(),
             "stage": self.stage.value,

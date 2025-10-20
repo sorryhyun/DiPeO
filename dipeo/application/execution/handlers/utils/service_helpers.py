@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 def normalize_service_key(
     key: Union["ServiceKey", str],
 ) -> tuple["ServiceKey", str]:
-    """Convert a service key to normalized (ServiceKey, name) form."""
+    """Convert service key to (ServiceKey, name) tuple."""
     from dipeo.application.registry import ServiceKey
 
     if isinstance(key, str):
@@ -21,7 +21,7 @@ def resolve_required_service(
     services: Union[dict[str, Any], "ServiceRegistry"],
     key: Union["ServiceKey", str],
 ) -> Any:
-    """Resolve a required service, raising KeyError if not found."""
+    """Resolve required service, raising KeyError if missing."""
     service_key, name = normalize_service_key(key)
 
     if isinstance(services, dict):
@@ -37,7 +37,7 @@ def resolve_optional_service(
     key: Union["ServiceKey", str],
     default: Any = None,
 ) -> Any:
-    """Resolve an optional service, returning default if not found."""
+    """Resolve optional service, returning default if missing."""
     service_key, name = normalize_service_key(key)
 
     if isinstance(services, dict):
@@ -53,7 +53,7 @@ def has_service(
     services: Union[dict[str, Any], "ServiceRegistry"],
     key: Union["ServiceKey", str],
 ) -> bool:
-    """Check if a service exists in the service container."""
+    """Check if service exists in container."""
     service_key, name = normalize_service_key(key)
 
     if isinstance(services, dict):

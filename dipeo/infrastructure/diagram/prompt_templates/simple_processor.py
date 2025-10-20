@@ -16,7 +16,6 @@ class SimpleTemplateProcessor(TemplateProcessorPort):
     without requiring a full template engine like Jinja2.
     """
 
-    # Regex patterns for different template syntaxes
     VARIABLE_PATTERN = re.compile(r"\{\{(\s*[\w\.\[\]]+\s*)\}\}")
     CONDITIONAL_PATTERN = re.compile(
         r"\{\{#(if|unless)\s+([\w\.\[\]]+)\}\}(.*?)\{\{/\1\}\}", re.DOTALL

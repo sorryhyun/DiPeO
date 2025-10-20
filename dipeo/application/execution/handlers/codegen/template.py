@@ -1,9 +1,8 @@
 import hashlib
-import logging
 import time
 from importlib import import_module
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import Any, ClassVar
 
 from pydantic import BaseModel
 
@@ -14,11 +13,7 @@ from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER, TEMPLATE_RENDERER
 from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.unified_nodes.template_job_node import NodeType, TemplateJobNode
-from dipeo.domain.codegen.ports import TemplateRendererPort
 from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
-
-if TYPE_CHECKING:
-    pass
 
 logger = get_module_logger(__name__)
 
@@ -33,10 +28,8 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
 
     NODE_TYPE = NodeType.TEMPLATE_JOB
 
-    # Class-level cache for deduplication
-    # Key: (file_path, content_hash), Value: (timestamp, node_id)
     _recent_writes: ClassVar[dict[tuple[str, str], tuple[float, str]]] = {}
-    _DEDUP_WINDOW_SECONDS = 2.0  # Deduplicate writes within 2 seconds
+    _DEDUP_WINDOW_SECONDS = 2.0
 
     def __init__(self):
         super().__init__()
@@ -117,28 +110,9 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
 
         return False
 
-    def _resolve_dotted_path(self, dotted: str, ctx: dict) -> Any:
-        """Resolve a dotted path like 'a.b.c' into the context."""
-        current = ctx
-        for part in dotted.split("."):
-            if isinstance(current, dict):
-                current = current.get(part)
-            elif isinstance(current, list) and part.isdigit():
-                idx = int(part)
-                current = current[idx] if idx < len(current) else None
-            else:
-                current = getattr(current, part, None)
-            if current is None:
-                break
-        return current
-
     async def prepare_inputs(
         self, request: ExecutionRequest[TemplateJobNode], inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Prepare template variables from envelopes and node configuration.
-
-        Phase 5: Now consumes tokens from incoming edges when available.
-        """
         from datetime import datetime
 
         envelope_inputs = self.get_effective_inputs(request, inputs)
@@ -195,23 +169,12 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
         if node.template_content:
             template_content = node.template_content
         else:
-            # Check if template_path is actually a string
             if not isinstance(node.template_path, str):
-                logger.error(
-                    f"[TEMPLATE ERROR] template_path is not a string: {type(node.template_path)} - {node.template_path}"
-                )
                 raise TypeError(f"template_path must be a string, got {type(node.template_path)}")
 
-            try:
-                processed_template_path = (
-                    await template_service.render_string(node.template_path, template_vars)
-                ).strip()
-            except Exception as e:
-                logger.error(f"[TEMPLATE ERROR] Failed to process template_path for node {node.id}")
-                logger.error(f"[TEMPLATE ERROR] template_path: {node.template_path}")
-                logger.error(f"[TEMPLATE ERROR] template_path type: {type(node.template_path)}")
-                logger.error(f"[TEMPLATE ERROR] Error: {e}")
-                raise
+            processed_template_path = (
+                await template_service.render_string(node.template_path, template_vars)
+            ).strip()
 
             template_path = Path(processed_template_path)
 
@@ -222,17 +185,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
                 template_content = f.read().decode("utf-8")
 
         if engine in ("internal", "jinja2"):
-            try:
-                rendered = await template_service.render_string(template_content, template_vars)
-            except Exception as e:
-                logger.error(
-                    f"[TEMPLATE ERROR] Failed to render template for node {node.id} ({node.label})"
-                )
-                logger.error(f"[TEMPLATE ERROR] Template path: {node.template_path}")
-                logger.error(f"[TEMPLATE ERROR] Template content preview: {template_content[:200]}")
-                logger.error(f"[TEMPLATE ERROR] Available variables: {list(template_vars.keys())}")
-                logger.error(f"[TEMPLATE ERROR] Error details: {e}")
-                raise
+            rendered = await template_service.render_string(template_content, template_vars)
         else:
             rendered = template_content
 
@@ -253,11 +206,7 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
 
             with filesystem_adapter.open(output_path, "wb") as f:
                 f.write(rendered.encode("utf-8"))
-            self._current_output_path = output_path
-        else:
-            logger.info(
-                "[TEMPLATE_JOB DEBUG] No output_path specified, returning rendered content only"
-            )
+            request.set_handler_state("current_output_path", output_path)
 
         return rendered
 
@@ -298,6 +247,5 @@ class TemplateJobNodeHandler(TypedNodeHandler[TemplateJobNode]):
     def post_execute(
         self, request: ExecutionRequest[TemplateJobNode], output: Envelope
     ) -> Envelope:
-        """Phase 5: Now emits output as tokens to trigger downstream nodes."""
         self.emit_token_outputs(request, output)
         return output

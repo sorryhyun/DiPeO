@@ -14,7 +14,6 @@ from dipeo.application.execution.handlers.hook.shell_executor import execute_she
 from dipeo.application.execution.handlers.hook.webhook_executor import execute_webhook_hook
 from dipeo.application.execution.handlers.utils import (
     create_error_body,
-    serialize_data,
     validate_config_field,
 )
 from dipeo.application.registry.keys import FILESYSTEM_ADAPTER
@@ -28,9 +27,6 @@ from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 @requires_services(filesystem_adapter=(FILESYSTEM_ADAPTER, Optional))
 class HookNodeHandler(TypedNodeHandler[HookNode]):
     NODE_TYPE = NodeType.HOOK
-
-    def __init__(self):
-        super().__init__()
 
     @property
     def node_class(self) -> type[HookNode]:
@@ -117,13 +113,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
 
     async def run(self, inputs: dict[str, Any], request: ExecutionRequest[HookNode]) -> Any:
         node = request.node
-
-        try:
-            result = await self._execute_hook(node, inputs, request)
-            return result
-        finally:
-            if hasattr(self, "_temp_filesystem_adapter"):
-                delattr(self, "_temp_filesystem_adapter")
+        return await self._execute_hook(node, inputs, request)
 
     def serialize_output(self, result: Any, request: ExecutionRequest[HookNode]) -> Envelope:
         node = request.node
@@ -134,7 +124,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
         exit_code = 0
         if isinstance(result, dict):
             if "status" in result:
-                success = result["status"] != "timeout" and result["status"] != "error"
+                success = result["status"] not in ("timeout", "error")
             if "returncode" in result:
                 exit_code = result["returncode"]
 
@@ -178,9 +168,7 @@ class HookNodeHandler(TypedNodeHandler[HookNode]):
     async def _execute_python_hook(
         self, node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]
     ) -> Any:
-        """Python hooks are kept in the main handler as they're simpler and
-        don't require extensive external dependencies.
-        """
+        """Execute Python script in isolated subprocess for security."""
         config = node.config
         script = config.get("script")
 

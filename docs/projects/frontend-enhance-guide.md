@@ -1,12 +1,12 @@
 # Frontend Enhance Guide
 
-## Overview
+## Overview {#overview}
 
 The `frontend_enhance` project represents an advanced AI-driven system for generating production-ready React frontend applications through iterative prompt refinement and intelligent memory management. Using a multi-agent architecture within DiPeO, it automatically improves generation prompts until the output meets production quality standards.
 
 **Key Innovation**: An autonomous quality feedback loop combined with an intelligent memory selector system that enables AI agents to collaborate on complex applications while maintaining precise context control across sections.
 
-## System Architecture
+## System Architecture {#system-architecture}
 
 ```
 Configuration → Section Planning → Memory Selection → Code Generation → Quality Evaluation
@@ -21,9 +21,9 @@ The system orchestrates specialized AI agents in an intelligent feedback loop:
 3. **Frontend Generator** - Produces React/TypeScript code with precise context
 4. **Code Evaluator** - Assesses quality and provides improvement feedback
 
-## Core Components
+## Core Components {#core-components}
 
-### 1. Configuration System (`frontend_enhance_config.json`)
+### 1. Configuration System (`frontend_enhance_config.json`) {#1-configuration-system-frontend_enhance_configjson}
 
 Defines comprehensive requirements for modern frontend applications:
 
@@ -54,7 +54,7 @@ Defines comprehensive requirements for modern frontend applications:
 - Offline functionality (service workers, local storage)
 - Internationalization (i18n/l10n, RTL support)
 
-### 2. Consolidated Generation Pipeline (`consolidated_generator.light.yaml`)
+### 2. Consolidated Generation Pipeline (`consolidated_generator.light.yaml`) {#2-consolidated-generation-pipeline-consolidated_generatorlightyaml}
 
 The main workflow implementing section-based generation with intelligent memory management:
 
@@ -83,7 +83,7 @@ nodes:
 4. Write section results and continue to next section
 5. Compile and organize all generated files into runnable application
 
-### 3. Memory Selector System
+### 3. Memory Selector System {#3-memory-selector-system}
 
 Intelligent context management system that enables generation of complex applications by selecting only relevant prior sections:
 
@@ -121,7 +121,7 @@ class MemorySelector:
 - **Limited**: Enforces strict memory limits with intelligent prioritization
 - **GOLDFISH**: No memory retention (fresh context each section)
 
-### 4. Code Extraction & Setup (`extract_and_setup_app.py`)
+### 4. Code Extraction & Setup (`extract_and_setup_app.py`) {#4-code-extraction-setup-extract_and_setup_apppy}
 
 Sophisticated system to transform AI output into runnable React apps:
 
@@ -154,7 +154,7 @@ def create_app_files(app_path: Path, files: Dict[str, str]):
 - **Component discovery**: Finds and showcases generated components
 - **Configuration generation**: Creates Vite, TypeScript, Tailwind configs
 
-### 5. Quality Evaluation System
+### 5. Quality Evaluation System {#5-quality-evaluation-system}
 
 **Scoring Criteria** (100 points total):
 - **Code Correctness** (25 points): Compilation, imports, logic
@@ -167,11 +167,11 @@ def create_app_files(app_path: Path, files: Dict[str, str]):
 - Identifies missing instructions in the prompt
 - Provides specific enhancement recommendations
 
-## Generated Applications
+## Generated Applications {#generated-applications}
 
 The system has successfully generated multiple production-ready apps:
 
-### 1. SmartList App (`smartlist-app/`)
+### 1. SmartList App (`smartlist-app/`) {#1-smartlist-app-smartlist-app}
 Advanced list component with:
 - Virtualization for performance
 - Filtering and sorting
@@ -179,14 +179,14 @@ Advanced list component with:
 - Error boundaries
 - Context-based state management
 
-### 2. List App (`list-app/`)
+### 2. List App (`list-app/`) {#2-list-app-list-app}
 Data-driven list with:
 - React Query/SWR adapters
 - SSR support
 - Accessibility testing
 - Storybook stories
 
-### 3. MyComponent App (`mycomponent-app/`)
+### 3. MyComponent App (`mycomponent-app/`) {#3-mycomponent-app-mycomponent-app}
 Full-featured component with:
 - WebSocket real-time updates
 - Optimistic UI updates
@@ -194,16 +194,16 @@ Full-featured component with:
 - Comprehensive test suite
 - CI/CD configuration
 
-### 4. Generated App (`generated-app/`)
+### 4. Generated App (`generated-app/`) {#4-generated-app-generated-app}
 Latest iteration output with:
 - i18n support
 - Design system tokens
 - Mock service workers
 - Offline functionality
 
-## Workflow Execution
+## Workflow Execution {#workflow-execution}
 
-### Step 1: Configure Requirements
+### Step 1: Configure Requirements {#step-1-configure-requirements}
 
 Update `frontend_enhance_config.json`:
 ```json
@@ -218,7 +218,7 @@ Update `frontend_enhance_config.json`:
 }
 ```
 
-### Step 2: Run Consolidated Generation Pipeline
+### Step 2: Run Consolidated Generation Pipeline {#step-2-run-consolidated-generation-pipeline}
 
 ```bash
 dipeo run projects/frontend_enhance/consolidated_generator --light --debug --timeout=300
@@ -239,7 +239,7 @@ memory_modes:
   goldfish: {memorize_to: "GOLDFISH"}  # No memory
 ```
 
-### Step 3: Monitor Progress
+### Step 3: Monitor Progress {#step-3-monitor-progress}
 
 The system processes sections sequentially, showing:
 - Section planning with architectural decisions
@@ -247,7 +247,7 @@ The system processes sections sequentially, showing:
 - Code generation building on established patterns
 - File organization and dependency management
 
-### Step 4: Run Generated App
+### Step 4: Run Generated App {#step-4-run-generated-app}
 
 ```bash
 # Automatic run script created
@@ -259,9 +259,9 @@ pnpm install
 pnpm dev
 ```
 
-## Advanced Features
+## Advanced Features {#advanced-features}
 
-### 1. Intelligent Memory Selection
+### 1. Intelligent Memory Selection {#1-intelligent-memory-selection}
 
 The memory selector enables complex applications by managing context intelligently:
 
@@ -287,7 +287,7 @@ def calculate_memory_limit(section_index, total_sections):
 - **Efficiency**: Process only relevant information, reducing token usage
 - **Quality**: Better code generation through precise context selection
 
-### 2. Multi-Format Code Extraction
+### 2. Multi-Format Code Extraction {#2-multi-format-code-extraction}
 
 Handles various AI output formats:
 ```javascript
@@ -296,14 +296,14 @@ Handles various AI output formats:
 // File: src/hooks/useData.ts
 ```
 
-### 3. Intelligent Dependency Resolution
+### 3. Intelligent Dependency Resolution {#3-intelligent-dependency-resolution}
 
 Detects and installs only needed packages:
 - Analyzes imports and code patterns
 - Adds dev dependencies for testing
 - Configures build tools appropriately
 
-### 4. Component Showcase Generation
+### 4. Component Showcase Generation {#4-component-showcase-generation}
 
 Automatically creates demo pages:
 ```tsx
@@ -314,7 +314,7 @@ Automatically creates demo pages:
 />
 ```
 
-### 5. Section-Based Progressive Enhancement
+### 5. Section-Based Progressive Enhancement {#5-section-based-progressive-enhancement}
 
 Each section builds on architectural foundation with intelligent context:
 - Section 1-3: Core components with minimal dependencies
@@ -332,9 +332,9 @@ section = {
 }
 ```
 
-## Prompt Engineering Insights
+## Prompt Engineering Insights {#prompt-engineering-insights}
 
-### Effective Prompt Patterns
+### Effective Prompt Patterns {#effective-prompt-patterns}
 
 The system has discovered optimal prompt structures:
 
@@ -356,7 +356,7 @@ The system has discovered optimal prompt structures:
    ✅ "Optimize for Core Web Vitals: LCP < 2.5s, FID < 100ms, CLS < 0.1"
    ```
 
-### Learned Best Practices
+### Learned Best Practices {#learned-best-practices}
 
 Through section-based generation, the system has learned:
 
@@ -368,9 +368,9 @@ Through section-based generation, the system has learned:
 6. **Manage Memory Limits**: Balance context richness with processing efficiency
 7. **Specify Technical Requirements**: React 18+, TypeScript 5+, specific patterns
 
-## Quality Metrics
+## Quality Metrics {#quality-metrics}
 
-### Success Indicators
+### Success Indicators {#success-indicators}
 
 **High-Quality Output** (Score 85+):
 - Zero TypeScript errors across all sections
@@ -389,7 +389,7 @@ Through section-based generation, the system has learned:
 - Proper component integration and dependencies
 - Optimized bundle with code splitting
 
-### Common Issues Addressed
+### Common Issues Addressed {#common-issues-addressed}
 
 1. **Context Overload**: Resolved with intelligent memory selection
 2. **Inconsistent Patterns**: Fixed through section-based architecture planning
@@ -400,9 +400,9 @@ Through section-based generation, the system has learned:
 7. **No Error Handling**: Added error boundary requirements across sections
 8. **Performance Issues**: Included specific optimization techniques in memory selection
 
-## Integration Patterns
+## Integration Patterns {#integration-patterns}
 
-### With Existing Codebases
+### With Existing Codebases {#with-existing-codebases}
 
 Generated components can be integrated:
 ```tsx
@@ -416,7 +416,7 @@ import { SmartList } from './generated/SmartList'
 />
 ```
 
-### As Standalone Apps
+### As Standalone Apps {#as-standalone-apps}
 
 Run as independent applications:
 ```bash
@@ -428,7 +428,7 @@ pnpm build
 pnpm preview
 ```
 
-### In Component Libraries
+### In Component Libraries {#in-component-libraries}
 
 Extract for reuse:
 ```bash
@@ -439,39 +439,39 @@ cp -r smartlist-app/src/components/SmartList ../component-library/
 npm publish
 ```
 
-## Best Practices
+## Best Practices {#best-practices}
 
-### 1. Configuration Strategy
+### 1. Configuration Strategy {#1-configuration-strategy}
 
 - Start with minimal requirements
 - Add complexity progressively
 - Set realistic target scores (80-85 for most apps)
 - Allow sufficient iterations (3-5)
 
-### 2. Prompt Refinement
+### 2. Prompt Refinement {#2-prompt-refinement}
 
 - Review generated prompts each iteration
 - Identify patterns in successful prompts
 - Build a library of effective prompt sections
 - Version control successful prompts
 
-### 3. Code Validation
+### 3. Code Validation {#3-code-validation}
 
 - Always run generated code locally
 - Test with real data
 - Verify accessibility with tools
 - Check bundle sizes
 
-### 4. Iteration Management
+### 4. Iteration Management {#4-iteration-management}
 
 - Save intermediate outputs
 - Track score progression
 - Document what worked
 - Build on successes
 
-## Troubleshooting
+## Troubleshooting {#troubleshooting}
 
-### Low Quality Scores
+### Low Quality Scores {#low-quality-scores}
 
 **Problem**: Score stuck below 70
 **Solution**: 
@@ -480,7 +480,7 @@ npm publish
 - Increase max iterations
 - Review evaluator feedback carefully
 
-### Extraction Failures
+### Extraction Failures {#extraction-failures}
 
 **Problem**: Code not properly extracted
 **Solution**:
@@ -488,7 +488,7 @@ npm publish
 - Update extraction patterns
 - Ensure consistent file naming
 
-### Dependency Issues
+### Dependency Issues {#dependency-issues}
 
 **Problem**: Missing packages when running
 **Solution**:
@@ -496,7 +496,7 @@ npm publish
 - Manually add to package.json
 - Run `pnpm install` again
 
-### Build Errors
+### Build Errors {#build-errors}
 
 **Problem**: TypeScript or build failures
 **Solution**:
@@ -504,9 +504,9 @@ npm publish
 - Check for version mismatches
 - Ensure all imports are correct
 
-## Future Enhancements
+## Future Enhancements {#future-enhancements}
 
-### Planned Features
+### Planned Features {#planned-features}
 
 1. **Enhanced Memory Intelligence**: Machine learning-based context selection
 2. **Cross-Section Validation**: Ensure consistency across all generated sections
@@ -517,7 +517,7 @@ npm publish
 7. **Visual Preview**: Real-time rendering during section-based generation
 8. **Incremental Test Generation**: Tests for each section as it's generated
 
-### Research Directions
+### Research Directions {#research-directions}
 
 - **Memory Learning**: ML-based optimization of memory selection criteria
 - **Context Compression**: Efficient representation of prior sections
@@ -528,7 +528,7 @@ npm publish
 - **Security Scanning**: Automated vulnerability detection across sections
 - **Incremental Refactoring**: Update prior sections when patterns evolve
 
-## Comparison with dipeodipeo
+## Comparison with dipeodipeo {#comparison-with-dipeodipeo}
 
 While both projects use AI generation:
 
@@ -543,7 +543,7 @@ While both projects use AI generation:
 | **Validation** | Code quality scoring + consistency | Syntax checking |
 | **Complexity** | Deep (section planning + memory) | Broad (any workflow) |
 
-## Conclusion
+## Conclusion {#conclusion}
 
 The `frontend_enhance` project demonstrates the power of intelligent memory management combined with section-based code generation. By integrating memory selection, architectural planning, and quality evaluation within DiPeO's orchestration, it achieves scalable generation of production-ready frontend applications that maintain consistency across complex codebases.
 

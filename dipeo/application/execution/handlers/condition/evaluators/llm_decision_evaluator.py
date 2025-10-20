@@ -1,6 +1,5 @@
 """Evaluator for LLM-based decision conditions."""
 
-import logging
 from typing import Any
 
 from dipeo.config.base_logger import get_module_logger
@@ -13,14 +12,12 @@ logger = get_module_logger(__name__)
 
 
 class LLMDecisionEvaluator(BaseConditionEvaluator):
-    """Evaluator that uses LLM to make binary decisions."""
-
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self._orchestrator = None
-        self._prompt_builder = None
+        self._orchestrator: Any | None = None
+        self._prompt_builder: Any | None = None
 
-    def set_services(self, orchestrator, prompt_builder):
+    def set_services(self, orchestrator: Any, prompt_builder: Any) -> None:
         self._orchestrator = orchestrator
         self._prompt_builder = prompt_builder
 

@@ -1,6 +1,5 @@
 """Evaluator for max iterations condition."""
 
-import logging
 from typing import Any
 
 from dipeo.application.execution.handlers.utils import get_node_execution_count
@@ -14,8 +13,6 @@ logger = get_module_logger(__name__)
 
 
 class MaxIterationsEvaluator(BaseConditionEvaluator):
-    """Evaluates whether all person_job nodes have reached max iterations."""
-
     async def evaluate(
         self, node: ConditionNode, context: ExecutionContext, inputs: dict[str, Any]
     ) -> EvaluationResult:
@@ -35,8 +32,6 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
             if exec_count > 0:
                 found_executed = True
 
-                node_state = context.state.get_node_state(node.id)
-
                 # Use >= because if exec_count equals max_iteration, we've done all iterations
                 if exec_count < node.max_iteration:
                     logger.debug(
@@ -50,7 +45,7 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
                     )
 
         result = found_executed and all_reached_max
-        output_data = inputs
+        output_data = inputs if inputs else {}
 
         if (
             hasattr(node, "expose_index_as")
@@ -62,7 +57,7 @@ class MaxIterationsEvaluator(BaseConditionEvaluator):
                 if isinstance(output_data, dict):
                     output_data[node.expose_index_as] = loop_value
                 else:
-                    output_data = {"data": output_data, node.expose_index_as: loop_value}
+                    output_data = {node.expose_index_as: loop_value}
 
         return EvaluationResult(
             result=result,

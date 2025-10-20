@@ -2,16 +2,19 @@
 
 This guide explains how to expose DiPeO's diagram execution capabilities as an MCP (Model Context Protocol) server, allowing external LLM applications (like Claude) to execute DiPeO diagrams as tools.
 
-## Overview
+## Overview {#overview}
 
 DiPeO's MCP server integration provides:
 
 1. **MCP Tool**: `dipeo_run` - Execute DiPeO diagrams remotely
 2. **MCP Resource**: `dipeo://diagrams` - List available diagrams
-3. **HTTP Transport**: Standard HTTP JSON-RPC 2.0 protocol
+3. **HTTP Transport**: Standard HTTP JSON-RPC 2.0 protocol (SDK-based implementation)
 4. **ngrok Integration**: HTTPS exposure for local development
+5. **Diagram Upload**: Compile and push diagrams via `dipeo compile --push-as`
 
-## Architecture
+**Protocol Version**: MCP 2024-11-05 (SDK-based, not legacy HTTP/SSE)
+
+## Architecture {#architecture}
 
 ```
 External LLM Client (Claude, etc.)
@@ -23,12 +26,28 @@ DiPeO CLI Runner
 Diagram Execution
 ```
 
-### Endpoints
+### Endpoints {#endpoints}
 
 - **GET /mcp/info** - Server information and capabilities
 - **POST /mcp/messages** - JSON-RPC 2.0 endpoint for tool calls and responses
 
-## Quick Start
+## Typical MCP Workflow {#typical-mcp-workflow}
+
+The DiPeO MCP server enables the following workflow:
+
+1. **Create/Validate Diagram**: Write a light diagram (see Light Diagram Guide)
+2. **Compile & Push**: Validate and upload diagram to MCP directory using `dipeo compile --push-as`
+3. **Automatic Discovery**: DiPeO MCP server scans `projects/mcp-diagrams/` and `examples/` directories
+4. **Expose via Resources**: Diagrams appear in `dipeo://diagrams` resource list
+5. **Execute via Tools**: MCP clients can execute diagrams using the `dipeo_run` tool
+
+**Key Benefits:**
+- **Safe by Design**: Only validated diagrams can be uploaded
+- **LLM-Friendly**: Diagrams can be created and pushed from text (stdin) without file access
+- **Immediate Availability**: Pushed diagrams are instantly available for execution
+- **Standard Protocol**: Uses JSON-RPC 2.0 and follows MCP specification
+
+## Quick Start {#quick-start}
 
 ### 1. Start DiPeO Server
 
@@ -75,7 +94,7 @@ curl -X POST http://localhost:8000/mcp/messages \
   }'
 ```
 
-### 3. Uploading Diagrams for MCP Access
+### 3. Uploading Diagrams for MCP Access {#uploading-diagrams}
 
 DiPeO provides a convenient way to make diagrams available via the MCP server using the `dipeo compile` command with the `--push-as` flag.
 
@@ -100,22 +119,32 @@ Compile, validate, and push to MCP directory in one command:
 dipeo compile my_diagram.light.yaml --light --push-as my_workflow
 
 # From stdin (LLM-friendly - no filesystem access needed!)
-echo 'nodes:
-  - id: start
-    type: start
-  - id: llm
-    type: llm_call
-    config:
-      model: gpt-5-nano-2025-08-07
-      system_prompt: "You are helpful"
-      user_prompt: "Hello"
-  - id: end
-    type: end
+cat <<'EOF' | dipeo compile --stdin --light --push-as my_workflow
+version: light
+nodes:
+- label: start
+  type: start
+  position: {x: 100, y: 100}
+  trigger_mode: manual
+- label: greet
+  type: person_job
+  position: {x: 300, y: 100}
+  default_prompt: Say hello
+  max_iteration: 1
+  person: assistant
+- label: end
+  type: endpoint
+  position: {x: 500, y: 100}
+  file_format: txt
 connections:
-  - from: start
-    to: llm
-  - from: llm
-    to: end' | dipeo compile --stdin --light --push-as my_workflow
+- {from: start, to: greet, content_type: raw_text}
+- {from: greet, to: end, content_type: raw_text}
+persons:
+  assistant:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+EOF
 
 # Custom target directory
 dipeo compile --stdin --light --push-as my_workflow --target-dir /custom/path
@@ -132,6 +161,33 @@ dipeo compile --stdin --light --push-as my_workflow --target-dir /custom/path
 The MCP server automatically scans this directory, making all pushed diagrams available for execution.
 
 **File Extensions**: The system automatically adds the correct extension (`.yaml` for light/readable, `.json` for native) based on the format type.
+
+**Verifying Upload**: After pushing, verify the diagram appears in the resource list:
+
+```bash
+curl -s -X POST http://localhost:8000/mcp/messages \
+  -H "Content-Type: application/json" \
+  -d '{"method": "resources/read", "params": {"uri": "dipeo://diagrams"}}' \
+  | python -m json.tool
+```
+
+The response will include your pushed diagram in the list:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": null,
+  "result": {
+    "contents": [
+      {
+        "uri": "dipeo://diagrams",
+        "mimeType": "text/plain",
+        "text": "{\"diagrams\": [{\"name\": \"my_workflow\", \"path\": \"/path/to/projects/mcp-diagrams/my_workflow.yaml\", \"format\": \"light\"}, ...]}"
+      }
+    ]
+  }
+}
+```
 
 ### 4. Expose via ngrok
 
@@ -192,13 +248,34 @@ Your MCP server is now accessible at:
 - Info: `https://abc123.ngrok-free.app/mcp/info`
 - Messages: `https://abc123.ngrok-free.app/mcp/messages`
 
-## Using with Claude Desktop
+## Quick Start: ChatGPT Integration {#quick-start-chatgpt-integration}
+
+For connecting DiPeO to ChatGPT:
+
+👉 **See [ChatGPT MCP Integration](./chatgpt-mcp-integration.md)**
+
+This guide shows you how to:
+- Configure DiPeO for MCP access
+- Use ngrok for HTTPS tunneling (with optional basic auth)
+- Connect ChatGPT to your DiPeO server
+- Execute diagrams from ChatGPT
+
+**Use this approach for:**
+- Local development and testing
+- ChatGPT integration
+- Password-protected access via ngrok basic auth
+
+## Using with Claude Desktop {#using-with-claude-desktop}
 
 To use the MCP server with Claude Desktop:
 
 ### 1. Configure MCP Client
 
-Add to Claude Desktop's MCP configuration (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+Add to Claude Desktop's MCP configuration:
+
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+**Linux**: `~/.config/Claude/claude_desktop_config.json`
 
 ```json
 {
@@ -213,25 +290,189 @@ Add to Claude Desktop's MCP configuration (`~/Library/Application Support/Claude
 }
 ```
 
+**For local testing without ngrok** (if Claude Desktop and DiPeO server are on the same machine):
+
+```json
+{
+  "mcpServers": {
+    "dipeo": {
+      "url": "http://localhost:8000/mcp/messages",
+      "transport": {
+        "type": "http"
+      }
+    }
+  }
+}
+```
+
 ### 2. Restart Claude Desktop
 
 Close and reopen Claude Desktop for the configuration to take effect.
 
-### 3. Use the Tool
+### 3. Verify Connection
 
-In Claude Desktop, you can now:
+In Claude Desktop, check the MCP connection status. You should see the DiPeO server listed with:
+- Tool: `dipeo_run`
+- Resource: `dipeo://diagrams`
 
+### 4. Use the Tool
+
+In Claude Desktop, you can now request diagram execution in natural language:
+
+**Example 1: Simple Execution**
 ```
 Execute the simple_iter diagram using DiPeO
 ```
 
-Claude will use the `dipeo_run` tool to execute the diagram.
+**Example 2: With Input Data**
+```
+Run the greeting_workflow diagram with input data: user_name = "Alice"
+```
 
-## Available Tools
+**Example 3: List Available Diagrams**
+```
+Show me what DiPeO diagrams are available
+```
+
+**Example 4: Create and Execute**
+```
+Create a new DiPeO workflow that greets a user, then push it to MCP and execute it
+```
+
+Claude will automatically:
+1. Use the `dipeo://diagrams` resource to discover available diagrams
+2. Call the `dipeo_run` tool to execute the diagram
+3. Return the execution results
+
+### 5. Advanced Usage
+
+**Execute with Timeout:**
+```
+Run the data_processing diagram with a 10-minute timeout
+```
+
+**Execute with Complex Input:**
+```
+Execute the analysis_workflow diagram with the following inputs:
+- dataset: "sales_2024"
+- analysis_type: "trend"
+- granularity: "monthly"
+```
+
+Claude Desktop will automatically format these requests into proper MCP tool calls.
+
+## Complete Example Workflow {#complete-example-workflow}
+
+Here's a complete end-to-end example of creating, uploading, and executing a diagram via MCP:
+
+### Step 1: Create a Simple Greeting Diagram
+
+Save this as `greeting.light.yaml`:
+
+```yaml
+version: light
+nodes:
+- label: start
+  type: start
+  position: {x: 100, y: 100}
+  trigger_mode: manual
+- label: greeter
+  type: person_job
+  position: {x: 300, y: 100}
+  default_prompt: Greet the user warmly
+  max_iteration: 1
+  person: assistant
+- label: end
+  type: endpoint
+  position: {x: 500, y: 100}
+  file_format: txt
+connections:
+- {from: start, to: greeter, content_type: raw_text}
+- {from: greeter, to: end, content_type: raw_text}
+persons:
+  assistant:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+```
+
+### Step 2: Compile and Push to MCP
+
+```bash
+# Validate and push in one command
+dipeo compile greeting.light.yaml --light --push-as greeting_workflow
+
+# Output:
+# ✅ Diagram compiled successfully: greeting.light.yaml
+#    Nodes: 3
+#    Edges: 2
+# ✅ Pushed diagram to: projects/mcp-diagrams/greeting_workflow.yaml
+#    Available via MCP server at: dipeo://diagrams/greeting_workflow.yaml
+```
+
+### Step 3: Verify Diagram is Available
+
+```bash
+# List all available diagrams
+curl -s -X POST http://localhost:8000/mcp/messages \
+  -H "Content-Type: application/json" \
+  -d '{"method": "resources/read", "params": {"uri": "dipeo://diagrams"}}' \
+  | python -m json.tool | grep greeting_workflow
+
+# You should see: "name": "greeting_workflow"
+```
+
+### Step 4: Execute via MCP Tool
+
+```bash
+# Execute the diagram
+curl -s -X POST http://localhost:8000/mcp/messages \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "dipeo_run",
+      "arguments": {
+        "diagram": "greeting_workflow",
+        "format_type": "light",
+        "timeout": 60
+      }
+    }
+  }' | python -m json.tool
+```
+
+### Step 5: Execute with Input Data
+
+```bash
+# Execute with custom input variables
+curl -s -X POST http://localhost:8000/mcp/messages \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "tools/call",
+    "params": {
+      "name": "dipeo_run",
+      "arguments": {
+        "diagram": "greeting_workflow",
+        "format_type": "light",
+        "input_data": {
+          "user_name": "Alice",
+          "greeting_style": "formal"
+        },
+        "timeout": 60
+      }
+    }
+  }' | python -m json.tool
+```
+
+## Available Tools {#available-tools}
 
 ### dipeo_run
 
-Execute a DiPeO diagram with optional input variables.
+Execute a DiPeO diagram with optional input variables (synchronous execution).
 
 **Parameters:**
 
@@ -261,9 +502,159 @@ Execute a DiPeO diagram with optional input variables.
 }
 ```
 
-## Available Resources
+### run_backend
 
-### dipeo://diagrams
+Start a DiPeO diagram execution in the background and return immediately (asynchronous execution).
+
+This tool starts diagram execution in a background process and returns a session ID that can be used with `see_result` to check status and retrieve results.
+
+**Use Cases:**
+- Long-running diagrams that exceed typical request timeouts
+- Parallel execution of multiple diagrams
+- Fire-and-forget workflows that don't require immediate results
+
+**Parameters:**
+
+- `diagram` (required, string) - Path or name of the diagram to execute
+- `input_data` (optional, object) - Input variables for diagram execution
+  - Default: `{}`
+- `format_type` (optional, string) - Diagram format type
+  - Options: `"light"`, `"native"`, `"readable"`
+  - Default: `"light"`
+- `timeout` (optional, integer) - Execution timeout in seconds
+  - Default: `300`
+
+**Example:**
+
+```json
+{
+  "name": "run_backend",
+  "arguments": {
+    "diagram": "long_running_analysis",
+    "format_type": "light",
+    "input_data": {
+      "dataset": "sales_2024"
+    },
+    "timeout": 600
+  }
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "session_id": "exec_9ebb3df7180a4a7383079680c28c6028",
+  "diagram": "long_running_analysis",
+  "status": "started",
+  "message": "Diagram execution started. Use see_result('exec_9ebb3df7180a4a7383079680c28c6028') to check status."
+}
+```
+
+### see_result {#see_result}
+
+Check status and retrieve results of a background diagram execution started with `run_backend`.
+
+**Parameters:**
+
+- `session_id` (required, string) - Session ID returned by `run_backend`
+
+**Example:**
+
+```json
+{
+  "name": "see_result",
+  "arguments": {
+    "session_id": "exec_9ebb3df7180a4a7383079680c28c6028"
+  }
+}
+```
+
+**Response (Running):**
+
+```json
+{
+  "session_id": "exec_9ebb3df7180a4a7383079680c28c6028",
+  "status": "running",
+  "diagram_id": "long_running_analysis",
+  "executed_nodes": ["node_0", "node_1", "node_2"],
+  "started_at": "2025-10-19T14:30:07.986901"
+}
+```
+
+**Response (Completed):**
+
+```json
+{
+  "session_id": "exec_9ebb3df7180a4a7383079680c28c6028",
+  "status": "completed",
+  "diagram_id": "long_running_analysis",
+  "executed_nodes": ["node_0", "node_1", "node_2", "node_3"],
+  "node_outputs": {
+    "node_3": "Analysis complete: Total sales increased by 15%"
+  },
+  "llm_usage": {
+    "input_tokens": 2500,
+    "output_tokens": 500,
+    "total_tokens": 3000
+  },
+  "started_at": "2025-10-19T14:30:07.986901",
+  "ended_at": "2025-10-19T14:32:15.245601"
+}
+```
+
+### Async Execution Workflow {#async-execution-workflow}
+
+For long-running diagrams, use the async execution pattern:
+
+```python
+# 1. Start background execution
+result = await call_mcp_tool(
+    "run_backend",
+    {
+        "diagram": "data_processing",
+        "input_data": {"batch_size": 1000},
+        "timeout": 600
+    }
+)
+session_id = result["session_id"]
+
+# 2. Poll for results periodically
+import asyncio
+
+while True:
+    status = await call_mcp_tool("see_result", {"session_id": session_id})
+
+    if status["status"] == "completed":
+        print("Execution completed!")
+        print(f"Results: {status.get('node_outputs', {})}")
+        break
+    elif status["status"] == "failed":
+        print(f"Execution failed: {status.get('error')}")
+        break
+    else:
+        print(f"Still running... {len(status.get('executed_nodes', []))} nodes completed")
+        await asyncio.sleep(5)  # Check every 5 seconds
+```
+
+**CLI Alternative:**
+
+The async execution tools use DiPeO's CLI commands under the hood:
+
+```bash
+# Start background execution
+dipeo run examples/simple_diagrams/simple_iter --light --background
+# Output: {"session_id": "exec_...", "status": "started"}
+
+# Check results
+dipeo results exec_9ebb3df7180a4a7383079680c28c6028
+# Output: Full execution status with results
+```
+
+## Available Resources {#available-resources}
+
+### dipeo://diagrams {#dipeodiagrams}
 
 List available DiPeO diagrams in the examples directory.
 
@@ -292,258 +683,57 @@ List available DiPeO diagrams in the examples directory.
 }
 ```
 
-## Authentication
+## Authentication {#authentication}
 
-DiPeO MCP server supports **OAuth 2.1 authentication** as required by the MCP specification (2025-03-26). This enables secure integration with LLM services like ChatGPT and Claude Desktop.
+The MCP server supports flexible authentication for development and production use.
 
-### Authentication Methods
+### Authentication Options {#authentication-options}
 
-The MCP server supports two authentication methods:
+1. **No Authentication** (Local Development) - Disabled authentication for rapid development
+2. **ngrok Basic Auth** (Development/Testing) - Password protection via ngrok
+3. **Custom Authentication** (Production) - Deploy to cloud with proper authentication
 
-1. **OAuth 2.1 JWT Bearer Tokens** (Production)
-   - Industry-standard OAuth 2.1 with PKCE
-   - Supports external OAuth providers (Auth0, Google, GitHub, etc.)
-   - Required for ChatGPT and similar services
+### Quick Setup {#quick-setup}
 
-2. **API Keys** (Development/Testing)
-   - Simple authentication via `X-API-Key` header
-   - Useful for development and testing
-
-### Quick Start: Development Mode
-
-For local development without authentication:
-
+**Development (No Auth):**
 ```bash
-# Disable authentication (default: authentication is optional)
 export MCP_AUTH_ENABLED=false
-
-# Start server
 make dev-server
 ```
 
-### Quick Start: API Key Authentication
-
-For simple authentication during development:
-
+**With ngrok Basic Auth (Recommended for Development):**
 ```bash
-# Enable API key authentication
-export MCP_AUTH_ENABLED=true
-export MCP_AUTH_REQUIRED=false  # Optional authentication
-export MCP_API_KEY_ENABLED=true
-export MCP_API_KEYS="dev-key-123,test-key-456"
-
-# Start server
+# Start DiPeO with auth disabled (ngrok handles it)
+export MCP_AUTH_ENABLED=false
 make dev-server
+
+# In another terminal, start ngrok with basic auth
+ngrok http 8000 --basic-auth="dipeo:your-secure-password"
 ```
 
-Test with API key:
+See [ChatGPT MCP Integration](./chatgpt-mcp-integration.md) for detailed setup instructions.
 
-```bash
-curl -X POST http://localhost:8000/mcp/messages \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: dev-key-123" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "tools/list",
-    "params": {}
-  }'
-```
+## Security Considerations {#security-considerations}
 
-### Production: OAuth 2.1 Setup
+### Production {#production}
 
-#### Step 1: Choose an OAuth Provider
+- **Deploy to cloud**: Use a cloud provider with proper HTTPS and authentication
+- **Enable rate limiting**: Implement request rate limiting in middleware
+- **Configure CORS**: Restrict allowed origins in server configuration
+- **Monitor Access**: Enable logging with `DIPEO_LOG_LEVEL=DEBUG` and set up alerting
 
-Select an OAuth 2.1 provider:
-- **Auth0** (recommended for ease of use)
-- **Google OAuth**
-- **GitHub OAuth**
-- **Your own OAuth server**
+### Development {#development}
 
-#### Step 2: Configure OAuth Provider
+- **Use ngrok basic auth**: Add password protection during development
+- **ngrok Tunnels**: Free tier has connection limits and changing URLs
+- **Don't Commit Secrets**: Use environment variables for passwords and ngrok auth tokens
+- **Firewall**: Only expose server via ngrok, not directly to internet
 
-Example with Auth0:
+## Troubleshooting {#troubleshooting}
 
-1. Create an Auth0 application
-2. Configure application settings:
-   - Application Type: "Machine to Machine" or "Single Page Application"
-   - Allowed Callback URLs: Your MCP server URL
-3. Note your credentials:
-   - Domain (e.g., `your-tenant.auth0.com`)
-   - Client ID
-   - Client Secret (if using confidential client)
+### Common Issues {#common-issues}
 
-#### Step 3: Configure DiPeO MCP Server
-
-Create `.env` file with OAuth configuration:
-
-```bash
-# Enable OAuth authentication
-MCP_AUTH_ENABLED=true
-MCP_AUTH_REQUIRED=true  # Require authentication for all requests
-
-# OAuth 2.1 JWT validation
-MCP_JWT_ENABLED=true
-MCP_JWT_ALGORITHM=RS256
-MCP_JWT_AUDIENCE=https://your-mcp-server.example.com
-MCP_JWT_ISSUER=https://your-tenant.auth0.com/
-
-# OAuth server configuration
-MCP_OAUTH_SERVER_URL=https://your-tenant.auth0.com
-MCP_OAUTH_JWKS_URI=https://your-tenant.auth0.com/.well-known/jwks.json
-
-# Optional: API key fallback
-MCP_API_KEY_ENABLED=true
-MCP_API_KEYS=emergency-access-key-123
-```
-
-#### Step 4: Provide Public Key
-
-For RS256 algorithm, provide the OAuth provider's public key:
-
-**Option 1:** Inline public key
-```bash
-export MCP_JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
------END PUBLIC KEY-----"
-```
-
-**Option 2:** Public key file
-```bash
-# Save public key to file
-echo "-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
------END PUBLIC KEY-----" > /path/to/public-key.pem
-
-# Configure path
-export MCP_JWT_PUBLIC_KEY_FILE=/path/to/public-key.pem
-```
-
-**Option 3:** JWKS URI (recommended)
-```bash
-# OAuth provider's JWKS endpoint (automatic key rotation)
-export MCP_OAUTH_JWKS_URI=https://your-tenant.auth0.com/.well-known/jwks.json
-```
-
-#### Step 5: Test Authentication
-
-```bash
-# Get access token from OAuth provider
-# (using OAuth 2.1 authorization code flow or client credentials)
-ACCESS_TOKEN="your-jwt-token-here"
-
-# Test authenticated request
-curl -X POST https://your-mcp-server.example.com/mcp/messages \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "tools/list",
-    "params": {}
-  }'
-```
-
-### OAuth Metadata Discovery
-
-The MCP server exposes OAuth metadata for automatic discovery:
-
-```bash
-# Get OAuth authorization server metadata (RFC 8414)
-curl https://your-mcp-server.example.com/.well-known/oauth-authorization-server
-```
-
-This endpoint returns:
-- Authorization endpoint
-- Token endpoint
-- Supported grant types (authorization_code, client_credentials)
-- PKCE support (S256)
-- JWKS URI (if configured)
-
-### Configuration Reference
-
-See `.env.mcp.example` for complete configuration options:
-
-```bash
-cp .env.mcp.example .env
-# Edit .env with your settings
-```
-
-**Key Environment Variables:**
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `MCP_AUTH_ENABLED` | `true` | Enable/disable authentication |
-| `MCP_AUTH_REQUIRED` | `false` | Require authentication (if false, optional) |
-| `MCP_API_KEY_ENABLED` | `true` | Enable API key authentication |
-| `MCP_API_KEYS` | - | Comma-separated list of valid API keys |
-| `MCP_JWT_ENABLED` | `true` | Enable JWT validation |
-| `MCP_JWT_ALGORITHM` | `RS256` | JWT algorithm (HS256, RS256, etc.) |
-| `MCP_JWT_PUBLIC_KEY` | - | Public key for RS256 |
-| `MCP_JWT_PUBLIC_KEY_FILE` | - | Path to public key file |
-| `MCP_JWT_AUDIENCE` | - | Expected audience claim |
-| `MCP_JWT_ISSUER` | - | Expected issuer claim |
-| `MCP_OAUTH_SERVER_URL` | - | OAuth server base URL |
-| `MCP_OAUTH_JWKS_URI` | - | JWKS endpoint for key discovery |
-
-## Security Considerations
-
-### Production Deployment
-
-For production use:
-
-1. **Enable OAuth 2.1 Authentication**
-   - Use a trusted OAuth provider (Auth0, Google, etc.)
-   - Set `MCP_AUTH_REQUIRED=true` to require authentication
-   - Use RS256 algorithm with public key validation
-   - Configure JWKS URI for automatic key rotation
-
-2. **Restrict Origins**: Configure CORS in DiPeO server
-   ```python
-   # In main.py
-   app.add_middleware(
-       CORSMiddleware,
-       allow_origins=["https://your-client-domain.com"],
-       allow_methods=["GET", "POST"],
-       allow_headers=["*"],
-   )
-   ```
-
-3. **Use HTTPS**: Always use HTTPS in production
-   - OAuth requires HTTPS for security
-   - Use ngrok with custom domain or deploy to cloud
-
-4. **Token Security**
-   - Never include tokens in query strings
-   - Use `Authorization: Bearer <token>` header
-   - Validate token expiration
-   - Implement token refresh if needed
-
-5. **Monitor Access**: Enable logging and monitoring
-   ```bash
-   export DIPEO_LOG_LEVEL=DEBUG
-   ```
-
-### Local Development
-
-For local development with ngrok:
-
-1. **Free Tier Limitations**:
-   - ngrok free tier has connection limits
-   - URLs change on restart (unless using paid plan)
-   - Consider ngrok's free tier acceptable use policy
-
-2. **Firewall**: Ensure DiPeO server is not exposed to public internet except via ngrok
-
-3. **Secrets**: Don't commit ngrok auth tokens to git
-   - Use environment variables
-   - Add `ngrok.yml` to `.gitignore` if it contains secrets
-
-## Troubleshooting
-
-### Common Issues
-
-#### 1. "Connection refused" when accessing ngrok URL
+#### 1. "Connection refused" when accessing ngrok URL {#1-connection-refused-when-accessing-ngrok-url}
 
 **Solution**: Ensure DiPeO server is running on port 8000
 ```bash
@@ -554,7 +744,7 @@ curl http://localhost:8000/health
 make dev-server
 ```
 
-#### 2. "Invalid JSON-RPC request"
+#### 2. "Invalid JSON-RPC request" {#2-invalid-json-rpc-request}
 
 **Solution**: Ensure request has correct format:
 ```json
@@ -566,21 +756,21 @@ make dev-server
 }
 ```
 
-#### 3. "Tool execution failed"
+#### 3. "Tool execution failed" {#3-tool-execution-failed}
 
 **Solution**: Check DiPeO logs
 ```bash
 tail -f .dipeo/logs/cli.log
 ```
 
-#### 4. "ngrok tunnel not established"
+#### 4. "ngrok tunnel not established" {#4-ngrok-tunnel-not-established}
 
 **Solutions**:
 - Verify ngrok auth token: `ngrok config check`
 - Check ngrok status: `ngrok diagnose`
 - Try restarting ngrok
 
-#### 5. "Diagram not found"
+#### 5. "Diagram not found" {#5-diagram-not-found}
 
 **Solution**: Use correct diagram path
 ```bash
@@ -595,7 +785,7 @@ curl http://localhost:8000/mcp/messages \
   }'
 ```
 
-### Debug Mode
+### Debug Mode {#debug-mode}
 
 Enable debug logging:
 
@@ -610,9 +800,9 @@ tail -f .dipeo/logs/server.log
 tail -f .dipeo/logs/cli.log
 ```
 
-## Advanced Usage
+## Advanced Usage {#advanced-usage}
 
-### Custom Diagram Execution
+### Custom Diagram Execution {#custom-diagram-execution}
 
 Execute diagrams with complex input data:
 
@@ -634,7 +824,7 @@ Execute diagrams with complex input data:
 }
 ```
 
-### Integration with Other MCP Clients
+### Integration with Other MCP Clients {#integration-with-other-mcp-clients}
 
 The MCP server follows the Model Context Protocol specification and can be used with any MCP-compatible client:
 
@@ -680,37 +870,117 @@ result = await call_mcp_tool(
 print(f"Result: {result}")
 ```
 
-## Performance Considerations
+## Performance Considerations {#performance-considerations}
 
-### Diagram Execution Timeouts
+### Diagram Execution Timeouts {#diagram-execution-timeouts}
 
 - Default timeout: 300 seconds (5 minutes)
 - Configure default via environment variable: `export MCP_DEFAULT_TIMEOUT=600`
 - Adjust per-request using `timeout` parameter in tool arguments
 
-### Connection Limits
+### Connection Limits {#connection-limits}
 
 - ngrok free tier: Limited connections per minute
 - Consider upgrading for production use
 - Or deploy to production infrastructure
 
-### Resource Usage
+### Resource Usage {#resource-usage}
 
 - Each diagram execution runs in the same process
 - Monitor memory usage for long-running diagrams
 - Consider implementing execution queuing for high load
 
-## Next Steps
+## Quick Reference {#quick-reference}
+
+### Common MCP Endpoints {#common-mcp-endpoints}
+
+```bash
+# Get server info
+curl http://localhost:8000/mcp/info
+
+# List available tools
+curl -X POST http://localhost:8000/mcp/messages \
+  -H "Content-Type: application/json" \
+  -d '{"method": "tools/list"}'
+
+# List available resources
+curl -X POST http://localhost:8000/mcp/messages \
+  -H "Content-Type: application/json" \
+  -d '{"method": "resources/list"}'
+
+# Read diagrams resource
+curl -X POST http://localhost:8000/mcp/messages \
+  -H "Content-Type: application/json" \
+  -d '{"method": "resources/read", "params": {"uri": "dipeo://diagrams"}}'
+
+# Execute diagram
+curl -X POST http://localhost:8000/mcp/messages \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/call",
+    "params": {
+      "name": "dipeo_run",
+      "arguments": {
+        "diagram": "my_diagram",
+        "format_type": "light"
+      }
+    }
+  }'
+```
+
+### Common Diagram Operations {#common-diagram-operations}
+
+```bash
+# Validate diagram only
+dipeo compile my_diagram.light.yaml --light
+
+# Validate and push to MCP
+dipeo compile my_diagram.light.yaml --light --push-as my_workflow
+
+# Validate and push from stdin
+cat my_diagram.light.yaml | dipeo compile --stdin --light --push-as my_workflow
+
+# List MCP diagrams directory
+ls -la projects/mcp-diagrams/
+
+# Run diagram locally (not via MCP)
+dipeo run examples/simple_diagrams/simple_iter --light --debug
+```
+
+### Environment Variables {#environment-variables}
+
+```bash
+# Disable authentication (development)
+export MCP_AUTH_ENABLED=false
+
+# Enable API key authentication
+export MCP_AUTH_ENABLED=true
+export MCP_API_KEY_ENABLED=true
+export MCP_API_KEYS="dev-key-123,dev-key-456"
+
+# Set default timeout
+export MCP_DEFAULT_TIMEOUT=600
+
+# Enable debug logging
+export DIPEO_LOG_LEVEL=DEBUG
+```
+
+## Next Steps {#next-steps}
 
 1. **Try the Example**: Execute `simple_iter` via MCP
-2. **Create Custom Diagrams**: Build diagrams for your use cases
+2. **Create Custom Diagrams**: Build diagrams for your use cases (see Light Diagram Guide)
 3. **Integrate with Applications**: Use MCP server in your LLM workflows
 4. **Scale to Production**: Deploy with proper authentication and monitoring
 
-## See Also
+## See Also {#see-also}
 
-- [DiPeO CLI Documentation](../developer-guide.md)
-- [Diagram Formats](../architecture/detailed/diagram-compilation.md)
-- [Webhook Integration](./webhook-integration.md)
-- [Model Context Protocol Specification](https://spec.modelcontextprotocol.io/)
-- [ngrok Documentation](https://ngrok.com/docs)
+- [ChatGPT MCP Integration](./chatgpt-mcp-integration.md) - ChatGPT-specific setup guide
+- [Comprehensive Light Diagram Guide](../formats/comprehensive_light_diagram_guide.md) - Complete reference for writing light diagrams
+- [Webhook Integration](./webhook-integration.md) - Alternative integration method
+- [Diagram-to-Python Export](./diagram-to-python-export.md) - Export diagrams as standalone scripts
+- [DiPeO CLI Documentation](../developer-guide.md) - CLI command reference
+- [Diagram Formats](../architecture/detailed/diagram-compilation.md) - Architecture details
+- [Model Context Protocol Specification](https://spec.modelcontextprotocol.io/) - Official MCP spec
+- [ngrok Documentation](https://ngrok.com/docs) - Tunnel setup and configuration

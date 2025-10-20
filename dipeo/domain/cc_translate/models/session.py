@@ -7,8 +7,6 @@ from typing import Any, Optional
 
 
 class SessionStatus(Enum):
-    """Session status enumeration."""
-
     ACTIVE = "active"
     COMPLETED = "completed"
     FAILED = "failed"
@@ -17,8 +15,6 @@ class SessionStatus(Enum):
 
 @dataclass
 class SessionMetadata:
-    """Metadata for a session."""
-
     session_id: str
     start_time: datetime | None = None
     end_time: datetime | None = None
@@ -30,7 +26,6 @@ class SessionMetadata:
     custom_data: dict[str, Any] = field(default_factory=dict)
 
     def validate(self) -> list[str]:
-        """Validate metadata consistency."""
         errors = []
 
         if not self.session_id:
@@ -45,7 +40,6 @@ class SessionMetadata:
         return errors
 
     def get_duration(self) -> float | None:
-        """Get session duration in seconds."""
         if self.start_time and self.end_time:
             return (self.end_time - self.start_time).total_seconds()
         return None
@@ -53,8 +47,6 @@ class SessionMetadata:
 
 @dataclass
 class DomainSession:
-    """Domain model representing a session."""
-
     session_id: str
     events: list = field(default_factory=list)  # List of DomainEvent
     metadata: SessionMetadata = field(default_factory=lambda: SessionMetadata(""))
@@ -63,12 +55,10 @@ class DomainSession:
     warnings: list[str] = field(default_factory=list)
 
     def __post_init__(self):
-        """Initialize metadata session_id if not set."""
         if not self.metadata.session_id:
             self.metadata.session_id = self.session_id
 
     def validate(self) -> list[str]:
-        """Validate session data integrity."""
         errors = []
 
         # Validate metadata
@@ -88,12 +78,10 @@ class DomainSession:
         return errors
 
     def add_event(self, event: Any) -> None:
-        """Add an event to the session."""
         self.events.append(event)
         self.metadata.event_count = len(self.events)
 
     def remove_event(self, event_uuid: str) -> bool:
-        """Remove an event by UUID."""
         initial_count = len(self.events)
         self.events = [e for e in self.events if getattr(e, "uuid", None) != event_uuid]
         removed = len(self.events) < initial_count
@@ -102,26 +90,21 @@ class DomainSession:
         return removed
 
     def get_event_by_uuid(self, event_uuid: str) -> Any | None:
-        """Get an event by UUID."""
         for event in self.events:
             if getattr(event, "uuid", None) == event_uuid:
                 return event
         return None
 
     def get_tool_events(self) -> list:
-        """Get all events that use tools."""
         return [e for e in self.events if hasattr(e, "tool_name") and e.tool_name]
 
     def get_user_events(self) -> list:
-        """Get all user events."""
         return [e for e in self.events if hasattr(e, "type") and e.type == "user"]
 
     def get_assistant_events(self) -> list:
-        """Get all assistant events."""
         return [e for e in self.events if hasattr(e, "type") and e.type == "assistant"]
 
     def to_dict(self) -> dict:
-        """Convert session to dictionary representation."""
         return {
             "session_id": self.session_id,
             "events": [e.to_dict() if hasattr(e, "to_dict") else str(e) for e in self.events],

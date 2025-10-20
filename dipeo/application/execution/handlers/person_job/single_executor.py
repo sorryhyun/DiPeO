@@ -18,11 +18,7 @@ logger = get_module_logger(__name__)
 
 
 class SingleExecutor:
-    """Handles single-person execution for PersonJob nodes.
-
-    This class encapsulates all logic for executing a person job for a single person,
-    including template processing, LLM calls, and conversation handling.
-    """
+    """Handles single-person execution including template processing, LLM calls, and conversation handling."""
 
     def __init__(
         self,
@@ -33,16 +29,6 @@ class SingleExecutor:
         output_builder: OutputBuilder,
         conversation_handler: ConversationHandler,
     ):
-        """Initialize SingleExecutor with required dependencies.
-
-        Args:
-            llm_service: LLM service for AI calls
-            diagram: Diagram containing node definitions
-            execution_orchestrator: Orchestrator for execution context
-            prompt_builder: Builder for prompt templates
-            output_builder: Builder for output formatting
-            conversation_handler: Handler for conversation operations
-        """
         self._llm_service = llm_service
         self._diagram = diagram
         self._execution_orchestrator = execution_orchestrator
@@ -51,14 +37,7 @@ class SingleExecutor:
         self._conversation_handler = conversation_handler
 
     async def execute(self, request: ExecutionRequest[PersonJobNode]) -> dict[str, Any]:
-        """Execute the person job for a single person.
-
-        Args:
-            request: Execution request containing node, context, and inputs
-
-        Returns:
-            Dictionary with body and metadata
-        """
+        """Execute person job: build prompt, call LLM with memory, format output."""
         node = request.node
         context = request.context
         trace_id = request.execution_id or ""
@@ -184,19 +163,11 @@ class SingleExecutor:
         return output
 
     def _extract_inputs(self, inputs: dict[str, Any]) -> dict[str, Any]:
-        """Extract values from Envelope objects for template processing.
-
-        Args:
-            inputs: Input dictionary potentially containing Envelope objects
-
-        Returns:
-            Dictionary with extracted values
-        """
+        """Extract values from Envelope objects, filtering internal metadata."""
         extracted_inputs = {}
         for key, value in inputs.items():
             if hasattr(value, "body"):
                 body = value.body
-                # Filter out internal metadata from conversation outputs
                 if isinstance(body, dict) and "llm_usage" in body:
                     body = {k: v for k, v in body.items() if k != "llm_usage"}
                 extracted_inputs[key] = body
@@ -207,16 +178,7 @@ class SingleExecutor:
     def _prepare_llm_kwargs(
         self, node: PersonJobNode, built_prompt: str, trace_id: str
     ) -> dict[str, Any]:
-        """Prepare LLM call arguments.
-
-        Args:
-            node: PersonJobNode containing configuration
-            built_prompt: Built prompt text
-            trace_id: Execution trace ID
-
-        Returns:
-            Dictionary of LLM kwargs
-        """
+        """Prepare LLM kwargs including tools and text_format if configured."""
         complete_kwargs = {
             "prompt": built_prompt,
             "llm_service": self._llm_service,
@@ -225,7 +187,6 @@ class SingleExecutor:
             "max_tokens": PERSON_JOB_MAX_TOKENS,
         }
 
-        # Pass trace_id for workspace directory creation in claude-code
         complete_kwargs["trace_id"] = trace_id
 
         if hasattr(node, "tools") and node.tools and node.tools != "none":
@@ -259,19 +220,7 @@ class SingleExecutor:
         template_values: dict[str, Any],
         execution_count: int,
     ) -> str | None:
-        """Build task preview for memory selection.
-
-        Args:
-            memorize_to: Memory selection strategy
-            at_most: Maximum messages to include
-            prompt_content: Default prompt content
-            first_only_content: First-only prompt content
-            template_values: Template values for substitution
-            execution_count: Current execution count
-
-        Returns:
-            Task preview string or None
-        """
+        """Build task preview for memory selection (only if memory constraints specified)."""
         if not (memorize_to or at_most):
             return None
 

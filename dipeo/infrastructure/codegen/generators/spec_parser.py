@@ -1,14 +1,11 @@
 """TypeScript specification parser - extracts node specifications from TypeScript AST data."""
 
-import os
-import re
-import sys
-from typing import Any, Optional, Union
+from typing import Any
 
+from dipeo.infrastructure.codegen.parsers.typescript.type_transformer import (
+    map_ts_type_to_python,
+)
 from dipeo.infrastructure.codegen.utils import parse_dipeo_output
-
-sys.path.append(os.environ.get("DIPEO_BASE_DIR", "/home/soryhyun/DiPeO"))
-from dipeo.infrastructure.codegen.parsers.typescript.type_transformer import map_ts_type_to_python
 
 
 def extract_spec_from_ast(ast_data: dict[str, Any], spec_name: str) -> dict[str, Any] | None:
@@ -43,16 +40,12 @@ def normalize_fields(fields: list[dict[str, Any]]) -> list[dict[str, Any]]:
     normalized_fields = []
 
     for field in fields:
-        # Handle case where field might be a string (unparsed expression)
         if isinstance(field, str):
-            # Skip string fields that couldn't be parsed
             continue
 
         if not isinstance(field, dict):
-            # Skip non-dict, non-string fields
             continue
 
-        # Skip fields without a 'name' key (malformed)
         if "name" not in field:
             continue
 
@@ -96,17 +89,7 @@ def convert_typescript_type_to_field_type(ts_type: str) -> str:
 
 
 def main(inputs: dict[str, Any]) -> dict[str, Any]:
-    """
-    Main entry point for the TypeScript specification parser.
-
-    Inputs:
-        - ast_data: AST data from typescript_ast node
-        - node_type: The node type to extract (e.g., "person_job")
-
-    Outputs:
-        - spec_data: The extracted specification as a Python dict
-    """
-
+    """Main entry point for the TypeScript specification parser."""
     ast_data = inputs.get("ast_data", {})
 
     if isinstance(ast_data, str):

@@ -24,12 +24,7 @@ from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
     api_service=API_INVOKER,
 )
 class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
-    """Handler for API job nodes with authentication and retry support."""
-
     NODE_TYPE = NodeType.API_JOB
-
-    def __init__(self):
-        super().__init__()
 
     @property
     def node_class(self) -> type[ApiJobNode]:
@@ -149,22 +144,20 @@ class ApiJobNodeHandler(TypedNodeHandler[ApiJobNode]):
         timeout = api_config["timeout"]
         auth_type = api_config["auth_type"]
 
-        print(f"[ApiJobNode] URL: {url}")
-        print(f"[ApiJobNode] Method: {method}")
-        print(f"[ApiJobNode] Headers: {headers}")
-
         auth = prepare_auth(auth_type, auth_config)
         headers = apply_auth_headers(headers, auth_type, auth_config)
         request_data = prepare_request_data(method, params, body)
 
         method_value = method.value if hasattr(method, "value") else str(method)
 
+        max_retries = getattr(node, "max_retries", 3)
+
         response_data = await api_service.execute_with_retry(
             url=url,
             method=method_value,
             data=request_data,
             headers=headers,
-            max_retries=node.max_retries if hasattr(node, "max_retries") else 3,
+            max_retries=max_retries,
             retry_delay=1.0,
             timeout=timeout,
             auth=auth,

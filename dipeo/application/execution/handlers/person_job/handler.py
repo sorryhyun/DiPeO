@@ -46,7 +46,7 @@ logger = get_module_logger(__name__)
     filesystem_adapter=(FILESYSTEM_ADAPTER, Optional),
 )
 class PersonJobNodeHandler(TypedNodeHandler[PersonJobNode]):
-    """Coordinates AI person job execution through specialized executors, supporting both single and batch modes."""
+    """Coordinates AI person job execution with conversation memory, supporting single and batch modes."""
 
     NODE_TYPE = NodeType.PERSON_JOB.value
 

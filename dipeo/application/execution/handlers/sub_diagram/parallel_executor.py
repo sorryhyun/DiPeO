@@ -1,7 +1,6 @@
 """Parallel execution management for sub-diagrams with configurable limits and queuing."""
 
 import asyncio
-import logging
 import os
 from collections import deque
 from dataclasses import dataclass
@@ -16,8 +15,6 @@ logger = get_module_logger(__name__)
 
 @dataclass
 class SubDiagramTask:
-    """Represents a sub-diagram execution task."""
-
     node_id: str
     diagram_name: str
     executor_func: Any  # Callable returning Envelope
@@ -45,7 +42,7 @@ class ParallelExecutionManager:
         self.completed_tasks: list[SubDiagramTask] = []
         self.failed_tasks: list[SubDiagramTask] = []
         self.semaphore = asyncio.Semaphore(self.max_parallel)
-        self.queue_warning_logged = False  # Track if queue warning has been logged
+        self.queue_warning_logged = False
         self.lock = asyncio.Lock()
 
         logger.info(f"Initialized ParallelExecutionManager with max_parallel={self.max_parallel}")

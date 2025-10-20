@@ -12,11 +12,7 @@ from . import Conversation, Person
 
 
 class ConversationRepository(Protocol):
-    """Repository protocol for managing Conversation state and operations.
-
-    This combines data persistence with business operations for conversations,
-    providing a complete interface for conversation management during execution.
-    """
+    """Repository for managing Conversation state and operations during execution."""
 
     def get_global_conversation(self) -> Conversation: ...
 
@@ -35,14 +31,7 @@ class ConversationRepository(Protocol):
     def get_messages(self) -> list[Message]: ...
 
     def get_conversation_history(self, person_id: PersonID) -> list[dict[str, Any]]:
-        """Get conversation history for a specific person.
-
-        Args:
-            person_id: The person to get history for
-
-        Returns:
-            List of message dictionaries with metadata
-        """
+        """Get conversation history for a specific person as message dictionaries with metadata."""
         ...
 
     def clear(self) -> None: ...
@@ -53,11 +42,7 @@ class ConversationRepository(Protocol):
 
 
 class PersonRepository(Protocol):
-    """Repository protocol for managing Person entities and lifecycle.
-
-    This combines data persistence with business operations for persons,
-    providing a complete interface for person management during execution.
-    """
+    """Repository for managing Person entities and lifecycle during execution."""
 
     def get(self, person_id: PersonID) -> Person:
         """Retrieve a person by ID.
@@ -75,11 +60,7 @@ class PersonRepository(Protocol):
         name: str,
         llm_config: PersonLLMConfig,
     ) -> Person:
-        """Create a new person.
-
-        Returns:
-            The created Person instance
-        """
+        """Create a new person."""
         ...
 
     def get_or_create(
@@ -88,16 +69,7 @@ class PersonRepository(Protocol):
         name: str | None = None,
         llm_config: PersonLLMConfig | None = None,
     ) -> Person:
-        """Get existing person or create new one with defaults.
-
-        Args:
-            person_id: The person identifier
-            name: Optional name (defaults to person_id string)
-            llm_config: Optional LLM configuration (defaults to gpt-5-nano)
-
-        Returns:
-            The retrieved or created Person instance
-        """
+        """Get existing person or create new one (defaults: name=person_id, llm=gpt-5-nano)."""
         ...
 
     def register_person(self, person_id: str, config: dict[str, Any]) -> None:

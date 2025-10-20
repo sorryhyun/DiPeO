@@ -37,11 +37,7 @@ class Person:
         self._memory_strategy = memory_strategy
 
     def get_memory_config(self) -> dict[str, Any]:
-        """Get memory configuration information.
-
-        Returns:
-            Dictionary with memory configuration details
-        """
+        """Get memory configuration information."""
         return {
             "has_strategy": self._memory_strategy is not None,
             "description": (
@@ -61,18 +57,8 @@ class Person:
     ) -> tuple[ChatResult, Message, Message]:
         """Complete prompt with this person's LLM.
 
-        This method handles message formatting and system prompts internally,
-        then delegates to the LLM service for the actual completion.
-
-        Args:
-            prompt: The prompt to complete
-            all_messages: The complete conversation history
-            llm_service: The LLM service to use
-            from_person_id: The ID of the person sending the prompt
-            **llm_options: Additional options for the LLM
-
-        Returns:
-            Tuple of (ChatResult, incoming_message, response_message)
+        Handles message formatting and system prompts internally before delegating to LLM service.
+        Returns (ChatResult, incoming_message, response_message).
         """
         trace_id = llm_options.get("trace_id", llm_options.get("execution_id", ""))
         node_id = llm_options.get("node_id", str(self.id))
@@ -114,14 +100,7 @@ class Person:
         return result, incoming, response_message
 
     def _format_messages_for_llm(self, messages: list[Message]) -> list[dict[str, str]]:
-        """Format domain messages for LLM consumption.
-
-        Args:
-            messages: List of domain Message objects
-
-        Returns:
-            List of formatted message dictionaries with "role" and "content" keys
-        """
+        """Format domain messages for LLM consumption with role and content keys."""
         llm_messages = []
 
         system_prompt = self.llm_config.system_prompt
@@ -135,14 +114,7 @@ class Person:
         return llm_messages
 
     def _determine_message_role(self, message: Message) -> str:
-        """Determine the LLM role for a message.
-
-        Args:
-            message: The domain message
-
-        Returns:
-            The role string ("user" or "assistant")
-        """
+        """Determine the LLM role (user/assistant) for a message."""
         if message.from_person_id == self.id:
             return "assistant"
         elif message.to_person_id == self.id:
@@ -164,27 +136,11 @@ class Person:
         node_id: str | None = None,
         **llm_options: Any,
     ) -> tuple[ChatResult, Message, Message, list[Message] | None]:
-        """Complete prompt with intelligent memory selection.
+        """Complete prompt with intelligent memory selection using configured strategy.
 
-        This method consolidates memory selection and completion into a single call,
-        using the configured memory strategy to filter messages before completion.
-
-        Args:
-            prompt: The prompt to complete
-            all_messages: The complete conversation history
-            llm_service: The LLM service to use
-            from_person_id: The ID of the person sending the prompt
-            memorize_to: Optional memory selection criteria (e.g., "recent", "important", "GOLDFISH")
-            ignore_person: Optional comma-separated list of person IDs whose messages to exclude
-            at_most: Optional maximum number of messages to select
-            prompt_preview: Optional preview of the task for better memory selection
-            execution_id: Optional execution ID for timing and tracing
-            node_id: Optional node ID for per-node timing metrics
-            **llm_options: Additional options for the LLM
-
-        Returns:
-            Tuple of (ChatResult, incoming_message, response_message, selected_messages)
-            The selected_messages can be None if no selection criteria was provided
+        Consolidates memory filtering and LLM completion in a single call.
+        Returns (ChatResult, incoming_message, response_message, selected_messages).
+        selected_messages is None if no memorize_to criteria provided, [] for GOLDFISH mode.
         """
         exec_id = execution_id or ""
 

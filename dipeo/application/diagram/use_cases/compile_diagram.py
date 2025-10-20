@@ -6,20 +6,9 @@ from dipeo.domain.diagram.ports import DiagramCompiler
 
 
 class CompileDiagramUseCase:
-    """Use case for compiling domain diagrams to executable form.
-
-    This use case handles:
-    - Compiling domain diagrams to executable diagrams
-    - Resolving connections and dependencies
-    - Calculating execution order
-    """
+    """Compiles domain diagrams to executable form with resolved connections and execution order."""
 
     def __init__(self, diagram_compiler: DiagramCompiler):
-        """Initialize the use case with required dependencies.
-
-        Args:
-            diagram_compiler: Compiler for transforming diagrams
-        """
         self.diagram_compiler = diagram_compiler
 
     def compile(self, domain_diagram: DomainDiagram) -> ExecutableDiagram:

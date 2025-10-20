@@ -20,7 +20,6 @@ class LoggingMixin:
 
     @property
     def logger(self) -> logging.Logger:
-        """Get logger for this service."""
         if not hasattr(self, "_logger"):
             self._logger = logging.getLogger(
                 self.__class__.__module__ + "." + self.__class__.__name__
@@ -40,8 +39,6 @@ class LoggingMixin:
         self.logger.error(message, exc_info=exc_info, extra=kwargs)
 
     def log_operation(self, operation: str):
-        """Decorator to log operation execution."""
-
         def decorator(func):
             @wraps(func)
             async def async_wrapper(*args, **kwargs):
@@ -101,7 +98,6 @@ class ValidationMixin:
         return full_path
 
     def validate_type(self, value: Any, expected_type: type, field_name: str) -> None:
-        """Validate that a value is of the expected type."""
         if not isinstance(value, expected_type):
             raise ValidationError(
                 f"Field '{field_name}' must be of type {expected_type.__name__}, "
@@ -109,7 +105,6 @@ class ValidationMixin:
             )
 
     def validate_enum(self, value: Any, allowed_values: list[Any], field_name: str) -> None:
-        """Validate that a value is in the allowed set."""
         if value not in allowed_values:
             raise ValidationError(
                 f"Field '{field_name}' must be one of {allowed_values}, got {value}"
@@ -124,7 +119,6 @@ class ConfigurationMixin:
 
     @property
     def config(self) -> dict[str, Any]:
-        """Get the configuration dictionary."""
         return self._config
 
     def get_config_value(self, key: str, default: Any = None) -> Any:
@@ -159,8 +153,6 @@ class ConfigurationMixin:
 
 @dataclass
 class CacheEntry:
-    """Entry in the cache with timestamp."""
-
     value: Any
     timestamp: float
     hits: int = 0
@@ -206,8 +198,6 @@ class CachingMixin:
         }
 
     def with_cache(self, key_func=None):
-        """Decorator to cache function results."""
-
         def decorator(func):
             @wraps(func)
             async def async_wrapper(*args, **kwargs):

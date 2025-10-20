@@ -48,7 +48,6 @@ class LightTransformer:
         """
         from dipeo.domain.diagram.strategies.light.parser import LightDiagramParser
 
-        # Build nodes list
         nodes_list = []
         for index, node in enumerate(light_diagram.nodes):
             node_dict = node.model_dump(exclude_none=True)
@@ -70,7 +69,6 @@ class LightTransformer:
             effective_path = diagram_path or original_data.get("metadata", {}).get("diagram_id")
             nodes_list = prompt_compiler.resolve_prompt_files(nodes_list, effective_path)
 
-        # Convert to dictionaries
         nodes_dict = nodes_list_to_dict(nodes_list)
         arrows_list = self.process_light_connections(light_diagram, nodes_list)
         arrows_dict = arrows_list_to_dict(arrows_list)
@@ -131,7 +129,6 @@ class LightTransformer:
             label_counts[base] = cnt + 1
             return f"{base}~{cnt}" if cnt else base
 
-        # Convert nodes
         nodes_out = []
         for n in diagram.nodes:
             base = n.data.get("label") or str(n.type).split(".")[-1].title()
@@ -162,7 +159,6 @@ class LightTransformer:
             )
             nodes_out.append(node)
 
-        # Convert connections
         connections = []
         for a in diagram.arrows:
             s_node_id, s_handle, _ = HandleIdOperations.parse_handle_id(a.source)
@@ -184,7 +180,6 @@ class LightTransformer:
             conn = LightConnection(**conn_kwargs)  # type: ignore[arg-type]
             connections.append(conn)
 
-        # Convert persons
         persons_data = None
         if diagram.persons:
             persons_dict = {}
@@ -223,15 +218,16 @@ class LightTransformer:
         """
         arrows: list[dict[str, Any]] = []
         label2id = _node_id_map(nodes)
+        nodes_by_id = {node["id"]: node for node in nodes}
 
         for idx, conn in enumerate(light_diagram.connections):
-            arrow = self._process_single_connection(conn, idx, label2id)
+            arrow = self._process_single_connection(conn, idx, label2id, nodes_by_id)
             if arrow:
                 arrows.append(arrow)
         return arrows
 
     def _process_single_connection(
-        self, conn: Any, idx: int, label2id: dict[str, str]
+        self, conn: Any, idx: int, label2id: dict[str, str], nodes_by_id: dict[str, dict[str, Any]]
     ) -> dict[str, Any] | None:
         """Process a single connection into an arrow dictionary.
 
@@ -239,13 +235,18 @@ class LightTransformer:
             conn: Connection object from light diagram
             idx: Connection index for generating arrow IDs
             label2id: Mapping from node labels to node IDs
+            nodes_by_id: Mapping from node IDs to node dictionaries
 
         Returns:
             Arrow dictionary or None if connection is invalid
         """
         # Parse source and target endpoints
-        source_endpoint = self._parse_connection_endpoint(conn.from_, label2id, is_source=True)
-        target_endpoint = self._parse_connection_endpoint(conn.to, label2id, is_source=False)
+        source_endpoint = self._parse_connection_endpoint(
+            conn.from_, label2id, nodes_by_id, is_source=True
+        )
+        target_endpoint = self._parse_connection_endpoint(
+            conn.to, label2id, nodes_by_id, is_source=False
+        )
 
         if not source_endpoint or not target_endpoint:
             logger.warning(
@@ -262,15 +263,12 @@ class LightTransformer:
         conn_dict = conn.model_dump(by_alias=True, exclude={"from", "to", "label", "type"})
         arrow_data = conn_dict.get("data", {})
 
-        # Build arrow data with special handling
         arrow_data_processed = self._build_arrow_data(arrow_data, src_handle, dst_handle_from_split)
 
-        # Create handle IDs
         source_handle_id, target_handle_id = HandleIdOperations.create_handle_ids(
             src_id, dst_id, src_handle, dst_handle
         )
 
-        # Create arrow dictionary
         return create_arrow_dict(
             arrow_data.get("id", f"arrow_{idx}"),
             source_handle_id,
@@ -281,18 +279,33 @@ class LightTransformer:
         )
 
     def _parse_connection_endpoint(
-        self, endpoint_raw: str, label2id: dict[str, str], is_source: bool
+        self,
+        endpoint_raw: str,
+        label2id: dict[str, str],
+        nodes_by_id: dict[str, dict[str, Any]],
+        is_source: bool,
     ) -> tuple[str, str, str, str] | None:
         """Parse a connection endpoint (source or target).
 
+        Supports both bracket syntax (NodeLabel[handle]) and underscore syntax (NodeLabel_handle).
+        When bracket syntax is used, performs strict validation against HANDLE_SPECS.
+
         Args:
-            endpoint_raw: Raw endpoint string (e.g., "NodeLabel_handle")
+            endpoint_raw: Raw endpoint string (e.g., "NodeLabel[handle]" or "NodeLabel_handle")
             label2id: Mapping from node labels to node IDs
+            nodes_by_id: Mapping from node IDs to node dictionaries
             is_source: True if parsing source endpoint, False for target
 
         Returns:
             Tuple of (node_id, handle_name, handle_from_split, node_label) or None if invalid
+
+        Raises:
+            ValueError: If bracket syntax is used with an invalid handle for the node type
         """
+        from dipeo.domain.diagram.utils.core.handle_operations import HandleValidator
+
+        uses_bracket_syntax = "[" in endpoint_raw and "]" in endpoint_raw
+
         node_id, handle_from_split, node_label = HandleLabelParser.parse_label_with_handle(
             endpoint_raw, label2id
         )
@@ -304,6 +317,15 @@ class LightTransformer:
         handle_name = HandleLabelParser.determine_handle_name(
             handle_from_split, {}, is_source=is_source
         )
+
+        if uses_bracket_syntax and handle_from_split:
+            node = nodes_by_id.get(node_id)
+            if node:
+                node_type = node["type"]
+                direction = "output" if is_source else "input"
+                HandleValidator.validate_bracket_syntax_handle(
+                    node_label, handle_name, node_type, direction
+                )
 
         return (node_id, handle_name, handle_from_split, node_label)
 

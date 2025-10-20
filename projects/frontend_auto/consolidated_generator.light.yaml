@@ -1,3 +1,4 @@
+
 version: light
 
 persons:
@@ -372,19 +373,19 @@ connections:
 
   - { from: load Data, to: Check Continue, content_type: object }
 
-  - {from: Check Continue_condfalse, to: load Data again}
-  - { from: Check Continue_condtrue, to: Rename Files, content_type: object }
+  - {from: "Check Continue[condfalse]", to: load Data again}
+  - {from: "Check Continue[condtrue]", to: Rename Files, content_type: object }
   - {from: Rename Files, to: End, content_type: object}
 
   # From Generate to Condition
   - {from: load Data again, to: Generate Frontend Code, content_type: object }
   - {from: Generate Frontend Code, to: Check Output Quality, content_type: object}
   - {from: Generate Frontend Code, to: Write Section Result, content_type: raw_text}
-  - {from: Check Output Quality_condtrue, to: load Data wow, content_type: object}
+  - {from: "Check Output Quality[condtrue]", to: load Data wow, content_type: object}
   - {from: load Data wow, to: Check Continue, content_type: object}
 
-  - {from: Check Output Quality_condfalse, to: load Data for revise, content_type: object}
-  - { from: Check Output Quality_condfalse, to: load code for revise, content_type: object }
+  - {from: "Check Output Quality[condfalse]", to: load Data for revise, content_type: object}
+  - { from: "Check Output Quality[condfalse]", to: load code for revise, content_type: object }
   - {from: load Data for revise, to: Revise Frontend Code, content_type: object}
   - { from: load code for revise, to: Revise Frontend Code, content_type: object, label: generated_output}
   - {from: Revise Frontend Code, to: Write revised Result, content_type: raw_text}

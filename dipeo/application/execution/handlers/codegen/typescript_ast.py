@@ -1,6 +1,5 @@
-import contextlib
 import json
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -9,24 +8,17 @@ from dipeo.application.execution.handlers.core.base import TypedNodeHandler
 from dipeo.application.execution.handlers.core.decorators import requires_services
 from dipeo.application.execution.handlers.core.factory import register_handler
 from dipeo.application.registry.keys import AST_PARSER
+from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.unified_nodes.typescript_ast_node import NodeType, TypescriptAstNode
 from dipeo.domain.execution.messaging.envelope import Envelope, EnvelopeFactory
 
-if TYPE_CHECKING:
-    pass
+logger = get_module_logger(__name__)
 
 
 @register_handler
 @requires_services(ast_parser=AST_PARSER)
 class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
-    """Handler for TypeScript AST parsing node.
-
-    Uses Template Method Pattern for cleaner code:
-    - validate() for compile-time checks
-    - pre_execute() for runtime setup
-    - run() for core parsing logic
-    - serialize_output() for custom envelope creation
-    """
+    """Handler for TypeScript AST parsing node."""
 
     NODE_TYPE = NodeType.TYPESCRIPT_AST
 
@@ -50,11 +42,7 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         return "Parses TypeScript source code and extracts AST, interfaces, types, and enums"
 
     def validate(self, request: ExecutionRequest[TypescriptAstNode]) -> str | None:
-        from dipeo.config.base_logger import get_module_logger
-
-        logger = get_module_logger(__name__)
         node = request.node
-        logger.info(f"[TypescriptAstNode {node.id}] Validating node")
 
         if node.extract_patterns:
             valid_patterns = {"interface", "type", "enum", "class", "function", "const", "export"}
@@ -68,21 +56,12 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
         return None
 
     async def pre_execute(self, request: ExecutionRequest[TypescriptAstNode]) -> Envelope | None:
-        from dipeo.config.base_logger import get_module_logger
-
-        logger = get_module_logger(__name__)
-
         request.set_handler_state("debug", False)
-
-        ast_parser = request.get_optional_service(AST_PARSER)
         return None
 
     async def run(
         self, inputs: dict[str, Any], request: ExecutionRequest[TypescriptAstNode]
     ) -> Any:
-        from dipeo.config.base_logger import get_module_logger
-
-        logger = get_module_logger(__name__)
         node = request.node
 
         skip_parsing = inputs.get("_skip_parsing", False)
@@ -193,9 +172,6 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     def serialize_output(
         self, result: Any, request: ExecutionRequest[TypescriptAstNode]
     ) -> Envelope:
-        from dipeo.config.base_logger import get_module_logger
-
-        logger = get_module_logger(__name__)
         node = request.node
         trace_id = request.execution_id or ""
 
@@ -242,13 +218,11 @@ class TypescriptAstNodeHandler(TypedNodeHandler[TypescriptAstNode]):
     async def prepare_inputs(
         self, request: ExecutionRequest[TypescriptAstNode], inputs: dict[str, Envelope]
     ) -> dict[str, Any]:
-        """Phase 5: Now consumes tokens from incoming edges when available."""
         envelope_inputs = self.get_effective_inputs(request, inputs)
         return await super().prepare_inputs(request, envelope_inputs)
 
     def post_execute(
         self, request: ExecutionRequest[TypescriptAstNode], output: Envelope
     ) -> Envelope:
-        """Phase 5: Now emits output as tokens to trigger downstream nodes."""
         self.emit_token_outputs(request, output)
         return output

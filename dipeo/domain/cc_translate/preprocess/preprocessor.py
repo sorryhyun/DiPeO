@@ -21,11 +21,6 @@ class Preprocessor(BasePreprocessor):
     """Orchestrates session-level preprocessing for Claude Code translation."""
 
     def __init__(self, config: PreprocessConfig | None = None):
-        """Initialize the preprocessor.
-
-        Args:
-            config: Preprocessing configuration
-        """
         self.config = config or PreprocessConfig.standard()
 
         # Initialize processors with their configs
@@ -87,15 +82,6 @@ class Preprocessor(BasePreprocessor):
     def _extract_metadata(
         self, session: DomainSession, reports: list[SessionProcessingReport]
     ) -> dict[str, Any]:
-        """Extract metadata from the session and processing reports.
-
-        Args:
-            session: The processed session
-            reports: Processing reports from all preprocessors
-
-        Returns:
-            Metadata dictionary
-        """
         metadata = {}
 
         # Basic session info
@@ -138,14 +124,6 @@ class Preprocessor(BasePreprocessor):
         return metadata
 
     def _get_first_user_message(self, session: DomainSession) -> str | None:
-        """Extract the first user message from the session.
-
-        Args:
-            session: The session to extract from
-
-        Returns:
-            First user message content or None
-        """
         for event in session.events:
             if event.type == "user":
                 # Extract text content
@@ -180,16 +158,6 @@ class Preprocessor(BasePreprocessor):
     def _create_error_result(
         self, session: DomainSession, reports: list[SessionProcessingReport], error_message: str
     ) -> tuple[PreprocessedData, list[SessionProcessingReport]]:
-        """Create an error result when preprocessing fails.
-
-        Args:
-            session: Original session
-            reports: Reports collected so far
-            error_message: Error description
-
-        Returns:
-            Tuple of (PreprocessedData with error, reports)
-        """
         preprocessed_data = PreprocessedData(
             session=session,
         )
@@ -235,15 +203,6 @@ class Preprocessor(BasePreprocessor):
     def _consolidate_reports(
         self, session_id: str, reports: list[SessionProcessingReport]
     ) -> SessionProcessingReport:
-        """Consolidate multiple processing reports into one.
-
-        Args:
-            session_id: The session ID
-            reports: List of individual processor reports
-
-        Returns:
-            Consolidated SessionProcessingReport
-        """
         consolidated = SessionProcessingReport(session_id=session_id)
 
         for report in reports:
