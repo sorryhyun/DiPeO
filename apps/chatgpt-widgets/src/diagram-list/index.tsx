@@ -9,38 +9,14 @@ import { createRoot } from 'react-dom/client';
 import { useGraphQLQuery } from '../hooks/use-graphql-query';
 import { WidgetLayout } from '../components/WidgetLayout';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { LIST_DIAGRAMS_QUERY } from '../__generated__/queries/all-queries';
+import type { ListDiagramsQuery } from '../__generated__/graphql';
 import '../shared/index.css';
-
-interface DiagramInfo {
-  id: string;
-  name: string;
-  description?: string;
-  format: string;
-  createdAt?: string;
-  nodeCount?: number;
-}
-
-interface DiagramListData {
-  diagrams: DiagramInfo[];
-}
-
-const LIST_DIAGRAMS_QUERY = `
-  query ListDiagrams {
-    diagrams {
-      id
-      name
-      description
-      format
-      createdAt
-      nodeCount
-    }
-  }
-`;
 
 function DiagramList() {
   const [searchQuery, setSearchQuery] = useState('');
-  const { data, loading, error, refetch } = useGraphQLQuery<DiagramListData>(
-    LIST_DIAGRAMS_QUERY
+  const { data, loading, error, refetch } = useGraphQLQuery<ListDiagramsQuery>(
+    LIST_DIAGRAMS_QUERY.loc?.source.body || ''
   );
 
   const filteredDiagrams = data?.diagrams?.filter((diagram) => {

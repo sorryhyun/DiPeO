@@ -171,6 +171,8 @@ dev-all:
 
 # Build ChatGPT widgets
 build-widgets:
+	@echo "Generating GraphQL types for ChatGPT widgets..."
+	pnpm --filter @dipeo/chatgpt-widgets codegen
 	@echo "Building ChatGPT widgets..."
 	pnpm -F @dipeo/chatgpt-widgets build
 	@echo "Widgets built to apps/server/static/widgets/"
@@ -180,8 +182,10 @@ graphql-schema:
 	@echo "Exporting GraphQL schema from application layer..."
 	PYTHONPATH="$(shell pwd):$$PYTHONPATH" DIPEO_BASE_DIR="$(shell pwd)" python -m dipeo.application.graphql.export_schema apps/server/schema.graphql
 	@echo "GraphQL schema exported to apps/server/schema.graphql"
-	@echo "Generating GraphQL TypeScript types..."
+	@echo "Generating GraphQL TypeScript types for web..."
 	pnpm --filter web codegen
+	@echo "Generating GraphQL TypeScript types for chatgpt-widgets..."
+	pnpm --filter @dipeo/chatgpt-widgets codegen
 	@echo "GraphQL TypeScript types generated!"
 
 # Python directories
