@@ -8,7 +8,8 @@
     "dev": "vite --config vite.config.ts",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "codegen": "graphql-codegen --config codegen.yml"
   },
   "dependencies": {
     "react": "^19.1.1",
@@ -24,6 +25,10 @@
     "typescript": "^5.9.2",
     "vite": "^7.1.1",
     "fast-glob": "^3.3.3",
-    "tailwindcss": "^4.1.11"
+    "tailwindcss": "^4.1.11",
+    "@graphql-codegen/cli": "^5.0.7",
+    "@graphql-codegen/typescript": "^4.1.6",
+    "@graphql-codegen/typescript-operations": "^4.6.1",
+    "@dipeo/models": "workspace:*"
   }
 }

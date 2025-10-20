@@ -10,35 +10,13 @@ import { useGraphQLQuery } from '../hooks/use-graphql-query';
 import { WidgetLayout } from '../components/WidgetLayout';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { StatusBadge, Status } from '../components/StatusBadge';
+import { LIST_EXECUTIONS_QUERY } from '../__generated__/queries/all-queries';
+import type { ListExecutionsQuery } from '../__generated__/graphql';
 import '../shared/index.css';
-
-interface ExecutionInfo {
-  sessionId: string;
-  status: Status;
-  diagramName: string;
-  startedAt: string;
-  completedAt: string | null;
-}
-
-interface ExecutionListData {
-  executions: ExecutionInfo[];
-}
-
-const LIST_EXECUTIONS_QUERY = `
-  query ListExecutions($limit: Int) {
-    executions(limit: $limit) {
-      sessionId
-      status
-      diagramName
-      startedAt
-      completedAt
-    }
-  }
-`;
 
 function ExecutionList() {
   const [statusFilter, setStatusFilter] = useState<Status | 'all'>('all');
-  const { data, loading, error, refetch } = useGraphQLQuery<ExecutionListData>(
+  const { data, loading, error, refetch } = useGraphQLQuery<ListExecutionsQuery>(
     LIST_EXECUTIONS_QUERY,
     { limit: 50 },
     { refetchInterval: 10000 } // Refetch every 10 seconds

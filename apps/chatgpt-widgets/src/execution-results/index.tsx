@@ -15,40 +15,18 @@ import { useGraphQLQuery } from '../hooks/use-graphql-query';
 import { WidgetLayout } from '../components/WidgetLayout';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { StatusBadge, Status } from '../components/StatusBadge';
+import { GET_EXECUTION_QUERY } from '../__generated__/queries/all-queries';
+import type { GetExecutionQuery } from '../__generated__/graphql';
 import '../shared/index.css';
 
 interface ExecutionResultsProps {
   executionId: string;
 }
 
-interface ExecutionData {
-  execution: {
-    sessionId: string;
-    status: Status;
-    diagramName: string;
-    startedAt: string;
-    completedAt: string | null;
-    metadata: Record<string, any>;
-  };
-}
-
-const GET_EXECUTION_QUERY = `
-  query GetExecution($sessionId: String!) {
-    execution(sessionId: $sessionId) {
-      sessionId
-      status
-      diagramName
-      startedAt
-      completedAt
-      metadata
-    }
-  }
-`;
-
 function ExecutionResults() {
   const props = useWidgetProps<ExecutionResultsProps>();
 
-  const { data, loading, error } = useGraphQLQuery<ExecutionData>(
+  const { data, loading, error } = useGraphQLQuery<GetExecutionQuery>(
     GET_EXECUTION_QUERY,
     { sessionId: props?.executionId },
     { skip: !props?.executionId, refetchInterval: 5000 }
