@@ -1,6 +1,9 @@
 """API Router configuration for DiPeO server."""
 
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from strawberry.fastapi import GraphQLRouter
 from strawberry.subscriptions import GRAPHQL_TRANSPORT_WS_PROTOCOL
 
@@ -43,3 +46,8 @@ def setup_routes(app: FastAPI):
 
     mcp_info_router = create_info_router()
     app.include_router(mcp_info_router)
+
+    # Mount static files for ChatGPT widgets
+    widgets_dir = Path(__file__).parent.parent.parent.parent / "static" / "widgets"
+    if widgets_dir.exists():
+        app.mount("/widgets", StaticFiles(directory=str(widgets_dir)), name="widgets")

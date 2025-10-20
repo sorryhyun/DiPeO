@@ -1,5 +1,6 @@
 packages:
   - apps/web
+  - apps/chatgpt-widgets
   - dipeo/models
 ignoredBuiltDependencies:
   - esbuild
