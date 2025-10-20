@@ -27,7 +27,7 @@ function ExecutionResults() {
   const props = useWidgetProps<ExecutionResultsProps>();
 
   const { data, loading, error } = useGraphQLQuery<GetExecutionQuery>(
-    GET_EXECUTION_QUERY.loc?.source.body || '',
+    GET_EXECUTION_QUERY,
     { sessionId: props?.executionId },
     { skip: !props?.executionId, refetchInterval: 5000 }
   );

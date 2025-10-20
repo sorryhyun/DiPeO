@@ -17,7 +17,7 @@ import '../shared/index.css';
 function ExecutionList() {
   const [statusFilter, setStatusFilter] = useState<Status | 'all'>('all');
   const { data, loading, error, refetch } = useGraphQLQuery<ListExecutionsQuery>(
-    LIST_EXECUTIONS_QUERY.loc?.source.body || '',
+    LIST_EXECUTIONS_QUERY,
     { limit: 50 },
     { refetchInterval: 10000 } // Refetch every 10 seconds
   );

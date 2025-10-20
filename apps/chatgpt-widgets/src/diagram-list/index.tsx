@@ -16,7 +16,7 @@ import '../shared/index.css';
 function DiagramList() {
   const [searchQuery, setSearchQuery] = useState('');
   const { data, loading, error, refetch } = useGraphQLQuery<ListDiagramsQuery>(
-    LIST_DIAGRAMS_QUERY.loc?.source.body || ''
+    LIST_DIAGRAMS_QUERY
   );
 
   const filteredDiagrams = data?.diagrams?.filter((diagram) => {
