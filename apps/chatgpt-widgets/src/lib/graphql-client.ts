@@ -23,15 +23,37 @@ export async function queryGraphQL<T = any>(
   query: string,
   variables?: Record<string, any>
 ): Promise<GraphQLResponse<T>> {
-  const response = await fetch(GRAPHQL_ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, variables }),
-  });
+  try {
+    const response = await fetch(GRAPHQL_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, variables }),
+    });
 
-  if (!response.ok) {
-    throw new Error(`GraphQL request failed: ${response.statusText}`);
+    if (!response.ok) {
+      // Try to parse error body for more details
+      let errorMessage = `GraphQL request failed: ${response.status} ${response.statusText}`;
+      try {
+        const errorBody = await response.json();
+        if (errorBody.errors?.[0]?.message) {
+          errorMessage = errorBody.errors[0].message;
+        }
+      } catch {
+        // Ignore JSON parse errors, use default message
+      }
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  } catch (error) {
+    // Handle network errors (timeout, connection refused, etc.)
+    if (error instanceof Error) {
+      // Re-throw with more context if it's a network error
+      if (error.message.includes('fetch')) {
+        throw new Error(`Network error: Unable to reach DiPeO server at ${GRAPHQL_ENDPOINT}`);
+      }
+      throw error;
+    }
+    throw new Error('Unknown error occurred while querying GraphQL');
   }
-
-  return response.json();
 }

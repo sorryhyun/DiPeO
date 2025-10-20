@@ -85,12 +85,14 @@ function ExecutionResults() {
 
           {/* Timing Information */}
           <div className="bg-gray-50 rounded-lg p-3 space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Started:</span>
-              <span className="font-mono text-gray-900">
-                {new Date(data.execution.startedAt).toLocaleString()}
-              </span>
-            </div>
+            {data.execution.startedAt && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Started:</span>
+                <span className="font-mono text-gray-900">
+                  {new Date(data.execution.startedAt).toLocaleString()}
+                </span>
+              </div>
+            )}
             {data.execution.completedAt && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Completed:</span>
@@ -102,7 +104,9 @@ function ExecutionResults() {
           </div>
 
           {/* Metadata */}
-          {data.execution.metadata && Object.keys(data.execution.metadata).length > 0 && (
+          {data.execution.metadata &&
+           typeof data.execution.metadata === 'object' &&
+           Object.keys(data.execution.metadata).length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-2">Metadata</h3>
               <pre className="bg-gray-50 rounded-lg p-3 text-xs overflow-x-auto">

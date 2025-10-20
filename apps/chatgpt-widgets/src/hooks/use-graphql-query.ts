@@ -2,7 +2,7 @@
  * Hook for executing GraphQL queries with loading and error states
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { queryGraphQL, GraphQLResponse } from '../lib/graphql-client';
 
 interface QueryState<T> {
@@ -25,13 +25,21 @@ export function useGraphQLQuery<T = any>(
     error: null,
   });
 
+  // Stabilize variables to prevent infinite re-renders
+  const stableVariables = useMemo(() => variables, [JSON.stringify(variables)]);
+
+  // Track if component is mounted to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+
   const executeQuery = async () => {
-    if (options.skip) return;
+    if (options.skip || !isMountedRef.current) return;
 
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const response: GraphQLResponse<T> = await queryGraphQL(query, variables);
+      const response: GraphQLResponse<T> = await queryGraphQL(query, stableVariables);
+
+      if (!isMountedRef.current) return; // Abort if unmounted
 
       if (response.errors) {
         throw new Error(response.errors[0]?.message || 'GraphQL query failed');
@@ -43,6 +51,8 @@ export function useGraphQLQuery<T = any>(
         error: null,
       });
     } catch (error) {
+      if (!isMountedRef.current) return; // Abort if unmounted
+
       setState({
         data: null,
         loading: false,
@@ -52,14 +62,20 @@ export function useGraphQLQuery<T = any>(
   };
 
   useEffect(() => {
+    isMountedRef.current = true;
     executeQuery();
 
     // Set up refetch interval if specified
+    let interval: NodeJS.Timeout | undefined;
     if (options.refetchInterval) {
-      const interval = setInterval(executeQuery, options.refetchInterval);
-      return () => clearInterval(interval);
+      interval = setInterval(executeQuery, options.refetchInterval);
     }
-  }, [query, JSON.stringify(variables), options.skip, options.refetchInterval]);
+
+    return () => {
+      isMountedRef.current = false;
+      if (interval) clearInterval(interval);
+    };
+  }, [query, stableVariables, options.skip, options.refetchInterval]);
 
   return {
     ...state,
