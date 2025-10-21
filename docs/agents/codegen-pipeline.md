@@ -1,7 +1,5 @@
 # Code Generation Pipeline Guide
 
-<a id="overview"></a>
-
 **Scope**: Complete TypeScript → IR → Python/GraphQL pipeline
 
 ## Overview {#overview}
@@ -12,8 +10,6 @@ Your expertise spans three interconnected domains:
 1. **TypeScript Model Design**: Designing domain models that serve as the source of truth
 2. **IR Builder System**: Transforming TypeScript AST into intermediate representation
 3. **Code Generation**: Generating clean, type-safe Python and GraphQL code
-
-<a id="ownership"></a>
 
 ## Your Complete Ownership {#your-complete-ownership}
 
@@ -32,15 +28,11 @@ Your expertise spans three interconnected domains:
 
 ---
 
-<a id="typescript-model-design"></a>
-
 # Part 1: TypeScript Model Design
 
 ## Your Role as Model Architect {#your-role-as-model-architect}
 
 You are responsible for all TypeScript source code in `/dipeo/models/src/` - this is the **single source of truth** for DiPeO's domain models.
-
-<a id="model-locations"></a>
 
 ### Model Locations {#model-locations}
 ```
@@ -61,8 +53,6 @@ You are responsible for all TypeScript source code in `/dipeo/models/src/` - thi
 - **Node Specifications**: `/dipeo/models/src/nodes/` - 16 node types (start, api-job, code-job, condition, db, diff-patch, endpoint, hook, integrated-api, ir-builder, json-schema-validator, person-job, sub-diagram, template-job, typescript-ast, user-response)
 - **Query Definitions**: `/dipeo/models/src/frontend/query-definitions/` - GraphQL operations
 - **Core Models**: `/dipeo/models/src/core/` - Domain models, enums
-
-<a id="type-system-principles"></a>
 
 ## Type System Design Principles {#type-system-design-principles}
 
@@ -91,8 +81,6 @@ export interface MemorySettings {
   max_messages?: number;
 }
 ```
-
-<a id="naming-standards"></a>
 
 ### 2. Naming Standards {#2-naming-standards}
 
@@ -150,8 +138,6 @@ export interface MemorySettings {
 - Use proper variable types (ID, String, Int, Boolean, etc.)
 - Define clear field selections that map to domain types
 
-<a id="creating-node-types"></a>
-
 ## Workflow: Creating New Node Types {#workflow-creating-new-node-types}
 
 1. **Analyze Requirements**: Understand the node's purpose and data flow
@@ -169,8 +155,6 @@ export interface MemorySettings {
 4. **Validation**: Ensure changes maintain type safety
 5. **Testing Strategy**: Recommend testing approach
 
-<a id="quality-checklist"></a>
-
 ## Quality Assurance Checklist {#quality-assurance-checklist}
 
 Before finalizing any model design, verify:
@@ -185,11 +169,7 @@ Before finalizing any model design, verify:
 
 ---
 
-<a id="ir-builder-system"></a>
-
 # Part 2: IR Builder System
-
-<a id="ir-builder-architecture"></a>
 
 ## IR Builder Architecture {#ir-builder-architecture}
 
@@ -251,8 +231,6 @@ make codegen       # Full codegen workflow
 make apply-test    # Apply generated code with validation
 ```
 
-<a id="pipeline-system"></a>
-
 ## Pipeline System {#pipeline-system}
 
 The IR-based architecture uses a step-based pipeline:
@@ -283,8 +261,6 @@ Manages execution with dependency resolution:
 orchestrator = PipelineOrchestrator(steps)
 result = await orchestrator.execute(context)
 ```
-
-<a id="type-system"></a>
 
 ## Type System {#type-system}
 
@@ -326,8 +302,6 @@ Strawberry field resolution with conversion methods.
 ### TypeRegistry
 Runtime type registration for custom types.
 
-<a id="ast-processing"></a>
-
 ## AST Processing {#ast-processing}
 
 ### AST Walker
@@ -354,8 +328,6 @@ from dipeo.infrastructure.codegen.ir_builders.ast import ASTExtractor
 
 properties = ASTExtractor.extract_properties(interface_node)
 ```
-
-<a id="ir-generation-workflow"></a>
 
 ## IR Generation Workflow {#ir-generation-workflow}
 
@@ -385,11 +357,7 @@ make codegen
 
 ---
 
-<a id="code-generation"></a>
-
 # Part 3: Code Generation
-
-<a id="template-system"></a>
 
 ## Template System {#template-system}
 
@@ -407,8 +375,6 @@ output = template.render(
     enums=ir_data['enums']
 )
 ```
-
-<a id="generated-code-structure"></a>
 
 ## Generated Code Structure {#generated-code-structure}
 
@@ -429,8 +395,6 @@ output = template.render(
 │   └── ...
 └── schemas/                # JSON schemas
 ```
-
-<a id="generation-workflow"></a>
 
 ## Generation Workflow {#generation-workflow}
 
@@ -455,11 +419,7 @@ make graphql-schema
 
 ---
 
-<a id="code-review-diagnosis"></a>
-
 # Part 4: Generated Code Review & Diagnosis
-
-<a id="critical-responsibility"></a>
 
 ## YOUR CRITICAL RESPONSIBILITY {#your-critical-responsibility}
 
@@ -516,11 +476,7 @@ When generated code looks wrong or doesn't work:
 
 ---
 
-<a id="codegen-workflow"></a>
-
 # Part 5: Codegen Workflow
-
-<a id="complete-workflow"></a>
 
 ## Complete Workflow {#complete-workflow}
 
@@ -602,11 +558,7 @@ When generated code looks wrong or doesn't work:
 
 ---
 
-<a id="collaboration-escalation"></a>
-
 # Part 6: Collaboration & Escalation
-
-<a id="engage-other-agents"></a>
 
 ## When to Engage Other Agents {#when-to-engage-other-agents}
 

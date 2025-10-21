@@ -33,6 +33,8 @@ The doc-lookup skill uses a helper script that:
 3. **Scores and ranks** sections by relevance
 4. **Returns top 1-3 sections** with file path, heading, and content
 
+**Note**: Only Markdown-native anchor format `{#anchor-id}` in headings is supported. Standalone HTML anchor tags `<a id="">` are NOT supported and should not be used in documentation.
+
 ## Usage Patterns
 
 ### Pattern 1: Exact Anchor Lookup (Fastest)
@@ -206,13 +208,21 @@ python .claude/skills/doc-lookup/scripts/section_search.py \
 
 ## Anchor Conventions in DiPeO Docs
 
-DiPeO documentation uses these anchor patterns:
+DiPeO documentation uses **Markdown-native anchor format only**:
 
+```markdown
+## Heading Text {#anchor-id}
+### Subheading {#sub-anchor}
+```
+
+**Common anchor patterns**:
 - **Commands**: `#cli-commands`, `#cli-architecture`, `#background-execution`
 - **Architecture**: `#service-architecture`, `#service-registry-pattern`, `#envelope-pattern-output`
 - **Features**: `#mcp-tools`, `#available-tools`, `#database-schema`
 - **Handlers**: `#node-handler-pattern`, `#when-adding-new-features`, `#your-responsibilities`
 - **Codegen**: `#type-system-design-principles`, `#ir-builder-architecture`, `#generation-workflow`
+
+**Do NOT use** HTML anchor tags like `<a id="anchor-id"></a>` - they are not supported by doc-lookup.
 
 See router skills for complete anchor indexes.
 
@@ -240,4 +250,5 @@ See router skills for complete anchor indexes.
 
 ## Version History
 
+- **v1.1.0** (2025-10-21): Removed all `<a id="">` HTML anchor tags from docs; now supports only Markdown-native `{#anchor-id}` format
 - **v1.0.0** (2025-10-19): Initial implementation with anchor + keyword search
