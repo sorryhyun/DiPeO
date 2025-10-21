@@ -164,12 +164,10 @@ export function buildQuerySpecification(
       throw new Error(`Query specification validation failed:\n${formattedResult}`);
     }
 
-    // Log warnings if present (in a real environment, use proper logging)
+    // Warnings are validated but not logged
+    // In a real environment, warnings should be handled through proper logging infrastructure
     if (validationResult.warnings.length > 0) {
-      console.warn('Query specification validation warnings:');
-      for (const warning of validationResult.warnings) {
-        console.warn(`  [${warning.field}] ${warning.message}`);
-      }
+      // Warnings present but silently ignored for library compilation
     }
   }
 

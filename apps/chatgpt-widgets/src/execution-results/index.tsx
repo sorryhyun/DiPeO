@@ -8,13 +8,12 @@
  * - Output data
  */
 
-import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { useWidgetProps } from '../hooks/use-widget-state';
 import { useGraphQLQuery } from '../hooks/use-graphql-query';
 import { WidgetLayout } from '../components/WidgetLayout';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { StatusBadge, Status } from '../components/StatusBadge';
+import { StatusBadge } from '../components/StatusBadge';
 import { GET_EXECUTION_QUERY } from '../__generated__/queries/all-queries';
 import type { GetExecutionQuery } from '../__generated__/graphql';
 import '../shared/index.css';

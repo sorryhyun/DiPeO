@@ -4,7 +4,7 @@
  * Displays a searchable, filterable list of available DiPeO diagrams
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useGraphQLQuery } from '../hooks/use-graphql-query';
 import { WidgetLayout } from '../components/WidgetLayout';

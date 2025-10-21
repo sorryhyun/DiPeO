@@ -2,16 +2,16 @@
  * Status badge component for execution states
  */
 
-import React from 'react';
-
-export type Status = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+import { Status } from '@dipeo/models';
 
 interface StatusBadgeProps {
-  status: Status;
+  status: Status | string;
   className?: string;
 }
 
-const statusConfig: Record<Status, { label: string; color: string; bg: string }> = {
+type StatusConfigKey = 'pending' | 'running' | 'completed' | 'failed' | 'aborted' | 'paused' | 'skipped' | 'maxiter_reached';
+
+const statusConfig: Record<StatusConfigKey, { label: string; color: string; bg: string }> = {
   pending: {
     label: 'Pending',
     color: 'text-gray-700',
@@ -21,6 +21,11 @@ const statusConfig: Record<Status, { label: string; color: string; bg: string }>
     label: 'Running',
     color: 'text-blue-700',
     bg: 'bg-blue-100',
+  },
+  paused: {
+    label: 'Paused',
+    color: 'text-yellow-700',
+    bg: 'bg-yellow-100',
   },
   completed: {
     label: 'Completed',
@@ -32,15 +37,27 @@ const statusConfig: Record<Status, { label: string; color: string; bg: string }>
     color: 'text-red-700',
     bg: 'bg-red-100',
   },
-  cancelled: {
-    label: 'Cancelled',
+  aborted: {
+    label: 'Aborted',
     color: 'text-orange-700',
     bg: 'bg-orange-100',
+  },
+  skipped: {
+    label: 'Skipped',
+    color: 'text-gray-700',
+    bg: 'bg-gray-100',
+  },
+  maxiter_reached: {
+    label: 'Max Iterations',
+    color: 'text-purple-700',
+    bg: 'bg-purple-100',
   },
 };
 
 export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
-  const config = statusConfig[status] || statusConfig.pending;
+  // Status enum values are already lowercase strings
+  const statusKey = String(status) as StatusConfigKey;
+  const config = statusConfig[statusKey] || statusConfig.pending;
 
   return (
     <span
@@ -50,3 +67,5 @@ export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
     </span>
   );
 }
+
+export type { Status };
