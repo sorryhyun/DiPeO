@@ -55,6 +55,16 @@ Use `Skill(doc-lookup)` with these anchors when you need detailed context:
 - `docs/features/mcp-server-integration.md#available-tools` - Tool catalog
 - `docs/features/mcp-server-integration.md#uploading-diagrams` - Push diagrams to MCP
 
+**ChatGPT Integration**:
+- `docs/features/chatgpt-mcp-integration.md#quick-start` - Connect DiPeO to ChatGPT
+- `docs/features/chatgpt-mcp-integration.md#available-mcp-tools` - ChatGPT-accessible tools
+- `docs/features/chatgpt-mcp-integration.md#troubleshooting` - Connection & auth issues
+- `docs/features/chatgpt-mcp-integration.md#security-best-practices` - Security guidance
+- `docs/features/chatgpt-apps-integration.md#overview` - Widget system overview
+- `docs/features/chatgpt-apps-integration.md#architecture` - Widget architecture
+- `docs/features/chatgpt-apps-integration.md#setup` - Widget setup & build process
+- `docs/features/chatgpt-apps-integration.md#using-widgets-in-mcp-tools` - Widget integration
+
 **Troubleshooting**:
 - `docs/agents/backend-development.md#troubleshooting` - Common debugging patterns
 - `docs/agents/backend-development.md#common-patterns` - Implementation patterns

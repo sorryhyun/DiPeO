@@ -284,7 +284,7 @@ Execute my_workflow using DiPeO
 
 ## Troubleshooting {#troubleshooting}
 
-### Testing Basic Auth Protection
+### Testing Basic Auth Protection {#testing-basic-auth-protection}
 
 Before connecting ChatGPT, verify your ngrok basic auth is working:
 
@@ -315,7 +315,7 @@ curl -u "dipeo:wrong-password" https://abc123.ngrok-free.app/mcp/info
 # HTTP 401 Unauthorized
 ```
 
-### ChatGPT can't connect
+### ChatGPT can't connect {#chatgpt-cant-connect}
 
 **Error: 401 Unauthorized**
 

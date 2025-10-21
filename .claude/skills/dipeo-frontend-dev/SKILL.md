@@ -53,6 +53,12 @@ Use `Skill(doc-lookup)` with these anchors when you need detailed context:
 - `docs/agents/frontend-development.md#constraints` - Important constraints
 - `docs/agents/frontend-development.md#escalation` - When to escalate
 
+**ChatGPT Widgets** (React components for ChatGPT apps):
+- `docs/features/chatgpt-apps-integration.md#development` - Widget development guide
+- `docs/features/chatgpt-apps-integration.md#widget-workspace-structure` - Widget structure
+- `docs/features/chatgpt-apps-integration.md#creating-new-widget` - Creating widgets
+- `docs/features/chatgpt-apps-integration.md#available-widgets` - Available widget types
+
 **Example doc-lookup call**:
 ```bash
 python .claude/skills/doc-lookup/scripts/section_search.py \
