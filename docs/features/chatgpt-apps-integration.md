@@ -2,14 +2,14 @@
 
 DiPeO integrates with ChatGPT apps to provide rich UI widgets for diagram rendering, execution monitoring, and results visualization.
 
-## Overview
+## Overview {#overview}
 
 The ChatGPT apps integration enables:
 - **Diagram List Widget**: Browse and search available diagrams
 - **Execution Results Widget**: View execution status, timing, and outputs
 - **Execution List Widget**: Monitor execution history with filtering
 
-## Architecture
+## Architecture {#architecture}
 
 ```
 ┌─────────────────────────────────────────┐
@@ -42,7 +42,7 @@ The ChatGPT apps integration enables:
 └─────────────────────────────────────────┘
 ```
 
-## Setup
+## Setup {#setup}
 
 ### 1. Install Dependencies
 
@@ -76,9 +76,9 @@ ngrok http 8000
 
 Use the ngrok URL to connect ChatGPT to your DiPeO MCP server.
 
-## Development
+## Development {#development}
 
-### Widget Workspace Structure
+### Widget Workspace Structure {#widget-workspace-structure}
 
 ```
 apps/chatgpt-widgets/
@@ -107,7 +107,7 @@ apps/chatgpt-widgets/
 └── tsconfig.json
 ```
 
-### Running Widget Dev Server
+### Running Widget Dev Server {#running-widget-dev-server}
 
 ```bash
 make dev-widgets
@@ -115,7 +115,7 @@ make dev-widgets
 
 This starts the Vite dev server at `http://localhost:4445` for widget development.
 
-### Creating a New Widget
+### Creating a New Widget {#creating-new-widget}
 
 1. Create a new directory in `src/` (e.g., `src/my-widget/`)
 2. Create `index.tsx` with your React component
@@ -169,7 +169,7 @@ if (rootElement) {
 </html>
 ```
 
-## Using Widgets in MCP Tools
+## Using Widgets in MCP Tools {#using-widgets-in-mcp-tools}
 
 Use the `widgets.py` utilities to create widget responses:
 
@@ -194,7 +194,7 @@ async def my_tool() -> list[types.TextContent]:
 
 The widget will be automatically embedded in the ChatGPT response.
 
-## Available Widgets
+## Available Widgets {#available-widgets}
 
 ### Execution Results
 
@@ -241,7 +241,7 @@ create_widget_response(
 )
 ```
 
-## Configuration
+## Configuration {#configuration}
 
 ### Environment Variables
 
@@ -253,7 +253,7 @@ Set in `apps/chatgpt-widgets/.env`:
 VITE_DIPEO_GRAPHQL_URL=http://localhost:8000/graphql
 ```
 
-## Troubleshooting
+## Troubleshooting {#troubleshooting}
 
 ### Widgets not loading
 
