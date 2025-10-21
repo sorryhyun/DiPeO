@@ -16,8 +16,6 @@ allowed-tools: Read, Grep, Glob, Bash, Skill
 - **Pattern lookup**: Envelope usage, service registration examples
 - **Small fixes**: Typos, minor refactors, simple handler tweaks
 
-**Token cost**: ~1,500 tokens (router + targeted section)
-
 ### ❌ Escalate to Agent
 - **New node handlers**: Creating handlers with complex logic
 - **Service architecture**: EventBus integration, ServiceRegistry configuration
@@ -31,32 +29,18 @@ allowed-tools: Read, Grep, Glob, Bash, Skill
 
 Use `Skill(doc-lookup)` with these anchors when you need detailed context:
 
-**Core Architecture**:
-- `docs/agents/package-maintainer.md#overview` - High-level overview
-- `docs/agents/package-maintainer.md#core-architectural-principles` - Architecture overview
-- `docs/agents/package-maintainer.md#your-domain-of-expertise` - What you own
-- `docs/agents/package-maintainer.md#what-you-do-not-own` - Ownership boundaries
-- `docs/agents/package-maintainer.md#generated-code-dipeodiagram_generated-read-only` - Generated code boundaries
+**Architecture & Ownership**:
+- `docs/agents/package-maintainer.md#your-domain-of-expertise` - Code layers and ownership
+- `docs/agents/package-maintainer.md#core-architectural-principles` - Service architecture, LLM integration
 
-**Code Layers**:
-- `docs/agents/package-maintainer.md#application-layer-dipeoapplication` - Handlers, GraphQL, services
-- `docs/agents/package-maintainer.md#domain-layer-dipeodomain` - Domain logic, compilation
-- `docs/agents/package-maintainer.md#infrastructure-layer-dipeoinfrastructure-partial-ownership` - LLM, state, EventBus
+**Implementation**:
+- `docs/agents/package-maintainer.md#your-responsibilities` - Node handlers, services, GraphQL resolvers
 
-**Implementation Guidance**:
-- `docs/agents/package-maintainer.md#your-responsibilities` - Core responsibilities
-- `docs/agents/package-maintainer.md#when-adding-new-features` - Creating handlers and features
-- `docs/agents/package-maintainer.md#service-architecture` - Mixins, EventBus, patterns
-- `docs/agents/package-maintainer.md#llm-integration` - LLM provider architecture
-
-**Code Patterns**:
-- `docs/agents/package-maintainer.md#envelope-pattern-output` - Output pattern
-- `docs/agents/package-maintainer.md#service-registry-pattern` - DI pattern
-- `docs/agents/package-maintainer.md#node-handler-pattern` - Handler structure
-- `docs/agents/package-maintainer.md#diagram-access-pattern-do` - Correct diagram queries
-
-**Reference**:
+**Patterns & Imports**:
+- `docs/agents/package-maintainer.md#common-patterns` - Envelope, service registry, node handlers
 - `docs/agents/package-maintainer.md#key-import-paths` - Common imports
+
+**Escalation**:
 - `docs/agents/package-maintainer.md#when-you-need-help-escalation-paths` - When to escalate
 
 **Example doc-lookup call**:
@@ -78,7 +62,3 @@ python .claude/skills/doc-lookup/scripts/section_search.py \
 2. **If simple**: Load relevant section via `Skill(doc-lookup)`, provide guidance or make small change
 3. **If complex**: Escalate with `Task(dipeo-package-maintainer, "task details")`
 4. **Generated code problems**: First check if it's a generation issue → escalate to dipeo-codegen-pipeline
-
----
-
-**Token savings**: ~90% reduction (1,500 vs. 15,000 tokens) for focused tasks
