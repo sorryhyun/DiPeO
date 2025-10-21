@@ -46,7 +46,7 @@ class LightDiagram(BaseModel):
 
     nodes: list[LightNode]
     connections: list[LightConnection]
-    persons: list[dict[str, Any]] | None = None
+    persons: dict[str, Any] | None = None
     api_keys: list[dict[str, Any]] | None = None
     metadata: dict[str, Any] | None = None
 
