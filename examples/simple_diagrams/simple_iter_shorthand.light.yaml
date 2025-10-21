@@ -1,46 +1,53 @@
 version: light
-
-# This example demonstrates SHORTHAND NOTATION - properties without 'props:' wrapper
-# Compare with simple_iter.light.yaml to see the difference
-
 nodes:
 - label: start
   type: start
-  position: {x: 330, y: 200}
+  position:
+    x: 330
+    y: 200
   trigger_mode: manual
-
 - label: printer
   type: person_job
-  position: {x: 632, y: 231}
+  position:
+    x: 632
+    y: 231
   default_prompt: say hi
   max_iteration: 3
   memorize_to: ALL_MESSAGES
   person: person 1
-
 - label: condition
   type: condition
-  position: {x: 620, y: 425}
+  position:
+    x: 620
+    y: 425
   condition_type: detect_max_iterations
   skippable: true
-  flipped: [true, true]
-
+  flipped:
+  - true
+  - true
 - label: endpoint
   type: endpoint
-  position: {x: 0, y: 437}
+  position:
+    x: 0
+    y: 437
   file_format: txt
   save_to_file: true
-  flipped: [true, false]
+  flipped:
+  - true
+  - false
   file_path: files/results/total.txt
-
 - label: ask
   type: person_job
-  position: {x: 311, y: 443}
+  position:
+    x: 311
+    y: 443
   default_prompt: How many times did you respond?
-  flipped: [true, false]
+  flipped:
+  - true
+  - false
   max_iteration: 1
-  memorize_to: "remember all"
+  memorize_to: remember all
   person: person 1
-
 connections:
 - from: start
   to: printer
@@ -48,18 +55,16 @@ connections:
 - from: printer
   to: condition
   content_type: conversation_state
-- from: condition_condfalse
+- from: condition[condfalse]
   to: printer
   content_type: conversation_state
-- from: condition_condtrue
+- from: condition[condtrue]
   to: ask
   content_type: conversation_state
 - from: ask
   to: endpoint
   content_type: raw_text
-
 persons:
-  person 1:
-    service: openai
-    model: 'gpt-5-nano-2025-08-07'
-    api_key_id: APIKEY_52609F
+- service: openai
+  model: gpt-5-nano-2025-08-07
+  api_key_id: APIKEY_52609F

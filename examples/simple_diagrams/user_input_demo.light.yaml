@@ -2,56 +2,61 @@ version: light
 nodes:
 - label: start
   type: start
-  position: {x: 100, y: 200}
-  props:
-    trigger_mode: manual
+  position:
+    x: 100
+    y: 200
+  trigger_mode: manual
 - label: ask_name
   type: user_response
-  position: {x: 300, y: 200}
-  props:
-    prompt: "What is your name?"
-    timeout: 30
+  position:
+    x: 300
+    y: 200
+  prompt: What is your name?
+  timeout: 30
 - label: ask_age
   type: user_response
-  position: {x: 500, y: 200}
-  props:
-    prompt: "How old are you?"
-    timeout: 30
+  position:
+    x: 500
+    y: 200
+  prompt: How old are you?
+  timeout: 30
 - label: greet
   type: person_job
-  position: {x: 700, y: 200}
-  props:
-    person: greeter
-    default_prompt: "Generate a personalized greeting for {{name}} who is {{age}} years old. Be friendly and warm!"
-    max_iteration: 1
+  position:
+    x: 700
+    y: 200
+  person: greeter
+  default_prompt: Generate a personalized greeting for {{name}} who is {{age}} years
+    old. Be friendly and warm!
+  max_iteration: 1
 - label: endpoint
   type: endpoint
-  position: {x: 900, y: 200}
-  props:
-    file_format: txt
-    save_to_file: true
-    file_path: files/results/greeting.txt
+  position:
+    x: 900
+    y: 200
+  file_format: txt
+  save_to_file: true
+  file_path: files/results/greeting.txt
 connections:
 - from: start
   to: ask_name
   content_type: raw_text
 - from: ask_name
   to: ask_age
-  content_type: raw_text
   label: name
+  content_type: raw_text
 - from: ask_name
   to: greet
-  content_type: raw_text
   label: name
+  content_type: raw_text
 - from: ask_age
   to: greet
-  content_type: raw_text
   label: age
+  content_type: raw_text
 - from: greet
   to: endpoint
   content_type: raw_text
 persons:
-  greeter:
-    service: openai
-    model: 'gpt-5-nano-2025-08-07'
-    api_key_id: APIKEY_52609F
+- service: openai
+  model: gpt-5-nano-2025-08-07
+  api_key_id: APIKEY_52609F

@@ -56,11 +56,11 @@ class LightDiagramSerializer:
                 "type": node.type,
                 "position": node.position,
             }
-            props = {
+            # Flatten all properties to top level (no "props" wrapper)
+            extra_props = {
                 k: v for k, v in node.model_dump(exclude={"type", "label", "position"}).items() if v
             }
-            if props:
-                node_dict["props"] = props
+            node_dict.update(extra_props)
             nodes_out.append(node_dict)
 
         connections_out = []

@@ -164,8 +164,9 @@ class LightTransformer:
             s_node_id, s_handle, _ = HandleIdOperations.parse_handle_id(a.source)
             t_node_id, t_handle, _ = HandleIdOperations.parse_handle_id(a.target)
 
-            from_str = f"{id_to_label[s_node_id]}{'_' + s_handle if s_handle != 'default' else ''}"
-            to_str = f"{id_to_label[t_node_id]}{'_' + t_handle if t_handle != 'default' else ''}"
+            # Use bracket syntax for handles (modern format)
+            from_str = f"{id_to_label[s_node_id]}{'[' + s_handle + ']' if s_handle != 'default' else ''}"
+            to_str = f"{id_to_label[t_node_id]}{'[' + t_handle + ']' if t_handle != 'default' else ''}"
 
             conn_kwargs = {
                 "from": from_str,
