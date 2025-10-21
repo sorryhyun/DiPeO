@@ -17,8 +17,6 @@ from .preprocess import Preprocessor
 
 
 class PipelinePhase(Enum):
-    """Enumeration of pipeline phases."""
-
     PREPROCESS = "preprocess"
     CONVERT = "convert"
     POST_PROCESS = "post_process"
@@ -26,8 +24,6 @@ class PipelinePhase(Enum):
 
 @dataclass
 class PhaseResult:
-    """Result from a pipeline phase execution."""
-
     phase: PipelinePhase
     data: Any
     success: bool
@@ -38,15 +34,12 @@ class PhaseResult:
 
     @property
     def duration_ms(self) -> float:
-        """Calculate phase duration in milliseconds."""
         delta = self.end_time - self.start_time
         return delta.total_seconds() * 1000
 
 
 @dataclass
 class PipelineMetrics:
-    """Metrics for the entire pipeline execution."""
-
     total_duration_ms: float = 0.0
     phase_durations: dict[PipelinePhase, float] = field(default_factory=dict)
     phase_results: list[PhaseResult] = field(default_factory=list)
@@ -54,7 +47,6 @@ class PipelineMetrics:
     errors: list[str] = field(default_factory=list)
 
     def add_phase_result(self, result: PhaseResult) -> None:
-        """Add a phase result and update metrics."""
         self.phase_results.append(result)
         self.phase_durations[result.phase] = result.duration_ms
         self.total_duration_ms += result.duration_ms
@@ -69,7 +61,6 @@ class PhaseCoordinator:
     """Coordinates all phases of Claude Code to DiPeO diagram translation."""
 
     def __init__(self):
-        """Initialize the phase coordinator."""
         self.preprocessor = Preprocessor()
         self.converter = Converter()
 
@@ -179,18 +170,7 @@ class PhaseCoordinator:
         return diagram, metrics
 
     def preprocess_only(self, session: Any, processing_config: PipelineConfig | None = None):
-        """
-        Run only the preprocessing phase.
-
-        Useful for analyzing sessions or preparing them for custom conversion.
-
-        Args:
-            session: Session via port interface
-            processing_config: Custom processing configuration
-
-        Returns:
-            PreprocessedData containing processed data
-        """
+        """Run only the preprocessing phase, useful for analyzing sessions or preparing for custom conversion."""
         # Convert session to DomainSession if needed
         if hasattr(session, "to_domain_session"):
             domain_session = session.to_domain_session()
@@ -201,17 +181,7 @@ class PhaseCoordinator:
         return preprocessed_data
 
     def convert_only(self, preprocessed_session) -> dict[str, Any]:
-        """
-        Run only the conversion phase.
-
-        Useful when you already have preprocessed data or want to skip post-processing.
-
-        Args:
-            preprocessed_session: PreprocessedSession from preprocess phase
-
-        Returns:
-            Light format diagram dictionary (without post-processing)
-        """
+        """Run only conversion, useful when you already have preprocessed data or want to skip post-processing."""
         diagram, report = self.converter.process(preprocessed_session)
         return diagram
 
@@ -220,18 +190,7 @@ class PhaseCoordinator:
         diagram: dict[str, Any],
         processing_config: PipelineConfig | None = None,
     ) -> tuple[dict[str, Any], Any]:
-        """
-        Run only the post-processing phase.
-
-        Useful for optimizing existing diagrams.
-
-        Args:
-            diagram: Light format diagram to optimize
-            processing_config: Custom processing configuration
-
-        Returns:
-            Tuple of (optimized diagram, processing report)
-        """
+        """Run only post-processing, useful for optimizing existing diagrams."""
         pipeline_config = processing_config or PipelineConfig.from_preset(ProcessingPreset.STANDARD)
         pipeline = PostProcessor(pipeline_config)
         return pipeline.process(diagram)
@@ -239,18 +198,7 @@ class PhaseCoordinator:
     def with_error_boundary(
         self, phase: PipelinePhase, func: callable, *args, **kwargs
     ) -> PhaseResult:
-        """
-        Execute a function within an error boundary.
-
-        Args:
-            phase: The phase being executed
-            func: The function to execute
-            *args: Positional arguments for func
-            **kwargs: Keyword arguments for func
-
-        Returns:
-            PhaseResult with success/failure information
-        """
+        """Execute a function within an error boundary, returning PhaseResult with success/failure information."""
         start_time = datetime.now()
 
         try:

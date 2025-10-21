@@ -9,14 +9,21 @@ from functools import wraps
 from typing import TypeVar
 
 from dipeo.config.base_logger import get_module_logger
+from dipeo.domain.base.exceptions import TimeoutError
 
 from ..drivers.types import (
-    AuthenticationError,
     ProviderType,
-    RateLimitError,
     RetryConfig,
-    TimeoutError,
 )
+
+
+class AuthenticationError(Exception):
+    """Authentication failed with LLM provider."""
+
+
+class RateLimitError(Exception):
+    """Rate limit exceeded for LLM provider."""
+
 
 logger = get_module_logger(__name__)
 
@@ -27,7 +34,6 @@ class RetryHandler:
     """Handles retry logic for different providers."""
 
     def __init__(self, provider: ProviderType, config: RetryConfig):
-        """Initialize retry handler for specific provider."""
         self.provider = provider
         self.config = config
 
@@ -40,14 +46,12 @@ class RetryHandler:
         if isinstance(error, AuthenticationError):
             return False
 
-        # Check specific error types
         if isinstance(error, RateLimitError):
             return self.config.retry_on_rate_limit
 
         if isinstance(error, TimeoutError):
             return self.config.retry_on_timeout
 
-        # Provider-specific error handling
         if self.provider == ProviderType.OPENAI:
             return self._should_retry_openai(error)
         elif self.provider == ProviderType.ANTHROPIC:
@@ -61,72 +65,57 @@ class RetryHandler:
         return self.config.retry_on_server_error
 
     def _should_retry_openai(self, error: Exception) -> bool:
-        """Check if OpenAI error should be retried."""
         error_str = str(error).lower()
 
-        # OpenAI-specific rate limit patterns
         if "rate limit" in error_str or "quota" in error_str:
             return self.config.retry_on_rate_limit
 
-        # Server errors
         if any(code in error_str for code in ["500", "502", "503", "504"]):
             return self.config.retry_on_server_error
 
-        # Connection errors
         if "connection" in error_str or "timeout" in error_str:
             return self.config.retry_on_timeout
 
         return False
 
     def _should_retry_anthropic(self, error: Exception) -> bool:
-        """Check if Anthropic error should be retried."""
         error_str = str(error).lower()
 
-        # Anthropic-specific rate limit patterns
         if "rate" in error_str or "overloaded" in error_str:
             return self.config.retry_on_rate_limit
 
-        # Server errors
         if "internal" in error_str or "server" in error_str:
             return self.config.retry_on_server_error
 
-        # Connection errors
         if "connection" in error_str or "timeout" in error_str:
             return self.config.retry_on_timeout
 
         return False
 
     def _should_retry_google(self, error: Exception) -> bool:
-        """Check if Google error should be retried."""
         error_str = str(error).lower()
 
-        # Google-specific quota patterns
         if "quota" in error_str or "resource_exhausted" in error_str:
             return self.config.retry_on_rate_limit
 
-        # Server errors
         if "unavailable" in error_str or "internal" in error_str:
             return self.config.retry_on_server_error
 
-        # Connection errors
         if "deadline" in error_str or "timeout" in error_str:
             return self.config.retry_on_timeout
 
         return False
 
     def _should_retry_ollama(self, error: Exception) -> bool:
-        """Check if Ollama error should be retried."""
         error_str = str(error).lower()
 
         # Connection errors (common with local models)
         if "connection" in error_str or "refused" in error_str:
             return self.config.retry_on_timeout
 
-        # Model loading errors
         return bool("loading" in error_str or "initializing" in error_str)
 
     def calculate_delay(self, attempt: int, error: Exception | None = None) -> float:
-        """Calculate delay before next retry attempt."""
         # Check if error has retry-after header (for rate limits)
         if error and hasattr(error, "retry_after"):
             return float(error.retry_after)
@@ -142,8 +131,6 @@ class RetryHandler:
         return delay + jitter
 
     def with_retry(self, func: Callable[..., T]) -> Callable[..., T]:
-        """Decorator for adding retry logic to synchronous functions."""
-
         @wraps(func)
         def wrapper(*args, **kwargs) -> T:
             last_error = None
@@ -166,7 +153,6 @@ class RetryHandler:
 
                     time.sleep(delay)
 
-            # All retries exhausted
             logger.error(
                 f"[{self.provider}] All retry attempts exhausted after {self.config.max_attempts} attempts"
             )
@@ -175,8 +161,6 @@ class RetryHandler:
         return wrapper
 
     def with_async_retry(self, func: Callable[..., T]) -> Callable[..., T]:
-        """Decorator for adding retry logic to asynchronous functions."""
-
         @wraps(func)
         async def wrapper(*args, **kwargs) -> T:
             last_error = None
@@ -199,7 +183,6 @@ class RetryHandler:
 
                     await asyncio.sleep(delay)
 
-            # All retries exhausted
             logger.error(
                 f"[{self.provider}] All retry attempts exhausted after {self.config.max_attempts} attempts"
             )
@@ -217,17 +200,15 @@ class CircuitBreaker:
         recovery_timeout: float = 60.0,
         expected_exception: type = Exception,
     ):
-        """Initialize circuit breaker."""
         self.failure_threshold = failure_threshold
         self.recovery_timeout = recovery_timeout
         self.expected_exception = expected_exception
 
         self.failure_count = 0
         self.last_failure_time = None
-        self.state = "closed"  # closed, open, half-open
+        self.state = "closed"
 
     def call(self, func: Callable[..., T], *args, **kwargs) -> T:
-        """Execute function with circuit breaker protection."""
         if self.state == "open":
             if self._should_attempt_reset():
                 self.state = "half-open"
@@ -243,7 +224,6 @@ class CircuitBreaker:
             raise
 
     async def async_call(self, func: Callable[..., T], *args, **kwargs) -> T:
-        """Execute async function with circuit breaker protection."""
         if self.state == "open":
             if self._should_attempt_reset():
                 self.state = "half-open"
@@ -259,18 +239,15 @@ class CircuitBreaker:
             raise
 
     def _should_attempt_reset(self) -> bool:
-        """Check if circuit breaker should attempt reset."""
         return (
             self.last_failure_time and time.time() - self.last_failure_time >= self.recovery_timeout
         )
 
     def _on_success(self) -> None:
-        """Handle successful call."""
         self.failure_count = 0
         self.state = "closed"
 
     def _on_failure(self) -> None:
-        """Handle failed call."""
         self.failure_count += 1
         self.last_failure_time = time.time()
 

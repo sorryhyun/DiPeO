@@ -38,8 +38,8 @@ export class ArrowConverter {
       source: domainArrow.source,
       target: domainArrow.target,
       content_type: domainArrow.content_type as any,
-      label: domainArrow.label,
-      data: domainArrow.data
+      label: domainArrow.label as any,
+      data: domainArrow.data as any
     };
   }
 

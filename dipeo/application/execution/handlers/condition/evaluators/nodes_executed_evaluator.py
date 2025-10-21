@@ -1,6 +1,5 @@
 """Evaluator for checking if specific nodes have been executed."""
 
-import logging
 from typing import Any
 
 from dipeo.config.base_logger import get_module_logger
@@ -14,9 +13,7 @@ logger = get_module_logger(__name__)
 
 
 class NodesExecutedEvaluator(BaseConditionEvaluator):
-    """Evaluates whether specific nodes have been executed."""
-
-    def __init__(self):
+    def __init__(self) -> None:
         self._evaluation_service = EvaluationService()
 
     async def evaluate(

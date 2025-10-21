@@ -1,6 +1,5 @@
 """Use case for loading diagrams from various sources."""
 
-import logging
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -12,14 +11,7 @@ logger = get_module_logger(__name__)
 
 
 class LoadDiagramUseCase:
-    """Centralized use case for loading diagrams from various sources.
-
-    This use case handles:
-    - Loading diagrams from files
-    - Loading diagrams from inline data
-    - Format detection and conversion
-    - Constructing diagram file paths
-    """
+    """Loads diagrams from files or inline data with format detection and caching."""
 
     FORMAT_MAP: ClassVar = {
         "light": ".light.yaml",
@@ -28,12 +20,6 @@ class LoadDiagramUseCase:
     }
 
     def __init__(self, file_port: DiagramFilePort, format_port: DiagramFormatPort | None = None):
-        """Initialize the diagram loading use case.
-
-        Args:
-            file_port: Port for loading diagrams from files
-            format_port: Optional port for format conversion
-        """
         self._file_port = file_port
         self._format_port = format_port
         self._diagram_cache: dict[str, DomainDiagram] = {}
@@ -115,35 +101,17 @@ class LoadDiagramUseCase:
         return file_path
 
     def _construct_file_path(self, diagram_name: str, diagram_format: str | None = None) -> Path:
-        """Internal method to construct file path as Path object.
-
-        Args:
-            diagram_name: Name or partial path of the diagram
-            diagram_format: Optional format specification
-
-        Returns:
-            Path to the diagram file
-        """
+        """Construct file path as Path object."""
         return Path(self.construct_diagram_path(diagram_name, diagram_format))
 
     async def _load_from_data(self, data: dict[str, Any]) -> DomainDiagram:
-        """Load diagram from inline data.
-
-        Args:
-            data: Dictionary containing diagram data
-
-        Returns:
-            DomainDiagram created from the data
-        """
-        # If we have a format port, use it to deserialize the data
+        """Load diagram from inline data."""
         if self._format_port and hasattr(data, "get"):
-            # Convert dict to a format string representation if possible
             import json
 
             content = json.dumps(data)
             return self._format_port.deserialize(content, "native")
 
-        # Otherwise, directly construct from dict
         return DomainDiagram(**data)
 
     def clear_cache(self) -> None:

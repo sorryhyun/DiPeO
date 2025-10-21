@@ -20,8 +20,6 @@ logger = get_module_logger(__name__)
 
 
 class LocalBlobAdapter(LoggingMixin, InitializationMixin, BlobStorePort):
-    """Local filesystem implementation of BlobStorePort with versioning support."""
-
     def __init__(self, base_path: str | Path):
         InitializationMixin.__init__(self)
         self.base_path = Path(base_path).resolve()
@@ -154,8 +152,6 @@ class LocalBlobAdapter(LoggingMixin, InitializationMixin, BlobStorePort):
 
 
 class LocalFileSystemAdapter(LoggingMixin, InitializationMixin, FileSystemPort):
-    """Local filesystem implementation of FileSystemPort."""
-
     def __init__(self, base_path: str | Path | None = None):
         InitializationMixin.__init__(self)
         self.base_path = Path(base_path).resolve() if base_path else Path.cwd()

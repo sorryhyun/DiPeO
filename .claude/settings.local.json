@@ -52,23 +52,26 @@
       "Bash(do echo \"=== Checking $file ===\")",
       "Bash(pnpm:*)",
       "Bash(do [ -f \"$db\" ])",
-      "Bash(echo \"=== $db ===\")"
+      "Bash(echo \"=== $db ===\")",
+      "Skill(fix-typecheck)",
+      "Skill(generate-skill)",
+      "Skill(clean-comments)",
+      "Bash(do echo \"File: $file\")",
+      "Bash(uv pip list)",
+      "Skill(todo-manage)",
+      "Skill(maintain-docs)",
+      "Skill(separate-monolithic-python)",
+      "Bash(curl -s http://localhost:8000/mcp/info)",
+      "Bash(curl -s -X POST http://localhost:8000/mcp/messages:*)",
+      "Bash(pgrep:*)",
+      "Skill(doc-lookup)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(while read file)",
+      "Skill(dipeo-codegen-pipeline)",
+      "Skill(dipeo-backend)"
     ],
     "deny": [],
     "ask": []
-  },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 scripts/inject-agent-docs.py"
-          }
-        ]
-      }
-    ]
   },
   "additionalDirectories": [
     ".claude/commands"

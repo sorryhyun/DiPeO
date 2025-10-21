@@ -1,7 +1,7 @@
 # Now using uv for Python dependency management
 # Activate virtual environment with: source .venv/bin/activate
 
-.PHONY: install install-dev install-uv sync-deps parse-typescript codegen codegen-auto codegen-watch codegen-status dev-server dev-web dev-all clean clean-staged help lint-server lint-web lint-cli format graphql-schema diff-staged validate-staged validate-staged-syntax apply apply-syntax-only backup-generated
+.PHONY: install install-dev install-uv sync-deps parse-typescript codegen codegen-auto codegen-watch codegen-status dev-server dev-web dev-widgets dev-all clean clean-staged help lint-server lint-web lint-cli format graphql-schema diff-staged validate-staged validate-staged-syntax apply apply-syntax-only backup-generated schema-docs docs-add-anchors-dry docs-add-anchors docs-validate-anchors docs-update build-widgets
 
 # Default target
 help:
@@ -27,10 +27,19 @@ help:
 	@echo "  make dev-all      - Run both backend and frontend servers"
 	@echo "  make dev-server   - Run backend server"
 	@echo "  make dev-web      - Run frontend server"
+	@echo "  make dev-widgets  - Run widgets dev server"
+	@echo "  make build-widgets - Build ChatGPT widgets"
 	@echo ""
 	@echo "Quality & Testing:"
 	@echo "  make lint-{server, web, cli} - Run linters"
 	@echo "  make format       - Format all code"
+	@echo ""
+	@echo "Documentation:"
+	@echo "  make schema-docs           - Generate database schema documentation"
+	@echo "  make docs-add-anchors-dry  - Preview adding anchors to documentation"
+	@echo "  make docs-add-anchors      - Add anchors to features/formats/projects docs"
+	@echo "  make docs-validate-anchors - Validate router skill anchor references"
+	@echo "  make docs-update           - Full documentation update (anchors + validate)"
 	@echo ""
 	@echo "Staging Management:"
 	@echo "  make validate-staged - Validate staged files with mypy type checking"
@@ -149,6 +158,9 @@ dev-server:
 dev-web:
 	pnpm -F web dev
 
+dev-widgets:
+	pnpm -F @dipeo/chatgpt-widgets dev
+
 # Run both servers in parallel
 dev-all:
 	@echo "Starting all development servers..."
@@ -157,13 +169,23 @@ dev-all:
 	(sleep 3 && make dev-web 2>&1 | sed 's/^/[web] /' &) && \
 	wait
 
+# Build ChatGPT widgets
+build-widgets:
+	@echo "Generating GraphQL types for ChatGPT widgets..."
+	pnpm --filter @dipeo/chatgpt-widgets codegen
+	@echo "Building ChatGPT widgets..."
+	pnpm -F @dipeo/chatgpt-widgets build
+	@echo "Widgets built to apps/server/static/widgets/"
+
 # Export GraphQL schema
 graphql-schema:
 	@echo "Exporting GraphQL schema from application layer..."
 	PYTHONPATH="$(shell pwd):$$PYTHONPATH" DIPEO_BASE_DIR="$(shell pwd)" python -m dipeo.application.graphql.export_schema apps/server/schema.graphql
 	@echo "GraphQL schema exported to apps/server/schema.graphql"
-	@echo "Generating GraphQL TypeScript types..."
+	@echo "Generating GraphQL TypeScript types for web..."
 	pnpm --filter web codegen
+	@echo "Generating GraphQL TypeScript types for chatgpt-widgets..."
+	pnpm --filter @dipeo/chatgpt-widgets codegen
 	@echo "GraphQL TypeScript types generated!"
 
 # Python directories
@@ -301,3 +323,41 @@ clean:
 	rm -rf .dipeo/logs/*.log 2>/dev/null || true
 	rm -rf temp/codegen temp/core temp/specifications 2>/dev/null || true
 	@echo "Clean complete."
+
+# Generate database schema documentation
+schema-docs:
+	@echo "Generating database schema documentation..."
+	@python scripts/generate_db_schema_docs.py
+	@echo "Schema documentation generated in docs/"
+
+# Documentation anchor management
+docs-add-anchors-dry:
+	@echo "Previewing anchor additions (dry-run)..."
+	@echo ""
+	@echo "=== Features Documentation ==="
+	@python .claude/skills/maintain-docs/scripts/add_doc_anchors.py docs/features/ --recursive --dry-run
+	@echo ""
+	@echo "=== Formats Documentation ==="
+	@python .claude/skills/maintain-docs/scripts/add_doc_anchors.py docs/formats/ --recursive --dry-run
+	@echo ""
+	@echo "=== Projects Documentation ==="
+	@python .claude/skills/maintain-docs/scripts/add_doc_anchors.py docs/projects/ --recursive --dry-run
+	@echo ""
+	@echo "To apply these changes, run: make docs-add-anchors"
+
+docs-add-anchors:
+	@echo "Adding anchors to documentation..."
+	@python .claude/skills/maintain-docs/scripts/add_doc_anchors.py docs/features/ --recursive
+	@python .claude/skills/maintain-docs/scripts/add_doc_anchors.py docs/formats/ --recursive
+	@python .claude/skills/maintain-docs/scripts/add_doc_anchors.py docs/projects/ --recursive
+	@echo "✅ Anchors added. Run 'make docs-validate-anchors' to validate references."
+
+docs-validate-anchors:
+	@echo "Validating documentation anchor references in router skills..."
+	@python .claude/skills/maintain-docs/scripts/validate_doc_anchors.py
+
+docs-update: docs-add-anchors docs-validate-anchors
+	@echo ""
+	@echo "✅ Documentation update complete!"
+	@echo "  - Anchors added to all docs"
+	@echo "  - Router skills validated"

@@ -56,6 +56,10 @@ class IntelligentMemoryStrategy:
         at_most: int | None,
         **kwargs,
     ) -> list[Message] | None:
+        """Select relevant memories using LLM-based scoring and filtering.
+
+        Returns None if no selection criteria provided, [] if GOLDFISH mode or no matches.
+        """
         if not memorize_to or not memorize_to.strip():
             return None
 
@@ -65,10 +69,8 @@ class IntelligentMemoryStrategy:
         if not self.llm_service:
             return None
 
-        # Extract execution_id and node_id for timing
         exec_id = kwargs.get("execution_id", "")
         person_id = kwargs.pop("person_id", PersonID("system"))
-        # Use node_id if provided, otherwise fall back to "memory_strategy"
         node_id = kwargs.get("node_id", "memory_strategy")
 
         # Phase 1: Filtering
@@ -89,7 +91,6 @@ class IntelligentMemoryStrategy:
 
         person_name = None
 
-        # Get person's LLM config and name if available
         if self.person_repository:
             try:
                 person = self.person_repository.get(person_id)
@@ -105,16 +106,13 @@ class IntelligentMemoryStrategy:
                     if hasattr(llm_config.service, "value")
                     else str(llm_config.service)
                 )
-                # Get the person name
                 person_name = person.name or str(person_id)
             except (KeyError, AttributeError):
-                # Fallback to defaults if person not found
                 model = kwargs.get("model", "gpt-5-nano-2025-08-07")
                 api_key_id = kwargs.get("api_key_id", "APIKEY_52609F")
                 service_name = kwargs.get("service_name", "openai")
                 person_name = str(person_id)
         else:
-            # Use kwargs or defaults
             model = kwargs.get("model", "gpt-5-nano-2025-08-07")
             api_key_id = kwargs.get("api_key_id", "APIKEY_52609F")
             service_name = kwargs.get("service_name", "openai")
@@ -134,12 +132,9 @@ class IntelligentMemoryStrategy:
                 **kwargs,
             )
 
-        # Use the structured output directly
         if not output:
             return None
 
-        # If no message IDs were selected, return empty list (not None)
-        # This tells the caller that selection was performed but nothing matched
         if not output.message_ids:
             return []
 

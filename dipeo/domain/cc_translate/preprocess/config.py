@@ -64,7 +64,6 @@ class PreprocessConfig:
 
     @classmethod
     def minimal(cls) -> "PreprocessConfig":
-        """Create minimal preprocessing configuration."""
         config = cls()
         config.event_pruner.enabled = False
         config.field_pruner.enabled = False
@@ -73,12 +72,10 @@ class PreprocessConfig:
 
     @classmethod
     def standard(cls) -> "PreprocessConfig":
-        """Create standard preprocessing configuration (default)."""
         return cls()  # Use defaults
 
     @classmethod
     def aggressive(cls) -> "PreprocessConfig":
-        """Create aggressive preprocessing configuration."""
         config = cls()
         config.event_pruner.prune_errors = True
         config.event_pruner.prune_no_matches = True
@@ -87,7 +84,6 @@ class PreprocessConfig:
         return config
 
     def to_dict(self) -> dict:
-        """Convert configuration to dictionary."""
         return {
             "event_pruner": {
                 "enabled": self.event_pruner.enabled,

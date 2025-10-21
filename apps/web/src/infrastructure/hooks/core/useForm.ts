@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, type FormEvent } from 'react';
 import { z, ZodSchema } from 'zod';
 import { toast } from 'sonner';
 
@@ -73,7 +73,7 @@ export type UseFormReturn<T> = {
   validateField: <K extends keyof T>(field: K) => Promise<boolean>;
   validateForm: () => Promise<boolean>;
 
-  handleSubmit: (e?: React.FormEvent) => Promise<void>;
+  handleSubmit: (e?: FormEvent) => Promise<void>;
   handleReset: () => void;
 
   resetForm: (values?: Partial<T>) => void;
@@ -123,7 +123,7 @@ export function useForm<T extends Record<string, any>>(
   });
 
   const initialValuesRef = useRef(initialValues);
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const isMountedRef = useRef(true);
 
   if (enableReinitialize && initialValuesRef.current !== initialValues) {
@@ -345,7 +345,7 @@ export function useForm<T extends Record<string, any>>(
     }));
   }, []);
 
-  const handleSubmit = useCallback(async (e?: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e?: FormEvent) => {
     e?.preventDefault();
 
     if (!onSubmit || state.isSubmitting) return;

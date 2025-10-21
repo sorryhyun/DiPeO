@@ -33,7 +33,6 @@ class ConditionNodeGenerator(BaseNodeGenerator):
             )
             self.context.add_main_code(f"    if {expression}:")
 
-            # Find condtrue and condfalse paths
             condtrue_arrows = [a for a in diagram.arrows if a.source == f"{node.id}_condtrue"]
             condfalse_arrows = [a for a in diagram.arrows if a.source == f"{node.id}_condfalse"]
 

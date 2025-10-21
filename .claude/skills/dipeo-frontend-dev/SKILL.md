@@ -1,0 +1,92 @@
+---
+name: dipeo-frontend-dev
+description: Router skill for DiPeO frontend (React, visual editor, GraphQL integration, TypeScript types). Use when task mentions React components, diagram editor, GraphQL hooks, or type errors. For simple tasks, handle directly; for complex work, escalate to dipeo-frontend-dev agent.
+allowed-tools: Read, Grep, Glob, Bash, Skill
+---
+
+# DiPeO Frontend Dev Router
+
+**Domain**: React components, visual diagram editor (XYFlow), GraphQL integration, TypeScript types in `/apps/web/src/`.
+
+## Quick Decision: Skill or Agent?
+
+### ✅ Handle Directly (This Skill)
+- **Simple fixes**: <20 lines, 1-2 files
+- **Quick type fixes**: Single TypeScript error in one file
+- **Documentation lookups**: "Where is X?", "What hooks are available?"
+- **Small styling changes**: Update component layout, add simple UI element
+- **Pattern reference**: GraphQL hook usage examples
+
+**Token cost**: ~1,500 tokens (router + targeted section)
+
+### ❌ Escalate to Agent
+- **TypeScript type fixing**: Multiple related errors, GraphQL schema mismatches, complex generics
+- **Feature implementation**: New diagram editor features, multi-step UI workflows
+- **Refactoring**: Component hierarchy changes, extracting shared logic
+- **Complex debugging**: Runtime errors across components, state synchronization issues
+
+**Agent**: `Task(dipeo-frontend-dev, "your detailed task description")`
+
+## Documentation Sections (Load On-Demand)
+
+Use `Skill(doc-lookup)` with these anchors when you need detailed context:
+
+**Core Responsibilities**:
+- `docs/agents/frontend-development.md#core-responsibilities` - What frontend dev owns
+- `docs/agents/frontend-development.md#react-components` - React patterns
+- `docs/agents/frontend-development.md#diagram-editor` - XYFlow guidance
+- `docs/agents/frontend-development.md#graphql-integration` - GraphQL patterns
+- `docs/agents/frontend-development.md#typescript-types` - Type safety practices
+
+**Technical Context**:
+- `docs/agents/frontend-development.md#technical-context` - Tech stack overview
+- `docs/agents/frontend-development.md#project-structure` - Directory structure
+- `docs/agents/frontend-development.md#dev-workflow` - Development workflow
+
+**Code Quality & Patterns**:
+- `docs/agents/frontend-development.md#code-quality-standards` - Quality standards
+- `docs/agents/frontend-development.md#component-patterns` - Best practices
+- `docs/agents/frontend-development.md#graphql-usage` - Query/mutation examples
+- `docs/agents/frontend-development.md#state-management-zustand` - Zustand patterns
+
+**Constraints**:
+- `docs/agents/frontend-development.md#constraints` - Important constraints
+- `docs/agents/frontend-development.md#escalation` - When to escalate
+
+**ChatGPT Widgets** (React components for ChatGPT apps):
+- `docs/features/chatgpt-apps-integration.md#development` - Widget development guide
+- `docs/features/chatgpt-apps-integration.md#widget-workspace-structure` - Widget structure
+- `docs/features/chatgpt-apps-integration.md#creating-new-widget` - Creating widgets
+- `docs/features/chatgpt-apps-integration.md#available-widgets` - Available widget types
+
+**Example doc-lookup call**:
+```bash
+python .claude/skills/doc-lookup/scripts/section_search.py \
+  --query "graphql-usage" \
+  --paths docs/agents/frontend-development.md \
+  --top 1
+```
+
+## Escalation to Other Agents
+
+**To dipeo-backend**: GraphQL schema modifications, server API changes
+**To dipeo-codegen-pipeline**: TypeScript model definitions, generated type issues
+**To dipeo-package-maintainer**: New node type backend handlers
+
+## Typical Workflow
+
+1. **Assess complexity**: Simple fix vs. complex implementation
+2. **If simple**: Load relevant section via `Skill(doc-lookup)`, make change directly
+3. **If complex**: Escalate with `Task(dipeo-frontend-dev, "task details")`
+4. **Always verify**: Run `pnpm typecheck` before finalizing
+
+## Key Constraints
+
+- **NEVER modify** `/apps/web/src/__generated__/` files
+- **ALWAYS use** generated GraphQL hooks
+- **Run** `pnpm typecheck` before finalizing
+- **Prefer editing** over creating new files
+
+---
+
+**Token savings**: ~90% reduction (1,500 vs. 15,000 tokens) for focused tasks

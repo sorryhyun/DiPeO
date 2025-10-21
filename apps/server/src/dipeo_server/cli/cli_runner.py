@@ -1,39 +1,30 @@
 """CLI runner that executes commands directly using services."""
 
-import asyncio
-import contextlib
-import os
-import sys
-import uuid
-from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from dipeo.application.bootstrap import Container
-from dipeo.application.execution import ExecuteDiagramUseCase
-from dipeo.application.registry.keys import DIAGRAM_PORT, MESSAGE_ROUTER, STATE_STORE
-from dipeo.config.base_logger import get_module_logger
-from dipeo.diagram_generated.domain_models import ExecutionID
-from dipeo.diagram_generated.enums import Status
 from dipeo_server.cli.commands import ClaudeCodeCommandManager, IntegrationCommandManager
-from dipeo_server.cli.core import DiagramLoader, SessionManager
-from dipeo_server.cli.display import DisplayManager, MetricsManager
-from dipeo_server.cli.handlers import cli_interactive_handler
 
-logger = get_module_logger(__name__)
+from .compilation import DiagramCompiler
+from .conversion import DiagramConverter
+from .core import DiagramLoader
+from .display import MetricsManager
+from .execution import DiagramExecutor
+from .query import DiagramQuery
 
 
 class CLIRunner:
-    """CLI runner that uses direct service calls instead of HTTP/GraphQL."""
+    """CLI runner that delegates to specialized handlers."""
 
     def __init__(self, container: Container):
-        """Initialize CLI runner with dependency container."""
         self.container = container
         self.registry = container.registry
         self.diagram_loader = DiagramLoader()
-        self.display = DisplayManager()
-        self.session_manager = SessionManager()
 
-        # Initialize specialized managers
+        self.executor = DiagramExecutor(container)
+        self.converter = DiagramConverter(container)
+        self.compiler = DiagramCompiler(container)
+        self.query = DiagramQuery(container)
         self.metrics_manager = MetricsManager(container)
         self.integration_manager = IntegrationCommandManager(container)
         self.claude_code_manager = ClaudeCodeCommandManager(container)
@@ -48,194 +39,20 @@ class CLIRunner:
         use_unified: bool = True,
         simple: bool = False,
         interactive: bool = True,
+        execution_id: str | None = None,
     ) -> bool:
         """Execute a diagram using direct service calls."""
-        try:
-            state_store = self.registry.resolve(STATE_STORE)
-            message_router = self.registry.resolve(MESSAGE_ROUTER)
-            integrated_service = self.registry.resolve(DIAGRAM_PORT)
-
-            if integrated_service and hasattr(integrated_service, "initialize"):
-                await integrated_service.initialize()
-
-            # Load and deserialize diagram
-            (
-                domain_diagram,
-                diagram_data,
-                diagram_path,
-            ) = await self.diagram_loader.load_and_deserialize(diagram, format_type)
-
-            if not domain_diagram:
-                raise ValueError("Failed to load diagram")
-
-            # Create use case
-            use_case = ExecuteDiagramUseCase(
-                service_registry=self.registry,
-                state_store=state_store,
-                message_router=message_router,
-            )
-
-            # Prepare options
-            options = {
-                "variables": input_variables or {},
-                "debug_mode": debug,
-                "max_iterations": 100,
-                "timeout_seconds": timeout,
-                "diagram_source_path": diagram,
-            }
-
-            execution_id = ExecutionID(f"exec_{uuid.uuid4().hex}")
-
-            # Convert domain_diagram to native format for frontend
-            native_data = None
-            if domain_diagram:
-                native_data = {
-                    "nodes": [node.model_dump() for node in domain_diagram.nodes],
-                    "arrows": [arrow.model_dump() for arrow in domain_diagram.arrows],
-                    "handles": [handle.model_dump() for handle in domain_diagram.handles],
-                    "persons": [person.model_dump() for person in (domain_diagram.persons or [])],
-                }
-
-            # Create and subscribe MetricsObserver if debug or timing enabled
-            metrics_observer = None
-            event_forwarder = None
-            if debug or os.getenv("DIPEO_TIMING_ENABLED") == "true":
-                from dipeo.application.execution.observers import MetricsObserver
-                from dipeo.application.registry.keys import EVENT_BUS
-                from dipeo.domain.events import EventType
-
-                event_bus = self.registry.resolve(EVENT_BUS)
-                metrics_observer = MetricsObserver(event_bus=event_bus, state_store=state_store)
-
-                # Subscribe to metrics events
-                metrics_events = [
-                    EventType.EXECUTION_STARTED,
-                    EventType.NODE_STARTED,
-                    EventType.NODE_COMPLETED,
-                    EventType.NODE_ERROR,
-                    EventType.EXECUTION_COMPLETED,
-                ]
-                await event_bus.subscribe(metrics_events, metrics_observer)
-
-                # Start the metrics observer
-                await metrics_observer.start()
-
-                # Create EventForwarder to forward events to background server if available
-                if await self.session_manager.is_server_available():
-                    from dipeo_server.cli.handlers import EventForwarder
-
-                    event_forwarder = EventForwarder(execution_id=str(execution_id))
-
-                    # Subscribe to node AND execution events
-                    forward_events = [
-                        EventType.NODE_STARTED,
-                        EventType.NODE_COMPLETED,
-                        EventType.NODE_ERROR,
-                        EventType.EXECUTION_COMPLETED,
-                        EventType.EXECUTION_ERROR,
-                    ]
-                    await event_bus.subscribe(forward_events, event_forwarder)
-                    await event_forwarder.start()
-
-            # Register CLI session for monitor mode support
-            await self.session_manager.register_cli_session(
-                execution_id=str(execution_id),
-                diagram_name=diagram,
-                diagram_format="native",
-                diagram_data=native_data or diagram_data,
-            )
-
-            # Execute diagram
-            success = False
-
-            async def run_execution():
-                nonlocal success
-                last_update = None
-                async for update in use_case.execute_diagram(
-                    diagram=domain_diagram,
-                    options=options,
-                    execution_id=str(execution_id),
-                    interactive_handler=cli_interactive_handler if interactive else None,
-                ):
-                    last_update = update
-                    if not simple:
-                        print(".", end="", flush=True)
-
-                if last_update and last_update.get("type") == "execution_complete":
-                    success = True
-                    await asyncio.sleep(0.1)
-
-                result = await state_store.get_execution(str(execution_id))
-
-                if not success and result:
-                    success = result.status == Status.COMPLETED
-
-                if not simple:
-                    await self.display.display_rich_results(result, success)
-                else:
-                    await self.display.display_simple_results(result, success)
-
-            # Run execution
-            task = asyncio.create_task(run_execution())
-            try:
-                await asyncio.wait_for(task, timeout=timeout)
-            except TimeoutError:
-                logger.error(f"Execution timed out after {timeout} seconds")
-                task.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await task
-
-                try:
-                    from dipeo.domain.events import execution_error
-
-                    result = await state_store.get_execution(str(execution_id))
-                    if result and result.status == Status.RUNNING:
-                        logger.warning(
-                            f"Execution {execution_id} still RUNNING after timeout. "
-                            f"Executed nodes: {result.executed_nodes}"
-                        )
-                        event = execution_error(
-                            execution_id=str(execution_id),
-                            error_message=f"Execution timed out after {timeout} seconds",
-                        )
-                        await message_router.publish(event)
-                except Exception as update_err:
-                    logger.error(f"Failed to update execution state after timeout: {update_err}")
-
-                try:
-                    await self.container.shutdown()
-                    logger.info("Container shutdown complete after timeout")
-                except Exception as cleanup_err:
-                    logger.error(f"Failed to cleanup container after timeout: {cleanup_err}")
-
-                if not simple:
-                    print(f"\n❌ Execution timed out after {timeout} seconds")
-
-                await self.session_manager.unregister_cli_session(str(execution_id))
-
-                return False
-            finally:
-                # Stop event forwarder if it was created
-                if event_forwarder:
-                    await event_forwarder.stop()
-                    logger.debug("EventForwarder stopped")
-
-                # Stop metrics observer if it was created
-                if metrics_observer:
-                    await metrics_observer.stop()
-                    logger.debug("MetricsObserver stopped")
-
-                await self.session_manager.unregister_cli_session(str(execution_id))
-
-            return success
-
-        except Exception as e:
-            logger.error(f"Diagram execution failed: {e}")
-            if debug:
-                import traceback
-
-                traceback.print_exc()
-            return False
+        return await self.executor.run_diagram(
+            diagram=diagram,
+            debug=debug,
+            timeout=timeout,
+            format_type=format_type,
+            input_variables=input_variables,
+            use_unified=use_unified,
+            simple=simple,
+            interactive=interactive,
+            execution_id=execution_id,
+        )
 
     async def ask_diagram(
         self,
@@ -245,37 +62,14 @@ class CLIRunner:
         timeout: int = 90,
         run_timeout: int = 300,
     ) -> bool:
-        """Generate a diagram from natural language using the dipeodipeo diagram."""
-        try:
-            print("🤖 Generating diagram using DiPeO AI parallel generator...")
-            success = await self.run_diagram(
-                "projects/dipeodipeo/parallel_generator",
-                format_type="light",
-                input_variables={"workflow_description": request},
-                debug=debug,
-                timeout=timeout,
-                simple=True,
-            )
-
-            if not success:
-                print("❌ Diagram generation failed")
-                return False
-
-            print("✅ Diagram generated successfully")
-
-            if and_run:
-                print("⚠️  Auto-run not yet implemented for dipeodipeo generator")
-                return False
-
-            return True
-
-        except Exception as e:
-            logger.error(f"Diagram generation failed: {e}")
-            if debug:
-                import traceback
-
-                traceback.print_exc()
-            return False
+        """Generate a diagram from natural language."""
+        return await self.executor.ask_diagram(
+            request=request,
+            and_run=and_run,
+            debug=debug,
+            timeout=timeout,
+            run_timeout=run_timeout,
+        )
 
     async def convert_diagram(
         self,
@@ -285,38 +79,59 @@ class CLIRunner:
         to_format: str | None = None,
     ) -> bool:
         """Convert between diagram formats."""
-        try:
-            from dipeo.application.diagram.use_cases.serialize_diagram import (
-                SerializeDiagramUseCase,
-            )
+        return await self.converter.convert_diagram(
+            input_path=input_path,
+            output_path=output_path,
+            from_format=from_format,
+            to_format=to_format,
+        )
 
-            input_file = Path(input_path)
-            if not input_file.exists():
-                print(f"❌ Input file not found: {input_path}")
-                return False
+    async def export_diagram(
+        self,
+        diagram_path: str,
+        output_path: str,
+        format_type: str | None = None,
+    ) -> bool:
+        """Export diagram to Python script."""
+        return await self.converter.export_diagram(
+            diagram_path=diagram_path,
+            output_path=output_path,
+            format_type=format_type,
+        )
 
-            if not from_format:
-                from_format = self.diagram_loader.detect_format(input_path)
-            if not to_format:
-                to_format = self.diagram_loader.detect_format(output_path)
+    async def compile_diagram(
+        self,
+        diagram_path: str | None,
+        format_type: str | None = None,
+        check_only: bool = False,
+        output_json: bool = False,
+        use_stdin: bool = False,
+        push_as: str | None = None,
+        target_dir: str | None = None,
+    ) -> bool:
+        """Compile and validate diagram without executing it."""
+        return await self.compiler.compile_diagram(
+            diagram_path=diagram_path,
+            format_type=format_type,
+            check_only=check_only,
+            output_json=output_json,
+            use_stdin=use_stdin,
+            push_as=push_as,
+            target_dir=target_dir,
+        )
 
-            with open(input_path, encoding="utf-8") as f:
-                content = f.read()
+    async def show_results(self, session_id: str, verbose: bool = False) -> bool:
+        """Query execution status and results by session_id."""
+        return await self.query.show_results(session_id=session_id, verbose=verbose)
 
-            await self.diagram_loader.initialize()
-            use_case = SerializeDiagramUseCase(self.diagram_loader.serializer)
-
-            converted_content = use_case.convert_format(content, to_format, from_format)
-
-            with open(output_path, "w", encoding="utf-8") as f:
-                f.write(converted_content)
-
-            print(f"✅ Converted {input_path} to {output_path}")
-            return True
-
-        except Exception as e:
-            logger.error(f"Diagram conversion failed: {e}")
-            return False
+    async def list_diagrams(
+        self, output_json: bool = False, format_filter: str | None = None
+    ) -> bool:
+        """List available diagrams."""
+        return await self.query.list_diagrams(
+            output_json=output_json,
+            format_filter=format_filter,
+        )
 
     async def show_metrics(
         self,
@@ -328,10 +143,7 @@ class CLIRunner:
         optimizations_only: bool = False,
         output_json: bool = False,
     ) -> bool:
-        """Display execution metrics from database (no server required).
-
-        Delegates to MetricsManager for implementation.
-        """
+        """Display execution metrics from database."""
         return await self.metrics_manager.show_metrics(
             execution_id=execution_id,
             latest=latest,
@@ -343,54 +155,13 @@ class CLIRunner:
         )
 
     async def show_stats(self, diagram_path: str) -> bool:
-        """Show diagram statistics.
-
-        Delegates to MetricsManager for implementation.
-        """
+        """Show diagram statistics."""
         return await self.metrics_manager.show_stats(diagram_path)
 
     async def manage_integrations(self, action: str, **kwargs) -> bool:
-        """Manage API integrations.
-
-        Delegates to IntegrationCommandManager for implementation.
-        """
+        """Manage API integrations."""
         return await self.integration_manager.manage_integrations(action, **kwargs)
 
     async def manage_claude_code(self, action: str, **kwargs) -> bool:
-        """Manage Claude Code session conversion.
-
-        Delegates to ClaudeCodeCommandManager for implementation.
-        """
+        """Manage Claude Code session conversion."""
         return await self.claude_code_manager.manage_claude_code(action, **kwargs)
-
-    async def export_diagram(
-        self,
-        diagram_path: str,
-        output_path: str,
-        format_type: str | None = None,
-    ) -> bool:
-        """Export diagram to Python script."""
-        try:
-            from dipeo.domain.diagram.compilation import PythonDiagramCompiler
-
-            # Load diagram
-            (
-                domain_diagram,
-                diagram_data,
-                diagram_file_path,
-            ) = await self.diagram_loader.load_and_deserialize(diagram_path, format_type)
-
-            if not domain_diagram:
-                print(f"❌ Failed to load diagram: {diagram_path}")
-                return False
-
-            # Export to Python
-            compiler = PythonDiagramCompiler()
-            return compiler.export(domain_diagram, output_path)
-
-        except Exception as e:
-            logger.error(f"Diagram export failed: {e}")
-            import traceback
-
-            traceback.print_exc()
-            return False

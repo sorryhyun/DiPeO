@@ -54,7 +54,6 @@ class AssemblyPhase(PhaseInterface):
                 else person.llm_config.api_key_id,
             }
 
-            # Add optional configuration
             if hasattr(person.llm_config, "temperature"):
                 person_data["temperature"] = person.llm_config.temperature
             if hasattr(person.llm_config, "max_tokens"):

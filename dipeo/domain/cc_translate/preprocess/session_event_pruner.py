@@ -24,11 +24,9 @@ class SessionEventPruner(BaseSessionProcessor):
     """
 
     def __init__(self, config: SessionEventPrunerConfig | None = None):
-        """Initialize the session event pruner."""
         super().__init__(config)
 
     def _get_default_config(self) -> SessionEventPrunerConfig:
-        """Get default configuration for this processor."""
         return SessionEventPrunerConfig()
 
     def process_session(
@@ -113,15 +111,6 @@ class SessionEventPruner(BaseSessionProcessor):
         return filtered_session, report
 
     def _should_prune_event(self, event: DomainEvent) -> bool:
-        """
-        Determine if an event should be pruned.
-
-        Args:
-            event: The session event to check
-
-        Returns:
-            True if the event should be pruned
-        """
         # Check for "No matches found" tool results
         if self.config.prune_no_matches and self._is_no_matches_event(event):
             return True
@@ -141,7 +130,6 @@ class SessionEventPruner(BaseSessionProcessor):
         return False
 
     def _is_no_matches_event(self, event: DomainEvent) -> bool:
-        """Check if event is a 'No matches found' tool result."""
         if event.type != "user":
             return False
 
@@ -160,7 +148,6 @@ class SessionEventPruner(BaseSessionProcessor):
         return False
 
     def _is_error_event(self, event: DomainEvent) -> bool:
-        """Check if event is an error event."""
         content = event.content
         if not isinstance(content, list):
             return False
@@ -168,7 +155,6 @@ class SessionEventPruner(BaseSessionProcessor):
         return any(isinstance(item, dict) and item.get("is_error") is True for item in content)
 
     def _is_empty_result_event(self, event: DomainEvent) -> bool:
-        """Check if event is a tool result with empty/whitespace-only content."""
         if event.type != "user":
             return False
 
@@ -185,7 +171,6 @@ class SessionEventPruner(BaseSessionProcessor):
         return False
 
     def _matches_custom_patterns(self, event: DomainEvent) -> bool:
-        """Check if event content matches any custom prune patterns."""
         if not self.config.custom_prune_patterns:
             return False
 
@@ -206,7 +191,6 @@ class SessionEventPruner(BaseSessionProcessor):
         return False
 
     def _extract_event_text(self, event: DomainEvent) -> str:
-        """Extract text content from an event for pattern matching."""
         content = event.content
 
         # Handle string content
@@ -230,7 +214,6 @@ class SessionEventPruner(BaseSessionProcessor):
         return ""
 
     def _get_prune_reason(self, event: DomainEvent) -> str:
-        """Get human-readable reason why an event was pruned."""
         if self._is_no_matches_event(event):
             return "No matches found result"
         elif self._is_error_event(event):

@@ -11,7 +11,7 @@ import { Status, nodeId } from '@/infrastructure/types';
 export function useExecutionSubscriptionHandler(executionIdParam: string | null) {
   const executionActions = useUnifiedStore(state => state);
   const isRunning = useUnifiedStore(state => state.execution.isRunning);
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Subscribe to execution updates (primary method)
   const { data, error } = useExecutionUpdatesSubscription({

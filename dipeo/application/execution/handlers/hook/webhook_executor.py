@@ -12,19 +12,7 @@ from dipeo.domain.events import DomainEvent
 async def execute_webhook_hook(
     node: HookNode, inputs: dict[str, Any], request: ExecutionRequest[HookNode]
 ) -> Any:
-    """Execute webhook hook - send request or subscribe to events.
-
-    Args:
-        node: The hook node configuration
-        inputs: Input data to send in webhook payload
-        request: The execution request containing state
-
-    Returns:
-        Response data from webhook or subscription result
-
-    Raises:
-        NodeExecutionError: If the webhook request fails
-    """
+    """Send HTTP request or subscribe to webhook events based on config."""
     config = node.config
 
     if config.get("subscribe_to"):
@@ -53,18 +41,7 @@ async def execute_webhook_hook(
 
 
 async def _subscribe_to_webhook_events(node: HookNode, inputs: dict[str, Any]) -> Any:
-    """Subscribe to webhook events from providers.
-
-    Args:
-        node: The hook node configuration
-        inputs: Input data (not used in subscription)
-
-    Returns:
-        Event data when matching event is received, or timeout status
-
-    Raises:
-        NodeExecutionError: If subscription configuration is invalid
-    """
+    """Wait for matching webhook events based on provider, event name, and filters."""
     config = node.config
     subscribe_config = config.get("subscribe_to", {})
 
@@ -103,22 +80,13 @@ async def _subscribe_to_webhook_events(node: HookNode, inputs: dict[str, Any]) -
 
     try:
         await asyncio.wait_for(event_received.wait(), timeout=timeout)
-
-        if received_event:
-            return {
-                "status": "triggered",
-                "provider": provider,
-                "event_name": received_event.get("event_name"),
-                "payload": received_event.get("payload"),
-                "headers": received_event.get("headers", {}),
-            }
-        else:
-            return {
-                "status": "timeout",
-                "provider": provider,
-                "message": f"No matching webhook event received within {timeout} seconds",
-            }
-
+        return {
+            "status": "triggered",
+            "provider": provider,
+            "event_name": received_event.get("event_name"),
+            "payload": received_event.get("payload"),
+            "headers": received_event.get("headers", {}),
+        }
     except TimeoutError:
         return {
             "status": "timeout",

@@ -214,7 +214,7 @@ export const NODE_FIELD_OVERRIDES: FieldOverrides = {
         dependsOn: ['provider'],
         options: async (form) => {
           try {
-            const provider = (form as any)?.provider;
+            const provider = (form as Record<string, unknown>)?.provider;
 
             if (!provider) {
               return [];

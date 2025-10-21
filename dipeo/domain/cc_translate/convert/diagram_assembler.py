@@ -13,11 +13,6 @@ class DiagramAssembler:
     """Assembles final light format diagram from components."""
 
     def __init__(self, person_registry: PersonRegistry | None = None):
-        """Initialize the diagram assembler.
-
-        Args:
-            person_registry: Optional person registry for managing persons
-        """
         self.person_registry = person_registry
 
     def assemble_light_diagram(
@@ -27,17 +22,6 @@ class DiagramAssembler:
         persons: dict[str, Any] | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Assemble components into light format diagram.
-
-        Args:
-            nodes: List of node dictionaries
-            connections: List of connection dictionaries
-            persons: Optional dictionary of person configurations
-            metadata: Optional metadata to include
-
-        Returns:
-            Complete light format diagram dictionary
-        """
         # Build the light format diagram
         diagram = {"version": "light"}
 
@@ -70,16 +54,6 @@ class DiagramAssembler:
         preprocessing_report: Any = None,
         conversion_stats: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Add processing metadata to the diagram.
-
-        Args:
-            diagram: The diagram to add metadata to
-            preprocessing_report: Optional preprocessing report
-            conversion_stats: Optional conversion statistics
-
-        Returns:
-            Updated diagram with metadata
-        """
         if "metadata" not in diagram:
             diagram["metadata"] = {}
 

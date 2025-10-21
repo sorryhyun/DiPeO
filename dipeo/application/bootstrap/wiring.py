@@ -5,7 +5,6 @@ Infrastructure wiring has been moved to the composition root (apps/server/bootst
 The application layer should not import or create infrastructure services directly.
 """
 
-import logging
 from typing import Any
 
 from dipeo.application.registry import ServiceRegistry

@@ -23,7 +23,6 @@ class PersonJobNodeGenerator(BaseNodeGenerator):
         )
         indent = self.context.get_indent()
 
-        # Find person config
         person = next((p for p in diagram.persons if p.id == person_id), None)
         if not person:
             self._add_comment(f"{label} - ERROR: Person config not found")
@@ -45,7 +44,6 @@ class PersonJobNodeGenerator(BaseNodeGenerator):
 
         service = service.lower()
 
-        # Add appropriate imports and initialize client
         if "openai" in service or "gpt" in model.lower():
             self._setup_openai_client()
             client_var = "openai_client"
@@ -58,7 +56,6 @@ class PersonJobNodeGenerator(BaseNodeGenerator):
 
         self.context.add_import("import os")
 
-        # Get prompt
         prompt = (
             node.data.get("default_prompt", "")
             if hasattr(node, "data")

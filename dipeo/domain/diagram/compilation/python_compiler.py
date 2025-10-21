@@ -44,32 +44,25 @@ class PythonDiagramCompiler:
             True if export successful, False otherwise
         """
         try:
-            # Reset state
             self.context = CompilationContext()
             self.visited_nodes = set()
             self.loops = []
 
-            # Find start node
             start_nodes = [n for n in diagram.nodes if n.type == "start"]
             if not start_nodes:
                 print("❌ No start node found in diagram")
                 return False
 
-            # Build node execution order
             execution_order = self._build_execution_order(diagram, start_nodes[0])
 
-            # Generate code, handling loops
             if self.loops:
                 self._generate_with_loops(diagram, execution_order)
             else:
-                # No loops, generate sequentially
                 for node in execution_order:
                     self._generate_node_code(node, diagram)
 
-            # Build final script
             script = self._build_script(diagram)
 
-            # Write to file
             Path(output_path).write_text(script)
             print(f"✅ Exported diagram to {output_path}")
             return True
@@ -83,10 +76,8 @@ class PythonDiagramCompiler:
 
     def _build_execution_order(self, diagram: DomainDiagram, start_node) -> list:
         """Build execution order and detect loops."""
-        # First, detect loops in the diagram
         self._detect_loops(diagram, start_node)
 
-        # Then build execution order (will be used for non-loop nodes)
         order = []
         to_visit = [start_node]
         visited = set()
@@ -149,7 +140,6 @@ class PythonDiagramCompiler:
             rec_stack.add(node.id)
             path.append(node.id)
 
-            # Find outgoing arrows
             outgoing = [a for a in diagram.arrows if a.source.startswith(f"{node.id}_")]
 
             for arrow in outgoing:
@@ -177,7 +167,6 @@ class PythonDiagramCompiler:
         loop_node_ids = set(loop["nodes"])
         condition_node = loop["condition"]
 
-        # Get max_iteration from the person_job node in the loop
         max_iterations = 10
         for node_id in loop["nodes"]:
             node = next((n for n in diagram.nodes if n.id == node_id), None)
@@ -190,33 +179,26 @@ class PythonDiagramCompiler:
                         max_iterations = getattr(node, "max_iteration", 10)
                     break
 
-        # Generate pre-loop nodes
         for node in execution_order:
             if node.id not in loop_node_ids:
                 self._generate_node_code(node, diagram)
             else:
-                # Found loop entry - start generating loop
                 break
 
-        # Generate loop structure
         self.context.add_main_code(f"    # Loop: max {max_iterations} iterations")
         self.context.add_main_code("    iteration_count = 0")
         self.context.add_main_code(f"    while iteration_count < {max_iterations}:")
         self.context.indent_level = 2
 
-        # Generate loop body nodes (excluding condition)
         for node in execution_order:
             if node.id in loop_node_ids and node.id != condition_node.id:
                 self._generate_node_code(node, diagram)
 
-        # Increment counter
         self.context.add_main_code("        iteration_count += 1")
         self.context.add_main_code("")
 
-        # Reset indent
         self.context.indent_level = 1
 
-        # Generate post-loop nodes (condtrue path from condition)
         condtrue_arrows = [
             a for a in diagram.arrows if a.source == f"{condition_node.id}_condtrue_output"
         ]
@@ -226,7 +208,6 @@ class PythonDiagramCompiler:
                 "_".join(target_handle.split("_")[:-2]) if "_" in target_handle else target_handle
             )
 
-            # Generate remaining nodes
             visited = set(loop_node_ids)
             to_visit = [target_node_id]
 
@@ -240,7 +221,6 @@ class PythonDiagramCompiler:
                 if node:
                     self._generate_node_code(node, diagram)
 
-                    # Find next nodes
                     outgoing = [a for a in diagram.arrows if a.source.startswith(f"{node.id}_")]
                     for arrow in outgoing:
                         target_handle = arrow.target
@@ -259,12 +239,10 @@ class PythonDiagramCompiler:
             node: The node to generate code for
             diagram: The full diagram
         """
-        # Handle both string and enum node types
         node_type = str(node.type) if hasattr(node.type, "value") else node.type
         if hasattr(node.type, "value"):
             node_type = node.type.value
 
-        # Create appropriate generator and delegate
         generator = None
         if node_type == "start":
             generator = StartNodeGenerator(self.context)
@@ -308,16 +286,13 @@ class PythonDiagramCompiler:
         lines.append('"""')
         lines.append("")
 
-        # Imports
         lines.extend(sorted(self.context.imports))
         lines.append("")
         lines.append("")
 
-        # Main function
         lines.append("async def main():")
         lines.append('    """Main execution function."""')
 
-        # Initialization code
         if self.context.init_code:
             lines.append("")
             lines.append("    # Initialize clients")
@@ -325,14 +300,12 @@ class PythonDiagramCompiler:
 
         lines.append("")
 
-        # Main execution code
         lines.extend(self.context.main_code)
 
         lines.append('    print("✅ Execution complete")')
         lines.append("")
         lines.append("")
 
-        # Entry point
         lines.append('if __name__ == "__main__":')
         lines.append("    asyncio.run(main())")
         lines.append("")

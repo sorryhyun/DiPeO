@@ -6,7 +6,6 @@ without creating separate execution contexts or state persistence.
 
 import contextlib
 import copy
-import logging
 import os
 import uuid
 from datetime import UTC, datetime
@@ -48,10 +47,7 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         )
 
     async def execute(self, request: ExecutionRequest[SubDiagramNode]) -> Envelope:
-        """Execute a sub-diagram in lightweight mode without state persistence.
-
-        Returns an Envelope containing the execution results.
-        """
+        """Execute a sub-diagram in lightweight mode without state persistence."""
         node = request.node
         trace_id = request.execution_id or ""
 
@@ -353,10 +349,7 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         trace_id: str = "",
         execution_errors: list[dict[str, Any]] | None = None,
     ) -> Envelope:
-        """Build and return an Envelope with execution results.
-
-        Creates an Envelope containing the execution results and errors summary.
-        """
+        """Build an Envelope with execution results and errors summary."""
         output_value = self._process_output_mapping(node, execution_results)
 
         envelope = EnvelopeFactory.create(
@@ -391,7 +384,7 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
 
         # Ensure critical services for person_job are available
         if hasattr(parent_registry, "resolve"):
-            from dipeo.application.registry import (
+            from dipeo.application.registry.keys import (
                 EXECUTION_ORCHESTRATOR,
                 FILESYSTEM_ADAPTER,
                 LLM_SERVICE,
@@ -422,8 +415,8 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
 
         Ensures persons defined in sub_diagram are available when person_job nodes execute.
         """
-        from dipeo.application.execution.wiring import EXECUTION_ORCHESTRATOR
         from dipeo.application.registry import ServiceKey
+        from dipeo.application.registry.keys import EXECUTION_ORCHESTRATOR
 
         orchestrator = None
 
@@ -448,10 +441,7 @@ class LightweightSubDiagramExecutor(BaseSubDiagramExecutor):
         error_type: str,
         execution_errors: list[dict[str, Any]] | None = None,
     ) -> Envelope:
-        """Create a standardized error envelope for sub-diagram failures.
-
-        Ensures consistent error reporting with proper metadata.
-        """
+        """Create a standardized error envelope with consistent metadata."""
         error_data = {
             "error": error_message,
             "error_type": error_type,

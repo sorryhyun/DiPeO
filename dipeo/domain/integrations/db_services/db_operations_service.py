@@ -168,11 +168,11 @@ class DBOperationsDomainService:
         )
 
     def normalize_line_ranges(self, lines: Any) -> list[tuple[int | None, int | None]]:
+        """Deduplicate ranges while preserving order."""
         if lines is None:
             return []
 
         ranges = self._parse_line_range(lines)
-        # Preserve order but remove exact duplicates while keeping first occurrence
         seen: set[tuple[int | None, int | None]] = set()
         normalized: list[tuple[int | None, int | None]] = []
         for start, end in ranges:

@@ -95,23 +95,18 @@ class UnifiedStateTracker:
     """
 
     def __init__(self):
-        # UI State (for visualization)
         self._node_states: dict[NodeID, NodeState] = {}
 
-        # Execution History (immutable records)
         self._execution_records: dict[NodeID, list[NodeExecutionRecord]] = {}
         self._execution_counts: dict[NodeID, int] = {}
         self._last_outputs: dict[NodeID, Envelope] = {}
         self._execution_order: list[NodeID] = []
 
-        # Iteration Limits (per-epoch tracking)
         self._node_iterations_per_epoch: dict[tuple[NodeID, int], int] = defaultdict(int)
         self._max_iterations_per_epoch: int = 100
 
-        # Metadata (arbitrary key-value storage per node)
         self._node_metadata: dict[NodeID, dict[str, Any]] = {}
 
-        # Thread Safety
         self._lock = threading.Lock()
 
     # ========================================================================
@@ -139,15 +134,12 @@ class UnifiedStateTracker:
             The execution count for this node (1-indexed)
         """
         with self._lock:
-            # Update UI state
             self._node_states[node_id] = NodeState(status=Status.RUNNING)
 
-            # Start execution tracking
             current_count = self._execution_counts.get(node_id, 0)
             new_count = current_count + 1
             self._execution_counts[node_id] = new_count
 
-            # Create execution record
             record = NodeExecutionRecord(
                 node_id=node_id,
                 execution_number=new_count,
@@ -162,10 +154,8 @@ class UnifiedStateTracker:
                 self._execution_records[node_id] = []
             self._execution_records[node_id].append(record)
 
-            # Track execution order
             self._execution_order.append(node_id)
 
-            # Track iteration per epoch
             key = (node_id, epoch)
             self._node_iterations_per_epoch[key] += 1
 
@@ -185,10 +175,7 @@ class UnifiedStateTracker:
             token_usage: Token usage statistics
         """
         with self._lock:
-            # Update UI state
             self._node_states[node_id] = NodeState(status=Status.COMPLETED)
-
-            # Complete execution record
             self._complete_execution_record(
                 node_id, CompletionStatus.SUCCESS, output=output, token_usage=token_usage
             )
@@ -201,12 +188,8 @@ class UnifiedStateTracker:
             error: Error message describing the failure
         """
         with self._lock:
-            # Update UI state
             self._node_states[node_id] = NodeState(status=Status.FAILED, error=error)
-
-            # Complete execution record
             self._complete_execution_record(node_id, CompletionStatus.FAILED, error=error)
-
             logger.debug(f"Node {node_id} transitioned to FAILED: {error}")
 
     def transition_to_maxiter(self, node_id: NodeID, output: Envelope | None = None) -> None:
@@ -217,10 +200,7 @@ class UnifiedStateTracker:
             output: The node's last output envelope
         """
         with self._lock:
-            # Update UI state
             self._node_states[node_id] = NodeState(status=Status.MAXITER_REACHED)
-
-            # Complete execution record
             self._complete_execution_record(node_id, CompletionStatus.MAX_ITER, output=output)
 
     def transition_to_skipped(self, node_id: NodeID) -> None:
@@ -230,12 +210,8 @@ class UnifiedStateTracker:
             node_id: The node to transition
         """
         with self._lock:
-            # Update UI state
             self._node_states[node_id] = NodeState(status=Status.SKIPPED)
-
-            # Complete execution record
             self._complete_execution_record(node_id, CompletionStatus.SKIPPED)
-
             logger.debug(f"Node {node_id} transitioned to SKIPPED")
 
     def reset_node(self, node_id: NodeID) -> None:

@@ -218,29 +218,68 @@ class HandleLabelParser:
     """Parser for user-facing label_handle format used in light diagrams.
 
     This format is used in connection strings like "NodeA_condtrue -> NodeB"
-    where users specify handles as suffixes to node labels.
+    or "NodeA[condtrue] -> NodeB" (bracket syntax).
+    Supports both underscore suffix format and bracket format.
     """
+
+    @staticmethod
+    def parse_bracket_syntax(
+        label_raw: str, label2id: dict[str, str]
+    ) -> tuple[str | None, str | None, str] | None:
+        """Parse bracket syntax like 'NodeLabel[handle]'.
+
+        Args:
+            label_raw: Raw label string with bracket syntax (e.g., "MyNode[condtrue]")
+            label2id: Mapping from node labels to node IDs
+
+        Returns:
+            Tuple of (node_id, handle_name, node_label) if bracket syntax detected,
+            None otherwise:
+            - node_id: The ID of the referenced node (None if not found)
+            - handle_name: The extracted handle name from brackets
+            - node_label: The node label portion (before brackets)
+        """
+        import re
+
+        bracket_pattern = r"^(.+?)\[([^\]]+)\]$"
+        match = re.match(bracket_pattern, label_raw.strip())
+
+        if not match:
+            return None
+
+        node_label = match.group(1).strip()
+        handle_name = match.group(2).strip()
+
+        node_id = label2id.get(node_label)
+
+        return node_id, handle_name, node_label
 
     @staticmethod
     def parse_label_with_handle(
         label_raw: str, label2id: dict[str, str]
     ) -> tuple[str | None, str | None, str]:
-        """Parse a label that may contain a handle suffix.
+        """Parse a label that may contain a handle suffix or bracket notation.
 
-        Tries to split the label at underscore boundaries to identify:
-        1. The node label (which maps to a node ID)
-        2. The handle suffix (e.g., "condtrue", "first")
+        Supports both formats:
+        1. Bracket syntax: "NodeLabel[handle]" (preferred, explicit)
+        2. Underscore suffix: "NodeLabel_handle" (legacy, backward compatible)
+
+        Tries bracket syntax first, then falls back to underscore splitting.
 
         Args:
-            label_raw: Raw label string, possibly with handle suffix (e.g., "MyNode_condtrue")
+            label_raw: Raw label string, possibly with handle (e.g., "MyNode[condtrue]" or "MyNode_condtrue")
             label2id: Mapping from node labels to node IDs
 
         Returns:
             Tuple of (node_id, handle_name, node_label):
             - node_id: The ID of the referenced node (None if not found)
-            - handle_name: The extracted handle suffix (None if no handle specified)
-            - node_label: The node label portion (with or without spaces)
+            - handle_name: The extracted handle name (None if no handle specified)
+            - node_label: The node label portion
         """
+        bracket_result = HandleLabelParser.parse_bracket_syntax(label_raw, label2id)
+        if bracket_result is not None:
+            return bracket_result
+
         label = label_raw
         handle_from_split = None
 
@@ -305,6 +344,62 @@ class HandleLabelParser:
 
 class HandleValidator:
     """Validates and ensures handle existence in diagram structures."""
+
+    @staticmethod
+    def validate_bracket_syntax_handle(
+        node_label: str,
+        handle_name: str,
+        node_type: str,
+        direction: str,
+    ) -> None:
+        """Validate that a handle exists in HANDLE_SPECS for bracket syntax references.
+
+        When using bracket syntax (e.g., "NodeLabel[handle]"), this performs strict
+        validation to ensure the handle exists for the node's type.
+
+        Args:
+            node_label: The node label being referenced
+            handle_name: The handle name from bracket syntax
+            node_type: The type of the node
+            direction: "input" or "output" - the direction we're validating
+
+        Raises:
+            ValueError: If the handle doesn't exist for this node type and direction
+        """
+        from dipeo.diagram_generated import HandleDirection, HandleLabel
+        from dipeo.domain.diagram.utils.shared_components import DEFAULT_HANDLES, HANDLE_SPECS
+
+        handle_specs = HANDLE_SPECS.get(node_type, DEFAULT_HANDLES)
+
+        direction_enum = HandleDirection.INPUT if direction == "input" else HandleDirection.OUTPUT
+
+        try:
+            handle_label = HandleLabel(handle_name)
+        except ValueError:
+            available_handles = [
+                spec.label.value for spec in handle_specs if spec.direction == direction_enum
+            ]
+            raise ValueError(
+                f"Invalid handle '{handle_name}' for node '{node_label}' of type '{node_type}'. "
+                f"Available {direction} handles: {available_handles}. "
+                f"Valid handle labels: {[label.value for label in HandleLabel]}"
+            ) from None
+
+        matching_specs = [
+            spec
+            for spec in handle_specs
+            if spec.label == handle_label and spec.direction == direction_enum
+        ]
+
+        if not matching_specs:
+            available_handles = [
+                spec.label.value for spec in handle_specs if spec.direction == direction_enum
+            ]
+            raise ValueError(
+                f"Handle '{handle_name}' does not exist as {direction} handle "
+                f"for node '{node_label}' of type '{node_type}'. "
+                f"Available {direction} handles: {available_handles}"
+            )
 
     @staticmethod
     def ensure_handle_exists(

@@ -1,8 +1,4 @@
-"""Infrastructure adapters for converting Claude Code sessions to domain models.
-
-This module provides adapters to convert between infrastructure layer
-types (like ClaudeCodeSession) and domain layer ports/models.
-"""
+"""Infrastructure adapters for converting Claude Code sessions to domain models."""
 
 from datetime import datetime
 from typing import Optional
@@ -20,27 +16,11 @@ from .session_parser import ClaudeCodeSession
 
 
 class SessionAdapter:
-    """Adapter to convert ClaudeCodeSession to DomainSession.
-
-    This adapter converts infrastructure types to domain models
-    for use with domain layer components.
-    """
-
     def __init__(self, session: ClaudeCodeSession):
-        """Initialize the adapter with an infrastructure session.
-
-        Args:
-            session: The infrastructure ClaudeCodeSession to adapt
-        """
         self._session = session
         self._domain_session = None
 
     def to_domain_session(self) -> DomainSession:
-        """Convert infrastructure session to domain model.
-
-        Returns:
-            DomainSession with properly converted events and metadata
-        """
         if self._domain_session is None:
             # Convert metadata
             metadata = SessionMetadata(
@@ -78,15 +58,6 @@ class SessionAdapter:
         return self._domain_session
 
     def _convert_event(self, infra_event) -> DomainEvent | None:
-        """Convert infrastructure event to domain event.
-
-        Args:
-            infra_event: Infrastructure layer event
-
-        Returns:
-            DomainEvent or None if conversion fails
-        """
-        # Determine event type
         event_type = self._get_event_type(infra_event)
 
         # Determine role
@@ -144,7 +115,6 @@ class SessionAdapter:
         )
 
     def _get_event_type(self, event) -> EventType:
-        """Determine the event type from infrastructure event."""
         if hasattr(event, "type"):
             event_type_str = event.type.lower()
             if event_type_str == "user":
@@ -165,7 +135,6 @@ class SessionAdapter:
         return EventType.ASSISTANT
 
     def _create_event_content(self, event) -> EventContent:
-        """Create event content from infrastructure event."""
         text = None
         data = {}
 
@@ -243,45 +212,35 @@ class SessionAdapter:
 
         return EventContent(text=text, data=data)
 
-    # Legacy SessionPort compatibility methods (for backward compatibility)
     @property
     def id(self) -> str:
-        """Get the session identifier (for SessionPort compatibility)."""
         return self._session.session_id
 
     @property
     def session_id(self) -> str:
-        """Get the session identifier."""
         return self._session.session_id
 
     @property
     def events(self) -> list:
-        """Get all events in the session (converts to domain events)."""
         return self.to_domain_session().events
 
     @property
     def metadata(self) -> SessionMetadata:
-        """Get session metadata (as domain model)."""
         return self.to_domain_session().metadata
 
     @property
     def start_time(self) -> datetime | None:
-        """Get session start time."""
         return self.to_domain_session().metadata.start_time
 
     @property
     def end_time(self) -> datetime | None:
-        """Get session end time."""
         return self.to_domain_session().metadata.end_time
 
     def get_event_count(self) -> int:
-        """Get total number of events."""
         return len(self.to_domain_session().events)
 
     def get_tool_usage_stats(self) -> dict[str, int]:
-        """Get tool usage statistics."""
         return self.to_domain_session().metadata.tool_usage_count
 
     def to_dict(self) -> dict:
-        """Convert session to dictionary representation."""
         return self.to_domain_session().to_dict()

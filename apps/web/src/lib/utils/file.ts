@@ -117,7 +117,7 @@ export const saveDiagram = async (file: File, format?: DiagramFormat): Promise<{
     });
 
     if (!data?.uploadFile.success) {
-      const errorMsg = (data?.uploadFile as any)?.error;
+      const errorMsg = (data?.uploadFile as Record<string, unknown>)?.error;
       throw new Error(typeof errorMsg === 'string' ? errorMsg : 'Failed to save diagram');
     }
 
@@ -125,7 +125,7 @@ export const saveDiagram = async (file: File, format?: DiagramFormat): Promise<{
     const filename = file.name;
     const diagramId = filename.replace('.yaml', '').replace('.yml', '').replace('.json', '');
 
-    const uploadResult = data.uploadFile as any;
+    const uploadResult = data.uploadFile as Record<string, unknown>;
     return {
       success: true,
       diagramId,
@@ -171,11 +171,11 @@ export const uploadFile = async (
     });
 
     if (!data?.uploadFile.success) {
-      const errorMsg = (data?.uploadFile as any)?.error;
+      const errorMsg = (data?.uploadFile as Record<string, unknown>)?.error;
       throw new Error(typeof errorMsg === 'string' ? errorMsg : 'Failed to upload file');
     }
 
-    const uploadResult = data.uploadFile as any;
+    const uploadResult = data.uploadFile as Record<string, unknown>;
     return {
       success: true,
       path: typeof uploadResult.path === 'string' ? uploadResult.path : undefined,

@@ -55,10 +55,10 @@ export function stripTypenames<T>(obj: T): T {
   }
 
   if (typeof obj === 'object') {
-    const result: any = {};
+    const result: Record<string, unknown> = {};
     for (const key in obj) {
-      if (key !== '__typename' && obj.hasOwnProperty(key)) {
-        let value = (obj as any)[key];
+      if (key !== '__typename' && Object.prototype.hasOwnProperty.call(obj, key)) {
+        let value = (obj as Record<string, unknown>)[key];
 
         // Convert enum values
         if (typeof value === 'string') {

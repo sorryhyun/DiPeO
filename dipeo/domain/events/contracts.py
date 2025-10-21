@@ -151,7 +151,6 @@ class DomainEvent:
     causation_id: str | None = None
 
     def __post_init__(self):
-        """Validate payload matches event type."""
         if self.payload is not None and self.type in PAYLOAD_BY_TYPE:
             expected_type = PAYLOAD_BY_TYPE[self.type]
             if not isinstance(self.payload, expected_type):
@@ -162,7 +161,6 @@ class DomainEvent:
 
 
 def execution_started(execution_id: str, **kwargs) -> DomainEvent:
-    """Create an execution started event."""
     return DomainEvent(
         type=EventType.EXECUTION_STARTED,
         scope=EventScope(execution_id=execution_id),
@@ -171,7 +169,6 @@ def execution_started(execution_id: str, **kwargs) -> DomainEvent:
 
 
 def execution_completed(execution_id: str, **kwargs) -> DomainEvent:
-    """Create an execution completed event."""
     return DomainEvent(
         type=EventType.EXECUTION_COMPLETED,
         scope=EventScope(execution_id=execution_id),
@@ -180,7 +177,6 @@ def execution_completed(execution_id: str, **kwargs) -> DomainEvent:
 
 
 def execution_error(execution_id: str, error_message: str, **kwargs) -> DomainEvent:
-    """Create an execution error event."""
     return DomainEvent(
         type=EventType.EXECUTION_ERROR,
         scope=EventScope(execution_id=execution_id),
@@ -189,7 +185,6 @@ def execution_error(execution_id: str, error_message: str, **kwargs) -> DomainEv
 
 
 def node_started(execution_id: str, node_id: str, state: NodeState, **kwargs) -> DomainEvent:
-    """Create a node started event."""
     return DomainEvent(
         type=EventType.NODE_STARTED,
         scope=EventScope(execution_id=execution_id, node_id=node_id),
@@ -198,7 +193,6 @@ def node_started(execution_id: str, node_id: str, state: NodeState, **kwargs) ->
 
 
 def node_completed(execution_id: str, node_id: str, state: NodeState, **kwargs) -> DomainEvent:
-    """Create a node completed event."""
     # Extract metadata fields that aren't part of the payload
     meta = {}
     if "person_id" in kwargs:
@@ -221,7 +215,6 @@ def node_completed(execution_id: str, node_id: str, state: NodeState, **kwargs) 
 def node_error(
     execution_id: str, node_id: str, state: NodeState, error_message: str, **kwargs
 ) -> DomainEvent:
-    """Create a node error event."""
     return DomainEvent(
         type=EventType.NODE_ERROR,
         scope=EventScope(execution_id=execution_id, node_id=node_id),

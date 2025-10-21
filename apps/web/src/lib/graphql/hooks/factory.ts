@@ -185,13 +185,23 @@ export function createEntitySubscription<TData = any, TVariables extends Operati
   config: EntityQueryConfig<TData, TVariables>
 ) {
   return (variables?: TVariables, overrideOptions?: SubscriptionHookOptions<TData, TVariables>) => {
+    // Determine the fetch policy, excluding cache-and-network which is not valid for subscriptions
+    // Convert cache-and-network to network-only for subscriptions
+    const convertForSubscription = (policy: string | undefined): 'cache-first' | 'network-only' | 'no-cache' | 'cache-only' | 'standby' | undefined => {
+      if (policy === 'cache-and-network') return 'network-only';
+      return policy as 'cache-first' | 'network-only' | 'no-cache' | 'cache-only' | 'standby' | undefined;
+    };
+
+    const fetchPolicy: 'cache-first' | 'network-only' | 'no-cache' | 'cache-only' | 'standby' | undefined =
+      convertForSubscription(config.cacheStrategy) ||
+      convertForSubscription(config.options?.fetchPolicy) ||
+      convertForSubscription(overrideOptions?.fetchPolicy);
+
     const mergedOptions: SubscriptionHookOptions<TData, TVariables> = {
       ...config.options,
       ...overrideOptions,
       variables: variables || config.options?.variables,
-      // Remove cache-and-network if it was set, as it's not valid for subscriptions
-      fetchPolicy: config.cacheStrategy === 'cache-and-network' ? 'network-only' :
-                   (config.cacheStrategy as any) || config.options?.fetchPolicy || overrideOptions?.fetchPolicy,
+      fetchPolicy,
       onError: (error) => {
         if (config.onError) {
           config.onError(error);

@@ -1,7 +1,6 @@
 """Port usage metrics collection for Wave 5 migration monitoring."""
 
 import functools
-import logging
 import time
 from collections import defaultdict
 from collections.abc import Callable
@@ -19,8 +18,6 @@ logger = get_module_logger(__name__)
 
 @dataclass
 class PortMetrics:
-    """Metrics for port usage tracking."""
-
     call_count: int = 0
     error_count: int = 0
     total_duration: float = 0.0
@@ -64,7 +61,6 @@ class PortMetricsCollector:
         is_v2: bool,
         error: Exception | None = None,
     ) -> None:
-        """Record a port method call."""
         metrics = self._metrics[port_name][method_name]
         metrics.call_count += 1
         metrics.total_duration += duration
@@ -85,7 +81,6 @@ class PortMetricsCollector:
             self._log_summary()
 
     def get_metrics(self, port_name: str | None = None) -> dict[str, Any]:
-        """Get metrics for a specific port or all ports."""
         if port_name:
             return {
                 method: {
@@ -111,7 +106,6 @@ class PortMetricsCollector:
         }
 
     def _log_summary(self) -> None:
-        """Log a summary of metrics."""
         total = self._v1_calls + self._v2_calls
         v2_pct = (self._v2_calls / total * 100) if total > 0 else 0
 
@@ -139,8 +133,6 @@ _collector = PortMetricsCollector()
 
 
 def track_port_call(port_name: str, is_v2: bool = False):
-    """Decorator to track port method calls."""
-
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         async def async_wrapper(*args, **kwargs):
@@ -194,7 +186,6 @@ def track_port_call(port_name: str, is_v2: bool = False):
 
 
 def get_port_metrics(port_name: str | None = None) -> dict[str, Any]:
-    """Get current port usage metrics."""
     return _collector.get_metrics(port_name)
 
 
@@ -203,7 +194,6 @@ def reset_port_metrics() -> None:
 
 
 def add_metrics_to_port(port_instance: Any, port_name: str, is_v2: bool = False) -> Any:
-    """Dynamically add metrics tracking to a port instance."""
     import os
 
     if os.getenv("DIPEO_PORT_METRICS") != "1":
@@ -225,7 +215,6 @@ def add_metrics_to_port(port_instance: Any, port_name: str, is_v2: bool = False)
 
 
 def wire_port_metrics(registry: "ServiceRegistry") -> None:
-    """Wire port metrics collection to all registered services."""
     import os
 
     if os.getenv("DIPEO_PORT_METRICS") != "1":
@@ -243,7 +232,7 @@ def wire_port_metrics(registry: "ServiceRegistry") -> None:
         EVENT_BUS,
         FILESYSTEM_ADAPTER,
         INTEGRATED_API_SERVICE,
-        LLM_SERVICE,  # LLM_CLIENT removed - no longer needed
+        LLM_SERVICE,
         MESSAGE_ROUTER,
         STATE_CACHE,
         STATE_REPOSITORY,
@@ -255,7 +244,6 @@ def wire_port_metrics(registry: "ServiceRegistry") -> None:
         (STATE_SERVICE, "StateService", True),
         (STATE_CACHE, "StateCache", True),
         (LLM_SERVICE, "LLMService", True),
-        # (LLM_CLIENT, "LLMClient", True),  # Removed - no longer needed
         (FILESYSTEM_ADAPTER, "FileSystem", True),
         (BLOB_STORE, "BlobStore", True),
         (MESSAGE_ROUTER, "MessageRouter", True),

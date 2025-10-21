@@ -9,11 +9,7 @@ from dipeo.domain.integrations.ports import APIKeyPort
 
 
 class EnvironmentAPIKeyService(LoggingMixin, InitializationMixin, APIKeyPort):
-    """API Key service that reads from environment variables.
-
-    This adapter allows applications to use environment variables for API key management,
-    which is useful for CLI applications and containerized deployments.
-    """
+    """API Key service reading from environment variables (CLI/containerized deployments)."""
 
     VALID_SERVICES = VALID_LLM_SERVICES | {"notion"}
 

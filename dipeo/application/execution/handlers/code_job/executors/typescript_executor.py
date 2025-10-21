@@ -89,7 +89,6 @@ run();
     async def execute_inline(
         self, code: str, inputs: dict[str, Any], timeout: int, function_name: str = "main"
     ) -> Any:
-        _ = self.prepare_inputs(inputs)
         module_code = code
 
         if (

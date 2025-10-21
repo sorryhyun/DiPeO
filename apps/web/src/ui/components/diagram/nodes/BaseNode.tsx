@@ -9,6 +9,7 @@ import { useUIState } from '@/infrastructure/store/hooks/state';
 import { useNodeExecutionData, useSelectionData, usePersonData, useNodeOperations } from '@/infrastructure/store/hooks';
 import { NodeType, Status, nodeId, personId } from '@/infrastructure/types';
 import { getNodeConfig } from '@/domain/diagram/config/nodes';
+import type { HandleConfig } from '@/domain/diagram/types/config';
 import './BaseNode.css';
 
 interface BaseNodeProps {
@@ -37,29 +38,29 @@ function useNodeStatus(nodeIdStr: string) {
     // Check both enum values and string values for compatibility
     const isRunning =
       nodeExecutionState?.status === Status.RUNNING ||
-      nodeExecutionState?.status === 'RUNNING' as any ||
+      (nodeExecutionState?.status as string) === 'RUNNING' ||
       hookNodeState?.status === 'running';
 
     const isSkipped =
       nodeExecutionState?.status === Status.SKIPPED ||
-      nodeExecutionState?.status === 'SKIPPED' as any ||
+      (nodeExecutionState?.status as string) === 'SKIPPED' ||
       hookNodeState?.status === 'skipped';
 
     const isCompleted =
       nodeExecutionState?.status === Status.COMPLETED ||
       nodeExecutionState?.status === Status.MAXITER_REACHED ||
-      nodeExecutionState?.status === 'COMPLETED' as any ||
-      nodeExecutionState?.status === 'MAXITER_REACHED' as any ||
+      (nodeExecutionState?.status as string) === 'COMPLETED' ||
+      (nodeExecutionState?.status as string) === 'MAXITER_REACHED' ||
       hookNodeState?.status === 'completed';
 
     const hasError =
       nodeExecutionState?.status === Status.FAILED ||
-      nodeExecutionState?.status === 'FAILED' as any ||
+      (nodeExecutionState?.status as string) === 'FAILED' ||
       hookNodeState?.status === 'error';
 
     const isMaxIterReached =
       nodeExecutionState?.status === Status.MAXITER_REACHED ||
-      nodeExecutionState?.status === 'MAXITER_REACHED' as any;
+      (nodeExecutionState?.status as string) === 'MAXITER_REACHED';
 
     return {
       isRunning,
@@ -85,8 +86,8 @@ function useHandles(nodeId: string, nodeType: string, flippedState: { horizontal
     if (!handles || (!inputs.length && !outputs.length)) return [];
 
     const allHandles = [
-      ...(outputs || []).map((handle: any) => ({ ...handle, type: 'output' as const })),
-      ...(inputs || []).map((handle: any) => ({ ...handle, type: 'input' as const }))
+      ...(outputs || []).map((handle: HandleConfig) => ({ ...handle, type: 'output' as const })),
+      ...(inputs || []).map((handle: HandleConfig) => ({ ...handle, type: 'input' as const }))
     ];
 
     const handlesByPosition = allHandles.reduce((acc, handle) => {
@@ -108,7 +109,7 @@ function useHandles(nodeId: string, nodeType: string, flippedState: { horizontal
     }> = [];
 
     Object.entries(handlesByPosition).forEach(([pos, handles]) => {
-      const handleArray = handles as any[];
+      const handleArray = handles as Array<HandleConfig & { type: 'input' | 'output' }>;
       const count = handleArray.length;
 
       handleArray.forEach((handle, index) => {
@@ -262,7 +263,7 @@ const NodeBody = React.memo(({
     }
 
     if (key === 'memory_settings.view' || (key === 'memory_settings' && typeof value === 'object' && value && 'view' in value)) {
-      const viewValue = key === 'memory_settings.view' ? value : (value as any).view;
+      const viewValue = key === 'memory_settings.view' ? value : (value as Record<string, unknown>).view;
       const emoji = viewValue === 'all_involved' ? '🧠' :
                    viewValue === 'sent_by_me' ? '📤' :
                    viewValue === 'sent_to_me' ? '📥' :

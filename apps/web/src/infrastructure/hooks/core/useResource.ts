@@ -80,7 +80,7 @@ export function useResource<T extends { id?: string } = any>(
   });
 
   const currentIdRef = useRef<string | undefined>(undefined);
-  const refetchTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const refetchTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const previousDataRef = useRef<T | null>(null);
 
   const isStale = state.lastFetch
@@ -157,7 +157,7 @@ export function useResource<T extends { id?: string } = any>(
         loading: false,
         lastFetch: new Date(),
       }));
-      handleSuccess('list', data as any);
+      handleSuccess('list');
       return data;
     } catch (error) {
       handleError('list', error);

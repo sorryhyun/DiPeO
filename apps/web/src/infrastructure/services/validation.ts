@@ -3,17 +3,15 @@
  * Leverages @dipeo/models specifications for type-safe validation
  */
 
-import type {
-  DomainNode,
-  DomainArrow,
-  DomainDiagram,
-  DomainPerson,
-  NodeID,
-  HandleID,
-  LLMService,
-} from '@dipeo/models';
-import { NodeType } from '@dipeo/models';
 import {
+  type DomainNode,
+  type DomainArrow,
+  type DomainDiagram,
+  type DomainPerson,
+  type NodeID,
+  type HandleID,
+  type LLMService,
+  NodeType,
   isValidLLMService,
   isValidAPIServiceType,
 } from '@dipeo/models';
@@ -51,7 +49,7 @@ export class ValidationService {
     const schemaKey = nodeType.toLowerCase().replace(/_/g, '') as 'hook' | 'start' | 'condition' | 'endpoint' | 'db' | 'apijob' | 'codejob' | 'integratedapi' | 'jsonschemavalidator' | 'personjob' | 'subdiagram' | 'templatejob' | 'typescriptast' | 'userresponse';
 
     const validKeys = ['hook', 'start', 'condition', 'endpoint', 'db', 'apijob', 'codejob', 'integratedapi', 'jsonschemavalidator', 'personjob', 'subdiagram', 'templatejob', 'typescriptast', 'userresponse'] as const;
-    if (validKeys.includes(schemaKey as any)) {
+    if (validKeys.includes(schemaKey as typeof validKeys[number])) {
       return getNodeDataSchema(schemaKey);
     }
     return undefined;
@@ -290,7 +288,7 @@ export class ValidationService {
     try {
       const fieldData = { [fieldName]: value };
       if ('partial' in schema && typeof schema.partial === 'function') {
-        (schema as any).partial().parse(fieldData);
+        (schema as z.ZodObject<z.ZodRawShape>).partial().parse(fieldData);
       } else {
         schema.parse({ [fieldName]: value });
       }

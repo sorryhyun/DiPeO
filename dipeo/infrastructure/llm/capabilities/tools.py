@@ -21,11 +21,9 @@ class ToolHandler:
     """Handles tool conversion and processing for different providers."""
 
     def __init__(self, provider: ProviderType):
-        """Initialize tool handler for specific provider."""
         self.provider = provider
 
     def convert_tools_to_api_format(self, tools: list[ToolConfig]) -> list[dict[str, Any]]:
-        """Convert tools to provider-specific API format."""
         if not tools:
             return []
 
@@ -39,7 +37,6 @@ class ToolHandler:
             return []
 
     def _convert_tools_openai(self, tools: list[ToolConfig]) -> list[dict[str, Any]]:
-        """Convert tools to OpenAI format."""
         api_tools = []
 
         for tool in tools:
@@ -50,7 +47,6 @@ class ToolHandler:
             elif tool_type == "image_generation":
                 api_tools.append({"type": "image_generation"})
             elif tool_type == "function":
-                # Function calling format for OpenAI
                 api_tools.append(
                     {
                         "type": "function",
@@ -65,7 +61,6 @@ class ToolHandler:
         return api_tools
 
     def _convert_tools_anthropic(self, tools: list[ToolConfig]) -> list[dict[str, Any]]:
-        """Convert tools to Anthropic/Claude format."""
         api_tools = []
 
         for tool in tools:
@@ -109,7 +104,6 @@ class ToolHandler:
                     }
                 )
             elif tool_type == "function":
-                # Function calling format for Anthropic
                 api_tools.append(
                     {
                         "name": tool.name,
@@ -120,7 +114,7 @@ class ToolHandler:
                     }
                 )
             elif tool_type == "computer_use":
-                # Computer use tools for Claude
+                # Computer use tools for Claude (requires specific API version)
                 api_tools.append(
                     {
                         "name": "computer",
@@ -134,14 +128,12 @@ class ToolHandler:
         return api_tools
 
     def _convert_tools_google(self, tools: list[ToolConfig]) -> list[dict[str, Any]]:
-        """Convert tools to Google/Gemini format."""
         api_tools = []
 
         for tool in tools:
             tool_type = tool.type if isinstance(tool.type, str) else tool.type.value
 
             if tool_type == "function":
-                # Function calling format for Gemini
                 api_tools.append(
                     {
                         "function_declarations": [
@@ -159,7 +151,6 @@ class ToolHandler:
         return api_tools
 
     def process_tool_outputs(self, response: Any) -> list[ToolOutput] | None:
-        """Process tool outputs from provider response."""
         if self.provider == ProviderType.OPENAI:
             return self._process_openai_tool_outputs(response)
         elif self.provider == ProviderType.ANTHROPIC:
@@ -170,7 +161,6 @@ class ToolHandler:
             return None
 
     def _process_openai_tool_outputs(self, response: Any) -> list[ToolOutput] | None:
-        """Process OpenAI tool outputs."""
         tool_outputs = []
 
         if hasattr(response, "output") and response.output:
@@ -216,14 +206,12 @@ class ToolHandler:
         return tool_outputs if tool_outputs else None
 
     def _process_anthropic_tool_outputs(self, response: Any) -> list[ToolOutput] | None:
-        """Process Anthropic/Claude tool outputs."""
         tool_outputs = []
 
         if hasattr(response, "content") and isinstance(response.content, list):
             for content_block in response.content:
                 if content_block.type == "tool_use":
                     if content_block.name == "web_search":
-                        # Process web search results
                         tool_outputs.append(
                             ToolOutput(
                                 type=ToolType.WEB_SEARCH,
@@ -232,7 +220,6 @@ class ToolHandler:
                             )
                         )
                     elif content_block.name == "generate_image":
-                        # Process image generation
                         tool_outputs.append(
                             ToolOutput(
                                 type=ToolType.IMAGE_GENERATION,
@@ -241,7 +228,6 @@ class ToolHandler:
                             )
                         )
                     else:
-                        # Generic function call
                         tool_outputs.append(
                             ToolOutput(
                                 type=ToolType.FUNCTION,
@@ -253,7 +239,6 @@ class ToolHandler:
         return tool_outputs if tool_outputs else None
 
     def _process_google_tool_outputs(self, response: Any) -> list[ToolOutput] | None:
-        """Process Google/Gemini tool outputs."""
         tool_outputs = []
 
         if hasattr(response, "candidates") and response.candidates:

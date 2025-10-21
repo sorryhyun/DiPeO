@@ -1,60 +1,1681 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dipeo.dev/schemas/light-v1.json",
   "title": "DiPeO Light Diagram Schema",
+  "description": "Comprehensive schema for DiPeO light diagram format with full node type validation and shorthand notation support",
   "type": "object",
-  "required": ["version", "nodes", "connections"],
+  "required": [
+    "version",
+    "nodes"
+  ],
   "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference URL (optional)"
+    },
     "version": {
       "type": "string",
-      "enum": ["light"]
+      "const": "light",
+      "description": "Diagram format version (must be 'light')"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional diagram metadata for documentation",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Diagram name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Diagram description"
+        },
+        "author": {
+          "type": "string",
+          "description": "Author name or email"
+        },
+        "version": {
+          "type": "string",
+          "description": "Diagram version"
+        },
+        "created": {
+          "type": "string",
+          "description": "Creation date"
+        },
+        "modified": {
+          "type": "string",
+          "description": "Last modified date"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Searchable tags"
+        }
+      }
+    },
+    "persons": {
+      "type": "object",
+      "description": "AI agents/personas used in the diagram",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "service",
+          "model"
+        ],
+        "properties": {
+          "service": {
+            "type": "string",
+            "enum": [
+              "openai",
+              "anthropic",
+              "ollama",
+              "gemini"
+            ],
+            "description": "LLM service provider"
+          },
+          "model": {
+            "type": "string",
+            "description": "Model identifier (e.g. gpt-5-nano-2025-08-07)"
+          },
+          "api_key_id": {
+            "type": "string",
+            "description": "API key reference from api_keys section"
+          },
+          "system_prompt": {
+            "type": "string",
+            "description": "System prompt defining agent's role and behavior"
+          }
+        }
+      }
+    },
+    "api_keys": {
+      "type": "array",
+      "description": "API key definitions (stored securely, not in diagram files)",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "service"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique key identifier"
+          },
+          "service": {
+            "type": "string",
+            "description": "Service this key is for"
+          }
+        }
+      }
     },
     "nodes": {
       "type": "array",
+      "description": "Execution nodes in the diagram",
+      "minItems": 1,
       "items": {
-        "type": "object",
-        "required": ["label", "type", "position"],
-        "properties": {
-          "label": {"type": "string"},
-          "type": {
-            "type": "string",
-            "enum": ["start", "endpoint", "db", "code_job", "person_job", "api_job", "condition", "template_job", "merge", "select", "iterator", "variable", "formatter", "saver", "sub_diagram", "hook", "user_response", "json_schema_validator", "notion", "typescript_ast", "person_batch_job"]
-          },
-          "position": {
+        "allOf": [
+          {
             "type": "object",
-            "required": ["x", "y"],
+            "required": [
+              "label",
+              "type",
+              "position"
+            ],
             "properties": {
-              "x": {"type": "number"},
-              "y": {"type": "number"}
+              "label": {
+                "type": "string",
+                "description": "Human-readable node identifier (must be unique)"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "typescriptast",
+                  "start",
+                  "userresponse",
+                  "subdiagram",
+                  "personjob",
+                  "condition",
+                  "endpoint",
+                  "db",
+                  "codejob",
+                  "templatejob",
+                  "hook",
+                  "personbatchjob",
+                  "jsonschemavalidator",
+                  "apijob"
+                ],
+                "description": "Node type determining behavior and available properties"
+              },
+              "position": {
+                "type": "object",
+                "required": [
+                  "x",
+                  "y"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "number",
+                    "description": "X coordinate for visual positioning"
+                  },
+                  "y": {
+                    "type": "number",
+                    "description": "Y coordinate for visual positioning"
+                  }
+                },
+                "description": "Visual position in diagram editor"
+              },
+              "flipped": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "boolean"
+                    },
+                    "minItems": 2,
+                    "maxItems": 2
+                  }
+                ],
+                "description": "Handle flip configuration for visual layout"
+              },
+              "metadata": {
+                "type": "object",
+                "description": "Additional node metadata"
+              },
+              "props": {
+                "type": "object",
+                "description": "Node properties (traditional style) - use shorthand notation by specifying properties directly without props wrapper"
+              }
+            },
+            "additionalProperties": true
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "typescriptast"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "batch": {
+                  "type": "boolean"
+                },
+                "batchInputKey": {
+                  "type": "string"
+                },
+                "extractPatterns": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "includeJSDoc": {
+                  "type": "boolean"
+                },
+                "parseMode": {
+                  "enum": [
+                    "module",
+                    "script"
+                  ],
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "sources": {
+                  "$ref": "#/definitions/Record<string,string>"
+                }
+              },
+              "required": []
             }
           },
-          "props": {
-            "type": "object",
-            "properties": {
-              "file": {"type": "string"},
-              "filePath": {"type": "string"},
-              "operation": {"type": "string"},
-              "sub_type": {"type": "string"},
-              "source_details": {"type": "string"},
-              "language": {"type": "string"},
-              "code": {"type": "string"},
-              "functionName": {"type": "string"}
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "start"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "custom_data": {
+                  "$ref": "#/definitions/Record<string,string|number|boolean>"
+                },
+                "hook_event": {
+                  "type": "string"
+                },
+                "hook_filters": {
+                  "$ref": "#/definitions/JsonDict"
+                },
+                "output_data_structure": {
+                  "$ref": "#/definitions/Record<string,string>"
+                },
+                "trigger_mode": {
+                  "$ref": "#/definitions/HookTriggerMode"
+                }
+              },
+              "required": [
+                "trigger_mode"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "userresponse"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "prompt": {
+                  "type": "string"
+                },
+                "timeout": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "prompt",
+                "timeout"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "subdiagram"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "batch": {
+                  "description": "Enable batch processing for arrays",
+                  "type": "boolean"
+                },
+                "batch_input_key": {
+                  "description": "Array variable name for batch processing",
+                  "type": "string"
+                },
+                "batch_parallel": {
+                  "description": "Execute batch items in parallel",
+                  "type": "boolean"
+                },
+                "diagram_data": {
+                  "$ref": "#/definitions/JsonDict",
+                  "description": "Pass all current variables to sub-diagram"
+                },
+                "diagram_format": {
+                  "description": "Diagram format: light or native (default: light)",
+                  "enum": [
+                    "light",
+                    "native",
+                    "readable"
+                  ],
+                  "type": "string"
+                },
+                "diagram_name": {
+                  "description": "Path to sub-diagram file",
+                  "type": "string"
+                },
+                "ignoreIfSub": {
+                  "description": "Skip if already running as sub-diagram",
+                  "type": "boolean"
+                },
+                "passInputData": {
+                  "description": "Whether to pass input data from parent to sub-diagram (default: false)",
+                  "type": "boolean"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "personjob"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "at_most": {
+                  "type": "number"
+                },
+                "batch": {
+                  "description": "Enable batch processing for arrays",
+                  "type": "boolean"
+                },
+                "batch_input_key": {
+                  "description": "Array variable name for batch processing",
+                  "type": "string"
+                },
+                "batch_parallel": {
+                  "description": "Execute batch items in parallel",
+                  "type": "boolean"
+                },
+                "default_prompt": {
+                  "description": "Prompt template using {{variable}} syntax for subsequent iterations",
+                  "type": "string"
+                },
+                "first_only_prompt": {
+                  "description": "Special prompt for first iteration only, supports {{variable}} syntax",
+                  "type": "string"
+                },
+                "first_prompt_file": {
+                  "description": "External prompt file for first iteration only (overrides first_only_prompt)",
+                  "type": "string"
+                },
+                "max_concurrent": {
+                  "description": "Maximum concurrent batch executions",
+                  "type": "number"
+                },
+                "max_iteration": {
+                  "description": "Maximum conversation turns (default: 1)",
+                  "type": "number"
+                },
+                "memorize_to": {
+                  "type": "string"
+                },
+                "person": {
+                  "$ref": "#/definitions/PersonID",
+                  "description": "Reference to agent defined in 'persons' section"
+                },
+                "prompt_file": {
+                  "description": "External prompt file in files/prompts/ (overrides inline prompts)",
+                  "type": "string"
+                },
+                "text_format": {
+                  "description": "Pydantic model name for structured output",
+                  "type": "string"
+                },
+                "text_format_file": {
+                  "description": "External Python file with Pydantic models (overrides text_format)",
+                  "type": "string"
+                },
+                "tools": {
+                  "description": "LLM tools to enable (web_search_preview, etc.)",
+                  "enum": [
+                    "image",
+                    "none",
+                    "websearch"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "at_most",
+                "first_only_prompt",
+                "max_iteration",
+                "memorize_to"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "condition"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "at_most": {
+                  "description": "Max messages to keep in memory",
+                  "type": "number"
+                },
+                "condition_type": {
+                  "description": "Condition type: detect_max_iterations, nodes_executed, custom, or llm_decision",
+                  "enum": [
+                    "check_nodes_executed",
+                    "custom",
+                    "detect_max_iterations",
+                    "llm_decision"
+                  ],
+                  "type": "string"
+                },
+                "expose_index_as": {
+                  "description": "Variable name to expose the condition node's execution count (0-based index) to downstream nodes",
+                  "type": "string"
+                },
+                "expression": {
+                  "description": "Python expression for custom type (access to all variables)",
+                  "type": "string"
+                },
+                "judge_by": {
+                  "description": "The prompt/criteria for LLM to judge",
+                  "type": "string"
+                },
+                "judge_by_file": {
+                  "description": "External prompt file in {subdirectory}/prompts/",
+                  "type": "string"
+                },
+                "memorize_to": {
+                  "description": "Memory control (e.g., \"GOLDFISH\" for fresh evaluation)",
+                  "type": "string"
+                },
+                "node_indices": {
+                  "description": "List of node indices for nodes_executed condition type",
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "person": {
+                  "$ref": "#/definitions/PersonID",
+                  "description": "AI agent to use (when condition_type is LLM_DECISION)"
+                },
+                "skippable": {
+                  "description": "When true, downstream nodes can execute even if this condition hasn't been evaluated yet",
+                  "type": "boolean"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "endpoint"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "file_name": {
+                  "type": "string"
+                },
+                "save_to_file": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "save_to_file"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "db"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "collection": {
+                  "description": "Database collection name (for database operations)",
+                  "type": "string"
+                },
+                "data": {
+                  "$ref": "#/definitions/JsonDict",
+                  "description": "Data to write (for write operations)"
+                },
+                "file": {
+                  "anyOf": [
+                    {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "File path(s) - single string or list for multiple files"
+                },
+                "format": {
+                  "description": "Data format: json, yaml, csv, text, etc.",
+                  "type": "string"
+                },
+                "glob": {
+                  "description": "Enable glob pattern expansion for paths (default: false)",
+                  "type": "boolean"
+                },
+                "operation": {
+                  "description": "Operation type: read or write",
+                  "type": "string"
+                },
+                "query": {
+                  "description": "Database query (for database operations)",
+                  "type": "string"
+                },
+                "serialize_json": {
+                  "description": "Auto-parse JSON files when reading (default: false)",
+                  "type": "boolean"
+                },
+                "sub_type": {
+                  "$ref": "#/definitions/DBBlockSubType",
+                  "description": "Storage type: file or database"
+                }
+              },
+              "required": [
+                "operation",
+                "sub_type"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "codejob"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "code": {
+                  "description": "Inline code or path to external file",
+                  "type": "string"
+                },
+                "filePath": {
+                  "description": "External code file path (e.g., 'files/code/processor.py')",
+                  "type": "string"
+                },
+                "functionName": {
+                  "description": "Function to call in external file (required with filePath)",
+                  "type": "string"
+                },
+                "language": {
+                  "$ref": "#/definitions/SupportedLanguage",
+                  "description": "Programming language: python, typescript, bash, or shell"
+                },
+                "timeout": {
+                  "description": "Execution timeout in seconds (default: 60)",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "language"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "templatejob"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "engine": {
+                  "enum": [
+                    "internal",
+                    "jinja2"
+                  ],
+                  "type": "string"
+                },
+                "foreach": {
+                  "additionalProperties": false,
+                  "description": "Render a template for each item and write many files",
+                  "properties": {
+                    "as": {
+                      "description": "Variable name to expose each item under in the template (default: \"item\")",
+                      "type": "string"
+                    },
+                    "items": {
+                      "anyOf": [
+                        {
+                          "items": {},
+                          "type": "array"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ],
+                      "description": "Array or dotted-path string to an array in inputs"
+                    },
+                    "limit": {
+                      "description": "Optional: limit, parallel write hint (ignored in v1)",
+                      "type": "number"
+                    },
+                    "output_path": {
+                      "description": "File path template, e.g. \"dipeo/diagram_generated_staged/models/{{ item.nodeTypeSnake }}.py\"",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "output_path"
+                  ],
+                  "type": "object"
+                },
+                "output_path": {
+                  "description": "Single-file path; can contain template expressions",
+                  "type": "string"
+                },
+                "preprocessor": {
+                  "$ref": "#/definitions/TemplatePreprocessor",
+                  "description": "Optional Python preprocessor that returns extra context for the template"
+                },
+                "template_content": {
+                  "type": "string"
+                },
+                "template_path": {
+                  "type": "string"
+                },
+                "variables": {
+                  "$ref": "#/definitions/JsonDict",
+                  "description": "Simple key\u2192value map passed to template; string values are resolved"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "hook"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "args": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "command": {
+                  "type": "string"
+                },
+                "cwd": {
+                  "type": "string"
+                },
+                "env": {
+                  "$ref": "#/definitions/Record<string,string>"
+                },
+                "file_path": {
+                  "type": "string"
+                },
+                "format": {
+                  "enum": [
+                    "json",
+                    "text",
+                    "yaml"
+                  ],
+                  "type": "string"
+                },
+                "function_name": {
+                  "type": "string"
+                },
+                "headers": {
+                  "$ref": "#/definitions/Record<string,string>"
+                },
+                "hook_type": {
+                  "$ref": "#/definitions/HookType"
+                },
+                "method": {
+                  "enum": [
+                    "delete",
+                    "get",
+                    "patch",
+                    "post",
+                    "put"
+                  ],
+                  "type": "string"
+                },
+                "retry_count": {
+                  "type": "number"
+                },
+                "retry_delay": {
+                  "type": "number"
+                },
+                "script": {
+                  "type": "string"
+                },
+                "timeout": {
+                  "type": "number"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "hook_type"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "personbatchjob"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "at_most": {
+                  "type": "number"
+                },
+                "batch": {
+                  "description": "Enable batch processing for arrays",
+                  "type": "boolean"
+                },
+                "batch_input_key": {
+                  "description": "Array variable name for batch processing",
+                  "type": "string"
+                },
+                "batch_parallel": {
+                  "description": "Execute batch items in parallel",
+                  "type": "boolean"
+                },
+                "default_prompt": {
+                  "description": "Prompt template using {{variable}} syntax for subsequent iterations",
+                  "type": "string"
+                },
+                "first_only_prompt": {
+                  "description": "Special prompt for first iteration only, supports {{variable}} syntax",
+                  "type": "string"
+                },
+                "first_prompt_file": {
+                  "description": "External prompt file for first iteration only (overrides first_only_prompt)",
+                  "type": "string"
+                },
+                "max_concurrent": {
+                  "description": "Maximum concurrent batch executions",
+                  "type": "number"
+                },
+                "max_iteration": {
+                  "description": "Maximum conversation turns (default: 1)",
+                  "type": "number"
+                },
+                "memorize_to": {
+                  "type": "string"
+                },
+                "person": {
+                  "$ref": "#/definitions/PersonID",
+                  "description": "Reference to agent defined in 'persons' section"
+                },
+                "prompt_file": {
+                  "description": "External prompt file in files/prompts/ (overrides inline prompts)",
+                  "type": "string"
+                },
+                "text_format": {
+                  "description": "Pydantic model name for structured output",
+                  "type": "string"
+                },
+                "text_format_file": {
+                  "description": "External Python file with Pydantic models (overrides text_format)",
+                  "type": "string"
+                },
+                "tools": {
+                  "description": "LLM tools to enable (web_search_preview, etc.)",
+                  "enum": [
+                    "image",
+                    "none",
+                    "websearch"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "at_most",
+                "first_only_prompt",
+                "max_iteration",
+                "memorize_to"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "jsonschemavalidator"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "data_path": {
+                  "type": "string"
+                },
+                "error_on_extra": {
+                  "type": "boolean"
+                },
+                "json_schema": {
+                  "$ref": "#/definitions/JsonDict"
+                },
+                "schema_path": {
+                  "type": "string"
+                },
+                "strict_mode": {
+                  "type": "boolean"
+                }
+              },
+              "required": []
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "apijob"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            },
+            "then": {
+              "properties": {
+                "auth_config": {
+                  "$ref": "#/definitions/Record<string,string>"
+                },
+                "auth_type": {
+                  "enum": [
+                    "api_key",
+                    "basic",
+                    "bearer",
+                    "none"
+                  ],
+                  "type": "string"
+                },
+                "body": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/definitions/JsonObject"
+                    },
+                    {
+                      "items": {
+                        "$ref": "#/definitions/JsonValue"
+                      },
+                      "type": "array"
+                    },
+                    {
+                      "type": [
+                        "null",
+                        "string",
+                        "number",
+                        "boolean"
+                      ]
+                    }
+                  ]
+                },
+                "headers": {
+                  "$ref": "#/definitions/Record<string,string>"
+                },
+                "method": {
+                  "$ref": "#/definitions/HttpMethod"
+                },
+                "params": {
+                  "$ref": "#/definitions/JsonDict"
+                },
+                "timeout": {
+                  "type": "number"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "method",
+                "url"
+              ]
             }
           }
-        }
-      },
-      "minItems": 2
+        ]
+      }
     },
     "connections": {
       "type": "array",
+      "description": "Data flow connections between nodes",
       "items": {
         "type": "object",
-        "required": ["from", "to"],
+        "required": [
+          "from",
+          "to"
+        ],
         "properties": {
-          "from": {"type": "string"},
-          "to": {"type": "string"},
-          "label": {"type": "string"}
-        }
+          "from": {
+            "type": "string",
+            "description": "Source node label, optionally with handle (e.g. 'node_cond\u2192true')"
+          },
+          "to": {
+            "type": "string",
+            "description": "Target node label"
+          },
+          "label": {
+            "type": "string",
+            "description": "Variable name accessible in target node (critical for data flow)"
+          },
+          "content_type": {
+            "type": "string",
+            "enum": [
+              "raw_text",
+              "conversation_state",
+              "object"
+            ],
+            "description": "Data transformation type between nodes"
+          },
+          "type": {
+            "type": "string",
+            "description": "Alias for content_type (backward compatible)"
+          }
+        },
+        "additionalProperties": false
       }
+    }
+  },
+  "$defs": {
+    "nodePropertySchemas": {
+      "typescriptast": {
+        "description": "Configuration for typescriptast nodes",
+        "properties": {
+          "batch": {
+            "type": "boolean"
+          },
+          "batchInputKey": {
+            "type": "string"
+          },
+          "extractPatterns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "includeJSDoc": {
+            "type": "boolean"
+          },
+          "parseMode": {
+            "enum": [
+              "module",
+              "script"
+            ],
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "sources": {
+            "$ref": "#/definitions/Record<string,string>"
+          }
+        },
+        "required": []
+      },
+      "start": {
+        "description": "Configuration for start nodes",
+        "properties": {
+          "custom_data": {
+            "$ref": "#/definitions/Record<string,string|number|boolean>"
+          },
+          "hook_event": {
+            "type": "string"
+          },
+          "hook_filters": {
+            "$ref": "#/definitions/JsonDict"
+          },
+          "output_data_structure": {
+            "$ref": "#/definitions/Record<string,string>"
+          },
+          "trigger_mode": {
+            "$ref": "#/definitions/HookTriggerMode"
+          }
+        },
+        "required": [
+          "trigger_mode"
+        ]
+      },
+      "userresponse": {
+        "description": "Configuration for userresponse nodes",
+        "properties": {
+          "prompt": {
+            "type": "string"
+          },
+          "timeout": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "prompt",
+          "timeout"
+        ]
+      },
+      "subdiagram": {
+        "description": "Configuration data for SubDiagram nodes that execute other diagrams",
+        "properties": {
+          "batch": {
+            "description": "Enable batch processing for arrays",
+            "type": "boolean"
+          },
+          "batch_input_key": {
+            "description": "Array variable name for batch processing",
+            "type": "string"
+          },
+          "batch_parallel": {
+            "description": "Execute batch items in parallel",
+            "type": "boolean"
+          },
+          "diagram_data": {
+            "$ref": "#/definitions/JsonDict",
+            "description": "Pass all current variables to sub-diagram"
+          },
+          "diagram_format": {
+            "description": "Diagram format: light or native (default: light)",
+            "enum": [
+              "light",
+              "native",
+              "readable"
+            ],
+            "type": "string"
+          },
+          "diagram_name": {
+            "description": "Path to sub-diagram file",
+            "type": "string"
+          },
+          "ignoreIfSub": {
+            "description": "Skip if already running as sub-diagram",
+            "type": "boolean"
+          },
+          "passInputData": {
+            "description": "Whether to pass input data from parent to sub-diagram (default: false)",
+            "type": "boolean"
+          }
+        },
+        "required": []
+      },
+      "personjob": {
+        "description": "Configuration data for PersonJob nodes that execute LLM agents",
+        "properties": {
+          "at_most": {
+            "type": "number"
+          },
+          "batch": {
+            "description": "Enable batch processing for arrays",
+            "type": "boolean"
+          },
+          "batch_input_key": {
+            "description": "Array variable name for batch processing",
+            "type": "string"
+          },
+          "batch_parallel": {
+            "description": "Execute batch items in parallel",
+            "type": "boolean"
+          },
+          "default_prompt": {
+            "description": "Prompt template using {{variable}} syntax for subsequent iterations",
+            "type": "string"
+          },
+          "first_only_prompt": {
+            "description": "Special prompt for first iteration only, supports {{variable}} syntax",
+            "type": "string"
+          },
+          "first_prompt_file": {
+            "description": "External prompt file for first iteration only (overrides first_only_prompt)",
+            "type": "string"
+          },
+          "max_concurrent": {
+            "description": "Maximum concurrent batch executions",
+            "type": "number"
+          },
+          "max_iteration": {
+            "description": "Maximum conversation turns (default: 1)",
+            "type": "number"
+          },
+          "memorize_to": {
+            "type": "string"
+          },
+          "person": {
+            "$ref": "#/definitions/PersonID",
+            "description": "Reference to agent defined in 'persons' section"
+          },
+          "prompt_file": {
+            "description": "External prompt file in files/prompts/ (overrides inline prompts)",
+            "type": "string"
+          },
+          "text_format": {
+            "description": "Pydantic model name for structured output",
+            "type": "string"
+          },
+          "text_format_file": {
+            "description": "External Python file with Pydantic models (overrides text_format)",
+            "type": "string"
+          },
+          "tools": {
+            "description": "LLM tools to enable (web_search_preview, etc.)",
+            "enum": [
+              "image",
+              "none",
+              "websearch"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "at_most",
+          "first_only_prompt",
+          "max_iteration",
+          "memorize_to"
+        ]
+      },
+      "condition": {
+        "description": "Configuration data for Condition nodes that handle conditional branching",
+        "properties": {
+          "at_most": {
+            "description": "Max messages to keep in memory",
+            "type": "number"
+          },
+          "condition_type": {
+            "description": "Condition type: detect_max_iterations, nodes_executed, custom, or llm_decision",
+            "enum": [
+              "check_nodes_executed",
+              "custom",
+              "detect_max_iterations",
+              "llm_decision"
+            ],
+            "type": "string"
+          },
+          "expose_index_as": {
+            "description": "Variable name to expose the condition node's execution count (0-based index) to downstream nodes",
+            "type": "string"
+          },
+          "expression": {
+            "description": "Python expression for custom type (access to all variables)",
+            "type": "string"
+          },
+          "judge_by": {
+            "description": "The prompt/criteria for LLM to judge",
+            "type": "string"
+          },
+          "judge_by_file": {
+            "description": "External prompt file in {subdirectory}/prompts/",
+            "type": "string"
+          },
+          "memorize_to": {
+            "description": "Memory control (e.g., \"GOLDFISH\" for fresh evaluation)",
+            "type": "string"
+          },
+          "node_indices": {
+            "description": "List of node indices for nodes_executed condition type",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "person": {
+            "$ref": "#/definitions/PersonID",
+            "description": "AI agent to use (when condition_type is LLM_DECISION)"
+          },
+          "skippable": {
+            "description": "When true, downstream nodes can execute even if this condition hasn't been evaluated yet",
+            "type": "boolean"
+          }
+        },
+        "required": []
+      },
+      "endpoint": {
+        "description": "Configuration for endpoint nodes",
+        "properties": {
+          "file_name": {
+            "type": "string"
+          },
+          "save_to_file": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "save_to_file"
+        ]
+      },
+      "db": {
+        "description": "Configuration data for DB nodes that handle file system operations",
+        "properties": {
+          "collection": {
+            "description": "Database collection name (for database operations)",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/definitions/JsonDict",
+            "description": "Data to write (for write operations)"
+          },
+          "file": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "File path(s) - single string or list for multiple files"
+          },
+          "format": {
+            "description": "Data format: json, yaml, csv, text, etc.",
+            "type": "string"
+          },
+          "glob": {
+            "description": "Enable glob pattern expansion for paths (default: false)",
+            "type": "boolean"
+          },
+          "operation": {
+            "description": "Operation type: read or write",
+            "type": "string"
+          },
+          "query": {
+            "description": "Database query (for database operations)",
+            "type": "string"
+          },
+          "serialize_json": {
+            "description": "Auto-parse JSON files when reading (default: false)",
+            "type": "boolean"
+          },
+          "sub_type": {
+            "$ref": "#/definitions/DBBlockSubType",
+            "description": "Storage type: file or database"
+          }
+        },
+        "required": [
+          "operation",
+          "sub_type"
+        ]
+      },
+      "codejob": {
+        "description": "Configuration data for CodeJob nodes that execute code",
+        "properties": {
+          "code": {
+            "description": "Inline code or path to external file",
+            "type": "string"
+          },
+          "filePath": {
+            "description": "External code file path (e.g., 'files/code/processor.py')",
+            "type": "string"
+          },
+          "functionName": {
+            "description": "Function to call in external file (required with filePath)",
+            "type": "string"
+          },
+          "language": {
+            "$ref": "#/definitions/SupportedLanguage",
+            "description": "Programming language: python, typescript, bash, or shell"
+          },
+          "timeout": {
+            "description": "Execution timeout in seconds (default: 60)",
+            "type": "number"
+          }
+        },
+        "required": [
+          "language"
+        ]
+      },
+      "templatejob": {
+        "description": "Configuration for templatejob nodes",
+        "properties": {
+          "engine": {
+            "enum": [
+              "internal",
+              "jinja2"
+            ],
+            "type": "string"
+          },
+          "foreach": {
+            "additionalProperties": false,
+            "description": "Render a template for each item and write many files",
+            "properties": {
+              "as": {
+                "description": "Variable name to expose each item under in the template (default: \"item\")",
+                "type": "string"
+              },
+              "items": {
+                "anyOf": [
+                  {
+                    "items": {},
+                    "type": "array"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "description": "Array or dotted-path string to an array in inputs"
+              },
+              "limit": {
+                "description": "Optional: limit, parallel write hint (ignored in v1)",
+                "type": "number"
+              },
+              "output_path": {
+                "description": "File path template, e.g. \"dipeo/diagram_generated_staged/models/{{ item.nodeTypeSnake }}.py\"",
+                "type": "string"
+              }
+            },
+            "required": [
+              "items",
+              "output_path"
+            ],
+            "type": "object"
+          },
+          "output_path": {
+            "description": "Single-file path; can contain template expressions",
+            "type": "string"
+          },
+          "preprocessor": {
+            "$ref": "#/definitions/TemplatePreprocessor",
+            "description": "Optional Python preprocessor that returns extra context for the template"
+          },
+          "template_content": {
+            "type": "string"
+          },
+          "template_path": {
+            "type": "string"
+          },
+          "variables": {
+            "$ref": "#/definitions/JsonDict",
+            "description": "Simple key\u2192value map passed to template; string values are resolved"
+          }
+        },
+        "required": []
+      },
+      "hook": {
+        "description": "Configuration for hook nodes",
+        "properties": {
+          "args": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "command": {
+            "type": "string"
+          },
+          "cwd": {
+            "type": "string"
+          },
+          "env": {
+            "$ref": "#/definitions/Record<string,string>"
+          },
+          "file_path": {
+            "type": "string"
+          },
+          "format": {
+            "enum": [
+              "json",
+              "text",
+              "yaml"
+            ],
+            "type": "string"
+          },
+          "function_name": {
+            "type": "string"
+          },
+          "headers": {
+            "$ref": "#/definitions/Record<string,string>"
+          },
+          "hook_type": {
+            "$ref": "#/definitions/HookType"
+          },
+          "method": {
+            "enum": [
+              "delete",
+              "get",
+              "patch",
+              "post",
+              "put"
+            ],
+            "type": "string"
+          },
+          "retry_count": {
+            "type": "number"
+          },
+          "retry_delay": {
+            "type": "number"
+          },
+          "script": {
+            "type": "string"
+          },
+          "timeout": {
+            "type": "number"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "hook_type"
+        ]
+      },
+      "personbatchjob": {
+        "description": "Configuration data for PersonJob nodes that execute LLM agents",
+        "properties": {
+          "at_most": {
+            "type": "number"
+          },
+          "batch": {
+            "description": "Enable batch processing for arrays",
+            "type": "boolean"
+          },
+          "batch_input_key": {
+            "description": "Array variable name for batch processing",
+            "type": "string"
+          },
+          "batch_parallel": {
+            "description": "Execute batch items in parallel",
+            "type": "boolean"
+          },
+          "default_prompt": {
+            "description": "Prompt template using {{variable}} syntax for subsequent iterations",
+            "type": "string"
+          },
+          "first_only_prompt": {
+            "description": "Special prompt for first iteration only, supports {{variable}} syntax",
+            "type": "string"
+          },
+          "first_prompt_file": {
+            "description": "External prompt file for first iteration only (overrides first_only_prompt)",
+            "type": "string"
+          },
+          "max_concurrent": {
+            "description": "Maximum concurrent batch executions",
+            "type": "number"
+          },
+          "max_iteration": {
+            "description": "Maximum conversation turns (default: 1)",
+            "type": "number"
+          },
+          "memorize_to": {
+            "type": "string"
+          },
+          "person": {
+            "$ref": "#/definitions/PersonID",
+            "description": "Reference to agent defined in 'persons' section"
+          },
+          "prompt_file": {
+            "description": "External prompt file in files/prompts/ (overrides inline prompts)",
+            "type": "string"
+          },
+          "text_format": {
+            "description": "Pydantic model name for structured output",
+            "type": "string"
+          },
+          "text_format_file": {
+            "description": "External Python file with Pydantic models (overrides text_format)",
+            "type": "string"
+          },
+          "tools": {
+            "description": "LLM tools to enable (web_search_preview, etc.)",
+            "enum": [
+              "image",
+              "none",
+              "websearch"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "at_most",
+          "first_only_prompt",
+          "max_iteration",
+          "memorize_to"
+        ]
+      },
+      "jsonschemavalidator": {
+        "description": "Configuration for jsonschemavalidator nodes",
+        "properties": {
+          "data_path": {
+            "type": "string"
+          },
+          "error_on_extra": {
+            "type": "boolean"
+          },
+          "json_schema": {
+            "$ref": "#/definitions/JsonDict"
+          },
+          "schema_path": {
+            "type": "string"
+          },
+          "strict_mode": {
+            "type": "boolean"
+          }
+        },
+        "required": []
+      },
+      "apijob": {
+        "description": "Configuration for apijob nodes",
+        "properties": {
+          "auth_config": {
+            "$ref": "#/definitions/Record<string,string>"
+          },
+          "auth_type": {
+            "enum": [
+              "api_key",
+              "basic",
+              "bearer",
+              "none"
+            ],
+            "type": "string"
+          },
+          "body": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/JsonObject"
+              },
+              {
+                "items": {
+                  "$ref": "#/definitions/JsonValue"
+                },
+                "type": "array"
+              },
+              {
+                "type": [
+                  "null",
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              }
+            ]
+          },
+          "headers": {
+            "$ref": "#/definitions/Record<string,string>"
+          },
+          "method": {
+            "$ref": "#/definitions/HttpMethod"
+          },
+          "params": {
+            "$ref": "#/definitions/JsonDict"
+          },
+          "timeout": {
+            "type": "number"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "method",
+          "url"
+        ]
+      }
+    },
+    "shorthandNotation": {
+      "description": "DiPeO supports shorthand notation where node properties can be specified directly without the 'props:' wrapper. Any field that is not 'type', 'label', 'position', 'flipped', or 'metadata' will be collected into the node's properties.",
+      "examples": [
+        {
+          "traditional": {
+            "label": "analyzer",
+            "type": "person_job",
+            "position": {
+              "x": 400,
+              "y": 200
+            },
+            "props": {
+              "person": "analyst",
+              "max_iteration": 3
+            }
+          },
+          "shorthand": {
+            "label": "analyzer",
+            "type": "person_job",
+            "position": {
+              "x": 400,
+              "y": 200
+            },
+            "person": "analyst",
+            "max_iteration": 3
+          }
+        }
+      ]
     }
   }
 }

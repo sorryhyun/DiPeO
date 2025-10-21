@@ -46,11 +46,10 @@ class APIBusinessLogic:
         self, attempt: int, retry_policy: RetryPolicy, retry_after: float | None = None
     ) -> float:
         if retry_after is not None:
-            # Use server-provided retry-after if available
             return min(retry_after * 1000, retry_policy.max_delay_ms) / 1000
 
         delay_ms = retry_policy.calculate_delay(attempt)
-        return delay_ms / 1000  # Convert to seconds
+        return delay_ms / 1000
 
     def should_retry(
         self,

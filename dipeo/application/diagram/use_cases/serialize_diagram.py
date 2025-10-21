@@ -5,20 +5,9 @@ from dipeo.domain.diagram.ports import DiagramStorageSerializer
 
 
 class SerializeDiagramUseCase:
-    """Use case for diagram serialization/deserialization.
-
-    This use case handles:
-    - Serializing diagrams to various formats (JSON, YAML, light, readable)
-    - Deserializing string content to domain diagrams
-    - Format detection and conversion
-    """
+    """Serializes and deserializes diagrams across multiple formats (JSON, YAML, light, readable)."""
 
     def __init__(self, diagram_serializer: DiagramStorageSerializer):
-        """Initialize the use case with required dependencies.
-
-        Args:
-            diagram_serializer: Serializer for diagram conversion
-        """
         self.diagram_serializer = diagram_serializer
 
     def serialize(self, diagram: DomainDiagram, format: str = "json") -> str:
@@ -88,20 +77,12 @@ class SerializeDiagramUseCase:
         return ["json", "yaml", "light", "readable"]
 
     def detect_format(self, content: str) -> str | None:
-        """Detect the format of diagram content.
-
-        Args:
-            content: Content to analyze
-
-        Returns:
-            Detected format name or None if unknown
-        """
+        """Detect format by analyzing content structure (JSON vs YAML, light vs native)."""
         content = content.strip()
         if content.startswith("{") or content.startswith("["):
             try:
                 import json
 
-                json.loads(content)
                 data = json.loads(content)
                 if (
                     isinstance(data, dict)

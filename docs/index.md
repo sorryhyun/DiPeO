@@ -8,14 +8,9 @@
 > System design, architecture patterns, and technical specifications
 
 - [Overall Architecture](architecture/overall_architecture.md) - System architecture and technology stack
-- [Domain Layer Architecture](architecture/domain-layer.md) - Domain-driven design and bounded contexts
-- [Diagram Compilation Architecture](architecture/diagram-compilation.md) - Multi-phase compilation pipeline and configuration-driven approaches
-- [Application Layer Architecture](architecture/application-layer.md) - Use cases and application services
-- [Infrastructure Layer Architecture](architecture/infrastructure-layer.md) - Adapters and infrastructure services
-- [Diagram Execution](architecture/diagram-execution.md) - Runtime execution and state management
-- [GraphQL Layer Architecture](architecture/graphql-layer.md) - Complete GraphQL implementation with 3-tier architecture
-- [Memory System Design](architecture/memory_system_design.md) - Conversation memory architecture
-- [GraphQL Subscriptions](architecture/graphql-subscriptions.md) - Real-time updates implementation
+- [Diagram Compilation Architecture](architecture/detailed/diagram-compilation.md) - Multi-phase compilation pipeline and configuration-driven approaches
+- [GraphQL Layer Architecture](architecture/detailed/graphql-layer.md) - Complete GraphQL implementation with 3-tier architecture
+- [Memory System Design](architecture/detailed/memory_system_design.md) - Conversation memory architecture
 
 ### Korean Translations
 - [전체 아키텍처](architecture/korean/overall_architecture.md)
@@ -34,7 +29,7 @@
 ## Integration Guides
 > External tool and service integrations
 
-- [Claude Code Integration](integrations/claude-code.md) - Integration with Anthropic's Claude Code SDK
+- [Claude Code Integration](features/claude-code-integration.md) - Integration with Anthropic's Claude Code SDK
 
 ## Agent Documentation
 > Detailed guides for DiPeO's specialized Claude Code subagents
@@ -45,18 +40,12 @@
 - [TypeScript Model Design](agents/typescript-model-design.md) - Model specifications (typescript-model-designer)
 - [Code Generation Pipeline](agents/codegen-pipeline.md) - Codegen system (dipeo-codegen-specialist)
 - [DiPeOCC Conversion](agents/dipeocc-conversion.md) - Session conversion (dipeocc-converter)
-- [Documentation Maintenance](agents/documentation-maintenance.md) - Docs updates (docs-maintainer)
-- [Task Management](agents/task-management.md) - TODO management (todo-manager)
-- [TypeScript Type Checking](agents/typecheck-fixing.md) - Type error fixing (typecheck-fixer)
-- [Import Refactoring](agents/import-refactoring.md) - Reference updates (import-refactor-updater)
 - [Code Auditing](agents/code-auditing.md) - Targeted audits (codebase-auditor)
-- [Comment Cleanup](agents/comment-cleanup.md) - Comment optimization (comment-cleaner)
-- [ChatGPT Integration](agents/chatgpt-integration.md) - ChatGPT management (chatgpt-dipeo-project-manager)
 
 ## Developer Guides
 > Practical guides for developers working with DiPeO
 
-- [Working with Diagrams](guides/developer-guide-diagrams.md) - Complete guide for adding node types, formats, and working with compilation
+- [Working with Diagrams](developer-guide.md) - Complete guide for adding node types, formats, and working with compilation
 
 ## Features
 > Core DiPeO capabilities and features

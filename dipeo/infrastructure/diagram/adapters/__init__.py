@@ -15,16 +15,11 @@ from .serializer_adapter import (
     UnifiedSerializerAdapter,
 )
 
-# Resolution adapters removed - use domain implementations directly
-
 __all__ = [
     "CachingCompilerAdapter",
     "CachingSerializerAdapter",
     "FormatStrategyAdapter",
-    # Compiler Adapters
     "StandardCompilerAdapter",
-    # Serializer Adapters
     "UnifiedSerializerAdapter",
     "ValidatingCompilerAdapter",
-    # Resolution adapters removed - use domain implementations directly
 ]

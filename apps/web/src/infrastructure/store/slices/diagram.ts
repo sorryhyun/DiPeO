@@ -124,7 +124,7 @@ export const createDiagramSlice = (
       const node = state.nodes.get(id);
       if (node) {
         const updatedNode = { ...node, ...updates };
-        (state.nodes as any).set(id, updatedNode);
+        state.nodes.set(id, updatedNode);
         // Silent update - no version increment, history, or array sync
         // Used for intermediate updates during operations
       }
@@ -332,7 +332,7 @@ export const createDiagramSlice = (
       state.diagramDescription = '';
       state.diagramId = null;
       state.diagramFormat = null;
-      afterChange(state as any);
+      afterChange(state as UnifiedStore);
     });
   },
 
@@ -340,7 +340,7 @@ export const createDiagramSlice = (
     set(state => {
       state.nodes = new Map(nodes);
       state.arrows = new Map(arrows);
-      afterChange(state as any);
+      afterChange(state as UnifiedStore);
     });
   },
 

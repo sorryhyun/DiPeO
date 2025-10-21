@@ -46,11 +46,9 @@ class SessionFieldPruner(BaseSessionProcessor):
     }
 
     def __init__(self, config: SessionFieldPrunerConfig | None = None):
-        """Initialize the field pruner."""
         super().__init__(config)
 
     def _get_default_config(self) -> SessionFieldPrunerConfig:
-        """Get default configuration for this processor."""
         return SessionFieldPrunerConfig()
 
     def process_session(
@@ -122,16 +120,6 @@ class SessionFieldPruner(BaseSessionProcessor):
         return processed_session, report
 
     def _prune_event_fields(self, event: DomainEvent, report: SessionProcessingReport) -> int:
-        """
-        Remove unnecessary fields from a single event.
-
-        Args:
-            event: The event to prune fields from
-            report: Report to add warnings/errors to
-
-        Returns:
-            Number of fields removed
-        """
         fields_removed = 0
 
         # Handle compact mode - aggressive field removal
@@ -178,16 +166,6 @@ class SessionFieldPruner(BaseSessionProcessor):
         return fields_removed
 
     def _prune_compact_mode(self, event: DomainEvent, report: SessionProcessingReport) -> int:
-        """
-        Aggressively prune fields in compact mode, keeping only essential ones.
-
-        Args:
-            event: The event to prune
-            report: Report to add warnings to
-
-        Returns:
-            Number of fields removed
-        """
         fields_removed = 0
         essential_fields = {"id", "type", "content", "role", "timestamp"}
 
@@ -206,15 +184,6 @@ class SessionFieldPruner(BaseSessionProcessor):
         return fields_removed
 
     def _prune_content_items(self, content: list) -> int:
-        """
-        Prune unnecessary fields from content items.
-
-        Args:
-            content: List of content items
-
-        Returns:
-            Number of fields removed
-        """
         fields_removed = 0
 
         for item in content:

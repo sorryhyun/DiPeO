@@ -8,6 +8,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+import aiofiles
+
 from .base import BaseCodeExecutor
 
 
@@ -56,8 +58,6 @@ class BashExecutor(BaseCodeExecutor):
                     "Bash interpreter not found. Please install Git for Windows or WSL."
                 )
 
-            import aiofiles
-
             async with aiofiles.open(file_path) as f:
                 script_content = await f.read()
 
@@ -82,8 +82,9 @@ class BashExecutor(BaseCodeExecutor):
                 cwd=str(file_path.parent),
             )
 
+        script_content = locals().get("script_content")
         try:
-            if sys.platform == "win32" and "script_content" in locals():
+            if sys.platform == "win32" and script_content is not None:
                 stdout, stderr = await asyncio.wait_for(
                     proc.communicate(input=script_content.encode()), timeout=timeout
                 )

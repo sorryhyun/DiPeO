@@ -53,6 +53,7 @@ class EventPipeline:
         state_tracker: Optional["StateTracker"] = None,
         state_manager: Optional["StateManager"] = None,
         parent_execution_id: Optional[str] = None,
+        is_lightweight: bool = False,
     ):
         """Initialize the event pipeline."""
         self.execution_id = execution_id
@@ -61,6 +62,7 @@ class EventPipeline:
         self.state_tracker = state_tracker
         self.state_manager = state_manager
         self.parent_execution_id = parent_execution_id
+        self.is_lightweight = is_lightweight
         self._event_count = 0
         self._start_time = time.time()
         self._sequence_counter = 0
@@ -155,6 +157,8 @@ class EventPipeline:
         meta["pipeline_event_count"] = self._event_count
         meta["pipeline_uptime_ms"] = int((time.time() - self._start_time) * 1000)
         meta["seq"] = self._sequence_counter
+        if self.is_lightweight:
+            meta["is_lightweight"] = True
 
         enriched_event = DomainEvent(
             type=event.type,

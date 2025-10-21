@@ -100,7 +100,9 @@ async def test_integration(
 
 async def reload_provider(registry: ServiceRegistry, name: str) -> bool:
     """Reload a provider (for manifest-based providers)."""
-    from dipeo.application.graphql.schema.query_resolvers import _ensure_provider_registry
+    from dipeo.application.graphql.schema.query_resolvers.providers import (
+        _ensure_provider_registry,
+    )
 
     provider_reg = await _ensure_provider_registry(registry)
     return await provider_reg.reload_provider(name)
