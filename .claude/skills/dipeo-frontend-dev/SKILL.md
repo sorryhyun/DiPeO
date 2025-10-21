@@ -29,24 +29,17 @@ allowed-tools: Read, Grep, Glob, Bash, Skill
 
 Use `Skill(doc-lookup)` with these anchors when you need detailed context:
 
-**Core Responsibilities**:
-- `docs/agents/frontend-development.md#core-responsibilities` - Overview and React patterns
-- `docs/agents/frontend-development.md#diagram-editor` - XYFlow visual editor
-- `docs/agents/frontend-development.md#graphql-integration` - GraphQL patterns and hooks
-
-**Technical Context**:
+**Core Responsibilities & Tech Stack**:
+- `docs/agents/frontend-development.md#your-core-responsibilities` - React, diagram editor, GraphQL, TypeScript
 - `docs/agents/frontend-development.md#technical-context` - Tech stack and project structure
 
 **Code Quality & Patterns**:
-- `docs/agents/frontend-development.md#code-quality-standards` - Quality standards and best practices
-- `docs/agents/frontend-development.md#graphql-usage` - Query/mutation examples
-- `docs/agents/frontend-development.md#state-management-zustand` - State management
+- `docs/agents/frontend-development.md#code-quality-standards` - Component patterns, GraphQL, state management
+- `docs/agents/frontend-development.md#common-patterns` - Hooks, factory functions, error boundaries
 
 **Constraints & Escalation**:
-- `docs/agents/frontend-development.md#constraints` - Important constraints and escalation
-
-**ChatGPT Widgets**:
-- `docs/features/chatgpt-apps-integration.md#development` - Widget development and structure
+- `docs/agents/frontend-development.md#important-constraints` - What not to modify
+- `docs/agents/frontend-development.md#when-to-escalate` - When to escalate to other agents
 
 **Example doc-lookup call**:
 ```bash

@@ -28,27 +28,18 @@ allowed-tools: Read, Grep, Glob, Bash, Skill
 
 Use `Skill(doc-lookup)` with these anchors when you need detailed context:
 
-**CLI System**:
-- `docs/agents/backend-development.md#cli-system` - CLI architecture and commands
-- `docs/agents/backend-development.md#background-execution` - Background execution
+**Core Responsibilities**:
+- `docs/agents/backend-development.md#core-responsibilities` - CLI, FastAPI server, database, MCP server
 
-**FastAPI Server**:
-- `docs/agents/backend-development.md#fastapi-server` - Server overview and responsibilities
-
-**Database & Persistence**:
-- `docs/agents/backend-development.md#database-persistence` - SQLite schema and message store
-
-**MCP Server**:
-- `docs/agents/backend-development.md#mcp-server` - MCP architecture and implementation
-- `docs/features/mcp-server-integration.md#quick-start` - Setup and usage guide
-- `docs/features/mcp-server-integration.md#uploading-diagrams` - Diagram push workflow
-
-**ChatGPT Integration**:
-- `docs/features/chatgpt-mcp-integration.md#quick-start` - MCP connection setup
-- `docs/features/chatgpt-apps-integration.md#overview` - Widget system and architecture
+**Implementation Patterns**:
+- `docs/agents/backend-development.md#common-patterns` - CLI, background execution, database, MCP patterns
 
 **Troubleshooting**:
-- `docs/agents/backend-development.md#troubleshooting` - Common debugging patterns
+- `docs/agents/backend-development.md#troubleshooting` - Server, CLI, database, MCP issues
+
+**MCP Integration**:
+- `docs/features/mcp-server-integration.md#quick-start` - Setup and usage guide
+- `docs/features/chatgpt-mcp-integration.md#quick-start` - ChatGPT connection
 
 **Example doc-lookup call**:
 ```bash

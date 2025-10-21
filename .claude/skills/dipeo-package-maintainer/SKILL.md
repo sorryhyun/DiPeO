@@ -29,26 +29,19 @@ allowed-tools: Read, Grep, Glob, Bash, Skill
 
 Use `Skill(doc-lookup)` with these anchors when you need detailed context:
 
-**Core Architecture**:
-- `docs/agents/package-maintainer.md#overview` - Overview and ownership boundaries
-- `docs/agents/package-maintainer.md#core-architectural-principles` - Architecture principles
+**Architecture & Ownership**:
+- `docs/agents/package-maintainer.md#your-domain-of-expertise` - Code layers and ownership
+- `docs/agents/package-maintainer.md#core-architectural-principles` - Service architecture, LLM integration
 
-**Code Layers**:
-- `docs/agents/package-maintainer.md#application-layer-dipeoapplication` - Handlers, GraphQL, services
-- `docs/agents/package-maintainer.md#domain-layer-dipeodomain` - Domain logic, compilation
-- `docs/agents/package-maintainer.md#infrastructure-layer-dipeoinfrastructure-partial-ownership` - LLM, state, EventBus
+**Implementation**:
+- `docs/agents/package-maintainer.md#your-responsibilities` - Node handlers, services, GraphQL resolvers
 
-**Implementation Guidance**:
-- `docs/agents/package-maintainer.md#your-responsibilities` - Core responsibilities
-- `docs/agents/package-maintainer.md#service-architecture` - Mixins, EventBus, patterns
-
-**Code Patterns**:
-- `docs/agents/package-maintainer.md#envelope-pattern-output` - Output and DI patterns
-- `docs/agents/package-maintainer.md#node-handler-pattern` - Handler structure
-
-**Reference**:
+**Patterns & Imports**:
+- `docs/agents/package-maintainer.md#common-patterns` - Envelope, service registry, node handlers
 - `docs/agents/package-maintainer.md#key-import-paths` - Common imports
-- `docs/agents/package-maintainer.md#when-you-need-help-escalation-paths` - Escalation guidance
+
+**Escalation**:
+- `docs/agents/package-maintainer.md#when-you-need-help-escalation-paths` - When to escalate
 
 **Example doc-lookup call**:
 ```bash

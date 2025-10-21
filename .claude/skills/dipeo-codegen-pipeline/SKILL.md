@@ -31,29 +31,25 @@ allowed-tools: Read, Grep, Glob, Bash, Skill
 
 Use `Skill(doc-lookup)` with these anchors when you need detailed context:
 
-**Overview & Ownership**:
-- `docs/agents/codegen-pipeline.md#overview` - Pipeline overview and ownership
+**Part 1: TypeScript Model Design**:
+- `docs/agents/codegen-pipeline.md#your-role-as-model-architect` - Model locations and structure
+- `docs/agents/codegen-pipeline.md#type-system-design-principles` - **CRITICAL**: snake_case and type safety
+- `docs/agents/codegen-pipeline.md#workflows` - Creating/modifying node types
 
-**TypeScript Model Design**:
-- `docs/agents/codegen-pipeline.md#typescript-model-design` - Design principles and file structure
-- `docs/agents/codegen-pipeline.md#2-naming-standards` - **CRITICAL**: snake_case rules
-- `docs/agents/codegen-pipeline.md#workflow-creating-new-node-types` - New node workflow
+**Part 2: IR Builder System**:
+- `docs/agents/codegen-pipeline.md#ir-builder-architecture` - Architecture and directory structure
+- `docs/agents/codegen-pipeline.md#pipeline-system` - Pipeline, type conversion, AST processing
 
-**IR Builder System**:
-- `docs/agents/codegen-pipeline.md#ir-builder-system` - Architecture and pipeline system
-- `docs/agents/codegen-pipeline.md#type-system` - Type conversion and AST processing
-
-**Code Generation**:
-- `docs/agents/codegen-pipeline.md#code-generation` - Template system and output structure
+**Part 3: Code Generation**:
+- `docs/agents/codegen-pipeline.md#template-system` - Templates and generated code structure
 - `docs/agents/codegen-pipeline.md#generation-workflow` - Complete make codegen workflow
 
-**Diagnosis**:
-- `docs/agents/codegen-pipeline.md#tracing-generation-issues` - Diagnosing generated code
-- `docs/agents/codegen-pipeline.md#your-critical-responsibility` - Unique diagnosis role
+**Part 4: Diagnosis**:
+- `docs/agents/codegen-pipeline.md#your-critical-responsibility` - Tracing TypeScript → IR → Python
 
-**Workflows & Collaboration**:
-- `docs/agents/codegen-pipeline.md#complete-workflow` - End-to-end workflow steps
-- `docs/agents/codegen-pipeline.md#when-to-engage-other-agents` - Escalation guidance
+**Part 5 & 6: Workflow & Collaboration**:
+- `docs/agents/codegen-pipeline.md#complete-workflow` - End-to-end steps and validation
+- `docs/agents/codegen-pipeline.md#when-to-engage-other-agents` - Escalation paths
 
 **Example doc-lookup call**:
 ```bash
