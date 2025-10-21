@@ -99,26 +99,29 @@ connections:
   to: Save Verdict
   content_type: raw_text
 persons:
-- service: openai
-  model: gpt-5-nano-2025-08-07
-  api_key_id: APIKEY_52609F
-  system_prompt: 'You are an impartial debate judge. Focus on clarity, factual grounding,
-    and persuasiveness.
+  Judge:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+    system_prompt: 'You are an impartial debate judge. Focus on clarity, factual grounding,
+      and persuasiveness.
 
-    Keep your verdict under 25 words.
+      Keep your verdict under 25 words.
 
-    '
-- service: openai
-  model: gpt-5-nano-2025-08-07
-  api_key_id: APIKEY_52609F
-  system_prompt: 'You argue with enthusiasm and highlight positive opportunities.
-    Keep responses under 25 words.
+      '
+  Optimist:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+    system_prompt: 'You argue with enthusiasm and highlight positive opportunities.
+      Keep responses under 25 words.
 
-    '
-- service: openai
-  model: gpt-5-nano-2025-08-07
-  api_key_id: APIKEY_52609F
-  system_prompt: 'You argue with skepticism and raise risks. Keep responses under
-    25 words.
+      '
+  Pessimist:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
+    system_prompt: 'You argue with skepticism and raise risks. Keep responses under
+      25 words.
 
-    '
+      '

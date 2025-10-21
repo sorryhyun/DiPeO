@@ -122,8 +122,9 @@ connections:
   label: result
   content_type: object
 persons:
-- service: openai
-  model: gpt-5-nano-2025-08-07
-  system_prompt: You are a data analyst expert who identifies patterns and provides
-    actionable insights from data.
-  api_key_id: APIKEY_52609F
+  Data Analyst:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    system_prompt: You are a data analyst expert who identifies patterns and provides
+      actionable insights from data.
+    api_key_id: APIKEY_52609F

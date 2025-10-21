@@ -29,7 +29,8 @@ connections:
   to: end
   content_type: raw_text
 persons:
-- service: ollama
-  model: llama3.2:1b
-  api_key_id: APIKEY_DUMMY
-  system_prompt: You are a helpful AI assistant. Be concise and clear.
+  assistant:
+    service: ollama
+    model: llama3.2:1b
+    api_key_id: APIKEY_DUMMY
+    system_prompt: You are a helpful AI assistant. Be concise and clear.

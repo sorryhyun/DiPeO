@@ -37,6 +37,7 @@ connections:
   to: endpoint
   content_type: raw_text
 persons:
-- service: claude-code
-  model: claude-code
-  api_key_id: APIKEY_52609F
+  person 1:
+    service: claude-code
+    model: claude-code
+    api_key_id: APIKEY_52609F

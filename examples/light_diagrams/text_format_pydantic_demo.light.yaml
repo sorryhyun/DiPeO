@@ -89,6 +89,7 @@ connections:
 - from: generate_ui_example
   to: endpoint
 persons:
-- service: openai
-  model: gpt-5-nano-2025-08-07
-  api_key_id: APIKEY_52609F
+  default:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F

@@ -99,23 +99,26 @@ connections:
   to: Save Verdict
   content_type: raw_text
 persons:
-- service: ollama
-  model: llama3.2:1b
-  api_key_id: APIKEY_DUMMY
-  system_prompt: 'You are an impartial moderator. Summarize the winning side in under
-    25 words.
+  Judge:
+    service: ollama
+    model: llama3.2:1b
+    api_key_id: APIKEY_DUMMY
+    system_prompt: 'You are an impartial moderator. Summarize the winning side in under
+      25 words.
 
-    '
-- service: ollama
-  model: llama3.2:1b
-  api_key_id: APIKEY_DUMMY
-  system_prompt: 'You argue with enthusiasm and highlight positive opportunities.
-    Stay under 25 words.
+      '
+  Optimist:
+    service: ollama
+    model: llama3.2:1b
+    api_key_id: APIKEY_DUMMY
+    system_prompt: 'You argue with enthusiasm and highlight positive opportunities.
+      Stay under 25 words.
 
-    '
-- service: ollama
-  model: llama3.2:1b
-  api_key_id: APIKEY_DUMMY
-  system_prompt: 'You argue with skepticism and focus on risks. Stay under 25 words.
+      '
+  Pessimist:
+    service: ollama
+    model: llama3.2:1b
+    api_key_id: APIKEY_DUMMY
+    system_prompt: 'You argue with skepticism and focus on risks. Stay under 25 words.
 
-    '
+      '

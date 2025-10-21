@@ -65,6 +65,7 @@ connections:
   to: endpoint
   content_type: raw_text
 persons:
-- service: openai
-  model: gpt-5-nano-2025-08-07
-  api_key_id: APIKEY_52609F
+  person 1:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
