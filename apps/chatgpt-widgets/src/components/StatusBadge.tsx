@@ -5,11 +5,11 @@
 import { Status } from '@dipeo/models';
 
 interface StatusBadgeProps {
-  status: Status | string;
+  status: Status;
   className?: string;
 }
 
-type StatusConfigKey = 'pending' | 'running' | 'completed' | 'failed' | 'aborted' | 'paused' | 'skipped' | 'maxiter_reached';
+type StatusConfigKey = Status;
 
 const statusConfig: Record<StatusConfigKey, { label: string; color: string; bg: string }> = {
   pending: {
