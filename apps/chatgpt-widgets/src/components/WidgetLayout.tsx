@@ -2,7 +2,7 @@
  * Common layout wrapper for widgets
  */
 
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 
 interface WidgetLayoutProps {
   title?: string;
