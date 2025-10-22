@@ -1,7 +1,7 @@
 """Diagram-related query resolvers."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, date
 from pathlib import Path
 
 import strawberry
@@ -17,6 +17,30 @@ from dipeo.diagram_generated.graphql.inputs import DiagramFilterInput
 logger = get_module_logger(__name__)
 
 
+def _ensure_metadata_dates_are_strings(diagram: DomainDiagram) -> DomainDiagram:
+    """Ensure all date fields in metadata are strings, not date objects.
+
+    YAML parsers automatically convert ISO date strings to date objects,
+    but GraphQL/JSON requires strings for serialization.
+    """
+    if diagram.metadata:
+        metadata_dict = diagram.metadata.model_dump() if hasattr(diagram.metadata, 'model_dump') else diagram.metadata.__dict__.copy()
+
+        # Convert any date/datetime objects to ISO strings
+        for key in ['created', 'modified']:
+            if key in metadata_dict:
+                value = metadata_dict[key]
+                if isinstance(value, datetime):
+                    metadata_dict[key] = value.isoformat()
+                elif isinstance(value, date):
+                    metadata_dict[key] = value.isoformat()
+
+        # Create new metadata object with converted dates
+        diagram.metadata = DiagramMetadata(**metadata_dict)
+
+    return diagram
+
+
 async def get_diagram(
     registry: ServiceRegistry, diagram_id: strawberry.ID
 ) -> DomainDiagramType | None:
@@ -25,6 +49,8 @@ async def get_diagram(
         service = registry.resolve(DIAGRAM_PORT)
         diagram_id_typed = DiagramID(str(diagram_id))
         diagram_data = await service.get_diagram(diagram_id_typed)
+        if diagram_data:
+            diagram_data = _ensure_metadata_dates_are_strings(diagram_data)
         return diagram_data
     except FileNotFoundError:
         logger.warning(f"Diagram not found: {diagram_id}")
@@ -56,6 +82,7 @@ async def list_diagrams(
             try:
                 diagram = await service.get_diagram(info.id)
                 if diagram:
+                    diagram = _ensure_metadata_dates_are_strings(diagram)
                     diagrams.append(diagram)
             except Exception as e:
                 logger.warning(f"Failed to load diagram {info.id}: {e}")

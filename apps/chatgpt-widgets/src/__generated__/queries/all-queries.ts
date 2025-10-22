@@ -53,6 +53,19 @@ export const LIST_DIAGRAMS_QUERY = gql`
       nodes {
         id
         type
+        position {
+          x
+          y
+        }
+        data
+      }
+      arrows {
+        id
+        source
+        target
+        label
+        content_type
+        data
       }
     }
   }

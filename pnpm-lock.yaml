@@ -56,6 +56,9 @@ importers:
 
   apps/chatgpt-widgets:
     dependencies:
+      '@xyflow/react':
+        specifier: ^12.8.1
+        version: 12.8.1(@types/react@19.2.2)(immer@10.1.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       graphql:
         specifier: ^16.8.1
         version: 16.11.0
@@ -5874,6 +5877,17 @@ snapshots:
       - '@types/react'
       - immer
 
+  '@xyflow/react@12.8.1(@types/react@19.2.2)(immer@10.1.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
+    dependencies:
+      '@xyflow/system': 0.0.65
+      classcat: 5.0.5
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
+      zustand: 4.5.7(@types/react@19.2.2)(immer@10.1.1)(react@19.2.0)
+    transitivePeerDependencies:
+      - '@types/react'
+      - immer
+
   '@xyflow/system@0.0.65':
     dependencies:
       '@types/d3-drag': 3.0.7
@@ -8416,6 +8430,10 @@ snapshots:
     dependencies:
       react: 19.1.0
 
+  use-sync-external-store@1.5.0(react@19.2.0):
+    dependencies:
+      react: 19.2.0
+
   util-deprecate@1.0.2: {}
 
   v8-compile-cache-lib@3.0.1: {}
@@ -8596,6 +8614,14 @@ snapshots:
       '@types/react': 19.1.8
       immer: 10.1.1
       react: 19.1.0
+
+  zustand@4.5.7(@types/react@19.2.2)(immer@10.1.1)(react@19.2.0):
+    dependencies:
+      use-sync-external-store: 1.5.0(react@19.2.0)
+    optionalDependencies:
+      '@types/react': 19.2.2
+      immer: 10.1.1
+      react: 19.2.0
 
   zustand@5.0.6(@types/react@19.1.8)(immer@10.1.1)(react@19.1.0)(use-sync-external-store@1.5.0(react@19.1.0)):
     optionalDependencies:

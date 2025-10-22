@@ -28,7 +28,7 @@ function ExecutionList() {
     return execution.status === statusFilter;
   }) || [];
 
-  const formatDuration = (started_at: string | null, ended_at: string | null) => {
+  const formatDuration = (started_at: string | null | undefined, ended_at: string | null | undefined) => {
     if (!started_at) return 'N/A';
     if (!ended_at) return 'In progress';
     const duration = new Date(ended_at).getTime() - new Date(started_at).getTime();

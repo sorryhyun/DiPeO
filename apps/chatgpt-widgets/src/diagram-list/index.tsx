@@ -9,12 +9,14 @@ import { createRoot } from 'react-dom/client';
 import { useGraphQLQuery } from '../hooks/use-graphql-query';
 import { WidgetLayout } from '../components/WidgetLayout';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { DiagramViewer } from '../components/diagram/DiagramViewer';
 import { LIST_DIAGRAMS_QUERY } from '../__generated__/queries/all-queries';
 import type { ListDiagramsQuery } from '../__generated__/graphql';
 import '../shared/index.css';
 
 function DiagramList() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedDiagram, setExpandedDiagram] = useState<string | null>(null);
   const { data, loading, error, refetch } = useGraphQLQuery<ListDiagramsQuery>(
     LIST_DIAGRAMS_QUERY
   );
@@ -57,34 +59,60 @@ function DiagramList() {
             No diagrams found
           </div>
         ) : (
-          filteredDiagrams.map((diagram, index) => (
-            <div
-              key={diagram.metadata?.name || `diagram-${index}`}
-              className="border border-gray-200 rounded-lg p-4 hover:border-blue-400 hover:shadow-sm transition-all cursor-pointer"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{diagram.metadata?.name || 'Unnamed Diagram'}</h3>
-                  {diagram.metadata?.description && (
-                    <p className="text-sm text-gray-600 mt-1">{diagram.metadata.description}</p>
-                  )}
-                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                    {diagram.metadata?.format && (
-                      <span className="px-2 py-0.5 bg-gray-100 rounded">
-                        {diagram.metadata.format}
-                      </span>
-                    )}
-                    {diagram.nodes && (
-                      <span>{diagram.nodes.length} nodes</span>
-                    )}
-                    {diagram.metadata?.created && (
-                      <span>{new Date(diagram.metadata.created).toLocaleDateString()}</span>
-                    )}
+          filteredDiagrams.map((diagram, index) => {
+            const diagramId = diagram.metadata?.name || `diagram-${index}`;
+            const isExpanded = expandedDiagram === diagramId;
+
+            return (
+              <div
+                key={diagramId}
+                className="border border-gray-200 rounded-lg overflow-hidden"
+              >
+                <div
+                  className="p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+                  onClick={() => setExpandedDiagram(isExpanded ? null : diagramId)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-gray-900">
+                          {diagram.metadata?.name || 'Unnamed Diagram'}
+                        </h3>
+                        <span className="text-sm text-gray-500">
+                          {isExpanded ? '▼' : '▶'}
+                        </span>
+                      </div>
+                      {diagram.metadata?.description && (
+                        <p className="text-sm text-gray-600 mt-1">{diagram.metadata.description}</p>
+                      )}
+                      <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                        {diagram.metadata?.format && (
+                          <span className="px-2 py-0.5 bg-gray-100 rounded">
+                            {diagram.metadata.format}
+                          </span>
+                        )}
+                        {diagram.nodes && (
+                          <span>{diagram.nodes.length} nodes</span>
+                        )}
+                        {diagram.arrows && (
+                          <span>{diagram.arrows.length} edges</span>
+                        )}
+                        {diagram.metadata?.created && (
+                          <span>{new Date(diagram.metadata.created).toLocaleDateString()}</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
+
+                {isExpanded && (
+                  <div className="border-t border-gray-200 p-4 bg-gray-50">
+                    <DiagramViewer diagram={diagram} height="500px" />
+                  </div>
+                )}
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 

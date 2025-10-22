@@ -832,4 +832,4 @@ export type ListDiagramsQueryVariables = Exact<{
 }>;
 
 
-export type ListDiagramsQuery = { __typename?: 'Query', listDiagrams: Array<{ __typename?: 'DomainDiagramType', metadata?: { __typename?: 'DiagramMetadataType', name?: string | null, description?: string | null, format?: string | null, created: string, modified: string } | null, nodes: Array<{ __typename?: 'DomainNodeType', id: string, type: NodeType }> }> };
+export type ListDiagramsQuery = { __typename?: 'Query', listDiagrams: Array<{ __typename?: 'DomainDiagramType', metadata?: { __typename?: 'DiagramMetadataType', name?: string | null, description?: string | null, format?: string | null, created: string, modified: string } | null, nodes: Array<{ __typename?: 'DomainNodeType', id: string, type: NodeType, data: Record<string, unknown>, position: { __typename?: 'Vec2Type', x: number, y: number } }>, arrows: Array<{ __typename?: 'DomainArrowType', id: string, source: string, target: string, label?: string | null, content_type?: ContentType | null, data?: Record<string, unknown> | null }> }> };
