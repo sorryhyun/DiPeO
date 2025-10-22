@@ -68,7 +68,10 @@
       "Bash(do echo \"=== $file ===\")",
       "Bash(while read file)",
       "Skill(dipeo-codegen-pipeline)",
-      "Skill(dipeo-backend)"
+      "Skill(dipeo-backend)",
+      "Bash(command -v:*)",
+      "Bash(command -v fnm:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

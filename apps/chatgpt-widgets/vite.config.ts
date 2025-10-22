@@ -7,15 +7,17 @@ import path from 'node:path';
 function buildInputs() {
   // Build from HTML files so Vite emits HTML pages
   // Server utilities expect hashed *.html files in static/widgets
-  const files = fg.sync('src/**/index.html', { dot: false });
+  // Note: paths are relative to root (src/)
+  const files = fg.sync('**/index.html', { cwd: 'src', dot: false });
   return Object.fromEntries(
-    files.map((f) => [path.basename(path.dirname(f)), path.resolve(f)])
+    files.map((f) => [path.basename(path.dirname(f)), path.resolve('src', f)])
   );
 }
 
 const inputs = buildInputs();
 
 export default defineConfig({
+  root: 'src',
   plugins: [
     tailwindcss(),
     react(),
@@ -34,7 +36,7 @@ export default defineConfig({
     target: 'es2022',
     sourcemap: true,
     minify: 'esbuild',
-    outDir: '../server/static/widgets',
+    outDir: '../../server/static/widgets',
     emptyOutDir: true,
     assetsDir: '.',
     rollupOptions: {
@@ -45,6 +47,12 @@ export default defineConfig({
         assetFileNames: '[name]-[hash].[ext]',
       },
       preserveEntrySignatures: 'strict',
+    },
+  },
+  resolve: {
+    alias: {
+      // Ensure imports work correctly with new root
+      '@': path.resolve(__dirname, './src'),
     },
   },
 });

@@ -19,12 +19,12 @@ function DiagramList() {
     LIST_DIAGRAMS_QUERY
   );
 
-  const filteredDiagrams = data?.diagrams?.filter((diagram) => {
+  const filteredDiagrams = data?.listDiagrams?.filter((diagram) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
-      diagram.name.toLowerCase().includes(query) ||
-      diagram.description?.toLowerCase().includes(query)
+      diagram.metadata?.name?.toLowerCase().includes(query) ||
+      diagram.metadata?.description?.toLowerCase().includes(query)
     );
   }) || [];
 
@@ -57,26 +57,28 @@ function DiagramList() {
             No diagrams found
           </div>
         ) : (
-          filteredDiagrams.map((diagram) => (
+          filteredDiagrams.map((diagram, index) => (
             <div
-              key={diagram.id}
+              key={diagram.metadata?.name || `diagram-${index}`}
               className="border border-gray-200 rounded-lg p-4 hover:border-blue-400 hover:shadow-sm transition-all cursor-pointer"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{diagram.name}</h3>
-                  {diagram.description && (
-                    <p className="text-sm text-gray-600 mt-1">{diagram.description}</p>
+                  <h3 className="font-semibold text-gray-900">{diagram.metadata?.name || 'Unnamed Diagram'}</h3>
+                  {diagram.metadata?.description && (
+                    <p className="text-sm text-gray-600 mt-1">{diagram.metadata.description}</p>
                   )}
                   <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                    <span className="px-2 py-0.5 bg-gray-100 rounded">
-                      {diagram.format}
-                    </span>
-                    {diagram.nodeCount && (
-                      <span>{diagram.nodeCount} nodes</span>
+                    {diagram.metadata?.format && (
+                      <span className="px-2 py-0.5 bg-gray-100 rounded">
+                        {diagram.metadata.format}
+                      </span>
                     )}
-                    {diagram.createdAt && (
-                      <span>{new Date(diagram.createdAt).toLocaleDateString()}</span>
+                    {diagram.nodes && (
+                      <span>{diagram.nodes.length} nodes</span>
+                    )}
+                    {diagram.metadata?.created && (
+                      <span>{new Date(diagram.metadata.created).toLocaleDateString()}</span>
                     )}
                   </div>
                 </div>

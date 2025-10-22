@@ -23,14 +23,15 @@ function ExecutionList() {
     { refetchInterval: 10000 } // Refetch every 10 seconds
   );
 
-  const filteredExecutions = data?.executions?.filter((execution) => {
+  const filteredExecutions = data?.listExecutions?.filter((execution) => {
     if (statusFilter === 'all') return true;
     return execution.status === statusFilter;
   }) || [];
 
-  const formatDuration = (startedAt: string, completedAt: string | null) => {
-    if (!completedAt) return 'In progress';
-    const duration = new Date(completedAt).getTime() - new Date(startedAt).getTime();
+  const formatDuration = (started_at: string | null, ended_at: string | null) => {
+    if (!started_at) return 'N/A';
+    if (!ended_at) return 'In progress';
+    const duration = new Date(ended_at).getTime() - new Date(started_at).getTime();
     const seconds = Math.floor(duration / 1000);
     if (seconds < 60) return `${seconds}s`;
     const minutes = Math.floor(seconds / 60);
@@ -74,7 +75,7 @@ function ExecutionList() {
         ) : (
           filteredExecutions.map((execution) => (
             <div
-              key={execution.sessionId}
+              key={execution.id}
               className="border border-gray-200 rounded-lg p-4 hover:border-blue-400 hover:shadow-sm transition-all"
             >
               <div className="flex items-start justify-between mb-2">
@@ -82,23 +83,29 @@ function ExecutionList() {
                   <div className="flex items-center gap-2 mb-1">
                     <StatusBadge status={execution.status} />
                     <span className="font-semibold text-gray-900">
-                      {execution.diagramName}
+                      {execution.diagram_id || 'Unknown Diagram'}
                     </span>
                   </div>
                   <div className="text-xs font-mono text-gray-500">
-                    {execution.sessionId}
+                    {execution.id}
                   </div>
                 </div>
               </div>
 
               <div className="flex items-center justify-between text-xs text-gray-600">
                 <span>
-                  Started: {new Date(execution.startedAt).toLocaleString()}
+                  Started: {execution.started_at ? new Date(execution.started_at).toLocaleString() : 'N/A'}
                 </span>
                 <span className="font-medium">
-                  {formatDuration(execution.startedAt, execution.completedAt)}
+                  {formatDuration(execution.started_at, execution.ended_at)}
                 </span>
               </div>
+
+              {execution.error && (
+                <div className="mt-2 text-xs text-red-600 bg-red-50 rounded px-2 py-1">
+                  Error: {execution.error}
+                </div>
+              )}
             </div>
           ))
         )}

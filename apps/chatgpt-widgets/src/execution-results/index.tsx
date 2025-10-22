@@ -27,7 +27,7 @@ function ExecutionResults() {
 
   const { data, loading, error } = useGraphQLQuery<GetExecutionQuery>(
     GET_EXECUTION_QUERY,
-    { sessionId: props?.executionId },
+    { executionId: props?.executionId },
     { skip: !props?.executionId, refetchInterval: 5000 }
   );
 
@@ -45,18 +45,18 @@ function ExecutionResults() {
       error={error}
       loading={loading && !data}
     >
-      {data?.execution && (
+      {data?.getExecution && (
         <div className="space-y-4">
           {/* Status Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <StatusBadge status={data.execution.status} />
+              <StatusBadge status={data.getExecution.status} />
               <span className="text-sm font-medium text-gray-700">
-                {data.execution.diagramName}
+                {data.getExecution.diagram_id || 'Unknown Diagram'}
               </span>
             </div>
             <div className="text-xs text-gray-500">
-              {data.execution.sessionId}
+              {data.getExecution.id}
             </div>
           </div>
 
@@ -65,26 +65,65 @@ function ExecutionResults() {
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Started:</span>
               <span className="font-mono text-gray-900">
-                {new Date(data.execution.startedAt).toLocaleString()}
+                {data.getExecution.started_at ? new Date(data.getExecution.started_at).toLocaleString() : 'N/A'}
               </span>
             </div>
-            {data.execution.completedAt && (
+            {data.getExecution.ended_at && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Completed:</span>
                 <span className="font-mono text-gray-900">
-                  {new Date(data.execution.completedAt).toLocaleString()}
+                  {new Date(data.getExecution.ended_at).toLocaleString()}
                 </span>
               </div>
             )}
           </div>
 
-          {/* Metadata */}
-          {data.execution.metadata && Object.keys(data.execution.metadata).length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">Metadata</h3>
-              <pre className="bg-gray-50 rounded-lg p-3 text-xs overflow-x-auto">
-                {JSON.stringify(data.execution.metadata, null, 2)}
+          {/* Error */}
+          {data.getExecution.error && (
+            <div className="bg-red-50 rounded-lg p-3">
+              <h3 className="text-sm font-semibold text-red-700 mb-2">Error</h3>
+              <pre className="text-xs text-red-600 overflow-x-auto whitespace-pre-wrap">
+                {data.getExecution.error}
               </pre>
+            </div>
+          )}
+
+          {/* Metrics */}
+          {data.getExecution.metrics && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-2">Metrics</h3>
+              <pre className="bg-gray-50 rounded-lg p-3 text-xs overflow-x-auto">
+                {JSON.stringify(data.getExecution.metrics, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          {/* LLM Usage */}
+          {data.getExecution.llm_usage && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-2">LLM Usage</h3>
+              <div className="bg-gray-50 rounded-lg p-3 space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Input Tokens:</span>
+                  <span className="font-mono">{data.getExecution.llm_usage.input || 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Output Tokens:</span>
+                  <span className="font-mono">{data.getExecution.llm_usage.output || 0}</span>
+                </div>
+                {data.getExecution.llm_usage.cached !== null && data.getExecution.llm_usage.cached !== undefined && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Cached Tokens:</span>
+                    <span className="font-mono">{data.getExecution.llm_usage.cached}</span>
+                  </div>
+                )}
+                {data.getExecution.llm_usage.total !== null && data.getExecution.llm_usage.total !== undefined && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total Cost:</span>
+                    <span className="font-mono">${data.getExecution.llm_usage.total.toFixed(4)}</span>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
