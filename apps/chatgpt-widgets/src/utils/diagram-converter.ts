@@ -31,8 +31,11 @@ export function convertDiagramToFlow(
   const flowEdges: Edge[] = arrows.map((arrow) => {
     // Parse handle IDs to extract source/target node IDs
     // Format: nodeId_label_direction (e.g., "node_1_output_OUTPUT")
-    const sourceNode = arrow.source.split('_')[0] + '_' + arrow.source.split('_')[1];
-    const targetNode = arrow.target.split('_')[0] + '_' + arrow.target.split('_')[1];
+    // Node IDs can contain underscores, so extract all parts except last two (label and direction)
+    const sourceParts = arrow.source.split('_');
+    const sourceNode = sourceParts.slice(0, -2).join('_');
+    const targetParts = arrow.target.split('_');
+    const targetNode = targetParts.slice(0, -2).join('_');
 
     return {
       id: arrow.id,
