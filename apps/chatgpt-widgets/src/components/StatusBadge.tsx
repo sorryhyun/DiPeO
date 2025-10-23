@@ -22,6 +22,11 @@ const statusConfig: Record<StatusKey, { label: string; color: string; bg: string
     color: 'text-blue-700',
     bg: 'bg-blue-100',
   },
+  paused: {
+    label: 'Paused',
+    color: 'text-yellow-700',
+    bg: 'bg-yellow-100',
+  },
   completed: {
     label: 'Completed',
     color: 'text-green-700',
@@ -32,8 +37,8 @@ const statusConfig: Record<StatusKey, { label: string; color: string; bg: string
     color: 'text-red-700',
     bg: 'bg-red-100',
   },
-  cancelled: {
-    label: 'Cancelled',
+  aborted: {
+    label: 'Aborted',
     color: 'text-orange-700',
     bg: 'bg-orange-100',
   },
@@ -72,3 +77,5 @@ export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
     </span>
   );
 }
+
+export type { Status };

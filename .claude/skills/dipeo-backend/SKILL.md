@@ -16,8 +16,6 @@ allowed-tools: Read, Grep, Glob, Bash, Skill
 - **Documentation lookup**: CLI help, API signatures, database schema
 - **Small config tweaks**: Environment variables, command flags
 
-**Token cost**: ~1,500 tokens (router + targeted section)
-
 ### ❌ Escalate to Agent
 - **Complex features**: Multi-file changes, new CLI commands, database migrations
 - **Architecture changes**: New API endpoints, MCP tool implementation
@@ -30,34 +28,18 @@ allowed-tools: Read, Grep, Glob, Bash, Skill
 
 Use `Skill(doc-lookup)` with these anchors when you need detailed context:
 
-**CLI System**:
-- `docs/agents/backend-development.md#cli-system` - Full CLI architecture
-- `docs/agents/backend-development.md#cli-commands` - Command examples
-- `docs/agents/backend-development.md#cli-architecture` - Parser/dispatcher/runner breakdown
-- `docs/agents/backend-development.md#background-execution` - Background execution
+**Core Responsibilities**:
+- `docs/agents/backend-development.md#core-responsibilities` - CLI, FastAPI server, database, MCP server
 
-**FastAPI Server**:
-- `docs/agents/backend-development.md#fastapi-server` - Server overview
-- `docs/agents/backend-development.md#core-responsibilities` - What backend owns
-
-**Database & Persistence**:
-- `docs/agents/backend-development.md#database-schema` - SQLite schema
-- `docs/agents/backend-development.md#database-persistence` - Full DB section
-- `docs/agents/backend-development.md#message-store` - Conversation persistence
-
-**MCP Server**:
-- `docs/agents/backend-development.md#mcp-server` - MCP architecture overview
-- `docs/agents/backend-development.md#mcp-tools` - Available tools
-- `docs/agents/backend-development.md#mcp-resources` - Resource implementations
-- `docs/agents/backend-development.md#mcp-architecture` - Implementation details
-- `docs/agents/backend-development.md#http-transport` - HTTP endpoint configuration
-- `docs/features/mcp-server-integration.md#quick-start` - Usage guide
-- `docs/features/mcp-server-integration.md#available-tools` - Tool catalog
-- `docs/features/mcp-server-integration.md#uploading-diagrams` - Push diagrams to MCP
+**Implementation Patterns**:
+- `docs/agents/backend-development.md#common-patterns` - CLI, background execution, database, MCP patterns
 
 **Troubleshooting**:
-- `docs/agents/backend-development.md#troubleshooting` - Common debugging patterns
-- `docs/agents/backend-development.md#common-patterns` - Implementation patterns
+- `docs/agents/backend-development.md#troubleshooting` - Server, CLI, database, MCP issues
+
+**MCP Integration**:
+- `docs/features/mcp-server-integration.md#quick-start` - Setup and usage guide
+- `docs/features/chatgpt-mcp-integration.md#quick-start` - ChatGPT connection
 
 **Example doc-lookup call**:
 ```bash
@@ -78,7 +60,3 @@ python .claude/skills/doc-lookup/scripts/section_search.py \
 2. **If simple**: Load relevant section via `Skill(doc-lookup)`
 3. **Execute**: Make changes or provide answer
 4. **If complex**: Escalate with `Task(dipeo-backend, "task details")`
-
----
-
-**Token savings**: ~90% reduction (1,500 vs. 15,000 tokens) for focused tasks

@@ -2,47 +2,54 @@ version: light
 nodes:
 - label: Start
   type: start
-  position: {x: 26, y: 211}
-  props:
-    trigger_mode: manual
+  position:
+    x: 26
+    y: 211
+  trigger_mode: manual
 - label: Endpoint
   type: endpoint
-  position: {x: 273, y: 424}
-  props:
-    file_format: txt
-    save_to_file: true
-    file_path: files/results/simple_iter_output.txt
+  position:
+    x: 273
+    y: 424
+  file_format: txt
+  save_to_file: true
+  file_path: files/results/simple_iter_output.txt
 - label: Code Job
   type: code_job
-  position: {x: 596, y: 245}
-  props:
-    code: |
-      a+=1
-      result = f"Iteration with a={a-1}"
-    language: python
+  position:
+    x: 596
+    y: 245
+  code: 'a+=1
+
+    result = f"Iteration with a={a-1}"
+
+    '
+  language: python
 - label: Condition
   type: condition
-  position: {x: 612, y: 447}
-  props:
-    condition_type: custom
-    expression: a > 10
-    flipped: true
-    skippable: true
+  position:
+    x: 612
+    y: 447
+  condition_type: custom
+  expression: a > 10
+  flipped: true
+  skippable: true
 - label: Code Job~1
   type: code_job
-  position: {x: 306, y: 204}
-  props:
-    code: a=1
-    language: python
+  position:
+    x: 306
+    y: 204
+  code: a=1
+  language: python
 connections:
 - from: Code Job
   to: Condition
   label: a
   content_type: raw_text
-- from: Condition_condfalse
+- from: Condition[condfalse]
   to: Code Job
   content_type: raw_text
-- from: Condition_condtrue
+- from: Condition[condtrue]
   to: Endpoint
   content_type: raw_text
 - from: Start
@@ -52,7 +59,7 @@ connections:
   to: Code Job
   content_type: raw_text
 persons:
-  Person 1:
+  default:
     service: openai
     model: gpt-4.1-nano
     api_key_id: APIKEY_52609F

@@ -1,7 +1,5 @@
 # Code Generation Pipeline Guide
 
-<a id="overview"></a>
-
 **Scope**: Complete TypeScript → IR → Python/GraphQL pipeline
 
 ## Overview {#overview}
@@ -12,8 +10,6 @@ Your expertise spans three interconnected domains:
 1. **TypeScript Model Design**: Designing domain models that serve as the source of truth
 2. **IR Builder System**: Transforming TypeScript AST into intermediate representation
 3. **Code Generation**: Generating clean, type-safe Python and GraphQL code
-
-<a id="ownership"></a>
 
 ## Your Complete Ownership {#your-complete-ownership}
 
@@ -30,17 +26,9 @@ Your expertise spans three interconnected domains:
 - ❌ Backend server/CLI → dipeo-backend
 - ❌ Using generated code (consuming the API) → dipeo-package-maintainer
 
----
-
-<a id="typescript-model-design"></a>
-
-# Part 1: TypeScript Model Design
-
-## Your Role as Model Architect {#your-role-as-model-architect}
+## Part 1: TypeScript Model Design {#your-role-as-model-architect}
 
 You are responsible for all TypeScript source code in `/dipeo/models/src/` - this is the **single source of truth** for DiPeO's domain models.
-
-<a id="model-locations"></a>
 
 ### Model Locations {#model-locations}
 ```
@@ -62,140 +50,28 @@ You are responsible for all TypeScript source code in `/dipeo/models/src/` - thi
 - **Query Definitions**: `/dipeo/models/src/frontend/query-definitions/` - GraphQL operations
 - **Core Models**: `/dipeo/models/src/core/` - Domain models, enums
 
-<a id="type-system-principles"></a>
-
 ## Type System Design Principles {#type-system-design-principles}
 
-### 1. Type Safety First {#1-type-safety-first}
-- Use strict TypeScript types (avoid `any`)
-- Leverage **branded types** for compile-time safety
-- Leverage **discriminated unions** for node types
-- Define clear interfaces with required vs optional properties
-- Use enums for fixed value sets
-
-**Branded Types Example**:
+**Type Safety First**: Use strict TypeScript types (avoid `any`), leverage branded types for compile-time safety, use discriminated unions for node types, define clear interfaces with required vs optional properties, use enums for fixed value sets.
 ```typescript
 export type NodeID = string & { readonly __brand: 'NodeID' };
-export type ExecutionID = string & { readonly __brand: 'ExecutionID' };
-```
-
-**Union Types Example**:
-```typescript
 export type DataType = 'any' | 'string' | 'number' | 'boolean' | 'object' | 'array';
+export interface MemorySettings { view: MemoryView; max_messages?: number; }
 ```
 
-**Nested Configurations**:
-```typescript
-export interface MemorySettings {
-  view: MemoryView;
-  max_messages?: number;
-}
-```
+**Naming Standards (CRITICAL)**: All field names in node specifications MUST use `snake_case` (e.g., `file_path`, `function_name`, `extract_patterns`, NOT `filePath`). This ensures consistency with Python PEP 8, simplifies TypeScript → Python mapping, maintains GraphQL API surface consistency. Applies to field names in specs, mappings, query definitions, and generated Python dataclass fields. Does NOT apply to TypeScript variable/function names (camelCase) or class names (PascalCase).
 
-<a id="naming-standards"></a>
+**Design Principles**: Consider TypeScript → Python type mapping for Pydantic generation. Study existing specs, follow naming conventions, maintain consistent structure across similar types, reuse common types and interfaces. Ensure query definitions align with Strawberry GraphQL patterns using proper variable types (ID, String, Int, Boolean) and clear field selections mapping to domain types.
 
-### 2. Naming Standards {#2-naming-standards}
+## Workflows {#workflows}
 
-**CRITICAL RULE**: All field names in node specifications MUST use `snake_case`.
+**Creating New Node Types**: (1) Analyze requirements and data flow; (2) Study similar specs in `/dipeo/models/src/nodes/`; (3) Design TypeScript interface (e.g., `webhook.spec.ts`); (4) Consider runtime validation needs; (5) Plan for clean Python generation; (6) Document decisions with JSDoc.
 
-**Correct Examples**:
-```typescript
-{
-  name: "file_path",        // ✓ Correct
-  name: "function_name",    // ✓ Correct
-  name: "extract_patterns", // ✓ Correct
-  name: "include_jsdoc",    // ✓ Correct
-}
-```
+**Modifying Existing Models**: (1) Impact analysis on dependent code; (2) Check backward compatibility with existing diagrams; (3) Plan data migration paths; (4) Maintain type safety; (5) Recommend testing approach.
 
-**Incorrect Examples**:
-```typescript
-{
-  name: "filePath",         // ✗ Wrong - camelCase
-  name: "functionName",     // ✗ Wrong - camelCase
-}
-```
+**Quality Assurance Checklist**: Verify all types are explicitly defined (no `any`), all field names use `snake_case` (not camelCase), required vs optional properties clearly marked, enums used for fixed value sets, JSDoc comments explain complex types, design aligns with existing patterns, generated Python is clean and type-safe, no TypeScript-specific features that won't translate.
 
-**Rationale**:
-1. **Consistency**: Python backend uses snake_case (PEP 8)
-2. **Code Generation**: Simplifies TypeScript → Python mapping
-3. **GraphQL**: Maintains consistent API surface
-4. **Readability**: Clear word separation
-
-**Applies To**:
-- All field names in node specifications
-- Field references in mappings
-- Query definitions and GraphQL operations
-- Generated Python dataclass fields
-
-**Does NOT Apply To**:
-- TypeScript variable names (use camelCase)
-- Function names (use camelCase)
-- Class names (use PascalCase)
-
-### 3. Code Generation Awareness {#3-code-generation-awareness}
-- Consider TypeScript → Python type mapping
-- Design with Pydantic model generation in mind
-- Avoid TypeScript features that don't translate to Python
-- All field names MUST use snake_case (generates snake_case in Python)
-
-### 4. Consistency with Existing Patterns {#4-consistency-with-existing-patterns}
-- Study existing node specs before creating new ones
-- Follow established naming conventions
-- Maintain consistent structure across similar node types
-- Reuse common types and interfaces
-
-### 5. GraphQL Integration {#5-graphql-integration}
-- Query definitions must align with Strawberry GraphQL patterns
-- Use proper variable types (ID, String, Int, Boolean, etc.)
-- Define clear field selections that map to domain types
-
-<a id="creating-node-types"></a>
-
-## Workflow: Creating New Node Types {#workflow-creating-new-node-types}
-
-1. **Analyze Requirements**: Understand the node's purpose and data flow
-2. **Study Similar Nodes**: Review existing specs in /dipeo/models/src/nodes/
-3. **Design Interface**: Create TypeScript interface (e.g., webhook.spec.ts)
-4. **Consider Validation**: Think about runtime validation needs
-5. **Plan Generation**: Ensure design will generate clean Python code
-6. **Document Decisions**: Add JSDoc comments explaining complex types
-
-## Workflow: Modifying Existing Models {#workflow-modifying-existing-models}
-
-1. **Impact Analysis**: Identify all dependent code
-2. **Backward Compatibility**: Consider if changes break existing diagrams
-3. **Migration Path**: Plan how existing data will adapt
-4. **Validation**: Ensure changes maintain type safety
-5. **Testing Strategy**: Recommend testing approach
-
-<a id="quality-checklist"></a>
-
-## Quality Assurance Checklist {#quality-assurance-checklist}
-
-Before finalizing any model design, verify:
-- [ ] All types are explicitly defined (no implicit `any`)
-- [ ] **All field names use snake_case (not camelCase)**
-- [ ] Required vs optional properties are clearly marked
-- [ ] Enums are used for fixed value sets
-- [ ] JSDoc comments explain complex types
-- [ ] Design aligns with existing patterns
-- [ ] Generated Python code will be clean and type-safe
-- [ ] No TypeScript-specific features that won't translate
-
----
-
-<a id="ir-builder-system"></a>
-
-# Part 2: IR Builder System
-
-<a id="ir-builder-architecture"></a>
-
-## IR Builder Architecture {#ir-builder-architecture}
-
-You own the entire IR (Intermediate Representation) builder system in `/dipeo/infrastructure/codegen/`.
-
-### Directory Structure {#directory-structure}
+## Part 2: IR Builder System {#ir-builder-architecture}
 ```
 /dipeo/infrastructure/codegen/
 ├── ir_builders/         # IR generation pipeline
@@ -251,147 +127,25 @@ make codegen       # Full codegen workflow
 make apply-test    # Apply generated code with validation
 ```
 
-<a id="pipeline-system"></a>
+## Pipeline & Type System {#pipeline-system}
 
-## Pipeline System {#pipeline-system}
+**Pipeline Architecture**: Uses step-based pipeline with `BuildContext` (manages shared state, caching, configuration), `BuildStep` (reusable operations: Extract, Transform, Assemble, Validate), and `PipelineOrchestrator` (manages execution with dependency resolution).
 
-The IR-based architecture uses a step-based pipeline:
+**UnifiedTypeConverter**: Configuration-driven type conversions (TypeScript ↔ Python ↔ GraphQL). `type_mappings.yaml` maps basic types (string→str, number→float), branded types (NodeID→str), and special fields. `graphql_mappings.yaml` maps GraphQL types and scalars.
 
-### BuildContext
-Manages shared state, caching, and configuration:
-```python
-class BuildContext:
-    def set_step_data(self, key: str, value: Any)
-    def get_step_data(self, key: str) -> Any
-    def get_cache(self, key: str) -> Any
-```
+**Type Resolution**: `UnifiedTypeResolver` handles Strawberry field resolution with conversion methods. `TypeRegistry` manages runtime type registration for custom types.
 
-### BuildStep
-Reusable operations (Extract, Transform, Assemble, Validate):
-```python
-class BuildStep:
-    _dependencies: List[str] = []  # Step dependencies
-
-    async def execute(self, context: BuildContext) -> Any:
-        # Step implementation
-        pass
-```
-
-### PipelineOrchestrator
-Manages execution with dependency resolution:
-```python
-orchestrator = PipelineOrchestrator(steps)
-result = await orchestrator.execute(context)
-```
-
-<a id="type-system"></a>
-
-## Type System {#type-system}
-
-### UnifiedTypeConverter
-Configuration-driven type conversions (TypeScript ↔ Python ↔ GraphQL):
-
-**type_mappings.yaml** - TypeScript → Python:
-```yaml
-basic_types:
-  string: str
-  number: float
-  boolean: bool
-
-branded_types:
-  NodeID: str
-  ExecutionID: str
-
-special_fields:
-  maxIteration: int
-  timeout: int
-```
-
-**graphql_mappings.yaml** - GraphQL conversions:
-```yaml
-graphql_to_python:
-  String: str
-  Int: int
-  Float: float
-  ID: str
-
-graphql_scalars:
-  DateTime: datetime
-  JSON: JSON
-```
-
-### UnifiedTypeResolver
-Strawberry field resolution with conversion methods.
-
-### TypeRegistry
-Runtime type registration for custom types.
-
-<a id="ast-processing"></a>
-
-## AST Processing {#ast-processing}
-
-### AST Walker
-Traverses TypeScript AST to extract information:
-```python
-from dipeo.infrastructure.codegen.ir_builders.ast import ASTWalker
-
-walker = ASTWalker(ast_data)
-interfaces = walker.find_all(node_type="TSInterfaceDeclaration")
-```
-
-### AST Filters
-Filters AST nodes based on criteria:
-```python
-from dipeo.infrastructure.codegen.ir_builders.ast import ASTFilter
-
-filtered = ASTFilter.by_name(nodes, "PersonJobNode")
-```
-
-### AST Extractors
-Extracts structured data from AST nodes:
-```python
-from dipeo.infrastructure.codegen.ir_builders.ast import ASTExtractor
-
-properties = ASTExtractor.extract_properties(interface_node)
-```
-
-<a id="ir-generation-workflow"></a>
+**AST Processing**: `ASTWalker` traverses TypeScript AST to extract interfaces and declarations. `ASTFilter` filters AST nodes by name/type. `ASTExtractor` extracts structured data from nodes.
 
 ## IR Generation Workflow {#ir-generation-workflow}
 
-### Step 1: Parse TypeScript
-```bash
-cd dipeo/models && pnpm build
-```
-- Compiles TypeScript specs
-- Generates AST
-- Caches AST in temp/*.json
+**Step 1 - Parse TypeScript**: `cd dipeo/models && pnpm build` - Compiles TypeScript specs, generates AST, caches in `temp/*.json`.
 
-### Step 2: Build IR
-```bash
-make codegen
-```
-- Parses TypeScript AST
-- Runs IR builders (backend, frontend, strawberry)
-- Generates IR JSON files:
-  - `projects/codegen/ir/backend_ir.json`
-  - `projects/codegen/ir/frontend_ir.json`
-  - `projects/codegen/ir/strawberry_ir.json`
+**Step 2 - Build IR**: `make codegen` - Parses TypeScript AST, runs IR builders (backend, frontend, strawberry), generates IR JSON files in `projects/codegen/ir/`.
 
-### Step 3: Generate Code
-- Templates consume IR JSON
-- Generates Python/GraphQL code
-- Outputs to `dipeo/diagram_generated_staged/`
+**Step 3 - Generate Code**: Templates consume IR JSON, generate Python/GraphQL code, output to `dipeo/diagram_generated_staged/`.
 
----
-
-<a id="code-generation"></a>
-
-# Part 3: Code Generation
-
-<a id="template-system"></a>
-
-## Template System {#template-system}
+## Part 3: Code Generation & Templates {#template-system}
 
 Uses Jinja templates in `/dipeo/infrastructure/codegen/templates/`:
 
@@ -407,8 +161,6 @@ output = template.render(
     enums=ir_data['enums']
 )
 ```
-
-<a id="generated-code-structure"></a>
 
 ## Generated Code Structure {#generated-code-structure}
 
@@ -429,8 +181,6 @@ output = template.render(
 │   └── ...
 └── schemas/                # JSON schemas
 ```
-
-<a id="generation-workflow"></a>
 
 ## Generation Workflow {#generation-workflow}
 
@@ -453,45 +203,15 @@ make apply         # Type checking only
 make graphql-schema
 ```
 
----
+## Part 4: Generated Code Diagnosis {#your-critical-responsibility}
 
-<a id="code-review-diagnosis"></a>
+**You are the ONLY agent who diagnoses generated code internals.** When generated code looks wrong: (1) Review staged output in `dipeo/diagram_generated_staged/`; (2) Trace to source (TypeScript spec or IR builder issue?); (3) Diagnose generation (why generated this way?); (4) Determine category (generation vs usage problem).
 
-# Part 4: Generated Code Review & Diagnosis
+**Generation Issues** (YOUR responsibility): Wrong structure, types don't match specs, incorrect imports, IR builder errors. **Runtime Issues** (escalate to dipeo-package-maintainer): Generated code correct but handler fails, execution logic errors, service registry problems.
 
-<a id="critical-responsibility"></a>
+**Tracing Issues**: (1) Check TypeScript spec (design makes sense?); (2) Review IR JSON (structure correct?); (3) Examine template (rendering correctly?); (4) Test IR builder in isolation.
 
-## YOUR CRITICAL RESPONSIBILITY {#your-critical-responsibility}
-
-**You are the ONLY agent who diagnoses generated code internals.**
-
-When generated code looks wrong or doesn't work:
-1. **Review staged output**: Check `dipeo/diagram_generated_staged/`
-2. **Trace to source**: Is it TypeScript spec issue or IR builder issue?
-3. **Diagnose generation**: Why did it generate this way?
-4. **Determine category**: Is this a generation problem or usage problem?
-
-### Generation vs. Runtime Issues {#generation-vs-runtime-issues}
-
-**Generation Issue** (YOUR responsibility):
-- Generated code has wrong structure
-- Types don't match TypeScript spec
-- Imports are incorrect
-- IR builder produced wrong output
-
-**Runtime Issue** (escalate to dipeo-package-maintainer):
-- Generated code is correct but handler fails
-- Execution logic errors
-- Service registry problems
-
-### Tracing Generation Issues {#tracing-generation-issues}
-
-1. **Check TypeScript Spec**: Does the spec design make sense?
-2. **Review IR JSON**: Is the IR structure correct?
-3. **Examine Template**: Is the template rendering correctly?
-4. **Test IR Builder**: Run IR builder in isolation
-
-### Example: Diagnosing Wrong Generated Code {#example-diagnosing-wrong-generated-code}
+**Example Diagnosis**:
 
 ```python
 # User reports: "Generated PersonJobNode has wrong field types"
@@ -514,83 +234,15 @@ When generated code looks wrong or doesn't work:
 # - Template bug → Fix template
 ```
 
----
+## Part 5: Codegen Workflow {#complete-workflow}
 
-<a id="codegen-workflow"></a>
+**For New Node Types**: (1) Create `/dipeo/models/src/nodes/my-node.spec.ts` with snake_case fields and strict types; (2) `cd dipeo/models && pnpm build`; (3) `make codegen`; (4) `make diff-staged` to review staged output; (5) `make apply-test` (safest with server check); (6) `make graphql-schema`.
 
-# Part 5: Codegen Workflow
+**For TypeScript Spec Changes**: (1) Update spec in `/dipeo/models/src/nodes/*.spec.ts`; (2) `pnpm build`; (3) `make codegen`; (4) `make diff-staged`; (5) `make apply-test` or `make apply`; (6) `make graphql-schema`.
 
-<a id="complete-workflow"></a>
+**For IR Builder Changes**: (1) Edit `/dipeo/infrastructure/codegen/ir_builders/`; (2) Test with `python dipeo/infrastructure/codegen/ir_builders/test_new_builders.py`; (3) Review `projects/codegen/ir/test_outputs/`; (4) `make codegen`; (5) `make apply-test`.
 
-## Complete Workflow {#complete-workflow}
-
-### For New Node Types
-
-1. **Design TypeScript Spec** (Part 1):
-   ```bash
-   # Create /dipeo/models/src/nodes/my-node.spec.ts
-   # Follow naming conventions (snake_case fields)
-   # Use strict types
-   ```
-
-2. **Build TypeScript**:
-   ```bash
-   cd dipeo/models && pnpm build
-   ```
-
-3. **Generate Code**:
-   ```bash
-   make codegen
-   ```
-
-4. **Review Staged Output**:
-   ```bash
-   make diff-staged
-   # Review dipeo/diagram_generated_staged/
-   ```
-
-5. **Validate & Apply**:
-   ```bash
-   make apply-test  # Safest: includes server test
-   ```
-
-6. **Update GraphQL Schema**:
-   ```bash
-   make graphql-schema
-   ```
-
-### For TypeScript Spec Changes
-
-1. **Modify Spec**: Update /dipeo/models/src/nodes/*.spec.ts
-2. **Build**: `cd dipeo/models && pnpm build`
-3. **Generate**: `make codegen`
-4. **Review**: `make diff-staged`
-5. **Apply**: `make apply-test` or `make apply`
-6. **Schema**: `make graphql-schema`
-
-### For IR Builder Changes
-
-1. **Modify IR Builder**: Edit /dipeo/infrastructure/codegen/ir_builders/
-2. **Test IR Generation**:
-   ```bash
-   python dipeo/infrastructure/codegen/ir_builders/test_new_builders.py
-   ```
-3. **Check IR Output**: Review `projects/codegen/ir/test_outputs/`
-4. **Run Full Codegen**: `make codegen`
-5. **Validate & Apply**: `make apply-test`
-
-## Validation Levels {#validation-levels}
-
-### `make apply` (Type Checking)
-- Runs Python type checking with mypy
-- Fast validation
-- Good for most changes
-
-### `make apply-test` (Server Test)
-- Runs type checking
-- Starts server
-- Checks health endpoint
-- **Safest option** for critical changes
+**Validation**: `make apply` (mypy type checking, fast), `make apply-test` (type checking + server startup + health check, safest for critical changes).
 
 ## Critical Warnings {#critical-warnings}
 
@@ -600,69 +252,15 @@ When generated code looks wrong or doesn't work:
 - ⚠️ **Use `make apply-test`** for critical changes
 - ⚠️ **Run `make graphql-schema`** after applying changes
 
----
+## Part 6: Collaboration & Escalation {#when-to-engage-other-agents}
 
-<a id="collaboration-escalation"></a>
+**Escalate to dipeo-package-maintainer**: Generated code correct but runtime behavior wrong (handler implementation questions, application architecture, service registry, EventBus issues). Example: "PersonJobNode handler is failing" → Check generated class, if correct → escalate as runtime issue, if wrong → fix spec/builder.
 
-# Part 6: Collaboration & Escalation
+**Escalate to dipeo-backend**: GraphQL schema needs server update, CLI needs generated types, server configuration issues. Example: "Server won't start after codegen" → Verify schema correct, if correct → escalate as server issue, if wrong → fix generation.
 
-<a id="engage-other-agents"></a>
+**For Generated Code Issues**: dipeo-package-maintainer reports "API doesn't work as expected" → Diagnose if generation or usage issue → Determine: IR builder fix (you), TypeScript spec change (you), or runtime issue (escalate).
 
-## When to Engage Other Agents {#when-to-engage-other-agents}
-
-### Escalate to dipeo-package-maintainer
-
-**When**:
-- Generated code is correct but runtime behavior is wrong
-- Handler implementation questions
-- Application architecture questions
-- Service registry configuration
-- EventBus integration
-
-**Example**:
-```
-User: "PersonJobNode handler is failing"
-You: Check generated PersonJobNode class
-If generated code is correct:
-  Escalate to dipeo-package-maintainer (runtime issue)
-If generated code is wrong:
-  Fix TypeScript spec or IR builder (your responsibility)
-```
-
-### Escalate to dipeo-backend
-
-**When**:
-- GraphQL schema needs to be updated on server
-- CLI needs generated operation types
-- Server configuration issues
-
-**Example**:
-```
-User: "Server won't start after codegen"
-You: Verify generated GraphQL schema is correct
-If schema is correct:
-  Escalate to dipeo-backend (server issue)
-If schema is wrong:
-  Fix generation (your responsibility)
-```
-
-## Collaboration Protocols {#collaboration-protocols}
-
-### For Generated Code Issues {#for-generated-code-issues}
-
-1. **dipeo-package-maintainer reports**: "Generated API doesn't work as expected"
-2. **You diagnose**: Is it generation issue or usage issue?
-3. **You determine**:
-   - IR builder fix → You implement
-   - TypeScript spec change needed → You implement
-   - Runtime behavior issue → Escalate to dipeo-package-maintainer
-
-### For New Features {#for-new-features}
-
-1. **You design**: TypeScript spec
-2. **You generate**: Run codegen workflow and review output
-3. **dipeo-package-maintainer uses**: Implement handlers with generated types
-4. **dipeo-backend**: Updates GraphQL schema on server if needed
+**For New Features**: (1) You design TypeScript spec; (2) You run codegen and review output; (3) dipeo-package-maintainer implements handlers; (4) dipeo-backend updates server schema if needed.
 
 ## Troubleshooting {#troubleshooting}
 

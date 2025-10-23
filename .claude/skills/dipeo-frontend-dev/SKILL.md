@@ -17,8 +17,6 @@ allowed-tools: Read, Grep, Glob, Bash, Skill
 - **Small styling changes**: Update component layout, add simple UI element
 - **Pattern reference**: GraphQL hook usage examples
 
-**Token cost**: ~1,500 tokens (router + targeted section)
-
 ### ❌ Escalate to Agent
 - **TypeScript type fixing**: Multiple related errors, GraphQL schema mismatches, complex generics
 - **Feature implementation**: New diagram editor features, multi-step UI workflows
@@ -31,27 +29,17 @@ allowed-tools: Read, Grep, Glob, Bash, Skill
 
 Use `Skill(doc-lookup)` with these anchors when you need detailed context:
 
-**Core Responsibilities**:
-- `docs/agents/frontend-development.md#core-responsibilities` - What frontend dev owns
-- `docs/agents/frontend-development.md#react-components` - React patterns
-- `docs/agents/frontend-development.md#diagram-editor` - XYFlow guidance
-- `docs/agents/frontend-development.md#graphql-integration` - GraphQL patterns
-- `docs/agents/frontend-development.md#typescript-types` - Type safety practices
-
-**Technical Context**:
-- `docs/agents/frontend-development.md#technical-context` - Tech stack overview
-- `docs/agents/frontend-development.md#project-structure` - Directory structure
-- `docs/agents/frontend-development.md#dev-workflow` - Development workflow
+**Core Responsibilities & Tech Stack**:
+- `docs/agents/frontend-development.md#your-core-responsibilities` - React, diagram editor, GraphQL, TypeScript
+- `docs/agents/frontend-development.md#technical-context` - Tech stack and project structure
 
 **Code Quality & Patterns**:
-- `docs/agents/frontend-development.md#code-quality-standards` - Quality standards
-- `docs/agents/frontend-development.md#component-patterns` - Best practices
-- `docs/agents/frontend-development.md#graphql-usage` - Query/mutation examples
-- `docs/agents/frontend-development.md#state-management-zustand` - Zustand patterns
+- `docs/agents/frontend-development.md#code-quality-standards` - Component patterns, GraphQL, state management
+- `docs/agents/frontend-development.md#common-patterns` - Hooks, factory functions, error boundaries
 
-**Constraints**:
-- `docs/agents/frontend-development.md#constraints` - Important constraints
-- `docs/agents/frontend-development.md#escalation` - When to escalate
+**Constraints & Escalation**:
+- `docs/agents/frontend-development.md#important-constraints` - What not to modify
+- `docs/agents/frontend-development.md#when-to-escalate` - When to escalate to other agents
 
 **Example doc-lookup call**:
 ```bash
@@ -73,14 +61,3 @@ python .claude/skills/doc-lookup/scripts/section_search.py \
 2. **If simple**: Load relevant section via `Skill(doc-lookup)`, make change directly
 3. **If complex**: Escalate with `Task(dipeo-frontend-dev, "task details")`
 4. **Always verify**: Run `pnpm typecheck` before finalizing
-
-## Key Constraints
-
-- **NEVER modify** `/apps/web/src/__generated__/` files
-- **ALWAYS use** generated GraphQL hooks
-- **Run** `pnpm typecheck` before finalizing
-- **Prefer editing** over creating new files
-
----
-
-**Token savings**: ~90% reduction (1,500 vs. 15,000 tokens) for focused tasks

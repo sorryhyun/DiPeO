@@ -55,8 +55,7 @@ class LightDiagramParser:
                 connections.append(conn)
 
         persons = data.get("persons")
-        if persons and isinstance(persons, dict):
-            persons = list(persons.values())
+        # Keep persons as dict to match type annotation in format_models.py
 
         api_keys = data.get("api_keys")
         if api_keys and isinstance(api_keys, dict):

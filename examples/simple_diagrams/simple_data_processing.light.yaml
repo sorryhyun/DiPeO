@@ -1,175 +1,130 @@
 version: light
-
 nodes:
 - label: start
   type: START
-  position: {x: 100, y: 300}
-  props:
-    trigger_mode: manual
-    custom_data:
-      dataset_name: sales_data
-      process_date: 2025-01-11
-
+  position:
+    x: 100
+    y: 300
+  trigger_mode: manual
+  custom_data:
+    dataset_name: sales_data
+    process_date: 2025-01-11
 - label: load data
   type: DB
-  position: {x: 350, y: 300}
-  props:
-    operation: read
-    sub_type: file
-    file: files/uploads/sample_data.csv
-
+  position:
+    x: 350
+    y: 300
+  operation: read
+  sub_type: file
+  file: files/uploads/sample_data.csv
 - label: clean data
   type: CODE_JOB
-  position: {x: 600, y: 300}
-  props:
-    language: python
-    code: |
-      import json
-      import csv
-      from io import StringIO
-
-      def process_data(input_data):
-          # Parse CSV data
-          reader = csv.DictReader(StringIO(input_data["raw_data"]))
-          rows = list(reader)
-
-          # Clean and validate data
-          cleaned_rows = []
-          invalid_count = 0
-
-          for row in rows:
-              # Remove empty values and strip whitespace
-              cleaned_row = {k: v.strip() for k, v in row.items() if v and v.strip()}
-
-              # Basic validation (customize as needed)
-              if cleaned_row:
-                  cleaned_rows.append(cleaned_row)
-              else:
-                  invalid_count += 1
-
-          # Calculate statistics
-          stats = {
-              "total_rows": len(rows),
-              "valid_rows": len(cleaned_rows),
-              "invalid_rows": invalid_count,
-              "columns": list(rows[0].keys()) if rows else []
-          }
-
-          return {
-              "cleaned_data": cleaned_rows,
-              "statistics": stats,
-              "dataset_name": input_data.get("dataset_name", "unknown")
-          }
-
-      result = process_data(inputs)
-    function_name: process_data
-
+  position:
+    x: 600
+    y: 300
+  language: python
+  code: "import json\nimport csv\nfrom io import StringIO\n\ndef process_data(input_data):\n\
+    \    # Parse CSV data\n    reader = csv.DictReader(StringIO(input_data[\"raw_data\"\
+    ]))\n    rows = list(reader)\n\n    # Clean and validate data\n    cleaned_rows\
+    \ = []\n    invalid_count = 0\n\n    for row in rows:\n        # Remove empty\
+    \ values and strip whitespace\n        cleaned_row = {k: v.strip() for k, v in\
+    \ row.items() if v and v.strip()}\n\n        # Basic validation (customize as\
+    \ needed)\n        if cleaned_row:\n            cleaned_rows.append(cleaned_row)\n\
+    \        else:\n            invalid_count += 1\n\n    # Calculate statistics\n\
+    \    stats = {\n        \"total_rows\": len(rows),\n        \"valid_rows\": len(cleaned_rows),\n\
+    \        \"invalid_rows\": invalid_count,\n        \"columns\": list(rows[0].keys())\
+    \ if rows else []\n    }\n\n    return {\n        \"cleaned_data\": cleaned_rows,\n\
+    \        \"statistics\": stats,\n        \"dataset_name\": input_data.get(\"dataset_name\"\
+    , \"unknown\")\n    }\n\nresult = process_data(inputs)\n"
+  function_name: process_data
 - label: analyze patterns
   type: PERSON_JOB
-  position: {x: 900, y: 300}
-  props:
-    default_prompt: |
-      Analyze this cleaned dataset and identify key patterns:
+  position:
+    x: 900
+    y: 300
+  default_prompt: 'Analyze this cleaned dataset and identify key patterns:
 
-      Dataset: {{processed.dataset_name}}
-      Statistics: {{processed.statistics}}
-      Sample data (first 5 rows): {{processed.cleaned_data[:5]}}
 
-      Please provide:
-      1. Main patterns or trends you observe
-      2. Data quality assessment
-      3. Potential insights for business decisions
+    Dataset: {{processed.dataset_name}}
 
-      Format your response as a structured analysis.
-    max_iteration: 1
-    memorize_to: CONVERSATION_PAIRS
-    person: Data Analyst
+    Statistics: {{processed.statistics}}
 
+    Sample data (first 5 rows): {{processed.cleaned_data[:5]}}
+
+
+    Please provide:
+
+    1. Main patterns or trends you observe
+
+    2. Data quality assessment
+
+    3. Potential insights for business decisions
+
+
+    Format your response as a structured analysis.
+
+    '
+  max_iteration: 1
+  memorize_to: CONVERSATION_PAIRS
+  person: Data Analyst
 - label: format report
   type: CODE_JOB
-  position: {x: 1200, y: 300}
-  props:
-    language: python
-    code: |
-      import json
-      from datetime import datetime
-
-      def format_report(input_data):
-          analysis = input_data["analysis"]
-          stats = input_data["statistics"]
-          dataset_name = input_data["dataset_name"]
-
-          report = f"""# Data Processing Report
-
-      **Generated**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-      **Dataset**: {dataset_name}
-
-      ## Statistics
-      - Total Rows: {stats['total_rows']}
-      - Valid Rows: {stats['valid_rows']}
-      - Invalid Rows: {stats['invalid_rows']}
-      - Columns: {', '.join(stats['columns'])}
-
-      ## Analysis
-      {analysis}
-
-      ## Processed Data Summary
-      Successfully processed {stats['valid_rows']} records from {dataset_name}.
-      Data quality: {round(stats['valid_rows'] / stats['total_rows'] * 100, 1)}%
-      """
-
-          return {"report": report, "metadata": stats}
-
-      result = format_report(inputs)
-    function_name: format_report
-
+  position:
+    x: 1200
+    y: 300
+  language: python
+  code: "import json\nfrom datetime import datetime\n\ndef format_report(input_data):\n\
+    \    analysis = input_data[\"analysis\"]\n    stats = input_data[\"statistics\"\
+    ]\n    dataset_name = input_data[\"dataset_name\"]\n\n    report = f\"\"\"# Data\
+    \ Processing Report\n\n**Generated**: {datetime.now().strftime(\"%Y-%m-%d %H:%M:%S\"\
+    )}\n**Dataset**: {dataset_name}\n\n## Statistics\n- Total Rows: {stats['total_rows']}\n\
+    - Valid Rows: {stats['valid_rows']}\n- Invalid Rows: {stats['invalid_rows']}\n\
+    - Columns: {', '.join(stats['columns'])}\n\n## Analysis\n{analysis}\n\n## Processed\
+    \ Data Summary\nSuccessfully processed {stats['valid_rows']} records from {dataset_name}.\n\
+    Data quality: {round(stats['valid_rows'] / stats['total_rows'] * 100, 1)}%\n\"\
+    \"\"\n\n    return {\"report\": report, \"metadata\": stats}\n\nresult = format_report(inputs)\n"
+  function_name: format_report
 - label: save report
   type: ENDPOINT
-  position: {x: 1500, y: 300}
-  props:
-    file_format: md
-    save_to_file: true
-    file_path: files/results/data_processing_report.md
-
+  position:
+    x: 1500
+    y: 300
+  file_format: md
+  save_to_file: true
+  file_path: files/results/data_processing_report.md
 connections:
 - from: start
   to: load data
-  content_type: object
   label: config
-
+  content_type: object
 - from: load data
   to: clean data
-  content_type: raw_text
   label: raw_data
-
+  content_type: raw_text
 - from: start
   to: clean data
-  content_type: object
   label: config
-
+  content_type: object
 - from: clean data
   to: analyze patterns
-  content_type: object
   label: processed
-
+  content_type: object
 - from: analyze patterns
   to: format report
-  content_type: raw_text
   label: analysis
-
+  content_type: raw_text
 - from: clean data
   to: format report
-  content_type: object
   label: processed
-
+  content_type: object
 - from: format report
   to: save report
-  content_type: object
   label: result
-
+  content_type: object
 persons:
   Data Analyst:
     service: openai
     model: gpt-5-nano-2025-08-07
-    system_prompt: You are a data analyst expert who identifies patterns and provides actionable insights from data.
+    system_prompt: You are a data analyst expert who identifies patterns and provides
+      actionable insights from data.
     api_key_id: APIKEY_52609F
