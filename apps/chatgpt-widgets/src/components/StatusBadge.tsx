@@ -37,20 +37,15 @@ const statusConfig: Record<StatusKey, { label: string; color: string; bg: string
     color: 'text-red-700',
     bg: 'bg-red-100',
   },
-  aborted: {
-    label: 'Aborted',
-    color: 'text-orange-700',
-    bg: 'bg-orange-100',
+  cancelled: {
+    label: 'Cancelled',
+    color: 'text-gray-700',
+    bg: 'bg-gray-200',
   },
   aborted: {
     label: 'Aborted',
     color: 'text-orange-700',
     bg: 'bg-orange-100',
-  },
-  paused: {
-    label: 'Paused',
-    color: 'text-yellow-700',
-    bg: 'bg-yellow-100',
   },
   skipped: {
     label: 'Skipped',
