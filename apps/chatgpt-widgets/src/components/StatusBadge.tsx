@@ -9,9 +9,9 @@ interface StatusBadgeProps {
   className?: string;
 }
 
-type StatusConfigKey = Status;
+type StatusKey = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled' | 'aborted' | 'paused' | 'skipped' | 'maxiter_reached';
 
-const statusConfig: Record<StatusConfigKey, { label: string; color: string; bg: string }> = {
+const statusConfig: Record<StatusKey, { label: string; color: string; bg: string }> = {
   pending: {
     label: 'Pending',
     color: 'text-gray-700',
@@ -42,21 +42,31 @@ const statusConfig: Record<StatusConfigKey, { label: string; color: string; bg: 
     color: 'text-orange-700',
     bg: 'bg-orange-100',
   },
+  aborted: {
+    label: 'Aborted',
+    color: 'text-orange-700',
+    bg: 'bg-orange-100',
+  },
+  paused: {
+    label: 'Paused',
+    color: 'text-yellow-700',
+    bg: 'bg-yellow-100',
+  },
   skipped: {
     label: 'Skipped',
-    color: 'text-gray-700',
+    color: 'text-gray-600',
     bg: 'bg-gray-100',
   },
   maxiter_reached: {
-    label: 'Max Iterations',
+    label: 'Max Iter',
     color: 'text-purple-700',
     bg: 'bg-purple-100',
   },
 };
 
 export function StatusBadge({ status, className = '' }: StatusBadgeProps) {
-  // Status enum values are already lowercase strings
-  const statusKey = String(status) as StatusConfigKey;
+  // Convert Status enum to lowercase string key
+  const statusKey = status.toLowerCase() as StatusKey;
   const config = statusConfig[statusKey] || statusConfig.pending;
 
   return (

@@ -8,39 +8,65 @@
 import { gql } from 'graphql-request';
 
 export const GET_EXECUTION_QUERY = gql`
-  query GetExecution($sessionId: String!) {
-    execution(sessionId: $sessionId) {
-      sessionId
+  query GetExecution($executionId: String!) {
+    getExecution(execution_id: $executionId) {
+      id
       status
-      diagramName
-      startedAt
-      completedAt
-      metadata
+      diagram_id
+      started_at
+      ended_at
+      error
+      llm_usage {
+        input
+        output
+        cached
+        total
+      }
+      metrics
     }
   }
 `;
 
 export const LIST_EXECUTIONS_QUERY = gql`
-  query ListExecutions($limit: Int) {
-    executions(limit: $limit) {
-      sessionId
+  query ListExecutions($limit: Float) {
+    listExecutions(limit: $limit) {
+      id
       status
-      diagramName
-      startedAt
-      completedAt
+      diagram_id
+      started_at
+      ended_at
+      error
     }
   }
 `;
 
 export const LIST_DIAGRAMS_QUERY = gql`
-  query ListDiagrams {
-    diagrams {
-      id
-      name
-      description
-      format
-      createdAt
-      nodeCount
+  query ListDiagrams($limit: Float) {
+    listDiagrams(limit: $limit) {
+      metadata {
+        name
+        description
+        format
+        created
+        modified
+      }
+      nodes {
+        id
+        type
+        position {
+          x
+          y
+        }
+        data
+      }
+      arrows {
+        id
+        source
+        target
+        label
+        content_type
+        data
+      }
     }
   }
 `;

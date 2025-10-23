@@ -12,23 +12,24 @@
     "codegen": "graphql-codegen --config codegen.yml"
   },
   "dependencies": {
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
+    "@xyflow/react": "^12.8.1",
     "graphql": "^16.8.1",
-    "graphql-request": "^6.1.0"
+    "graphql-request": "^6.1.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   },
   "devDependencies": {
-    "@types/react": "^19.1.12",
-    "@types/react-dom": "^19.1.9",
-    "@vitejs/plugin-react": "^4.5.2",
-    "@tailwindcss/vite": "^4.1.11",
-    "typescript": "^5.9.2",
-    "vite": "^7.1.1",
-    "fast-glob": "^3.3.3",
-    "tailwindcss": "^4.1.11",
+    "@dipeo/models": "workspace:*",
     "@graphql-codegen/cli": "^5.0.7",
     "@graphql-codegen/typescript": "^4.1.6",
     "@graphql-codegen/typescript-operations": "^4.6.1",
-    "@dipeo/models": "workspace:*"
+    "@tailwindcss/vite": "^4.1.11",
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^4.5.2",
+    "fast-glob": "^3.3.3",
+    "tailwindcss": "^4.1.11",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.1"
   }
 }
