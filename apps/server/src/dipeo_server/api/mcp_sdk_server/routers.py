@@ -202,12 +202,11 @@ def create_info_router() -> APIRouter:
                 for uri, resource_obj in mcp_server._resource_manager._resources.items()
             ]
 
-        chatgpt_origins = os.environ.get("MCP_CHATGPT_ORIGINS", "")
+        # Support any MCP client origins
+        mcp_origins = os.environ.get("MCP_CLIENT_ORIGINS", "")
         auth_info = {
             "method": "ngrok basic auth",
-            "origin_validation": chatgpt_origins.split(",")
-            if chatgpt_origins
-            else ["https://chatgpt.com", "https://chat.openai.com"],
+            "origin_validation": mcp_origins.split(",") if mcp_origins else ["Any MCP client"],
         }
 
         return {

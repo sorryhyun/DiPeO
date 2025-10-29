@@ -17,8 +17,8 @@ Add to your `.env` file (or create one in the project root):
 # Disable authentication
 MCP_AUTH_ENABLED=false
 
-# Allow ChatGPT origins
-MCP_CHATGPT_ORIGINS=https://chatgpt.com,https://chat.openai.com
+# Allow MCP client origins (ChatGPT or other MCP clients)
+MCP_CLIENT_ORIGINS=https://chatgpt.com,https://chat.openai.com
 
 # Development mode
 ENVIRONMENT=development
