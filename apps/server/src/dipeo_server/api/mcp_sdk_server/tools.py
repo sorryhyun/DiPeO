@@ -320,6 +320,25 @@ async def compile_diagram(
         Validation result with errors/warnings, and push confirmation if applicable
     """
     try:
+        # Sanitize push_as to prevent path traversal attacks
+        if push_as:
+            # Check for path separators and traversal sequences
+            if "/" in push_as or "\\" in push_as or ".." in push_as:
+                result = {
+                    "success": False,
+                    "valid": False,
+                    "error": "Invalid filename: path separators and '..' are not allowed in push_as parameter",
+                }
+                return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+            # Additional validation: ensure it's a valid filename
+            if not push_as.strip() or push_as.startswith("."):
+                result = {
+                    "success": False,
+                    "valid": False,
+                    "error": "Invalid filename: push_as must be a valid filename (non-empty, not starting with '.')",
+                }
+                return [TextContent(type="text", text=json.dumps(result, indent=2))]
         cmd_args = [
             sys.executable,
             "-m",
