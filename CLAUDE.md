@@ -46,27 +46,10 @@ See [Diagram-to-Python Export Guide](docs/features/diagram-to-python-export.md)
 
 ### Compile and Push (for MCP)
 ```bash
-# Validate from file
-dipeo compile my_diagram.light.yaml --light
-
-# Validate from stdin (LLM-friendly)
-echo '<diagram-content>' | dipeo compile --stdin --light
-
-# Compile and push to MCP directory (from file)
-dipeo compile my_diagram.light.yaml --light --push-as my_workflow
-
-# Compile and push from stdin (LLM-friendly workflow)
-echo '<diagram-content>' | dipeo compile --stdin --light --push-as my_workflow
-
-# Custom target directory
-dipeo compile --stdin --light --push-as my_workflow --target-dir /custom/path
+dipeo compile my_diagram.light.yaml --light              # Validate
+dipeo compile --stdin --light --push-as my_workflow      # Validate + push to MCP
+# Also supports: --target-dir for custom location
 ```
-
-**Benefits:**
-- **Safe Upload**: Only valid diagrams are pushed
-- **No File Persistence**: LLMs can validate and push diagrams from text without filesystem access
-- **Automatic MCP Integration**: Pushed diagrams immediately available via `dipeo_run`
-
 See [MCP Server Integration](docs/features/mcp-server-integration.md#3-uploading-diagrams-for-mcp-access)
 
 ### Code Generation
@@ -155,98 +138,22 @@ Router skills provide on-demand access to agent documentation with 80-90% token 
 - **dipeo-frontend-dev**: React components, visual diagram editor, GraphQL integration, TypeScript types
 
 **How Router Skills Work:**
-
-Router skills are **thin** (~50-100 lines) and provide:
-1. **Decision criteria**: When to handle directly vs. escalate to full agent
-2. **Stable documentation anchors**: References to specific sections in `docs/`
-3. **Escalation paths**: Clear guidance on when to invoke other agents/skills
-
-**Usage Pattern:**
-
-```bash
-# Pattern 1: Router + direct handling (simple task)
-Skill(dipeo-backend)  # Load 50-line router
-# Review decision criteria → task is simple → handle directly
-# Cost: ~1,000 tokens
-
-# Pattern 2: Router + doc-lookup + solve (focused task)
-Skill(dipeo-backend)  # Load router
-Skill(doc-lookup) --query "cli-commands"  # Get specific section (~50 lines)
-# Solve problem with targeted context
-# Cost: ~1,500 tokens (vs. 15,000 with auto-injection)
-
-# Pattern 3: Router + escalate to agent (complex task)
-Skill(dipeo-backend)  # Load router, review decision criteria
-Task(dipeo-backend, "Add new CLI command with validation")
-# Agent can load additional sections via doc-lookup as needed
-```
-
-**doc-lookup Helper Skill:**
-
-The `doc-lookup` skill extracts specific documentation sections by anchor or keyword:
-
-```bash
-# Retrieve specific section by anchor
-python .claude/skills/doc-lookup/scripts/section_search.py \
-  --query "cli-commands" \
-  --paths docs/agents/backend-development.md \
-  --top 1
-
-# Search across multiple docs
-Skill(doc-lookup) --query "mcp-server-implementation"
-```
-
-**Benefits:**
-- **Progressive disclosure**: Load only relevant sections as needed
-- **Agent autonomy**: Agents decide what context they need
-- **Single source of truth**: Docs remain in `docs/`, no duplication
+- **Thin routers** (~50-100 lines): Decision criteria, doc anchors, escalation paths
+- **Progressive**: Use `Skill(dipeo-backend)` to load router → check if task is simple
+- **doc-lookup**: Load specific sections: `Skill(doc-lookup) --query "cli-commands"`
 - **Token efficiency**: 80-90% reduction (1.5k vs 15k tokens per task)
 
-**When to Use:**
-- Before invoking a full agent with Task tool (to check if task is simple enough to handle directly)
-- During agent execution (to load specific documentation sections)
-- When exploring what an agent can do (decision criteria and scope)
+**When to Use:** Before Task tool invocation or during agent execution
+
+See `.claude/skills/` for detailed skill documentation.
 
 ### todo-manage Skill
 
-**When to use**: For comprehensive TODO list management when working on multi-phase projects, complex migrations, or when planning feature implementations that require structured task tracking.
+Use for comprehensive TODO management on multi-phase projects (3+ phases or 10+ tasks), complex migrations, or large feature implementations.
 
-**Use the `todo-manage` skill when:**
-- Planning multi-phase projects (3+ phases or 10+ tasks)
-- Organizing complex migrations or refactoring work
-- Breaking down large feature requests into structured task lists
-- User explicitly requests comprehensive TODO planning
-- Need to create organized, phase-based task breakdown with estimates
+**Access**: `/dipeotodos` slash command
 
-**Examples:**
-
-<example>
-Context: User requests a major migration that requires multiple coordinated steps
-user: "We need to migrate from legacy MCP to SDK-only implementation"
-assistant: "I'll use the todo-manage skill to create a comprehensive, phase-based TODO list for this migration."
-<commentary>Use todo-manage for complex migrations requiring structured planning with phases, estimates, and dependencies.</commentary>
-</example>
-
-<example>
-Context: User wants to implement a large feature with many components
-user: "Add authentication system with OAuth, JWT, API keys, and role-based access control"
-assistant: "Let me use the todo-manage skill to break this down into a comprehensive TODO list organized by implementation phases."
-<commentary>Use todo-manage for large feature implementations that need structured task breakdown.</commentary>
-</example>
-
-<example>
-Context: User wants comprehensive project planning
-user: "Create a TODO list for implementing the new diagram export system"
-assistant: "I'll use the todo-manage skill to create a detailed, phase-organized TODO list with effort estimates and dependencies."
-<commentary>Use todo-manage when user explicitly requests TODO planning or when project complexity warrants structured task management.</commentary>
-</example>
-
-**Access TODO list**: Use `/dipeotodos` slash command to view current TODO.md
-
-**Don't use todo-manage for:**
-- Simple, single-task changes (use regular TodoWrite tool instead)
-- Quick bug fixes or minor updates
-- When you just need to mark existing TODOs as complete
+**Don't use for**: Simple single-task changes (use TodoWrite tool instead)
 
 ### Other Skills
 
@@ -284,34 +191,10 @@ See [Overall Architecture](docs/architecture/README.md) for complete details.
 
 ## Adding New Features
 
-### New Node Types
-1. Create spec in `/dipeo/models/src/nodes/`
-2. Build: `cd dipeo/models && pnpm build`
-3. Generate: `make codegen` → `make diff-staged` → `make apply-test`
-4. Configure handles in `/dipeo/domain/diagram/utils/shared_components.py` (HANDLE_SPECS)
-5. Add field mappings if needed in `/dipeo/domain/diagram/utils/node_field_mapper.py` (FIELD_MAPPINGS)
-6. Create handler in `/dipeo/application/execution/handlers/`
-7. Update schema: `make graphql-schema`
-
-See [Developer Guide](docs/guides/developer-guide-diagrams.md) for detailed instructions.
-
-### New Diagram Formats
-1. Create strategy in `/dipeo/domain/diagram/strategies/my_format/`
-2. Implement: `parser.py`, `transformer.py`, `serializer.py`, `strategy.py`
-3. Follow existing patterns (see `light/` or `readable/`)
-4. Register strategy in format registry
-
-See [Developer Guide](docs/guides/developer-guide-diagrams.md#adding-new-diagram-formats) for details.
-
-### GraphQL Operations
-1. Add definition in `/dipeo/models/src/frontend/query-definitions/`
-2. Follow codegen workflow above
-3. See [GraphQL Layer](docs/architecture/graphql-layer.md)
-
-### Other Changes
-- **API changes**: Modify schema → `make graphql-schema`
-- **UI changes**: Work in `/apps/web/src/`
-- **Compilation phases**: Create phase class implementing PhaseInterface (see [Diagram Compilation](docs/architecture/diagram-compilation.md))
+- **New Node Types**: TypeScript spec → codegen → handlers → update schema. See [Developer Guide](docs/guides/developer-guide-diagrams.md)
+- **New Diagram Formats**: Create strategy (parser/transformer/serializer). See [Developer Guide](docs/guides/developer-guide-diagrams.md#adding-new-diagram-formats)
+- **GraphQL Operations**: Add definition in `/dipeo/models/src/frontend/query-definitions/` → codegen. See [GraphQL Layer](docs/architecture/graphql-layer.md)
+- **API/UI Changes**: Modify schema → `make graphql-schema` or work in `/apps/web/src/`
 
 ## Important Notes
 
