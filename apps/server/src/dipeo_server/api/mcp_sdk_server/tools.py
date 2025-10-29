@@ -15,14 +15,55 @@ from .config import DEFAULT_MCP_TIMEOUT, PROJECT_ROOT, mcp_server
 logger = get_module_logger(__name__)
 
 
-@mcp_server.tool()
+@mcp_server.tool(
+    description="""Start a DiPeO diagram execution in the background (asynchronous).
+
+This tool starts execution in a background process and returns immediately with a session ID.
+Use the see_result tool to check status and retrieve results later.
+
+Use Cases:
+  - Long-running diagrams that exceed typical request timeouts
+  - Parallel execution of multiple diagrams
+  - Fire-and-forget workflows
+
+Parameters:
+  - diagram: Name or path of the diagram to execute
+  - input_data: Optional dictionary of input variables for the diagram
+  - format_type: Diagram format - "light" | "native" | "readable" (default: "light")
+  - timeout: Execution timeout in seconds (default: 300)
+
+Examples:
+  Start a long-running analysis:
+    {
+      "diagram": "data_analysis",
+      "format_type": "light",
+      "timeout": 600
+    }
+
+  Start with input data:
+    {
+      "diagram": "batch_processor",
+      "input_data": {"batch_size": 1000, "dataset": "sales_2024"},
+      "timeout": 900
+    }
+
+  Quick background job:
+    {
+      "diagram": "notification_sender",
+      "input_data": {"recipients": ["alice@example.com"]},
+      "format_type": "light"
+    }
+
+Returns:
+  JSON object with session_id, status, and instructions to use see_result to check progress.
+"""
+)
 async def run_backend(
     diagram: str,
     input_data: dict[str, Any] | None = None,
     format_type: str = "light",
     timeout: int = DEFAULT_MCP_TIMEOUT,
 ) -> list[TextContent]:
-    """Start diagram execution in background, returning session ID for see_result."""
     if input_data is None:
         input_data = {}
 
@@ -101,12 +142,48 @@ async def run_backend(
         return [TextContent(type="text", text=json.dumps(result, indent=2))]
 
 
-@mcp_server.tool()
-async def see_result(session_id: str) -> list[TextContent]:
-    """Check status and retrieve results of a background execution.
+@mcp_server.tool(
+    description="""Check status and retrieve results of a background diagram execution.
 
-    Returns rich output including conversation history, node outputs, and execution metadata.
-    """
+Use this tool to check the status of a diagram started with run_backend.
+Returns rich output including conversation history, node outputs, execution metadata, and LLM usage statistics.
+
+Parameters:
+  - session_id: The session ID returned by run_backend
+
+Possible Statuses:
+  - running: Execution in progress
+  - completed: Execution finished successfully
+  - failed: Execution encountered an error
+
+Examples:
+  Check status of background execution:
+    {
+      "session_id": "exec_9ebb3df7180a4a7383079680c28c6028"
+    }
+
+  Typical workflow:
+    1. Start background: run_backend({"diagram": "analysis"})
+       Returns: {"session_id": "exec_abc123..."}
+
+    2. Check status: see_result({"session_id": "exec_abc123..."})
+       Returns: {"status": "running", "executed_nodes": [...]}
+
+    3. Check again: see_result({"session_id": "exec_abc123..."})
+       Returns: {"status": "completed", "node_outputs": {...}, "llm_usage": {...}}
+
+Returns:
+  JSON object with:
+    - session_id: The execution session identifier
+    - status: Current execution status (running|completed|failed)
+    - executed_nodes: List of nodes that have been executed
+    - node_outputs: Final outputs from each node (if completed)
+    - llm_usage: Token usage statistics (if completed)
+    - started_at/ended_at: Timestamps
+    - error: Error message (if failed)
+"""
+)
+async def see_result(session_id: str) -> list[TextContent]:
     try:
         cmd_args = [
             sys.executable,
@@ -159,14 +236,50 @@ async def see_result(session_id: str) -> list[TextContent]:
         return [TextContent(type="text", text=json.dumps(error_result, indent=2))]
 
 
-@mcp_server.tool()
+@mcp_server.tool(
+    description="""Execute a DiPeO diagram synchronously with optional input variables.
+
+Parameters:
+  - diagram: Name or path of the diagram to execute
+  - input_data: Optional dictionary of input variables for the diagram
+  - format_type: Diagram format - "light" | "native" | "readable" (default: "light")
+  - timeout: Execution timeout in seconds (default: 300)
+
+Examples:
+  Basic execution:
+    {
+      "diagram": "simple_iter",
+      "format_type": "light"
+    }
+
+  With input data:
+    {
+      "diagram": "greeting_workflow",
+      "input_data": {"user_name": "Alice"},
+      "format_type": "light"
+    }
+
+  With timeout and complex inputs:
+    {
+      "diagram": "data_processing",
+      "input_data": {
+        "dataset": "sales_2024",
+        "analysis_type": "trend",
+        "granularity": "monthly"
+      },
+      "timeout": 600
+    }
+
+Returns:
+  JSON object with execution status, results, and any errors.
+"""
+)
 async def dipeo_run(
     diagram: str,
     input_data: dict[str, Any] | None = None,
     format_type: str = "light",
     timeout: int = DEFAULT_MCP_TIMEOUT,
 ) -> list[TextContent]:
-    """Execute a DiPeO diagram with optional input variables."""
     if input_data is None:
         input_data = {}
 
@@ -208,9 +321,52 @@ async def _execute_diagram(arguments: dict[str, Any]) -> list[TextContent]:
         ]
 
 
-@mcp_server.tool()
+@mcp_server.tool(
+    description="""Search for DiPeO diagrams by name across available directories.
+
+Searches in:
+  - projects/mcp-diagrams/ (uploaded diagrams)
+  - examples/simple_diagrams/ (example diagrams)
+
+The search is case-insensitive and matches against diagram names and paths.
+
+Parameters:
+  - query: Search term to match against diagram names
+
+Examples:
+  Search for iteration diagrams:
+    {
+      "query": "iter"
+    }
+    Returns: ["simple_iter", "multi_iter", ...]
+
+  Search for greeting workflows:
+    {
+      "query": "greeting"
+    }
+    Returns: ["greeting_workflow", "hello_greeting", ...]
+
+  Search for specific diagram:
+    {
+      "query": "data_analysis"
+    }
+    Returns: ["data_analysis"] (exact match)
+
+  Broad search:
+    {
+      "query": "simple"
+    }
+    Returns: All diagrams containing "simple" in their name
+
+Returns:
+  JSON object with:
+    - success: true
+    - query: The search term used
+    - count: Number of matching diagrams
+    - results: Array of matching diagrams with name, path, format, and location
+"""
+)
 async def search(query: str) -> list[TextContent]:
-    """Search for DiPeO diagrams by name."""
 
     def search_diagrams(search_query: str):
         results = []
@@ -266,9 +422,54 @@ async def search(query: str) -> list[TextContent]:
     return [TextContent(type="text", text=json.dumps(response, indent=2))]
 
 
-@mcp_server.tool()
+@mcp_server.tool(
+    description="""Fetch the full content of a specific DiPeO diagram file.
+
+Use this tool to retrieve the complete YAML or JSON content of a diagram.
+Useful for inspecting diagram structure, understanding node configurations, or preparing diagrams for modification.
+
+Parameters:
+  - uri: Diagram URI or name to fetch
+
+URI Formats:
+  - dipeo://diagrams/diagram_name
+  - diagram_name (shorthand)
+  - /absolute/path/to/diagram.yaml
+
+Examples:
+  Fetch using URI:
+    {
+      "uri": "dipeo://diagrams/simple_iter"
+    }
+
+  Fetch using short name:
+    {
+      "uri": "simple_iter"
+    }
+
+  Fetch from MCP directory:
+    {
+      "uri": "greeting_workflow"
+    }
+
+  Fetch example diagram:
+    {
+      "uri": "examples/simple_diagrams/simple_iter.light.yaml"
+    }
+
+Returns:
+  JSON object with:
+    - success: true/false
+    - uri: The requested URI
+    - name: Diagram name (without extension)
+    - path: Full file path
+    - format: "light" or "native"
+    - size: Content size in characters
+    - content: Full diagram content (YAML or JSON)
+    - error: Error message (if failed)
+"""
+)
 async def fetch(uri: str) -> list[TextContent]:
-    """Fetch the full content of a specific DiPeO diagram file."""
 
     def fetch_diagram_content(diagram_uri: str):
         if diagram_uri.startswith("dipeo://diagrams/"):
@@ -325,51 +526,94 @@ async def fetch(uri: str) -> list[TextContent]:
     return [TextContent(type="text", text=json.dumps(result, indent=2))]
 
 
-@mcp_server.tool()
+@mcp_server.tool(
+    description="""Validate and push a DiPeO diagram to the MCP directory.
+
+This tool validates diagram syntax, structure, and configuration, then automatically
+pushes the validated diagram to the MCP directory for immediate use.
+
+Safe by Design:
+  - Only validated diagrams are pushed
+  - No file system access needed - works from text content
+  - Prevents path traversal attacks
+
+Parameters:
+  - diagram_content: The complete diagram content (YAML or JSON string)
+  - push_as: Filename to save validated diagram to projects/mcp-diagrams/
+  - format_type: Diagram format - "light" | "native" | "readable" (default: "light")
+
+Examples:
+  Validate and push minimal workflow:
+    {
+      "diagram_content": "version: light\\nnodes:\\n- label: start\\n  type: start\\n  position: {x: 100, y: 100}\\n  trigger_mode: manual\\n- label: end\\n  type: endpoint\\n  position: {x: 300, y: 100}\\n  file_format: txt\\nconnections:\\n- {from: start, to: end, content_type: raw_text}",
+      "push_as": "my_workflow",
+      "format_type": "light"
+    }
+
+  Create and push greeting workflow:
+    {
+      "diagram_content": "<full YAML content here>",
+      "push_as": "greeting_v2",
+      "format_type": "light"
+    }
+
+  Push analysis diagram:
+    {
+      "diagram_content": "version: light\\nnodes:\\n...",
+      "push_as": "data_analysis",
+      "format_type": "light"
+    }
+
+Common Use Cases:
+  1. LLM creates diagram → compile_diagram to validate and deploy
+  2. User edits diagram → compile_diagram to update deployed version
+  3. Automated workflow → compile_diagram for immediate availability
+
+Returns:
+  JSON object with:
+    - success: true/false
+    - valid: Whether diagram passed validation
+    - errors: List of validation errors (if any)
+    - warnings: List of validation warnings (if any)
+    - node_count: Number of nodes in diagram
+    - edge_count: Number of connections
+    - pushed_as: Filename where diagram was saved
+    - message: Human-readable status message
+"""
+)
 async def compile_diagram(
     diagram_content: str,
+    push_as: str,
     format_type: str = "light",
-    push_as: str | None = None,
 ) -> list[TextContent]:
-    """Validate and optionally push a DiPeO diagram to the MCP directory.
-
-    Args:
-        diagram_content: The diagram content (YAML or JSON)
-        format_type: Diagram format (light, native, readable)
-        push_as: Optional filename to push validated diagram to MCP directory
-
-    Returns:
-        Validation result with errors/warnings, and push confirmation if applicable
-    """
     try:
         # Sanitize push_as to prevent path traversal attacks
-        if push_as:
-            # Check for path separators and traversal sequences
-            if "/" in push_as or "\\" in push_as or ".." in push_as:
-                result = {
-                    "success": False,
-                    "valid": False,
-                    "error": "Invalid filename: path separators and '..' are not allowed in push_as parameter",
-                }
-                return [TextContent(type="text", text=json.dumps(result, indent=2))]
+        # Check for path separators and traversal sequences
+        if "/" in push_as or "\\" in push_as or ".." in push_as:
+            result = {
+                "success": False,
+                "valid": False,
+                "error": "Invalid filename: path separators and '..' are not allowed in push_as parameter",
+            }
+            return [TextContent(type="text", text=json.dumps(result, indent=2))]
 
-            # Additional validation: ensure it's a valid filename
-            if not push_as.strip() or push_as.startswith("."):
-                result = {
-                    "success": False,
-                    "valid": False,
-                    "error": "Invalid filename: push_as must be a valid filename (non-empty, not starting with '.')",
-                }
-                return [TextContent(type="text", text=json.dumps(result, indent=2))]
+        # Additional validation: ensure it's a valid filename
+        if not push_as.strip() or push_as.startswith("."):
+            result = {
+                "success": False,
+                "valid": False,
+                "error": "Invalid filename: push_as must be a valid filename (non-empty, not starting with '.')",
+            }
+            return [TextContent(type="text", text=json.dumps(result, indent=2))]
 
-            # Check for null bytes and control characters
-            if "\x00" in push_as or any(ord(c) < 32 for c in push_as if c not in ("\t", "\n", "\r")):
-                result = {
-                    "success": False,
-                    "valid": False,
-                    "error": "Invalid filename: null bytes and control characters are not allowed",
-                }
-                return [TextContent(type="text", text=json.dumps(result, indent=2))]
+        # Check for null bytes and control characters
+        if "\x00" in push_as or any(ord(c) < 32 for c in push_as if c not in ("\t", "\n", "\r")):
+            result = {
+                "success": False,
+                "valid": False,
+                "error": "Invalid filename: null bytes and control characters are not allowed",
+            }
+            return [TextContent(type="text", text=json.dumps(result, indent=2))]
         cmd_args = [
             sys.executable,
             "-m",
@@ -386,8 +630,8 @@ async def compile_diagram(
         elif format_type == "readable":
             cmd_args.append("--readable")
 
-        if push_as:
-            cmd_args.extend(["--push-as", push_as])
+        # Always push with the provided filename
+        cmd_args.extend(["--push-as", push_as])
 
         proc = await asyncio.create_subprocess_exec(
             *cmd_args,
@@ -432,13 +676,11 @@ async def compile_diagram(
             "edge_count": compile_result.get("edge_count"),
         }
 
-        if push_as and compile_result.get("valid"):
+        if compile_result.get("valid"):
             result["pushed_as"] = push_as
             result["message"] = f"Diagram validated and pushed to MCP directory as {push_as}"
-        elif compile_result.get("valid"):
-            result["message"] = "Diagram validated successfully"
         else:
-            result["message"] = "Diagram validation failed"
+            result["message"] = "Diagram validation failed - not pushed to MCP directory"
 
         return [TextContent(type="text", text=json.dumps(result, indent=2))]
 

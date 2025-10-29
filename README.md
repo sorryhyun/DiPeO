@@ -29,46 +29,43 @@
     <summary>The diagram file content we created looks like...</summary>
 
 ```yaml
-    version: light
-    name: data_processor_pipeline_dipeo
-    description: A robust, reusable data processor pipeline from ingestion to output, including validation, transformation, routing,
-      error handling, and observability.
-    nodes:
-    - label: ObjectiveInput
-      type: start
-      position:
-        x: 0
-        y: 0
-      props:
-        trigger_mode: manual
-        custom_data:
-          user_prompt: create data processor diagram
-        output_data_structure:
-          type: object
-    - label: DefineDataConfig
-      type: code_job
-      position:
-        x: 260
-        y: 0
-      props:
-        language: python
-        code: |
-          import json
-    
-          # Sample, compact DataSource and DataSink artifacts (small, concrete examples)
-          data_sources = [
-              {"id": "source_csv_1", "type": "csv", "location": "./data/input.csv", "schema": {"fields": {"id": "int", "name": "str", "value": "float", "timestamp": "str"}}},
-              {"id": "source_api_1", "type": "api", "endpoint": "https://api.example.com/data", "schema": {"fields": {"id": "int", "category": "str", "amount": "float", "ts": "str"}}},
-              {"id": "source_kafka_1", "type": "kafka", "topic": "events", "bootstrap_servers": ["localhost:9092"], "schema": {"fields": {"id": "str", "payload": "dict"}}}
-          ]
-    
-          data_sinks = [
-              {"id": "sink_dw", "type": "parquet_store", "destination": "./warehouse/parquet/", "schema": {"fields": {"id": "int", "name": "str", "value": "float", "timestamp": "str"}}},
-              {"id": "sink_blob", "type": "filesystem", "destination": "./lake/csv/", "schema": {"fields": {"id": "int", "name": "str", "value": "float", "timestamp": "str"}}}
-          ]
-    
-          transformation_plan = {"steps": ["clean_nulls", "normalize_fields", "enrich_with_metadata", "deduplicate"]}
-    
+version: light
+nodes:
+- label: start
+  type: start
+  position:
+    x: 330
+    y: 200
+  trigger_mode: manual
+- label: printer
+  type: person_job
+  position:
+    x: 632
+    y: 231
+  default_prompt: say hi
+  max_iteration: 3
+  memorize_to: ALL_MESSAGES
+  person: person 1
+- label: endpoint
+  type: endpoint
+  position:
+    x: 0
+    y: 437
+  file_format: txt
+  save_to_file: true
+  file_path: files/results/total.txt
+connections:
+- from: start
+  to: printer
+  content_type: raw_text
+- from: printer
+  to: endpoint
+  content_type: raw_text
+persons:
+  person 1:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F
 ```
 
 </details>
