@@ -112,6 +112,78 @@ echo '<diagram-content>' | dipeo compile --stdin --light --push-as my_workflow
 dipeo export examples/simple_diagrams/simple_iter.light.yaml output.py --light
 ```
 
+**`dipeo ask`** - AI-assisted diagram creation
+```python
+# Create diagram from natural language request
+dipeo ask "Create a workflow that processes user data"
+
+# Create and run immediately
+dipeo ask "Process user data" --and-run
+```
+
+**`dipeo convert`** - Convert between diagram formats
+```python
+# Convert diagram format
+dipeo convert input.light.yaml output.readable.yaml --from-format light --to-format readable
+```
+
+**`dipeo list`** - List available diagrams
+```python
+# List all diagrams
+dipeo list
+
+# List in JSON format
+dipeo list --json
+
+# Filter by format
+dipeo list --format light
+```
+
+**`dipeo stats`** - Show diagram statistics
+```python
+# Show statistics for a diagram
+dipeo stats examples/simple_diagrams/simple_iter
+```
+
+**`dipeo monitor`** - Open monitoring UI
+```python
+# Open monitor in browser
+dipeo monitor
+
+# Monitor specific diagram
+dipeo monitor --diagram my_diagram
+```
+
+**`dipeo integrations`** - Manage external integrations
+```python
+# Initialize integration configuration
+dipeo integrations init
+
+# Validate integration
+dipeo integrations validate --provider openai
+
+# Import OpenAPI spec
+dipeo integrations openapi-import spec.json my_api
+
+# Test integration
+dipeo integrations test my_provider --operation get_data
+```
+
+**`dipeo dipeocc`** - Manage Claude Code session conversion
+```python
+# List recent sessions
+dipeo dipeocc list
+
+# Convert specific session
+dipeo dipeocc convert session_id
+
+# Convert latest session
+dipeo dipeocc convert --latest
+
+# Watch for new sessions
+dipeo dipeocc watch
+```
+
 **CLI Architecture & Implementation**: The CLI uses a modular architecture: `entry_point.py` provides main entry and command registration; `parser.py` handles argument parsing with argparse; `dispatcher.py` routes commands to handlers; `cli_runner.py` implements core execution (sync and async via subprocess); `query.py` retrieves results and metrics; `formatter.py` handles JSON/text/markdown output.
 
 **Background Execution**: The `--background` flag enables async execution via subprocess isolation. When used, the runner spawns a subprocess with a unique execution_id and returns immediately with session status. The subprocess persists state to the database, preventing blocking while allowing results retrieval via `dipeo results exec_id`.
@@ -192,9 +264,9 @@ CREATE INDEX IF NOT EXISTS idx_node ON messages(node_id);
 
 **Message Store** (`message_store.py`): Persists person_job conversation messages, retrieves history for `dipeo results --verbose`, and supports MCP `see_result` tool with full context. Core methods: `save_message()`, `get_execution_messages()`, `get_node_messages()`.
 
-**State Persistence Coordination**: The database coordinates with (but does NOT replace) the core state management in `/dipeo/infrastructure/execution/state/`. YOU own database schema, SQL operations, and message store; dipeo-package-maintainer owns CacheFirstStateStore and PersistenceManager. Both layers write to the same SQLite database. Your responsibilities: schema evolution, SQL operations, message store implementation, migrations, and query optimization.
+**State Persistence Coordination**: The database coordinates with the core state management in `/dipeo/infrastructure/execution/state/`. Schema is initialized by `PersistenceManager.init_schema()` in `/dipeo/infrastructure/execution/state/persistence_manager.py` (owned by dipeo-package-maintainer). YOU own message store SQL operations and queries; dipeo-package-maintainer owns schema initialization, CacheFirstStateStore, and PersistenceManager. Both components write to the same SQLite database. Your responsibilities: message store implementation, message queries, and query optimization for backend operations.
 
-**Database Migrations**: When modifying schema, update `db_schema.py` with new CREATE TABLE/ALTER TABLE statements, test migration on existing data, document changes via `make schema-docs`, and consider backward compatibility.
+**Database Migrations**: When modifying schema, coordinate with dipeo-package-maintainer to update `PersistenceManager.init_schema()` in `/dipeo/infrastructure/execution/state/persistence_manager.py`, test migration on existing data, document changes via `make schema-docs`, and consider backward compatibility.
 
 ### 4. MCP Server Integration (apps/server/api/mcp_sdk_server/) {#mcp-server}
 **YOU OWN** the MCP (Model Context Protocol) server implementation.
@@ -287,7 +359,7 @@ Before completing any task:
 
 **CLI**: `apps/server/src/dipeo_server/cli/entry_point.py` (entry), `cli_runner.py` (execution logic), `parser.py` (argument parsing), `dispatcher.py` (command dispatch), `query.py` (query commands)
 
-**Database**: `apps/server/src/dipeo_server/infra/db_schema.py` (schema), `message_store.py` (persistence), `.dipeo/data/dipeo_state.db` (SQLite database)
+**Database**: `/dipeo/infrastructure/execution/state/persistence_manager.py` (schema initialization - package-maintainer domain), `apps/server/src/dipeo_server/infra/message_store.py` (message persistence), `.dipeo/data/dipeo_state.db` (SQLite database)
 
 **MCP**: `apps/server/src/dipeo_server/api/mcp_sdk_server/__init__.py` (server), `tools.py` (tools), `resources.py` (resources), `mcp_utils.py` (utilities)
 

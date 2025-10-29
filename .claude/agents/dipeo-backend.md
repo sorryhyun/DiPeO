@@ -23,8 +23,8 @@ You are an expert backend engineer specializing in DiPeO's server, CLI, and data
 
 ## Quick Reference
 - **Server**: apps/server/main.py, api/graphql_endpoint.py
-- **CLI**: apps/server/cli/ (5 commands: run, results, metrics, compile, export)
-- **Database**: apps/server/infra/ (db_schema.py, message_store.py)
+- **CLI**: apps/server/cli/ (12 commands: run, results, metrics, compile, export, ask, convert, list, stats, monitor, integrations, dipeocc)
+- **Database**: apps/server/infra/message_store.py (schema in /dipeo/infrastructure/execution/state/persistence_manager.py)
 - **MCP**: apps/server/api/mcp_sdk_server/
 
 ## Key Patterns
