@@ -6,11 +6,16 @@ This guide explains how to expose DiPeO's diagram execution capabilities as an M
 
 DiPeO's MCP server integration provides:
 
-1. **MCP Tool**: `dipeo_run` - Execute DiPeO diagrams remotely
+1. **MCP Tools**:
+   - `dipeo_run` - Execute DiPeO diagrams synchronously
+   - `run_backend` - Start diagram execution in background
+   - `see_result` - Check status and retrieve execution results
+   - `search` - Search for diagrams by name
+   - `fetch` - Fetch diagram content
+   - `compile_diagram` - Validate and push diagrams to MCP directory
 2. **MCP Resource**: `dipeo://diagrams` - List available diagrams
 3. **HTTP Transport**: Standard HTTP JSON-RPC 2.0 protocol (SDK-based implementation)
 4. **ngrok Integration**: HTTPS exposure for local development
-5. **Diagram Upload**: Compile and push diagrams via `dipeo compile --push-as`
 
 **Protocol Version**: MCP 2024-11-05 (SDK-based, not legacy HTTP/SSE)
 

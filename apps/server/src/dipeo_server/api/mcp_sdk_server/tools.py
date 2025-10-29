@@ -55,7 +55,18 @@ async def run_backend(
             stderr=asyncio.subprocess.PIPE,
         )
 
-        stdout, stderr = await proc.communicate()
+        # Add timeout to prevent hanging
+        try:
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60.0)
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+            result = {
+                "success": False,
+                "error": "Background execution start timed out after 60 seconds",
+                "diagram": diagram,
+            }
+            return [TextContent(type="text", text=json.dumps(result, indent=2))]
 
         if proc.returncode != 0:
             error_msg = stderr.decode() if stderr else "Unknown error"
@@ -112,7 +123,18 @@ async def see_result(session_id: str) -> list[TextContent]:
             stderr=asyncio.subprocess.PIPE,
         )
 
-        stdout, stderr = await proc.communicate()
+        # Add timeout to prevent hanging
+        try:
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=30.0)
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+            error_result = {
+                "success": False,
+                "session_id": session_id,
+                "error": "Result retrieval timed out after 30 seconds",
+            }
+            return [TextContent(type="text", text=json.dumps(error_result, indent=2))]
 
         output = stdout.decode().strip()
         cli_result = json.loads(output)
@@ -301,3 +323,130 @@ async def fetch(uri: str) -> list[TextContent]:
     result = await asyncio.to_thread(fetch_diagram_content, uri)
 
     return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+
+@mcp_server.tool()
+async def compile_diagram(
+    diagram_content: str,
+    format_type: str = "light",
+    push_as: str | None = None,
+) -> list[TextContent]:
+    """Validate and optionally push a DiPeO diagram to the MCP directory.
+
+    Args:
+        diagram_content: The diagram content (YAML or JSON)
+        format_type: Diagram format (light, native, readable)
+        push_as: Optional filename to push validated diagram to MCP directory
+
+    Returns:
+        Validation result with errors/warnings, and push confirmation if applicable
+    """
+    try:
+        # Sanitize push_as to prevent path traversal attacks
+        if push_as:
+            # Check for path separators and traversal sequences
+            if "/" in push_as or "\\" in push_as or ".." in push_as:
+                result = {
+                    "success": False,
+                    "valid": False,
+                    "error": "Invalid filename: path separators and '..' are not allowed in push_as parameter",
+                }
+                return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+            # Additional validation: ensure it's a valid filename
+            if not push_as.strip() or push_as.startswith("."):
+                result = {
+                    "success": False,
+                    "valid": False,
+                    "error": "Invalid filename: push_as must be a valid filename (non-empty, not starting with '.')",
+                }
+                return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+            # Check for null bytes and control characters
+            if "\x00" in push_as or any(ord(c) < 32 for c in push_as if c not in ("\t", "\n", "\r")):
+                result = {
+                    "success": False,
+                    "valid": False,
+                    "error": "Invalid filename: null bytes and control characters are not allowed",
+                }
+                return [TextContent(type="text", text=json.dumps(result, indent=2))]
+        cmd_args = [
+            sys.executable,
+            "-m",
+            "dipeo_server.cli.entry_point",
+            "compile",
+            "--stdin",
+            "--json",
+        ]
+
+        if format_type == "light":
+            cmd_args.append("--light")
+        elif format_type == "native":
+            cmd_args.append("--native")
+        elif format_type == "readable":
+            cmd_args.append("--readable")
+
+        if push_as:
+            cmd_args.extend(["--push-as", push_as])
+
+        proc = await asyncio.create_subprocess_exec(
+            *cmd_args,
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        # Add timeout to prevent hanging (30 seconds should be sufficient for compilation)
+        try:
+            stdout, stderr = await asyncio.wait_for(
+                proc.communicate(input=diagram_content.encode()), timeout=30.0
+            )
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+            result = {
+                "success": False,
+                "valid": False,
+                "error": "Compilation timed out after 30 seconds",
+            }
+            return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+        if proc.returncode != 0:
+            error_msg = stderr.decode() if stderr else "Unknown error"
+            result = {
+                "success": False,
+                "valid": False,
+                "error": f"Compilation failed: {error_msg}",
+            }
+            return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+        output = stdout.decode().strip()
+        compile_result = json.loads(output)
+
+        result = {
+            "success": True,
+            "valid": compile_result.get("valid", False),
+            "errors": compile_result.get("errors", []),
+            "warnings": compile_result.get("warnings", []),
+            "node_count": compile_result.get("node_count"),
+            "edge_count": compile_result.get("edge_count"),
+        }
+
+        if push_as and compile_result.get("valid"):
+            result["pushed_as"] = push_as
+            result["message"] = f"Diagram validated and pushed to MCP directory as {push_as}"
+        elif compile_result.get("valid"):
+            result["message"] = "Diagram validated successfully"
+        else:
+            result["message"] = "Diagram validation failed"
+
+        return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+    except Exception as e:
+        logger.error(f"Error compiling diagram: {e}", exc_info=True)
+        result = {
+            "success": False,
+            "valid": False,
+            "error": f"Error compiling diagram: {e!s}",
+        }
+        return [TextContent(type="text", text=json.dumps(result, indent=2))]
