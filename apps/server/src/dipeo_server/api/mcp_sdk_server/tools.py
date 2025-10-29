@@ -55,7 +55,18 @@ async def run_backend(
             stderr=asyncio.subprocess.PIPE,
         )
 
-        stdout, stderr = await proc.communicate()
+        # Add timeout to prevent hanging
+        try:
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60.0)
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+            result = {
+                "success": False,
+                "error": "Background execution start timed out after 60 seconds",
+                "diagram": diagram,
+            }
+            return [TextContent(type="text", text=json.dumps(result, indent=2))]
 
         if proc.returncode != 0:
             error_msg = stderr.decode() if stderr else "Unknown error"
@@ -112,7 +123,18 @@ async def see_result(session_id: str) -> list[TextContent]:
             stderr=asyncio.subprocess.PIPE,
         )
 
-        stdout, stderr = await proc.communicate()
+        # Add timeout to prevent hanging
+        try:
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=30.0)
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+            error_result = {
+                "success": False,
+                "session_id": session_id,
+                "error": "Result retrieval timed out after 30 seconds",
+            }
+            return [TextContent(type="text", text=json.dumps(error_result, indent=2))]
 
         output = stdout.decode().strip()
         cli_result = json.loads(output)
@@ -339,6 +361,15 @@ async def compile_diagram(
                     "error": "Invalid filename: push_as must be a valid filename (non-empty, not starting with '.')",
                 }
                 return [TextContent(type="text", text=json.dumps(result, indent=2))]
+
+            # Check for null bytes and control characters
+            if "\x00" in push_as or any(ord(c) < 32 for c in push_as if c not in ("\t", "\n", "\r")):
+                result = {
+                    "success": False,
+                    "valid": False,
+                    "error": "Invalid filename: null bytes and control characters are not allowed",
+                }
+                return [TextContent(type="text", text=json.dumps(result, indent=2))]
         cmd_args = [
             sys.executable,
             "-m",
@@ -365,7 +396,20 @@ async def compile_diagram(
             stderr=asyncio.subprocess.PIPE,
         )
 
-        stdout, stderr = await proc.communicate(input=diagram_content.encode())
+        # Add timeout to prevent hanging (30 seconds should be sufficient for compilation)
+        try:
+            stdout, stderr = await asyncio.wait_for(
+                proc.communicate(input=diagram_content.encode()), timeout=30.0
+            )
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+            result = {
+                "success": False,
+                "valid": False,
+                "error": "Compilation timed out after 30 seconds",
+            }
+            return [TextContent(type="text", text=json.dumps(result, indent=2))]
 
         if proc.returncode != 0:
             error_msg = stderr.decode() if stderr else "Unknown error"
