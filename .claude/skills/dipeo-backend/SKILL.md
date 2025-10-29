@@ -6,7 +6,7 @@ allowed-tools: Read, Grep, Glob, Bash, Skill
 
 # DiPeO Backend Router
 
-**Domain**: FastAPI server, CLI (`dipeo run/results/metrics/compile/export`), SQLite schema, MCP server integration in `apps/server/`.
+**Domain**: FastAPI server, CLI (12 commands including run/results/metrics/compile/export/ask/convert/list/stats/monitor/integrations/dipeocc), message store, MCP server integration in `apps/server/`. Database schema initialization is in `/dipeo/infrastructure/execution/state/persistence_manager.py` (package-maintainer domain).
 
 ## Quick Decision: Skill or Agent?
 

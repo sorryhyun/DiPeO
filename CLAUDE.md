@@ -124,7 +124,7 @@ DiPeO uses specialized subagents for complex tasks. The agent structure is organ
   - Excludes: Code generation, backend server, CLI
 
 - **dipeo-backend**: FastAPI server, CLI, database, and MCP integration in apps/server/
-  - Use for: Server configuration, CLI commands (run, results, metrics, compile, export), database schema, MCP server
+  - Use for: Server configuration, CLI commands (run, results, metrics, compile, export, ask, convert, list, stats, monitor, integrations, dipeocc), message store, MCP server
 
 - **dipeo-codegen-pipeline**: Complete TypeScript → IR → Python/GraphQL pipeline
   - Use for: TypeScript model design, IR builders, code generation, generated code diagnosis
@@ -135,6 +135,8 @@ DiPeO uses specialized subagents for complex tasks. The agent structure is organ
 - **dipeo-frontend-dev**: React components, visual diagram editor, GraphQL integration
 - **codebase-auditor**: Targeted code analysis for security, performance, quality
 - **dipeocc-converter**: Converting Claude Code sessions to DiPeO diagrams
+- **code-polisher**: Polish and clean up code (file separation, comment cleanup, import refactoring, doc maintenance)
+- **codebase-qna**: Fast codebase retrieval using Haiku (find functions, classes, usage patterns)
 
 **Best Practice**: Run agents in parallel when possible. See [Agent docs](docs/agents/index.md) for detailed guides.
 
