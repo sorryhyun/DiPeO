@@ -93,6 +93,7 @@ class DiagramLoader:
                     BASE_DIR / "examples",
                     BASE_DIR / "examples/simple_diagrams",
                     BASE_DIR / "projects",
+                    BASE_DIR / "projects/mcp-diagrams",
                     BASE_DIR / "files",
                 ]:
                     test_path = base_dir / f"{diagram}{ext}"
@@ -104,6 +105,7 @@ class DiagramLoader:
             BASE_DIR / "examples",
             BASE_DIR / "examples/simple_diagrams",
             BASE_DIR / "projects",
+            BASE_DIR / "projects/mcp-diagrams",
             BASE_DIR / "files",
         ]:
             test_path = base_dir / diagram

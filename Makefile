@@ -151,7 +151,20 @@ codegen-status:
 
 # Development servers
 dev-server:
-	DIPEO_BASE_DIR="$(shell pwd)" python apps/server/main.py
+	@echo "Starting DiPeO server and ngrok tunnel..."
+	@cleanup() { \
+		echo "Shutting down servers..."; \
+		pkill -P $$$$ 2>/dev/null || true; \
+		pkill -f "ngrok http 8000" 2>/dev/null || true; \
+		pkill -f "python apps/server/main.py" 2>/dev/null || true; \
+	}; \
+	trap cleanup EXIT INT TERM; \
+	DIPEO_BASE_DIR="$(shell pwd)" python apps/server/main.py 2>&1 | sed 's/^/[server] /' & \
+	SERVER_PID=$$!; \
+	sleep 3; \
+	ngrok http 8000 --basic-auth "sorryhyun:sorrysorry" 2>&1 | sed 's/^/[ngrok] /' & \
+	NGROK_PID=$$!; \
+	wait
 
 dev-web:
 	pnpm -F web dev

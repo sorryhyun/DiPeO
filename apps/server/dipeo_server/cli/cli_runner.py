@@ -3,13 +3,14 @@
 from typing import Any
 
 from dipeo.application.bootstrap import Container
-from dipeo_server.cli.commands import ClaudeCodeCommandManager, IntegrationCommandManager
 
+from .claude_code_manager import ClaudeCodeCommandManager
 from .compilation import DiagramCompiler
 from .conversion import DiagramConverter
-from .core import DiagramLoader
+from .diagram_loader import DiagramLoader
 from .display import MetricsManager
 from .execution import DiagramExecutor
+from .integration_manager import IntegrationCommandManager
 from .query import DiagramQuery
 
 

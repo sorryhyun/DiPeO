@@ -13,9 +13,10 @@ from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.domain_models import ExecutionID
 from dipeo.diagram_generated.enums import Status
 
-from .core import DiagramLoader, SessionManager
+from .diagram_loader import DiagramLoader
 from .display import DisplayManager
-from .handlers import cli_interactive_handler
+from .interactive_handler import cli_interactive_handler
+from .session_manager import SessionManager
 
 logger = get_module_logger(__name__)
 
@@ -139,7 +140,7 @@ class DiagramExecutor:
                 await metrics_observer.start()
 
                 if await self.session_manager.is_server_available():
-                    from dipeo_server.cli.handlers import EventForwarder
+                    from dipeo_server.cli.event_forwarder import EventForwarder
 
                     event_forwarder = EventForwarder(execution_id=str(exec_id))
 

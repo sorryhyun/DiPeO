@@ -13,7 +13,7 @@ from dipeo.application.bootstrap import init_resources, shutdown_resources
 from dipeo.infrastructure.logging_config import setup_logging
 from dipeo_server.app_context import create_server_container
 from dipeo_server.cli import CLIRunner
-from dipeo_server.cli.core import ServerManager
+from dipeo_server.cli.server_manager import ServerManager
 
 
 async def run_cli_command(args: argparse.Namespace) -> bool:

@@ -8,7 +8,7 @@ from dipeo.application.bootstrap import Container
 from dipeo.application.registry.keys import STATE_STORE
 from dipeo.config import STATE_DB_PATH
 from dipeo.config.base_logger import get_module_logger
-from dipeo_server.infra.message_store import MessageStore
+from dipeo.infrastructure.storage.message_store import MessageStore
 
 logger = get_module_logger(__name__)
 
@@ -20,39 +20,28 @@ class DiagramQuery:
         self.container = container
         self.registry = container.registry
 
-    async def show_results(self, session_id: str, verbose: bool = False) -> bool:
-        """Query execution status and results by session_id.
+    async def get_results_data(self, session_id: str, verbose: bool = False) -> dict:
+        """Get execution results data as a dictionary.
 
         Args:
             session_id: Execution/session ID (format: exec_[32-char-hex])
-            verbose: If True, show detailed output with full conversation and metadata
+            verbose: If True, include detailed output with full conversation and metadata
 
         Returns:
-            True if query succeeded, False otherwise
+            Dictionary with results data or error information
         """
         try:
             if not re.match(r"^exec_[0-9a-f]{32}$", session_id):
-                print(
-                    json.dumps(
-                        {
-                            "error": f"Invalid session_id format: {session_id}",
-                            "expected_format": "exec_[32-char-hex]",
-                        }
-                    )
-                )
-                return False
+                return {
+                    "error": f"Invalid session_id format: {session_id}",
+                    "expected_format": "exec_[32-char-hex]",
+                }
 
             state_store = self.registry.resolve(STATE_STORE)
-
             result = await state_store.get_execution(session_id)
 
             if not result:
-                print(
-                    json.dumps(
-                        {"error": f"Execution not found: {session_id}", "session_id": session_id}
-                    )
-                )
-                return False
+                return {"error": f"Execution not found: {session_id}", "session_id": session_id}
 
             response = {
                 "session_id": session_id,
@@ -87,7 +76,6 @@ class DiagramQuery:
                         else str(result.ended_at)
                     )
 
-                # Retrieve conversation messages (verbose only)
                 try:
                     message_store = MessageStore(STATE_DB_PATH)
                     await message_store.initialize()
@@ -96,16 +84,12 @@ class DiagramQuery:
                         response["conversation"] = self._format_conversation(messages)
                 except Exception as e:
                     logger.debug(f"Could not retrieve messages: {e}")
-                    # Messages table may not exist yet - not a critical error
             else:
-                # Non-verbose: show summary
                 if hasattr(result, "executed_nodes") and result.executed_nodes:
                     response["executed_nodes_count"] = len(result.executed_nodes)
 
-                # Extract final output from endpoint or last node
                 if hasattr(result, "node_outputs") and result.node_outputs:
                     outputs = self._extract_node_outputs(result.node_outputs)
-                    # Try to find final output from endpoint or last executed node
                     final_output = None
                     if hasattr(result, "executed_nodes") and result.executed_nodes:
                         for node_id in reversed(result.executed_nodes):
@@ -119,23 +103,19 @@ class DiagramQuery:
                     if final_output:
                         response["final_output"] = final_output
 
-                # Get last conversation message (if any)
                 try:
                     message_store = MessageStore(STATE_DB_PATH)
                     await message_store.initialize()
                     messages = await message_store.get_execution_messages(session_id)
                     if messages:
                         response["messages_count"] = len(messages)
-                        # Show last message
                         last_msg = messages[-1]
                         formatted = self._format_conversation([last_msg])
                         if formatted:
                             response["last_message"] = formatted[0]
                 except Exception as e:
                     logger.debug(f"Could not retrieve messages: {e}")
-                    # Messages table may not exist yet - not a critical error
 
-            # Always show LLM usage
             if hasattr(result, "llm_usage") and result.llm_usage:
                 response["llm_usage"] = {
                     "input_tokens": result.llm_usage.input
@@ -149,15 +129,25 @@ class DiagramQuery:
                     else 0,
                 }
 
-            print(json.dumps(response, indent=2))
-            return True
+            return response
 
         except Exception as e:
             logger.error(f"Failed to query execution results: {e}")
-            print(
-                json.dumps({"error": f"Failed to query execution: {e!s}", "session_id": session_id})
-            )
-            return False
+            return {"error": f"Failed to query execution: {e!s}", "session_id": session_id}
+
+    async def show_results(self, session_id: str, verbose: bool = False) -> bool:
+        """Query execution status and results by session_id.
+
+        Args:
+            session_id: Execution/session ID (format: exec_[32-char-hex])
+            verbose: If True, show detailed output with full conversation and metadata
+
+        Returns:
+            True if query succeeded, False otherwise
+        """
+        response = await self.get_results_data(session_id, verbose)
+        print(json.dumps(response, indent=2))
+        return "error" not in response or response.get("error") is None
 
     async def list_diagrams(
         self, output_json: bool = False, format_filter: str | None = None

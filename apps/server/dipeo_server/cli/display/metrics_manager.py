@@ -191,7 +191,7 @@ class MetricsManager:
             True if stats displayed successfully, False otherwise
         """
         try:
-            from ..core.diagram_loader import DiagramLoader
+            from ..diagram_loader import DiagramLoader
 
             loader = DiagramLoader()
             diagram_data, _ = await loader.load_diagram(diagram_path, None)

@@ -9,7 +9,7 @@ from pathlib import Path
 from dipeo.application.bootstrap import Container
 from dipeo.config.base_logger import get_module_logger
 
-from .core import DiagramLoader
+from .diagram_loader import DiagramLoader
 
 logger = get_module_logger(__name__)
 
@@ -143,7 +143,9 @@ class DiagramCompiler:
 
                 push_dir.mkdir(parents=True, exist_ok=True)
 
-                if format_type in ["light", "readable"]:
+                if format_type == "light":
+                    extension = ".light.yaml"
+                elif format_type == "readable":
                     extension = ".yaml"
                 else:
                     extension = ".json"

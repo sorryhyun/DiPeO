@@ -67,6 +67,10 @@ async def run_backend(
     if input_data is None:
         input_data = {}
 
+    # Default to mcp-diagrams directory if diagram is just a name (no path separators)
+    if "/" not in diagram and "\\" not in diagram:
+        diagram = f"projects/mcp-diagrams/{diagram}"
+
     cmd_args = [
         sys.executable,
         "-m",
@@ -99,7 +103,7 @@ async def run_backend(
         # Add timeout to prevent hanging
         try:
             stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60.0)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             proc.kill()
             await proc.wait()
             result = {
@@ -184,54 +188,22 @@ Returns:
 """
 )
 async def see_result(session_id: str) -> list[TextContent]:
+    from dipeo_server.app_context import get_container
+    from dipeo_server.cli import CLIRunner
+
     try:
-        cmd_args = [
-            sys.executable,
-            "-m",
-            "dipeo_server.cli.entry_point",
-            "results",
-            session_id,
-            "--verbose",
-        ]
+        container = get_container()
+        cli = CLIRunner(container)
 
-        proc = await asyncio.create_subprocess_exec(
-            *cmd_args,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
+        result_data = await cli.query.get_results_data(session_id, verbose=True)
 
-        # Add timeout to prevent hanging
-        try:
-            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=30.0)
-        except asyncio.TimeoutError:
-            proc.kill()
-            await proc.wait()
-            error_result = {
-                "success": False,
-                "session_id": session_id,
-                "error": "Result retrieval timed out after 30 seconds",
-            }
-            return [TextContent(type="text", text=json.dumps(error_result, indent=2))]
-
-        output = stdout.decode().strip()
-        cli_result = json.loads(output)
-
-        if "error" in cli_result:
-            result = {
-                "success": False,
-                "session_id": session_id,
-                "error": cli_result["error"],
-            }
-            return [TextContent(type="text", text=json.dumps(result, indent=2))]
-
-        return [TextContent(type="text", text=json.dumps(cli_result, indent=2))]
+        return [TextContent(type="text", text=json.dumps(result_data, indent=2))]
 
     except Exception as e:
         logger.error(f"Error retrieving result for {session_id}: {e}", exc_info=True)
         error_result = {
-            "success": False,
-            "session_id": session_id,
             "error": f"Error retrieving result: {e!s}",
+            "session_id": session_id,
         }
         return [TextContent(type="text", text=json.dumps(error_result, indent=2))]
 
@@ -282,6 +254,10 @@ async def dipeo_run(
 ) -> list[TextContent]:
     if input_data is None:
         input_data = {}
+
+    # Default to mcp-diagrams directory if diagram is just a name (no path separators)
+    if "/" not in diagram and "\\" not in diagram:
+        diagram = f"projects/mcp-diagrams/{diagram}"
 
     arguments = {
         "diagram": diagram,
@@ -367,7 +343,6 @@ Returns:
 """
 )
 async def search(query: str) -> list[TextContent]:
-
     def search_diagrams(search_query: str):
         results = []
         search_lower = search_query.lower()
@@ -470,7 +445,6 @@ Returns:
 """
 )
 async def fetch(uri: str) -> list[TextContent]:
-
     def fetch_diagram_content(diagram_uri: str):
         if diagram_uri.startswith("dipeo://diagrams/"):
             diagram_name = diagram_uri.replace("dipeo://diagrams/", "")
@@ -645,7 +619,7 @@ async def compile_diagram(
             stdout, stderr = await asyncio.wait_for(
                 proc.communicate(input=diagram_content.encode()), timeout=30.0
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             proc.kill()
             await proc.wait()
             result = {

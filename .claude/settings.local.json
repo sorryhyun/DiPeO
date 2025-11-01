@@ -71,7 +71,11 @@
       "Skill(dipeo-backend)",
       "Bash(command -v:*)",
       "Bash(command -v fnm:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(ngrok config:*)",
+      "Bash(do echo '=== $dir ===')",
+      "Bash(git mv:*)",
+      "Skill(import-refactor)"
     ],
     "deny": [],
     "ask": []

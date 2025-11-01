@@ -10,9 +10,7 @@ requires-python = ">=3.13"
 dependencies = []  # Dependencies managed by root pyproject.toml
 
 [project.scripts]
-dipeo-server = "dipeo_server.__main__:main"
-dipeo = "dipeo_server.cli.entry_point:main"
-dipeocc = "dipeo_server.cli.entry_point:dipeocc_main"
+dipeo-server = "server.__main__:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["dipeo_server"]
+packages = ["server"]
