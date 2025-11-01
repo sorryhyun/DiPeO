@@ -59,7 +59,7 @@ def _run_server(args):
 
 
 def _run_cli(args):
-    """Run as CLI."""
+    """Run as CLI ."""
     from .dispatcher import run_cli_command
 
     try:
