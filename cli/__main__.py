@@ -1,4 +1,4 @@
-"""Entry point for running dipeo_server.cli as a module."""
+"""Entry point for running cli as a module."""
 
 from .entry_point import main
 

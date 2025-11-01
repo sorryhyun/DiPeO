@@ -10,13 +10,13 @@ from strawberry.subscriptions import GRAPHQL_TRANSPORT_WS_PROTOCOL
 from dipeo.application.graphql import create_schema
 
 from .context import get_request_context
-from .mcp_sdk_server import create_info_router, create_messages_router
+from .mcp import create_info_router, create_messages_router
 from .webhooks import router as webhook_router
 
 
 def create_graphql_router(context_getter=None, container=None):
     """Create a GraphQL router with monitoring stream support."""
-    from dipeo_server.app_context import get_container
+    from server.app_context import get_container
 
     if not container:
         container = get_container()

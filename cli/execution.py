@@ -140,7 +140,7 @@ class DiagramExecutor:
                 await metrics_observer.start()
 
                 if await self.session_manager.is_server_available():
-                    from dipeo_server.cli.event_forwarder import EventForwarder
+                    from cli.event_forwarder import EventForwarder
 
                     event_forwarder = EventForwarder(execution_id=str(exec_id))
 

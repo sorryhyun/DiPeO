@@ -209,7 +209,7 @@ async def receive_webhook(provider: str, request: Request, response: Response) -
     """Receive and process provider webhooks with signature validation and event emission."""
     try:
         from dipeo.application.registry.keys import EVENT_BUS, PROVIDER_REGISTRY
-        from dipeo_server.app_context import get_container
+        from server.app_context import get_container
 
         container = get_container()
         registry = container.registry.resolve(PROVIDER_REGISTRY)
@@ -261,7 +261,7 @@ async def receive_webhook(provider: str, request: Request, response: Response) -
 async def test_webhook_endpoint(provider: str) -> dict[str, Any]:
     """Test endpoint returning webhook configuration and supported events."""
     try:
-        from dipeo_server.app_context import get_container
+        from server.app_context import get_container
 
         container = get_container()
         registry = container.registry.get("provider_registry")

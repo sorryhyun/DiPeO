@@ -74,7 +74,7 @@ async def run_backend(
     cmd_args = [
         sys.executable,
         "-m",
-        "dipeo_server.cli.entry_point",
+        "cli.entry_point",
         "run",
         diagram,
         "--background",
@@ -188,8 +188,8 @@ Returns:
 """
 )
 async def see_result(session_id: str) -> list[TextContent]:
-    from dipeo_server.app_context import get_container
-    from dipeo_server.cli import CLIRunner
+    from cli import CLIRunner
+    from server.app_context import get_container
 
     try:
         container = get_container()
@@ -591,7 +591,7 @@ async def compile_diagram(
         cmd_args = [
             sys.executable,
             "-m",
-            "dipeo_server.cli.entry_point",
+            "cli.entry_point",
             "compile",
             "--stdin",
             "--json",

@@ -22,17 +22,18 @@ async def create_server_container() -> Container:
     settings = get_settings()
     container = Container(settings)
 
-    from apps.server.bootstrap import (
-        bootstrap_services,
-        execute_event_subscriptions,
-        wire_feature_flags,
-    )
     from dipeo.application.registry.keys import (
         CLI_SESSION_SERVICE,
         EVENT_BUS,
         MESSAGE_ROUTER,
         PROVIDER_REGISTRY,
         STATE_STORE,
+    )
+
+    from .bootstrap import (
+        bootstrap_services,
+        execute_event_subscriptions,
+        wire_feature_flags,
     )
 
     bootstrap_services(container.registry, redis_client=None)

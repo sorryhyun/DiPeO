@@ -47,7 +47,7 @@ class RequestContext(BaseContext):
 
 def get_request_context(request_or_ws=None):
     """Create request context for HTTP or WebSocket connections."""
-    from dipeo_server.app_context import get_container
+    from server.app_context import get_container
 
     container = get_container()
 

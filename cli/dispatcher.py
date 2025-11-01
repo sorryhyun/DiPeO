@@ -9,11 +9,11 @@ import sys
 import uuid
 import webbrowser
 
+from cli import CLIRunner
+from cli.server_manager import ServerManager
 from dipeo.application.bootstrap import init_resources, shutdown_resources
 from dipeo.infrastructure.logging_config import setup_logging
-from dipeo_server.app_context import create_server_container
-from dipeo_server.cli import CLIRunner
-from dipeo_server.cli.server_manager import ServerManager
+from server.app_context import create_server_container
 
 
 async def run_cli_command(args: argparse.Namespace) -> bool:
@@ -174,7 +174,7 @@ def _handle_background_execution(args: argparse.Namespace) -> bool:
     cmd_args = [
         sys.executable,
         "-m",
-        "dipeo_server.cli.entry_point",
+        "cli.entry_point",
         "run",
         args.diagram,
     ]

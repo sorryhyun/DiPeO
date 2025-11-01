@@ -10,9 +10,9 @@ import os
 from dataclasses import dataclass
 from typing import Any, Optional
 
+from cli import CLIRunner
 from dipeo.config.base_logger import get_module_logger
-from dipeo_server.app_context import get_container
-from dipeo_server.cli import CLIRunner
+from server.app_context import get_container
 
 logger = get_module_logger(__name__)
 
