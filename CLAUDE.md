@@ -6,8 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 DiPeO is a monorepo for building and executing AI-powered agent workflows through visual programming:
 - **Frontend** (apps/web/): React-based visual diagram editor
-- **Backend** (apps/server/): FastAPI server with GraphQL API
-- **CLI** (apps/server/src/dipeo_server/cli/): Command-line tool for running diagrams (`dipeo` command)
+- **Server** (server/): FastAPI server with GraphQL API
+- **CLI** (cli/): Command-line tools for running diagrams (`dipeo` and `dipeocc` commands)
+- **Core Library** (dipeo/): Shared domain logic, execution engine, and infrastructure
 
 ## Essential Commands
 
@@ -117,7 +118,7 @@ python scripts/generate_light_diagram_schema.py  # Generate JSON Schema for ligh
 
 **Core Development:**
 - **dipeo-package-maintainer** → /dipeo/ runtime (handlers, resolvers, EventBus, ServiceRegistry, domain models)
-- **dipeo-backend** → apps/server/ (CLI, FastAPI, database, MCP server)
+- **dipeo-backend** → /server/ + /cli/ (FastAPI server, CLI tools, database, MCP server)
 - **dipeo-codegen-pipeline** → TypeScript specs → IR → Python/GraphQL generation
 - **dipeo-frontend-dev** → React UI, visual editor, GraphQL hooks, type errors
 
@@ -127,7 +128,7 @@ python scripts/generate_light_diagram_schema.py  # Generate JSON Schema for ligh
 - **code-polisher** → File separation, comment cleanup, import refactoring
 - **codebase-qna** → Fast code search (functions, classes, patterns)
 
-**Example**: `Task(dipeo-backend, "Fix CLI timeout handling") + Task(dipeo-frontend-dev, "Add timeout UI control")`
+**Example**: `Task(dipeo-backend, "Add GraphQL timeout field") + Task(dipeo-frontend-dev, "Add timeout UI control")`
 
 See [Agent docs](docs/agents/index.md) for detailed guides.
 
@@ -140,7 +141,7 @@ DiPeO provides specialized skills for routine code quality and project managemen
 Router skills provide on-demand access to agent documentation with 80-90% token reduction vs. automatic injection.
 
 **Available Router Skills:**
-- **dipeo-backend**: Backend server, CLI, database, MCP integration guidance
+- **dipeo-backend**: Backend ecosystem (server/ + cli/): FastAPI server, CLI tools, database, MCP integration
 - **dipeo-package-maintainer**: Runtime Python code, handlers, service architecture
 - **dipeo-codegen-pipeline**: TypeScript → IR → Python/GraphQL pipeline
 - **dipeo-frontend-dev**: React components, visual diagram editor, GraphQL integration, TypeScript types
@@ -189,9 +190,10 @@ See `.claude/skills/` for detailed skill documentation.
 - **Database**: SQLite at `.dipeo/data/dipeo_state.db` - see [Database Schema](docs/database-schema.md) (auto-generated via `make schema-docs`)
 
 ### Key Directories
-- `/apps/server/` - FastAPI backend + CLI
+- `/cli/` - Command-line tools (dipeo, dipeocc commands)
+- `/server/` - FastAPI backend (GraphQL API, MCP integration)
 - `/apps/web/` - React frontend
-- `/dipeo/` - Core Python (application/domain/infrastructure)
+- `/dipeo/` - Core Python library (application/domain/infrastructure)
 - `/dipeo/models/src/` - TypeScript specs (source of truth)
 - `/dipeo/diagram_generated/` - Generated code (don't edit)
 

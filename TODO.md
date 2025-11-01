@@ -49,10 +49,10 @@ Understand current dependencies and plan the migration strategy.
 
 ---
 
-### Phase 2: Create New Package Structure (3-4 hours)
+### Phase 2: Create New Package Structure (3-4 hours) ✅ COMPLETE
 Set up the new directory structure and configuration.
 
-- [ ] Create /cli/ package structure
+- [x] Create /cli/ package structure
   - Create cli/ directory at project root
   - Create pyproject.toml for cli package
   - Set up entry points: `dipeo`, `dipeocc`
@@ -60,8 +60,9 @@ Set up the new directory structure and configuration.
   - Estimated effort: Medium (1-2 hours)
   - Files: New `cli/pyproject.toml`, `cli/__init__.py`
   - Risk: Low
+  - **Result**: Created complete CLI package structure at /cli/
 
-- [ ] Create /server/ package structure
+- [x] Create /server/ package structure
   - Create server/ directory at project root
   - Create pyproject.toml for server package
   - Set up entry point: `dipeo-server`
@@ -69,145 +70,162 @@ Set up the new directory structure and configuration.
   - Estimated effort: Medium (1-2 hours)
   - Files: New `server/pyproject.toml`, `server/__init__.py`
   - Risk: Low
+  - **Result**: Created complete server package structure at /server/
 
-- [ ] Move shared infrastructure to final location
+- [x] Move shared infrastructure to final location
   - Based on Phase 1 decision, move infra/message_store.py
   - Update imports in moved file
   - Document new import path
   - Estimated effort: Small (30 minutes)
   - Files: `infra/message_store.py` → destination
   - Risk: Low
+  - **Result**: Moved message_store.py to dipeo/infrastructure/storage/, updated imports in query.py, removed empty infra/ directory
 
 ---
 
-### Phase 3: Move CLI Components (4-5 hours)
+### Phase 3: Move CLI Components (4-5 hours) ✅ COMPLETE
 Migrate all CLI-related code to /cli/.
 
-- [ ] Move CLI core files to /cli/
+- [x] Move CLI core files to /cli/
   - Move entry_point.py, parser.py, dispatcher.py
   - Move cli_runner.py, execution.py, compilation.py, conversion.py, query.py
   - Move diagram_loader.py, session_manager.py, server_manager.py
   - Estimated effort: Medium (1-2 hours)
   - Files: 15+ CLI core files
   - Risk: Medium - many files to track
+  - **Result**: Successfully moved all 12 CLI core files to /cli/
 
-- [ ] Move CLI display components to /cli/display/
+- [x] Move CLI display components to /cli/display/
   - Move display/ subdirectory with all files
   - Preserve internal structure (display.py, metrics_display.py, metrics_manager.py)
   - Estimated effort: Small (30 minutes)
   - Files: `cli/display/*.py`
   - Risk: Low
+  - **Result**: Successfully moved display/ subdirectory with all 4 files
 
-- [ ] Move CLI utilities to /cli/
+- [x] Move CLI utilities to /cli/
   - Move event_forwarder.py, interactive_handler.py
   - Move claude_code_manager.py, integration_manager.py
   - Estimated effort: Small (30 minutes)
   - Files: CLI utility files
   - Risk: Low
+  - **Result**: Successfully moved all 4 CLI utility files
 
-- [ ] Update CLI internal imports
+- [x] Update CLI internal imports
   - Change `from dipeo_server.cli.` → `from cli.`
   - Change `from dipeo_server.infra.` → new infra path
   - Run import-refactor skill for /cli/ package
   - Estimated effort: Large (2-3 hours)
   - Files: All files in cli/
   - Risk: High - import errors break CLI
+  - **Result**: Updated all imports in dispatcher.py, execution.py, __main__.py; added public API exports to cli/__init__.py
 
 ---
 
-### Phase 4: Move Server Components (3-4 hours)
+### Phase 4: Move Server Components (3-4 hours) ✅ COMPLETE
 Migrate all server-related code to /server/.
 
-- [ ] Move server core files to /server/
+- [x] Move server core files to /server/
   - Move __main__.py (server entry point)
   - Move app_context.py (server context)
   - Estimated effort: Small (30 minutes)
   - Files: Server core files
   - Risk: Low
+  - **Result**: Successfully moved __main__.py, app_context.py, main.py, bootstrap.py, and schema.graphql to /server/
 
-- [ ] Move API components to /server/api/
+- [x] Move API components to /server/api/
   - Move api/ subdirectory with all files
   - Preserve structure (context.py, middleware.py, router.py, webhooks.py, mcp_utils.py)
   - Move api/mcp/ subdirectory (config.py, discovery.py, resources.py, routers.py, tools.py)
   - Estimated effort: Medium (1-2 hours)
   - Files: `api/*.py`, `api/mcp/*.py`
   - Risk: Medium - many interconnected files
+  - **Result**: Successfully moved entire api/ directory structure with all 12+ files
 
-- [ ] Update server internal imports
+- [x] Update server internal imports
   - Change `from dipeo_server.api.` → `from server.api.`
   - Change `from dipeo_server.infra.` → new infra path
   - Run import-refactor skill for /server/ package
   - Estimated effort: Large (2-3 hours)
   - Files: All files in server/
   - Risk: High - import errors break server
+  - **Result**: Updated imports in router.py, mcp_utils.py, context.py, webhooks.py, mcp/tools.py, main.py, __main__.py; removed apps/server/ directory entirely
 
 ---
 
-### Phase 5: Update Cross-Package References (3-4 hours)
+### Phase 5: Update Cross-Package References (3-4 hours) ✅ COMPLETE
 Fix imports between CLI, server, and core library.
 
-- [ ] Update CLI → dipeo imports
+- [x] Update CLI → dipeo imports
   - Verify all `from dipeo.` imports still work
   - Update any broken references to core library
   - Estimated effort: Medium (1-2 hours)
   - Files: All CLI files importing from dipeo
   - Risk: Medium
+  - **Result**: All CLI imports verified and working correctly
 
-- [ ] Update server → dipeo imports
+- [x] Update server → dipeo imports
   - Verify all `from dipeo.` imports still work
   - Update any broken references to core library
   - Estimated effort: Medium (1-2 hours)
   - Files: All server files importing from dipeo
   - Risk: Medium
+  - **Result**: All server imports verified and working correctly
 
-- [ ] Update dipeo → CLI/server imports (if any)
+- [x] Update dipeo → CLI/server imports (if any)
   - Check for any reverse dependencies in core library
   - Remove or relocate if found (core shouldn't depend on CLI/server)
   - Estimated effort: Small (30 minutes)
   - Files: Check `dipeo/` for `from dipeo_server` imports
   - Risk: Medium - architectural violation if found
+  - **Result**: Found and updated 1 conditional import in base_message_router.py (dipeo_server → server); noted as architectural concern for future refactoring
 
-- [ ] Update root configuration files
+- [x] Update root configuration files
   - Update root pyproject.toml workspace configuration
   - Update Makefile targets for new structure
   - Update uv.lock if needed
   - Estimated effort: Medium (1 hour)
   - Files: `pyproject.toml`, `Makefile`
   - Risk: Medium - affects build system
+  - **Result**: Updated workspace members ["dipeo", "cli", "server"], uv.sources, known_first_party, testpaths; updated all Makefile targets (install, dev-server, graphql-schema, PY_DIRS, lint-server, lint-cli)
 
 ---
 
-### Phase 6: Update Documentation & Configuration (2-3 hours)
+### Phase 6: Update Documentation & Configuration (2-3 hours) ✅ COMPLETE
 Update all documentation and configuration to reflect new structure.
 
-- [ ] Update CLAUDE.md
+- [x] Update CLAUDE.md
   - Update directory structure references
   - Update command examples with new paths
   - Update architecture quick reference
   - Estimated effort: Medium (1-2 hours)
   - Files: `CLAUDE.md`
   - Risk: Low
+  - **Result**: Updated project overview, key directories, agent descriptions, router skills; dipeo-backend now owns both server/ and cli/
 
-- [ ] Update docs/architecture/
+- [x] Update docs/architecture/
   - Update README.md with new structure
   - Update any diagrams or structure references
   - Estimated effort: Small (30 minutes)
   - Files: `docs/architecture/*.md`
   - Risk: Low
+  - **Result**: Updated repository layout table, applications overview, high-level architecture table, production deployment commands
 
-- [ ] Update agent documentation
+- [x] Update agent documentation
   - Update dipeo-backend skill/agent docs with new paths
   - Update any references to old structure
   - Estimated effort: Small (30 minutes)
-  - Files: `.claude/skills/dipeo-backend/`, `docs/agents/dipeo-backend.md`
+  - Files: `.claude/skills/dipeo-backend/`, `.claude/agents/dipeo-backend.md`
   - Risk: Low
+  - **Result**: Updated dipeo-backend agent and skill to own both server/ and cli/; updated all examples with new paths; clarified scope and responsibilities
 
-- [ ] Update developer guides
+- [x] Update developer guides
   - Update any references to server structure
   - Update import examples
   - Estimated effort: Small (30 minutes)
   - Files: `docs/guides/*.md`
   - Risk: Low
+  - **Result**: Deferred - no significant changes needed in developer guides (they reference concepts, not specific paths)
 
 ---
 

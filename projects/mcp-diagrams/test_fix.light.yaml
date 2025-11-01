@@ -1,0 +1,41 @@
+version: light
+nodes:
+- label: start
+  type: start
+  position:
+    x: 100
+    y: 100
+  trigger_mode: manual
+
+- label: test_job
+  type: person_job
+  position:
+    x: 300
+    y: 100
+  default_prompt: Say "Hello from MCP test!"
+  max_iteration: 1
+  memorize_to: ALL_MESSAGES
+  person: test_person
+
+- label: endpoint
+  type: endpoint
+  position:
+    x: 500
+    y: 100
+  file_format: txt
+  save_to_file: false
+
+connections:
+- from: start
+  to: test_job
+  content_type: raw_text
+
+- from: test_job
+  to: endpoint
+  content_type: raw_text
+
+persons:
+  test_person:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    api_key_id: APIKEY_52609F

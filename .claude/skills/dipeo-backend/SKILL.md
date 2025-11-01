@@ -1,12 +1,12 @@
 ---
 name: dipeo-backend
-description: Router skill for DiPeO backend (FastAPI server, CLI, database, MCP integration). Use when task mentions CLI commands, server endpoints, database queries, or MCP tools. For simple tasks, handle directly; for complex work, escalate to dipeo-backend agent.
+description: Router skill for DiPeO backend ecosystem (server/ and cli/): FastAPI server, CLI tools, database, MCP integration. Use when task mentions CLI commands, server endpoints, database queries, or MCP tools. For simple tasks, handle directly; for complex work, escalate to dipeo-backend agent.
 allowed-tools: Read, Grep, Glob, Bash, Skill
 ---
 
 # DiPeO Backend Router
 
-**Domain**: FastAPI server, CLI (12 commands including run/results/metrics/compile/export/ask/convert/list/stats/monitor/integrations/dipeocc), message store, MCP server integration in `apps/server/`. Database schema initialization is in `/dipeo/infrastructure/execution/state/persistence_manager.py` (package-maintainer domain).
+**Domain**: Backend ecosystem including FastAPI server (`server/`), CLI tools (`cli/`), message store, and MCP integration. Database schema initialization is in `/dipeo/infrastructure/execution/state/persistence_manager.py` (package-maintainer domain).
 
 ## Quick Decision: Skill or Agent?
 

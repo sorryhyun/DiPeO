@@ -9,7 +9,8 @@ DiPeO is an open-source platform that lets developers **design, run and monitor 
 | Path                      | What it is                                         | Highlights                                                                              |
 | ------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | **`apps/web`**            | React 19 visual editor                             | Vite, TailwindCSS, @xyflow/react canvas, Apollo + GraphQL, TRPC, TanStack Query, Zustand state |
-| **`apps/server`**         | FastAPI / Strawberry-GraphQL backend + CLI         | Python 3.13, Hypercorn ASGI, GraphQL subscriptions, CLI at `src/dipeo_server/cli/`     |
+| **`server/`**             | FastAPI / Strawberry-GraphQL backend               | Python 3.13, Hypercorn ASGI, GraphQL subscriptions, MCP integration                    |
+| **`cli/`**                | Command-line tools (dipeo, dipeocc)                | User-facing CLI for diagram execution, compilation, and session conversion              |
 | **`dipeo/`**              | Core domain + application + infrastructure library | Execution engine, DI containers, adapters, code-gen output                              |
 | **`diagram_generated*/`** | Auto-generated code                                | Pydantic models, node handlers, GraphQL schema, TS hooks                                |
 
@@ -19,15 +20,15 @@ DiPeO is an open-source platform that lets developers **design, run and monitor 
 
 DiPeO consists of three main applications that work together to provide a complete visual workflow platform:
 
-### Server (Backend API) - `apps/server`
+### Server (Backend API) - `server/`
 
 FastAPI server providing GraphQL and REST endpoints for diagram execution.
 
 **Architecture**:
-- **API Layer** (`src/dipeo_server/api/`): FastAPI/GraphQL adapters
-- **Infrastructure** (`src/dipeo_server/infra/`): State management, caching
+- **API Layer** (`api/`): FastAPI/GraphQL adapters, MCP integration
 - **Container** (`app_context.py`): Dependency injection configuration
 - **Entry Point**: `main.py` - FastAPI + Strawberry GraphQL server
+- **Bootstrap**: `bootstrap.py` - Infrastructure wiring and composition root
 
 **Key Features**:
 - **GraphQL API**: Strawberry-based with subscriptions at `/graphql`
@@ -48,14 +49,15 @@ React-based visual diagram editor. See @docs/agents/frontend-development.md for 
 **Tech Stack**: React 19, XYFlow, Apollo Client, Zustand, TailwindCSS
 **Port**: 3000 (development)
 
-### CLI - `apps/server/src/dipeo_server/cli/`
+### CLI - `cli/`
 
-Command-line tool integrated into the server package.
+Command-line tools for diagram execution and management.
 
 **Key Components**:
-- **Server Manager**: Automatic backend lifecycle management
-- **Display System**: Rich terminal UI with GraphQL subscriptions
-- **Commands**: run, ask, claude_code (dipeocc), integrations, convert, metrics
+- **Server Manager**: Automatic backend lifecycle management for monitoring
+- **Display System**: Rich terminal UI with real-time execution updates
+- **Commands**: run, compile, results, metrics, export, convert
+- **DiPeOCC**: Claude Code session conversion tool (dipeocc command)
 
 **Usage**:
 ```bash
@@ -69,8 +71,9 @@ dipeo metrics --latest --breakdown
 
 | Layer                        | Purpose                                      | Key tech                                                                                                            |
 | ---------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Front-end**<br>`apps/web`  | Drag-and-drop diagram editor, run monitor    | *React 19*, Vite, @xyflow/react, Apollo Client + `graphql-ws`, TRPC (utilities only), Zustand, TanStack Query, TailwindCSS |
-| **Backend**<br>`apps/server` | Exposes GraphQL API, orchestrates runs, CLI  | *Python 3.13*, FastAPI, Strawberry GraphQL, GraphQL subscriptions, Hypercorn, Pydantic v2, CLI tools               |
+| **Frontend**<br>`apps/web`   | Drag-and-drop diagram editor, run monitor    | *React 19*, Vite, @xyflow/react, Apollo Client + `graphql-ws`, TRPC (utilities only), Zustand, TanStack Query, TailwindCSS |
+| **Server**<br>`server/`      | Exposes GraphQL API, MCP integration         | *Python 3.13*, FastAPI, Strawberry GraphQL, GraphQL subscriptions, Hypercorn, Pydantic v2, MCP SDK                 |
+| **CLI**<br>`cli/`            | Command-line tools for diagram operations    | *Python 3.13*, Click (argument parsing), Rich (terminal UI), DiPeOCC session converter                             |
 | **Core library**<br>`dipeo/` | Domain models, execution engine, memory      | Event-driven architecture, async runtime, Pydantic, DI service registry                                             |
 
 ---
@@ -271,7 +274,7 @@ make dev-all
 ### Production
 
 * Build SPA: `pnpm build` → serve via CDN or mount under FastAPI.
-* Serve API: `hypercorn apps/server.main:app -w 4 -k uvloop` (or Uvicorn/Gunicorn).
+* Serve API: `hypercorn server.main:app -w 4 -k uvloop` (or Uvicorn/Gunicorn).
 * For multi-worker deployments, Redis is required for GraphQL subscriptions to work across workers.
 * Container images & Helm charts are provided in `/deploy/`.
 
