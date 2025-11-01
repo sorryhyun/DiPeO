@@ -13,10 +13,10 @@ This directory contains detailed development guides for DiPeO's specialized Clau
 
 ### [Backend Development](backend-development.md) {#backend-development}
 **Agent**: `dipeo-backend`
-**Domain**: FastAPI server, CLI, database, and MCP integration in `apps/server/`
+**Domain**: FastAPI server, CLI, database, and MCP integration in `server/` and `cli/`
 **Key Areas**: FastAPI server, CLI commands, SQLite database, MCP server
 **Role**: Owns all backend infrastructure - server lifecycle, command-line interface, persistence, MCP protocol
-**Responsibilities**: GraphQL endpoint, dipeo run/results/metrics/compile/export commands, database schema, message store
+**Responsibilities**: GraphQL endpoint, dipeo run/results/metrics/compile/export commands, database coordination, MCP integration
 
 ### [Code Generation Pipeline](codegen-pipeline.md) {#code-generation-pipeline}
 **Agent**: `dipeo-codegen-pipeline`

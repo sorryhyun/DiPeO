@@ -50,7 +50,7 @@ DiPeO uses SQLite databases for persistence with the following schema:
 
 ### `messages`
 
-**Source**: `apps/server/src/dipeo_server/infra/message_store.py`
+**Source**: Message store implementation in DiPeO's infrastructure layer
 
 **Primary Key**: `id`
 

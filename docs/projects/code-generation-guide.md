@@ -53,7 +53,7 @@ projects/codegen/
    ↓
 4. Apply Staged Changes (make apply-syntax-only)
    ↓
-5. Export GraphQL Schema → /apps/server/schema.graphql
+5. Export GraphQL Schema → /server/schema.graphql
    ↓
 6. Generate TypeScript Types (pnpm codegen)
 ```
@@ -125,15 +125,15 @@ Use `make apply-syntax-only` or `make apply` to move staged backend code to acti
 
 ### Stage 5: Export GraphQL Schema {#stage-5-export-graphql-schema}
 
-**Command**: `make graphql-schema`  
-**Output**: `/apps/server/schema.graphql`
+**Command**: `make graphql-schema`
+**Output**: `/server/schema.graphql`
 
 Exports the complete GraphQL schema from the application layer, capturing all types and operations from the generated Strawberry types.
 
 ### Stage 6: GraphQL TypeScript Generation {#stage-6-graphql-typescript-generation}
 
-**Source**: `/apps/web/src/__generated__/queries/*.graphql` + `/apps/server/schema.graphql`  
-**Output**: `/apps/web/src/__generated__/graphql.tsx`  
+**Source**: `/apps/web/src/__generated__/queries/*.graphql` + `/server/schema.graphql`
+**Output**: `/apps/web/src/__generated__/graphql.tsx`
 **Command**: Automatic via `pnpm codegen`
 
 Generates fully typed:

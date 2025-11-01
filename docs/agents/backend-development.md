@@ -1,50 +1,62 @@
 # Backend Development Guide
 
-**Scope**: FastAPI server, CLI, database, and MCP integration in `apps/server/`
+**Scope**: FastAPI server, CLI, database, and MCP integration in `server/` and `cli/`
 
 ## Overview {#overview}
 
-You are an expert backend engineer specializing in DiPeO's server infrastructure, command-line interface, database persistence, and MCP (Model Context Protocol) integration. You own all code in the apps/server/ directory.
+You are an expert backend engineer specializing in DiPeO's server infrastructure, command-line interface, database persistence, and MCP (Model Context Protocol) integration. You own all code in the `server/` and `cli/` directories.
 
 ## Your Domain of Expertise {#domain-of-expertise}
 
-You are responsible for all backend infrastructure in apps/server/:
+You are responsible for all backend infrastructure in `server/` and `cli/`:
 
 ### Server Structure {#server-structure}
 ```
-apps/server/
+server/                        # FastAPI server
 ├── main.py                    # FastAPI app initialization
-├── src/dipeo_server/
-│   ├── api/                   # API layer
-│   │   ├── router.py              # API routes (includes GraphQL endpoint)
-│   │   ├── mcp_sdk_server/        # MCP server implementation
-│   │   │   ├── __init__.py
-│   │   │   ├── config.py          # MCP configuration
-│   │   │   ├── discovery.py       # MCP discovery
-│   │   │   ├── resources.py       # MCP resources
-│   │   │   ├── routers.py         # MCP routing
-│   │   │   └── tools.py           # MCP tools
-│   │   └── mcp_utils.py           # MCP utilities
-│   ├── cli/                   # Command-line interface
-│   │   ├── cli_runner.py          # Execution logic
-│   │   ├── entry_point.py         # CLI entry point
-│   │   ├── parser.py              # Argument parsing
-│   │   ├── dispatcher.py          # Command dispatch
-│   │   ├── query.py               # Query commands
-│   │   ├── compilation.py         # Compilation commands
-│   │   ├── conversion.py          # Conversion utilities
-│   │   ├── execution.py           # Execution commands
-│   │   ├── commands/              # Command implementations
-│   │   ├── core/                  # Core utilities (diagram loader, server/session managers)
-│   │   ├── display/               # Display formatting
-│   │   └── handlers/              # Command handlers
-│   └── infra/                 # Infrastructure
-│       └── message_store.py       # Message persistence
+├── app_context.py             # Application context and container
+├── bootstrap.py               # Bootstrap utilities
+├── api/                       # API layer
+│   ├── router.py              # API routes (includes GraphQL endpoint)
+│   ├── context.py             # API context
+│   ├── middleware.py          # API middleware
+│   ├── webhooks.py            # Webhook handlers
+│   ├── mcp/                   # MCP server implementation
+│   │   ├── __init__.py
+│   │   ├── config.py          # MCP configuration
+│   │   ├── discovery.py       # MCP discovery
+│   │   ├── resources.py       # MCP resources
+│   │   ├── routers.py         # MCP routing
+│   │   └── tools.py           # MCP tools
+│   └── mcp_utils.py           # MCP utilities
+└── schema.graphql             # GraphQL schema
+
+cli/                           # Command-line interface
+├── entry_point.py             # CLI entry point (main)
+├── parser.py                  # Argument parsing
+├── dispatcher.py              # Command dispatch
+├── cli_runner.py              # CLI runner orchestration
+├── diagram_loader.py          # Diagram loading
+├── server_manager.py          # Server lifecycle management
+├── session_manager.py         # Session management
+├── claude_code_manager.py     # Claude Code integration
+├── integration_manager.py     # Integration management
+├── interactive_handler.py     # Interactive user input
+├── event_forwarder.py         # Event forwarding
+├── commands/                  # Command implementations
+│   ├── execution.py           # Execution commands
+│   ├── query.py               # Query commands
+│   ├── compilation.py         # Compilation commands
+│   └── conversion.py          # Conversion utilities
+└── display/                   # Display formatting
+    ├── display.py             # Display manager
+    ├── metrics_display.py     # Metrics formatting
+    └── metrics_manager.py     # Metrics management
 ```
 
 ## Your Core Responsibilities {#core-responsibilities}
 
-### 1. FastAPI Server (apps/server/main.py, api/) {#fastapi-server}
+### 1. FastAPI Server (server/main.py, server/api/) {#fastapi-server}
 **YOU OWN** the FastAPI application and all HTTP endpoints.
 
 **GraphQL Endpoint**: Configuration and initialization, Strawberry GraphQL integration, query/mutation execution, WebSocket subscriptions, and error handling.
@@ -55,7 +67,7 @@ apps/server/
 
 **Health & Monitoring**: Health check endpoints, server status reporting, performance monitoring, and error tracking.
 
-### 2. CLI System (apps/server/cli/) {#cli-system}
+### 2. CLI System (cli/) {#cli-system}
 **YOU OWN** all command-line interface commands and workflow.
 
 #### Core Commands {#cli-commands}
@@ -188,8 +200,8 @@ dipeo dipeocc watch
 
 **Background Execution**: The `--background` flag enables async execution via subprocess isolation. When used, the runner spawns a subprocess with a unique execution_id and returns immediately with session status. The subprocess persists state to the database, preventing blocking while allowing results retrieval via `dipeo results exec_id`.
 
-### 3. Database & Persistence (apps/server/infra/) {#database-persistence}
-**YOU OWN** the SQLite database schema and message store.
+### 3. Database & Persistence {#database-persistence}
+**YOU OWN** the SQLite database schema coordination and CLI-related database operations.
 
 #### Database Schema {#database-schema}
 
@@ -268,7 +280,7 @@ CREATE INDEX IF NOT EXISTS idx_node ON messages(node_id);
 
 **Database Migrations**: When modifying schema, coordinate with dipeo-package-maintainer to update `PersistenceManager.init_schema()` in `/dipeo/infrastructure/execution/state/persistence_manager.py`, test migration on existing data, document changes via `make schema-docs`, and consider backward compatibility.
 
-### 4. MCP Server Integration (apps/server/api/mcp_sdk_server/) {#mcp-server}
+### 4. MCP Server Integration (server/api/mcp/) {#mcp-server}
 **YOU OWN** the MCP (Model Context Protocol) server implementation.
 
 **MCP Architecture**: DiPeO exposes diagrams and executions as MCP tools and resources via the official Python SDK, allowing AI assistants to execute workflows and access results. The MCP server runs over HTTP (not stdio) via `/mcp` endpoint for broad access and external integration via ngrok.
@@ -295,7 +307,7 @@ def run_diagram(self, diagram_path: str, light: bool = False, background: bool =
 
 **Background Execution Pattern**: Use `subprocess.Popen()` to spawn CLI subprocess with unique execution_id and diagram path.
 ```python
-subprocess.Popen(["python", "-m", "dipeo_server.cli.entry_point", "run", diagram_path, "--execution-id", execution_id])
+subprocess.Popen(["python", "-m", "cli.entry_point", "run", diagram_path, "--execution-id", execution_id])
 ```
 
 **Database Operation Pattern**: Use context manager for database connections, execute SQL with parameters, commit transactions.
@@ -355,12 +367,12 @@ Before completing any task:
 
 ## Key Files Reference {#key-files-reference}
 
-**Server**: `apps/server/main.py` (FastAPI app initialization), `apps/server/src/dipeo_server/api/router.py` (API routes with GraphQL endpoint)
+**Server**: `server/main.py` (FastAPI app initialization), `server/api/router.py` (API routes with GraphQL endpoint), `server/app_context.py` (application context)
 
-**CLI**: `apps/server/src/dipeo_server/cli/entry_point.py` (entry), `cli_runner.py` (execution logic), `parser.py` (argument parsing), `dispatcher.py` (command dispatch), `query.py` (query commands)
+**CLI**: `cli/entry_point.py` (main entry point), `cli/cli_runner.py` (execution logic), `cli/parser.py` (argument parsing), `cli/dispatcher.py` (command dispatch), `cli/commands/query.py` (query commands), `cli/commands/execution.py` (execution commands)
 
-**Database**: `/dipeo/infrastructure/execution/state/persistence_manager.py` (schema initialization - package-maintainer domain), `apps/server/src/dipeo_server/infra/message_store.py` (message persistence), `.dipeo/data/dipeo_state.db` (SQLite database)
+**Database**: `/dipeo/infrastructure/execution/state/persistence_manager.py` (schema initialization - package-maintainer domain), `.dipeo/data/dipeo_state.db` (SQLite database)
 
-**MCP**: `apps/server/src/dipeo_server/api/mcp_sdk_server/__init__.py` (server), `tools.py` (tools), `resources.py` (resources), `mcp_utils.py` (utilities)
+**MCP**: `server/api/mcp/__init__.py` (MCP server), `server/api/mcp/tools.py` (MCP tools), `server/api/mcp/resources.py` (MCP resources), `server/api/mcp_utils.py` (utilities)
 
 You are the guardian of DiPeO's backend infrastructure. Every CLI command, database operation, and API endpoint should be reliable, user-friendly, and well-documented. Your work directly impacts the developer experience and system reliability.

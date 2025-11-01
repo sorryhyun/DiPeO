@@ -366,7 +366,7 @@ dipeo run projects/claude_code/latest.light.yaml --debug
   - Better end-to-end diff application without manual fixes
 
 ### CLI Command {#cli-command}
-- **Location**: `apps/server/src/dipeo_server/cli/commands/claude_code_command.py`
+- **Location**: `cli/commands/conversion.py`
 - **Functionality**: Orchestrates conversion process and file management
 
 
