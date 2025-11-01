@@ -162,7 +162,11 @@ dev-server:
 	DIPEO_BASE_DIR="$(shell pwd)" python server/main.py 2>&1 | sed 's/^/[server] /' & \
 	SERVER_PID=$$!; \
 	sleep 3; \
-	ngrok http 8000 --basic-auth "sorryhyun:sorrysorry" 2>&1 | sed 's/^/[ngrok] /' & \
+	if [ -n "$$NGROK_AUTH" ]; then \
+		ngrok http 8000 --basic-auth "$$NGROK_AUTH" 2>&1 | sed 's/^/[ngrok] /' & \
+	else \
+		ngrok http 8000 2>&1 | sed 's/^/[ngrok] /' & \
+	fi; \
 	NGROK_PID=$$!; \
 	wait
 

@@ -14,7 +14,7 @@ class MessageStore:
 
     async def initialize(self):
         async with aiosqlite.connect(self.db_path) as db:
-            await db.execute("""
+            await db.executescript("""
                 CREATE TABLE IF NOT EXISTS messages (
                     id TEXT PRIMARY KEY,
                     execution_id TEXT NOT NULL,
