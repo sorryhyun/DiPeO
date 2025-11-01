@@ -52,7 +52,7 @@ install:
 	@echo "Installing dependencies..."
 	@command -v uv >/dev/null 2>&1 || (echo "Installing uv..." && curl -LsSf https://astral.sh/uv/install.sh | sh)
 	@export PATH="$$HOME/.local/bin:$$PATH" && uv sync
-	@export PATH="$$HOME/.local/bin:$$PATH" && uv pip install -e dipeo -e apps/server
+	@export PATH="$$HOME/.local/bin:$$PATH" && uv pip install -e dipeo -e cli -e server
 	pnpm install
 	@echo "All dependencies installed!"
 	@echo "Activate the virtual environment with: source .venv/bin/activate"
@@ -112,7 +112,7 @@ codegen-auto: parse-typescript
 		exit 1; \
 	fi
 	@cp -r dipeo/diagram_generated_staged/* dipeo/diagram_generated/
-	PYTHONPATH="$(shell pwd):$$PYTHONPATH" DIPEO_BASE_DIR="$(shell pwd)" python -m dipeo.application.graphql.export_schema apps/server/schema.graphql
+	PYTHONPATH="$(shell pwd):$$PYTHONPATH" DIPEO_BASE_DIR="$(shell pwd)" python -m dipeo.application.graphql.export_schema server/schema.graphql
 	pnpm --filter web codegen
 	@echo "✓ Code generation and application completed!"
 
@@ -151,7 +151,24 @@ codegen-status:
 
 # Development servers
 dev-server:
-	DIPEO_BASE_DIR="$(shell pwd)" python apps/server/main.py
+	@echo "Starting DiPeO server and ngrok tunnel..."
+	@cleanup() { \
+		echo "Shutting down servers..."; \
+		pkill -P $$$$ 2>/dev/null || true; \
+		pkill -f "ngrok http 8000" 2>/dev/null || true; \
+		pkill -f "python server/main.py" 2>/dev/null || true; \
+	}; \
+	trap cleanup EXIT INT TERM; \
+	DIPEO_BASE_DIR="$(shell pwd)" python server/main.py 2>&1 | sed 's/^/[server] /' & \
+	SERVER_PID=$$!; \
+	sleep 3; \
+	if [ -n "$$NGROK_AUTH" ]; then \
+		ngrok http 8000 --basic-auth "$$NGROK_AUTH" 2>&1 | sed 's/^/[ngrok] /' & \
+	else \
+		ngrok http 8000 2>&1 | sed 's/^/[ngrok] /' & \
+	fi; \
+	NGROK_PID=$$!; \
+	wait
 
 dev-web:
 	pnpm -F web dev
@@ -167,14 +184,14 @@ dev-all:
 # Export GraphQL schema
 graphql-schema:
 	@echo "Exporting GraphQL schema from application layer..."
-	PYTHONPATH="$(shell pwd):$$PYTHONPATH" DIPEO_BASE_DIR="$(shell pwd)" python -m dipeo.application.graphql.export_schema apps/server/schema.graphql
-	@echo "GraphQL schema exported to apps/server/schema.graphql"
+	PYTHONPATH="$(shell pwd):$$PYTHONPATH" DIPEO_BASE_DIR="$(shell pwd)" python -m dipeo.application.graphql.export_schema server/schema.graphql
+	@echo "GraphQL schema exported to server/schema.graphql"
 	@echo "Generating GraphQL TypeScript types for web..."
 	pnpm --filter web codegen
 	@echo "GraphQL TypeScript types generated!"
 
 # Python directories
-PY_DIRS := apps/server dipeo
+PY_DIRS := server cli dipeo
 
 # Linting
 lint-web:
@@ -186,14 +203,14 @@ lint-server:
 	@for dir in $(PY_DIRS); do \
 		[ -d "$$dir/src" ] && (cd $$dir && ruff check --exclude="*/__generated__.py" src $$([ -d tests ] && echo tests)) || true; \
 	done
-	@cd apps/server && mypy src || true
+	@cd server && mypy . || true
 
 lint-cli:
 	@echo "Linting..."
 	@for dir in $(PY_DIRS); do \
 		[ -d "$$dir/src" ] && (cd $$dir && ruff check --exclude="*/__generated__.py" src $$([ -d tests ] && echo tests)) || true; \
 	done
-	@cd apps/server && mypy src || true
+	@cd cli && mypy . || true
 
 # Formatting
 format:

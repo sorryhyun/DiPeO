@@ -110,8 +110,8 @@ dependencies = [
     "yarl==1.20.1",
     "datamodel-code-generator>=0.21.0",
     "ollama>=0.5.0",
-    "mcp>=1.16.0",  # Official MCP Python SDK
-    "claude-agent-sdk @ git+https://github.com/anthropics/claude-agent-sdk-python.git",
+    "mcp>=1.16.0", # Official MCP Python SDK
+    "claude-agent-sdk==0.1.6",
     "rich>=13.0.0",
     "psutil==7.1.0",
     # Workspace packages (automatically installed as editable by uv)
@@ -158,11 +158,12 @@ dev-dependencies = [
 ]
 
 [tool.uv.workspace]
-members = ["dipeo", "apps/server"]
+members = ["dipeo", "cli", "server"]
 
 # UV workspace members are automatically installed as editable
 
 [tool.uv.sources]
+dipeo-cli = { workspace = true }
 dipeo-server = { workspace = true }
 
 # Tool configurations (inherited from existing configs)
@@ -335,7 +336,7 @@ extend-exclude = '''
 [tool.isort]
 profile = "black"
 skip_glob = ["*/__generated__/*", "*/generated/*", "*/diagram_generated/*", "*/diagram_generated_staged/*"]
-known_first_party = ["dipeo", "dipeo_server"]
+known_first_party = ["dipeo", "cli", "server"]
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 multi_line_output = 3
 include_trailing_comma = true
@@ -344,7 +345,7 @@ use_parentheses = true
 line_length = 88
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "apps/server/tests"]
+testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 addopts = "-v"
 asyncio_mode = "auto"

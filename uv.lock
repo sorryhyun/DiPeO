@@ -9,6 +9,7 @@ resolution-markers = [
 [manifest]
 members = [
     "dipeo",
+    "dipeo-cli",
     "dipeo-monorepo",
     "dipeo-server",
 ]
@@ -418,11 +419,15 @@ wheels = [
 
 [[package]]
 name = "claude-agent-sdk"
-version = "0.1.0"
-source = { git = "https://github.com/anthropics/claude-agent-sdk-python.git#2a9693e2585228e956ab240c1fad557d4eb510d4" }
+version = "0.1.6"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
     { name = "mcp" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4f/b6/b73279eb875333fcc3e14c28fc080f815abaf35d2a65b132be0c8b05851c/claude_agent_sdk-0.1.6.tar.gz", hash = "sha256:3090a595896d65a5d951e158e191b462759aafc97399e700e4f857d5265a8f23", size = 49328, upload-time = "2025-10-31T05:15:55.803Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cc/12/38e4e9f7f79f2c04c7be34cd995ef4a56681f8266e382a5288ce815ede71/claude_agent_sdk-0.1.6-py3-none-any.whl", hash = "sha256:54227b096e8c7cfb60fc8b570082fce1f91ea060413092f65a08a2824cb9cb4b", size = 36369, upload-time = "2025-10-31T05:15:54.767Z" },
 ]
 
 [[package]]
@@ -657,6 +662,11 @@ version = "1.0.0"
 source = { editable = "dipeo" }
 
 [[package]]
+name = "dipeo-cli"
+version = "1.0.0"
+source = { editable = "cli" }
+
+[[package]]
 name = "dipeo-monorepo"
 version = "1.0.0"
 source = { editable = "." }
@@ -797,12 +807,12 @@ requires-dist = [
     { name = "cachetools", specifier = "==5.5.2" },
     { name = "certifi", specifier = "==2025.6.15" },
     { name = "charset-normalizer", specifier = "==3.4.2" },
-    { name = "claude-agent-sdk", git = "https://github.com/anthropics/claude-agent-sdk-python.git" },
+    { name = "claude-agent-sdk", specifier = "==0.1.6" },
     { name = "click", specifier = "~=8.2.1" },
     { name = "datamodel-code-generator", specifier = ">=0.21.0" },
     { name = "dependency-injector", specifier = "==4.48.1" },
     { name = "dill", specifier = "==0.3.8" },
-    { name = "dipeo-server", editable = "apps/server" },
+    { name = "dipeo-server", editable = "server" },
     { name = "distro", specifier = "==1.9.0" },
     { name = "fastapi", specifier = "==0.115.13" },
     { name = "filelock", specifier = "==3.18.0" },
@@ -904,7 +914,7 @@ dev = []
 [[package]]
 name = "dipeo-server"
 version = "1.0.0"
-source = { editable = "apps/server" }
+source = { editable = "server" }
 
 [[package]]
 name = "distlib"

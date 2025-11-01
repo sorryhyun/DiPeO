@@ -1,0 +1,17 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dipeo-cli"
+version = "1.0.0"
+description = "DiPeO Command-Line Interface"
+requires-python = ">=3.13"
+dependencies = []  # Dependencies managed by root pyproject.toml
+
+[project.scripts]
+dipeo = "cli.entry_point:main"
+dipeocc = "cli.entry_point:dipeocc_main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["cli"]

@@ -6,8 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 DiPeO is a monorepo for building and executing AI-powered agent workflows through visual programming:
 - **Frontend** (apps/web/): React-based visual diagram editor
-- **Backend** (apps/server/): FastAPI server with GraphQL API
-- **CLI** (apps/server/src/dipeo_server/cli/): Command-line tool for running diagrams (`dipeo` command)
+- **Server** (server/): FastAPI server with GraphQL API
+- **CLI** (cli/): Command-line tools for running diagrams (`dipeo` and `dipeocc` commands)
+- **Core Library** (dipeo/): Shared domain logic, execution engine, and infrastructure
 
 ## Essential Commands
 
@@ -96,32 +97,40 @@ python scripts/generate_light_diagram_schema.py  # Generate JSON Schema for ligh
 # Reads auto-generated node schemas from diagram_generated/schemas/nodes/
 ```
 
-## Claude Code Subagents
+## Working with Specialized Agents
 
-DiPeO uses specialized subagents for complex tasks. The agent structure is organized by domain:
+**IMPORTANT**: Delegate domain-specific work to specialized agents. They have deep context and expertise.
 
-### Core Development Agents
+### When to Delegate
 
-- **dipeo-package-maintainer**: Runtime Python code in /dipeo/ (execution handlers, service architecture, domain models)
-  - Use for: Node handlers, GraphQL resolvers, EventBus, EnhancedServiceRegistry, LLM infrastructure
-  - Excludes: Code generation, backend server, CLI
+**Always delegate when:**
+- Task touches multiple files in a domain (handlers, CLI commands, React components)
+- Debugging domain-specific issues (execution failures, codegen errors, type errors)
+- Implementing new features in a domain (new node types, CLI commands, UI components)
+- Exploring unfamiliar code areas
 
-- **dipeo-backend**: FastAPI server, CLI, database, and MCP integration in apps/server/
-  - Use for: Server configuration, CLI commands (run, results, metrics, compile, export, ask, convert, list, stats, monitor, integrations, dipeocc), message store, MCP server
+**Handle directly only when:**
+- Single-file trivial edits (fixing typos, updating comments)
+- Reading/searching for specific information
+- Running simple commands
 
-- **dipeo-codegen-pipeline**: Complete TypeScript → IR → Python/GraphQL pipeline
-  - Use for: TypeScript model design, IR builders, code generation, generated code diagnosis
-  - Owns: /dipeo/models/src/ (TypeScript specs), /dipeo/infrastructure/codegen/ (IR builders), generated code review
+### Available Agents (Run in Parallel)
 
-### Other Agents
+**Core Development:**
+- **dipeo-package-maintainer** → /dipeo/ runtime (handlers, resolvers, EventBus, ServiceRegistry, domain models)
+- **dipeo-backend** → /server/ + /cli/ (FastAPI server, CLI tools, database, MCP server)
+- **dipeo-codegen-pipeline** → TypeScript specs → IR → Python/GraphQL generation
+- **dipeo-frontend-dev** → React UI, visual editor, GraphQL hooks, type errors
 
-- **dipeo-frontend-dev**: React components, visual diagram editor, GraphQL integration
-- **codebase-auditor**: Targeted code analysis for security, performance, quality
-- **dipeocc-converter**: Converting Claude Code sessions to DiPeO diagrams
-- **code-polisher**: Polish and clean up code (file separation, comment cleanup, import refactoring, doc maintenance)
-- **codebase-qna**: Fast codebase retrieval using Haiku (find functions, classes, usage patterns)
+**Specialized:**
+- **codebase-auditor** → Security, performance, quality analysis
+- **dipeocc-converter** → Claude Code session → DiPeO diagram conversion
+- **code-polisher** → File separation, comment cleanup, import refactoring
+- **codebase-qna** → Fast code search (functions, classes, patterns)
 
-**Best Practice**: Run agents in parallel when possible. See [Agent docs](docs/agents/index.md) for detailed guides.
+**Example**: `Task(dipeo-backend, "Add GraphQL timeout field") + Task(dipeo-frontend-dev, "Add timeout UI control")`
+
+See [Agent docs](docs/agents/index.md) for detailed guides.
 
 ## Claude Code Skills
 
@@ -132,7 +141,7 @@ DiPeO provides specialized skills for routine code quality and project managemen
 Router skills provide on-demand access to agent documentation with 80-90% token reduction vs. automatic injection.
 
 **Available Router Skills:**
-- **dipeo-backend**: Backend server, CLI, database, MCP integration guidance
+- **dipeo-backend**: Backend ecosystem (server/ + cli/): FastAPI server, CLI tools, database, MCP integration
 - **dipeo-package-maintainer**: Runtime Python code, handlers, service architecture
 - **dipeo-codegen-pipeline**: TypeScript → IR → Python/GraphQL pipeline
 - **dipeo-frontend-dev**: React components, visual diagram editor, GraphQL integration, TypeScript types
@@ -181,9 +190,10 @@ See `.claude/skills/` for detailed skill documentation.
 - **Database**: SQLite at `.dipeo/data/dipeo_state.db` - see [Database Schema](docs/database-schema.md) (auto-generated via `make schema-docs`)
 
 ### Key Directories
-- `/apps/server/` - FastAPI backend + CLI
+- `/cli/` - Command-line tools (dipeo, dipeocc commands)
+- `/server/` - FastAPI backend (GraphQL API, MCP integration)
 - `/apps/web/` - React frontend
-- `/dipeo/` - Core Python (application/domain/infrastructure)
+- `/dipeo/` - Core Python library (application/domain/infrastructure)
 - `/dipeo/models/src/` - TypeScript specs (source of truth)
 - `/dipeo/diagram_generated/` - Generated code (don't edit)
 

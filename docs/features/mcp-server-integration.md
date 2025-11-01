@@ -52,7 +52,7 @@ DiPeO's MCP server uses three distinct implementation patterns, each optimized f
 
 **Implementation approach:**
 ```python
-cmd_args = [sys.executable, "-m", "dipeo_server.cli.entry_point", "command", ...]
+cmd_args = [sys.executable, "-m", "cli.entry_point", "command", ...]
 proc = await asyncio.create_subprocess_exec(*cmd_args, ...)
 ```
 
@@ -235,7 +235,7 @@ See [ChatGPT MCP Integration Guide](./chatgpt-mcp-integration.md) for complete s
 
 ## Available Tools {#available-tools}
 
-DiPeO exposes 6 MCP tools for diagram execution and management. For detailed parameter documentation and examples, use the MCP `tools/list` method or inspect the tool descriptions in [`apps/server/src/dipeo_server/api/mcp_sdk_server/tools.py`](../../apps/server/src/dipeo_server/api/mcp_sdk_server/tools.py).
+DiPeO exposes 6 MCP tools for diagram execution and management. For detailed parameter documentation and examples, use the MCP `tools/list` method or inspect the tool descriptions in [`server/api/mcp/tools.py`](../../server/api/mcp/tools.py).
 
 ### Execution Tools
 
@@ -458,6 +458,6 @@ export DIPEO_LOG_LEVEL=DEBUG
 - [Comprehensive Light Diagram Guide](../formats/comprehensive_light_diagram_guide.md) - Creating diagrams
 
 **Developer Resources:**
-- [MCP Tools Implementation](../../apps/server/src/dipeo_server/api/mcp_sdk_server/tools.py) - Source code with detailed docstrings
+- [MCP Tools Implementation](../../server/api/mcp/tools.py) - Source code with detailed docstrings
 - [Model Context Protocol Specification](https://spec.modelcontextprotocol.io/) - Official MCP spec
 - [DiPeO CLI Documentation](../developer-guide.md) - CLI command reference

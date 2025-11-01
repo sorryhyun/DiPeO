@@ -20,7 +20,7 @@ DiPeO는 다이어그램 기반의 다단계 코드 생성 파이프라인을 �
    ↓
 4. 스테이징 변경 적용 (make apply-syntax-only)
    ↓
-5. GraphQL 스키마 내보내기 → /apps/server/schema.graphql
+5. GraphQL 스키마 내보내기 → /server/schema.graphql
    ↓
 6. TypeScript 타입 생성 (pnpm codegen)
 ```
@@ -85,13 +85,13 @@ DiPeO는 다이어그램 기반의 다단계 코드 생성 파이프라인을 �
 ### 4단계: GraphQL 스키마 내보내기
 
 **명령**: `make graphql-schema`
-**출력**: `/apps/server/schema.graphql`
+**출력**: `/server/schema.graphql`
 
 애플리케이션 계층에서 전체 GraphQL 스키마를 내보내며, 생성된 Strawberry 타입의 모든 타입과 오퍼레이션을 반영합니다.
 
 ### 5단계: GraphQL TypeScript 생성
 
-**소스**: `/apps/web/src/__generated__/queries/*.graphql` + `/apps/server/schema.graphql`
+**소스**: `/apps/web/src/__generated__/queries/*.graphql` + `/server/schema.graphql`
 **출력**: `/apps/web/src/__generated__/graphql.tsx`
 **명령**: `pnpm codegen`으로 자동 실행
 

@@ -290,7 +290,7 @@ class BaseMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
 
         # Try to publish to streaming manager if available
         try:
-            from dipeo_server.api.graphql.subscriptions import publish_execution_update
+            from server.api.graphql.subscriptions import publish_execution_update
 
             await publish_execution_update(execution_id, batch_message)
         except ImportError:
@@ -386,18 +386,22 @@ class BaseMessageRouter(MessageRouterPort, EventHandler[DomainEvent]):
                 )
                 # Start with full payload data and add UI-specific fields
                 ui_data = payload.get("data", {}) if isinstance(payload.get("data"), dict) else {}
-                ui_data.update({
-                    "node_id": event.scope.node_id,
-                    "status": node_status,
-                    "timestamp": event.occurred_at.isoformat(),
-                })
+                ui_data.update(
+                    {
+                        "node_id": event.scope.node_id,
+                        "status": node_status,
+                        "timestamp": event.occurred_at.isoformat(),
+                    }
+                )
 
                 ui_payload = {
                     "type": event.type.value,
                     "event_type": event.type.value,
                     "execution_id": str(event.scope.execution_id),
                     "data": ui_data,
-                    "meta": payload.get("metadata", {}),  # Include metadata (person_id, model, etc.)
+                    "meta": payload.get(
+                        "metadata", {}
+                    ),  # Include metadata (person_id, model, etc.)
                     "timestamp": event.occurred_at.isoformat(),
                 }
 

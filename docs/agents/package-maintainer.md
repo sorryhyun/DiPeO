@@ -49,9 +49,9 @@ You are responsible for runtime execution code in the /dipeo/ directory:
 - ❌ Code generation infrastructure (/dipeo/infrastructure/codegen/) → dipeo-codegen-pipeline
 - ❌ TypeScript model specifications (/dipeo/models/src/) → dipeo-codegen-pipeline
 - ❌ Generated code internals diagnosis → dipeo-codegen-pipeline
-- ❌ Backend server (apps/server/) → dipeo-backend
+- ❌ Backend server (server/ and cli/) → dipeo-backend
 - ❌ CLI commands → dipeo-backend
-- ❌ Database schema → dipeo-backend
+- ❌ Database schema coordination → dipeo-backend
 - ❌ MCP server → dipeo-backend
 
 ## Core Architectural Principles {#core-architectural-principles}
@@ -145,7 +145,7 @@ from dipeo.diagram_generated.generated_nodes import get_node_handler
 
 **To dipeo-codegen-pipeline**: Generated code doesn't provide expected APIs (IR builder/generation issues), generated code structure seems wrong (generation internals), need new node types or models (TypeScript specs), TypeScript spec questions (model design).
 
-**To dipeo-backend**: CLI command issues (apps/server/cli/), server startup/configuration (FastAPI server), database schema changes (apps/server/infra/), MCP server integration (MCP SDK server).
+**To dipeo-backend**: CLI command issues (cli/), server startup/configuration (FastAPI server at server/), database coordination, MCP server integration (server/api/mcp/).
 
 **To Architecture Docs**: Architecture questions (docs/architecture/), GraphQL layer questions (docs/architecture/detailed/graphql-layer.md).
 
