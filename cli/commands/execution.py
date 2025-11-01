@@ -13,10 +13,10 @@ from dipeo.config.base_logger import get_module_logger
 from dipeo.diagram_generated.domain_models import ExecutionID
 from dipeo.diagram_generated.enums import Status
 
-from .diagram_loader import DiagramLoader
-from .display import DisplayManager
-from .interactive_handler import cli_interactive_handler
-from .session_manager import SessionManager
+from ..diagram_loader import DiagramLoader
+from ..display import DisplayManager
+from ..interactive_handler import cli_interactive_handler
+from ..session_manager import SessionManager
 
 logger = get_module_logger(__name__)
 

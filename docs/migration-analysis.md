@@ -32,11 +32,13 @@ Entry points (in pyproject.toml):
 - `cli/parser.py` - Command-line argument parsing
 - `cli/dispatcher.py` - Command dispatching logic
 - `cli/cli_runner.py` - CLI execution orchestration
-- `cli/execution.py` - Diagram execution via CLI
-- `cli/compilation.py` - Diagram compilation via CLI
-- `cli/conversion.py` - DiPeOCC conversion via CLI
-- `cli/query.py` - Query/results commands
 - `cli/__main__.py` - Python module entry point
+
+**Command implementations:**
+- `cli/commands/execution.py` - Diagram execution via CLI
+- `cli/commands/compilation.py` - Diagram compilation via CLI
+- `cli/commands/conversion.py` - DiPeOCC conversion via CLI
+- `cli/commands/query.py` - Query/results commands
 
 **CLI utilities:**
 - `cli/diagram_loader.py` - Load diagrams from filesystem

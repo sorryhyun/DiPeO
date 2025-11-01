@@ -111,10 +111,10 @@ git mv apps/server/dipeo_server/cli/*.py cli/
 - [ ] Move `cli/parser.py`
 - [ ] Move `cli/dispatcher.py`
 - [ ] Move `cli/cli_runner.py`
-- [ ] Move `cli/execution.py`
-- [ ] Move `cli/compilation.py`
-- [ ] Move `cli/conversion.py`
-- [ ] Move `cli/query.py`
+- [x] Move `cli/execution.py` → `cli/commands/execution.py`
+- [x] Move `cli/compilation.py` → `cli/commands/compilation.py`
+- [x] Move `cli/conversion.py` → `cli/commands/conversion.py`
+- [x] Move `cli/query.py` → `cli/commands/query.py`
 
 ### 3.2 Move CLI utility files
 - [ ] Move `cli/diagram_loader.py`

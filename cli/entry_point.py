@@ -48,7 +48,7 @@ def _run_server(args):
         console_output=True,
     )
 
-    from apps.server.main import app
+    from server.main import app
 
     uvicorn.run(
         app,

@@ -9,7 +9,7 @@ from pathlib import Path
 from dipeo.application.bootstrap import Container
 from dipeo.config.base_logger import get_module_logger
 
-from .diagram_loader import DiagramLoader
+from ..diagram_loader import DiagramLoader
 
 logger = get_module_logger(__name__)
 
