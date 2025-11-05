@@ -15,7 +15,7 @@ def interpolate_prompt(
     """Interpolate {{variable}} patterns in prompt with actual variable references.
 
     Looks up incoming edges to find variable names (from edge labels or source node names).
-    Converts template string to f-string format.
+    Converts template string to f-string format, escaping literal braces.
 
     Args:
         prompt: The prompt string containing {{variable}} patterns
@@ -26,8 +26,8 @@ def interpolate_prompt(
     Returns:
         Interpolated prompt string ready for f-string formatting
     """
-    # Find all {{variable}} patterns
-    pattern = r"\{\{(\w+)\}\}"
+    # Find all {{variable}} patterns (including array access like {{var[index]}})
+    pattern = r"\{\{([^}]+)\}\}"
     matches = re.findall(pattern, prompt)
 
     if not matches:
@@ -56,10 +56,20 @@ def interpolate_prompt(
             # No edge found - use variable name as-is
             var_mapping[var_name] = var_name
 
-    # Convert {{variable}} to {variable} for f-string
+    # Step 1: Replace {{variable}} patterns with temporary placeholders
     interpolated = prompt
-    for var_name, py_var in var_mapping.items():
-        interpolated = interpolated.replace(f"{{{{{var_name}}}}}", f"{{{py_var}}}")
+    placeholder_map = {}
+    for i, (var_name, py_var) in enumerate(var_mapping.items()):
+        placeholder = f"___DIPEO_PLACEHOLDER_{i}___"
+        placeholder_map[placeholder] = py_var
+        interpolated = interpolated.replace(f"{{{{{var_name}}}}}", placeholder)
+
+    # Step 2: Escape all remaining literal braces ({{ and }})
+    interpolated = interpolated.replace("{", "{{").replace("}", "}}")
+
+    # Step 3: Replace placeholders with single braces for f-string interpolation
+    for placeholder, py_var in placeholder_map.items():
+        interpolated = interpolated.replace(placeholder, f"{{{py_var}}}")
 
     return interpolated
 
