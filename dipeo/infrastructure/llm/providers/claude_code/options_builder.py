@@ -63,7 +63,7 @@ def build_claude_options(
     **kwargs,
 ) -> dict[str, Any]:
     """Build options dictionary for ClaudeAgentOptions."""
-    options_dict = {"system_prompt": system_prompt, "model": "claude-haiku-4-5-20251001"}
+    options_dict = {"system_prompt": system_prompt, "model": "claude-sonnet-4-5-20250929"}
 
     if stream:
         options_dict["stream"] = True

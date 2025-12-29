@@ -1,7 +1,7 @@
 # Now using uv for Python dependency management
 # Activate virtual environment with: source .venv/bin/activate
 
-.PHONY: install install-dev install-uv sync-deps parse-typescript codegen codegen-auto codegen-watch codegen-status dev-server dev-web dev-all clean clean-staged help lint-server lint-web lint-cli format graphql-schema diff-staged validate-staged validate-staged-syntax apply apply-syntax-only backup-generated schema-docs docs-add-anchors-dry docs-add-anchors docs-validate-anchors docs-update
+.PHONY: install install-dev install-uv sync-deps parse-typescript codegen codegen-auto codegen-watch codegen-status dev-server dev-server-ngrok dev-web dev-all clean clean-staged help lint-server lint-web lint-cli format graphql-schema diff-staged validate-staged validate-staged-syntax apply apply-syntax-only backup-generated schema-docs docs-add-anchors-dry docs-add-anchors docs-validate-anchors docs-update
 
 # Default target
 help:
@@ -24,9 +24,10 @@ help:
 	@echo "  make codegen-status - Check current code generation state"
 	@echo ""
 	@echo "Development:"
-	@echo "  make dev-all      - Run both backend and frontend servers"
-	@echo "  make dev-server   - Run backend server"
-	@echo "  make dev-web      - Run frontend server"
+	@echo "  make dev-all          - Run both backend and frontend servers"
+	@echo "  make dev-server       - Run backend server (port 8000)"
+	@echo "  make dev-server-ngrok - Run backend server with ngrok tunnel"
+	@echo "  make dev-web          - Run frontend server"
 	@echo ""
 	@echo "Quality & Testing:"
 	@echo "  make lint-{server, web, cli} - Run linters"
@@ -151,7 +152,11 @@ codegen-status:
 
 # Development servers
 dev-server:
-	@echo "Starting DiPeO server and ngrok tunnel..."
+	@echo "Starting DiPeO server on port 8000..."
+	DIPEO_BASE_DIR="$(shell pwd)" python server/main.py
+
+dev-server-ngrok:
+	@echo "Starting DiPeO server with ngrok tunnel..."
 	@cleanup() { \
 		echo "Shutting down servers..."; \
 		pkill -P $$$$ 2>/dev/null || true; \

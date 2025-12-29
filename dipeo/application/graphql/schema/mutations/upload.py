@@ -1,7 +1,5 @@
 """Upload mutations using ServiceRegistry."""
 
-import logging
-
 import strawberry
 from strawberry.file_uploads import Upload
 
@@ -13,7 +11,7 @@ from dipeo.diagram_generated.graphql.enums import (
     DiagramFormatGraphQL,
     convert_diagramformat_from_graphql,
 )
-from dipeo.diagram_generated.graphql.results import DiagramResult, FileOperationResult
+from dipeo.diagram_generated.graphql.results import DiagramResult, FormatConversionResult
 
 logger = get_module_logger(__name__)
 
@@ -21,12 +19,12 @@ logger = get_module_logger(__name__)
 # Standalone resolver functions for operation executor
 async def upload_file(
     registry: ServiceRegistry, file: Upload, path: str | None = None
-) -> FileOperationResult:
+) -> dict:
     """Upload a file to the system."""
     try:
         filesystem = registry.get(FILESYSTEM_ADAPTER)
         if not filesystem:
-            return FileOperationResult.error_result(error="Filesystem adapter not available")
+            return {"success": False, "error": "Filesystem adapter not available"}
 
         # Read file content
         content = await file.read()
@@ -77,22 +75,17 @@ async def upload_file(
         # Get relative path for response
         relative_path = str(full_path.relative_to(base_dir))
 
-        result = FileOperationResult.success_result(
-            data={
-                "path": relative_path,
-                "size_bytes": len(content),
-                "content_type": file.content_type,
-            },
-            message=f"Uploaded file: {file.filename}",
-        )
-        result.path = relative_path
-        result.size_bytes = len(content)
-        result.content_type = file.content_type
-        return result
+        return {
+            "success": True,
+            "message": f"Uploaded file: {file.filename}",
+            "path": relative_path,
+            "size_bytes": len(content),
+            "content_type": file.content_type,
+        }
 
     except Exception as e:
         logger.error(f"Failed to upload file: {e}")
-        return FileOperationResult.error_result(error=f"Failed to upload file: {e!s}")
+        return {"success": False, "error": f"Failed to upload file: {e!s}"}
 
 
 async def upload_diagram(
@@ -131,8 +124,9 @@ async def convert_diagram_format(
     content: str,
     from_format: DiagramFormatGraphQL,
     to_format: DiagramFormatGraphQL,
-) -> FileOperationResult:
+) -> FormatConversionResult:
     """Convert diagram between formats."""
+    _ = registry  # Unused but required by operation executor interface
     try:
         from dipeo.infrastructure.diagram.drivers import converter_registry
 
@@ -150,17 +144,17 @@ async def convert_diagram_format(
         diagram = converter_registry.deserialize_from_storage(content, from_format_str)
         converted_content = converter_registry.serialize_for_storage(diagram, to_format_str)
 
-        return FileOperationResult.success_result(
-            data={
-                "content": converted_content,
-                "format": to_format_str,
-            },
+        return FormatConversionResult(
+            success=True,
+            data=converted_content,
+            format=to_format_str,
+            original_format=from_format_str,
             message=f"Converted from {from_format_str} to {to_format_str}",
         )
 
     except Exception as e:
         logger.error(f"Failed to convert diagram: {e}")
-        return FileOperationResult.error_result(error=f"Failed to convert diagram: {e!s}")
+        return FormatConversionResult.error_result(error=f"Failed to convert diagram: {e!s}")
 
 
 @strawberry.type

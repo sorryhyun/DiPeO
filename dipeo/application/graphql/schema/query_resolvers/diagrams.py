@@ -1,7 +1,6 @@
 """Diagram-related query resolvers."""
 
-import logging
-from datetime import datetime, date
+from datetime import date, datetime
 from pathlib import Path
 
 import strawberry
@@ -30,9 +29,7 @@ def _ensure_metadata_dates_are_strings(diagram: DomainDiagram) -> DomainDiagram:
         for key in ['created', 'modified']:
             if key in metadata_dict:
                 value = metadata_dict[key]
-                if isinstance(value, datetime):
-                    metadata_dict[key] = value.isoformat()
-                elif isinstance(value, date):
+                if isinstance(value, (datetime, date)):
                     metadata_dict[key] = value.isoformat()
 
         # Create new metadata object with converted dates
@@ -63,10 +60,14 @@ async def get_diagram(
 async def list_diagrams(
     registry: ServiceRegistry,
     filter: DiagramFilterInput | None = None,
-    limit: int = 100,
-    offset: int = 0,
+    limit: int | None = None,
+    offset: int | None = None,
 ) -> list[DomainDiagramType]:
     """List diagrams with optional filtering."""
+    # Handle None values from GraphQL
+    limit = int(limit) if limit is not None else 100
+    offset = int(offset) if offset is not None else 0
+
     try:
         service = registry.resolve(DIAGRAM_PORT)
         all_infos = await service.list_diagrams()
