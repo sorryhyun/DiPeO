@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for sub_diagram.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-19T16:24:23.062179
+Generated at: 2025-12-29T10:44:47.778416
 """
 
 from typing import *

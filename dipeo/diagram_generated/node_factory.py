@@ -1,7 +1,7 @@
 """
 Node factory for creating executable nodes from data.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-10-19T16:24:23.332997
+Generated at: 2025-12-29T10:44:47.983071
 
 """
 

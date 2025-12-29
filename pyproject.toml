@@ -115,6 +115,7 @@ dependencies = [
     "rich>=13.0.0",
     "psutil==7.1.0",
     # Workspace packages (automatically installed as editable by uv)
+    "dipeo-cli",
     "dipeo-server",
     "notebook>=7.4.7",
 ]

@@ -2,7 +2,7 @@
 Strawberry GraphQL domain types for DiPeO.
 Auto-generated from TypeScript interfaces using simplified type resolver.
 
-Generated at: 2025-10-19T16:24:20.683828
+Generated at: 2025-12-29T10:44:45.432654
 """
 
 from __future__ import annotations
@@ -925,20 +925,6 @@ class ExecutionStateType:
     @staticmethod
     def from_pydantic(obj: ExecutionState) -> "ExecutionStateType":
         """Convert from Pydantic model"""
-        # Serialize metrics to JSON-compatible dict
-        metrics_serialized = None
-        if obj.metrics:
-            if hasattr(obj.metrics, 'model_dump'):
-                # Pydantic model - convert to dict
-                metrics_serialized = obj.metrics.model_dump()
-            elif hasattr(obj.metrics, '__dict__'):
-                # Dataclass - convert to dict manually
-                from dataclasses import asdict
-                metrics_serialized = asdict(obj.metrics)
-            else:
-                # Already a dict or other JSON-serializable type
-                metrics_serialized = obj.metrics
-
         return ExecutionStateType(
             id=obj.id,
             status=obj.status,
@@ -953,5 +939,5 @@ class ExecutionStateType:
             node_outputs={k: v.model_dump() for k, v in obj.node_outputs.items()},
             variables=obj.variables,
             exec_counts=obj.exec_counts,
-            metrics=metrics_serialized,
+            metrics=obj.metrics,
         )
