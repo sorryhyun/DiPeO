@@ -5,18 +5,18 @@ export const userResponseFields: UnifiedFieldDefinition[] = [
   {
     name: 'prompt',
     type: 'text',
-    label: '"Prompt"',
+    label: 'Prompt',
     required: true,
-    placeholder: '"Enter prompt template..."',
-    description: '"Question to ask the user"',
+    placeholder: 'Enter prompt template...',
+    description: 'Question to ask the user',
     adjustable: true,
   },
   {
     name: 'timeout',
     type: 'text',
-    label: '"Timeout"',
+    label: 'Timeout',
     required: false,
-    description: '"Response timeout in seconds"',
+    description: 'Response timeout in seconds',
     min: 0,
     max: 3600,
     validate: (value: unknown) => {

@@ -7,8 +7,8 @@ import strawberry
 from dipeo.application.registry import ServiceRegistry
 from dipeo.application.registry.keys import API_KEY_SERVICE, LLM_SERVICE
 from dipeo.config.base_logger import get_module_logger
-from dipeo.diagram_generated import DomainApiKey
 from dipeo.diagram_generated.domain_models import ApiKeyID
+from dipeo.diagram_generated.graphql.domain_types import DomainApiKeyType
 from dipeo.diagram_generated.graphql.inputs import CreateApiKeyInput
 from dipeo.diagram_generated.graphql.results import ApiKeyResult, DeleteResult, TestResult
 
@@ -30,7 +30,7 @@ async def create_api_key(registry: ServiceRegistry, input: CreateApiKeyInput) ->
             key=input.key,
         )
 
-        safe_api_key = DomainApiKey(
+        safe_api_key = DomainApiKeyType(
             id=result["id"],
             label=result["label"],
             service=input.service,  # Keep as enum

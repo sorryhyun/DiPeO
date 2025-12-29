@@ -116,7 +116,7 @@ export const useApiKeyOperations = () => {
 
   return {
     // Data
-    apiKeys: apiKeysData?.api_keys || [],
+    apiKeys: apiKeysData?.getApiKeys || [],
 
     // Loading states
     loadingApiKeys,

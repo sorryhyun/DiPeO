@@ -1,11 +1,11 @@
 {
   "nodes": [
     {
-      "id": "node_t39fm8k9",
+      "id": "node_zox2zqw7",
       "type": "start",
       "position": {
-        "x": 430,
-        "y": 250
+        "x": 310,
+        "y": 270
       },
       "data": {
         "trigger_mode": "none",
@@ -13,55 +13,26 @@
         "output_data_structure": {},
         "label": "start"
       }
-    },
-    {
-      "id": "node_vkurkry1",
-      "type": "person_job",
-      "position": {
-        "x": 380,
-        "y": 440
-      },
-      "data": {
-        "max_iteration": 100,
-        "batch": false,
-        "batch_input_key": "items",
-        "batch_parallel": true,
-        "max_concurrent": 10,
-        "label": "person_job",
-        "first_only_prompt": ""
-      }
     }
   ],
   "arrows": [],
-  "persons": [],
+  "persons": [
+    {
+      "id": "person_AW0D",
+      "label": "person 1",
+      "llm_config": {
+        "api_key_id": "default",
+        "service": "openai",
+        "model": "gpt-4.1-nano",
+        "system_prompt": ""
+      },
+      "type": "person"
+    }
+  ],
   "handles": [
     {
-      "id": "node_t39fm8k9_default_output",
-      "node_id": "node_t39fm8k9",
-      "label": "default",
-      "direction": "output",
-      "data_type": "any",
-      "position": "right"
-    },
-    {
-      "id": "node_vkurkry1_default_input",
-      "node_id": "node_vkurkry1",
-      "label": "default",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_vkurkry1_first_input",
-      "node_id": "node_vkurkry1",
-      "label": "first",
-      "direction": "input",
-      "data_type": "any",
-      "position": "left"
-    },
-    {
-      "id": "node_vkurkry1_default_output",
-      "node_id": "node_vkurkry1",
+      "id": "node_zox2zqw7_default_output",
+      "node_id": "node_zox2zqw7",
       "label": "default",
       "direction": "output",
       "data_type": "any",
@@ -73,8 +44,8 @@
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-12-29T02:19:31.136Z",
-    "modified": "2025-12-29T02:19:31.136Z",
+    "created": "2025-12-29T02:48:26.145Z",
+    "modified": "2025-12-29T02:48:26.145Z",
     "version": "1.0.0",
     "id": null
   }

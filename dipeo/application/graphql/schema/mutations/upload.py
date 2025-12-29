@@ -11,7 +11,11 @@ from dipeo.diagram_generated.graphql.enums import (
     DiagramFormatGraphQL,
     convert_diagramformat_from_graphql,
 )
-from dipeo.diagram_generated.graphql.results import DiagramResult, FormatConversionResult
+from dipeo.diagram_generated.graphql.results import (
+    DiagramResult,
+    FileOperationResult,
+    FormatConversionResult,
+)
 
 logger = get_module_logger(__name__)
 
@@ -19,12 +23,14 @@ logger = get_module_logger(__name__)
 # Standalone resolver functions for operation executor
 async def upload_file(
     registry: ServiceRegistry, file: Upload, path: str | None = None
-) -> dict:
+) -> FileOperationResult:
     """Upload a file to the system."""
     try:
         filesystem = registry.get(FILESYSTEM_ADAPTER)
         if not filesystem:
-            return {"success": False, "error": "Filesystem adapter not available"}
+            return FileOperationResult(
+                success=False, error="Filesystem adapter not available"
+            )
 
         # Read file content
         content = await file.read()
@@ -75,17 +81,17 @@ async def upload_file(
         # Get relative path for response
         relative_path = str(full_path.relative_to(base_dir))
 
-        return {
-            "success": True,
-            "message": f"Uploaded file: {file.filename}",
-            "path": relative_path,
-            "size_bytes": len(content),
-            "content_type": file.content_type,
-        }
+        return FileOperationResult(
+            success=True,
+            message=f"Uploaded file: {file.filename}",
+            path=relative_path,
+            size_bytes=len(content),
+            content_type=file.content_type,
+        )
 
     except Exception as e:
         logger.error(f"Failed to upload file: {e}")
-        return {"success": False, "error": f"Failed to upload file: {e!s}"}
+        return FileOperationResult(success=False, error=f"Failed to upload file: {e!s}")
 
 
 async def upload_diagram(

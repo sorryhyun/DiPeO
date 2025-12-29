@@ -234,14 +234,17 @@ class FrontendFilters:
         return schema
 
     @classmethod
-    def escape_js(cls, value: Any) -> str:
-        """Escape a value for safe JavaScript string inclusion.
+    def js_literal(cls, value: Any) -> str:
+        """Convert a value to a complete JavaScript literal (with quotes for strings).
+
+        Use this when you need a complete JS value, NOT inside existing quotes.
+        For escaping strings that will be placed inside quotes, use escape_js instead.
 
         Args:
-            value: Value to escape
+            value: Value to convert
 
         Returns:
-            Escaped string safe for JavaScript
+            JavaScript literal representation (strings include quotes)
         """
         if value is None:
             return "null"
@@ -250,7 +253,7 @@ class FrontendFilters:
         elif isinstance(value, int | float):
             return str(value)
         elif isinstance(value, str):
-            # Escape special characters
+            # Escape special characters and wrap in double quotes
             escaped = (
                 value.replace("\\", "\\\\")
                 .replace('"', '\\"')
@@ -342,7 +345,7 @@ class FrontendFilters:
             "typescript_type": cls.typescript_type,
             "ui_field_type": cls.ui_field_type,
             "zod_schema": cls.zod_schema,
-            "escape_js": cls.escape_js,
+            "js_literal": cls.js_literal,
             "get_enum_imports": cls.get_enum_imports,
             "get_branded_type_imports": cls.get_branded_type_imports,
         }

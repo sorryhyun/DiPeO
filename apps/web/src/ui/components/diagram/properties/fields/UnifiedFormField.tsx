@@ -18,6 +18,31 @@ import { debounce } from '@/lib/utils/debounce';
 
 export type FieldValue = string | number | boolean | null | undefined;
 
+/**
+ * Convert a value to a string for display in form fields.
+ * Handles objects by converting to JSON, avoiding [object Object].
+ */
+function valueToString(value: unknown): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  if (typeof value === 'object') {
+    // Handle objects (including arrays) by converting to JSON
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return '';
+    }
+  }
+  return String(value);
+}
+
 // Map UnifiedFormField types to base field types
 export type UnifiedFieldType =
   | typeof FIELD_TYPES.TEXT
@@ -93,7 +118,7 @@ const PromptFileField: React.FC<WidgetProps> = (p) => {
         <Input
           id={p.fieldId}
           type="text"
-          value={String(p.value || '')}
+          value={valueToString(p.value)}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.onChange(e.target.value)}
           placeholder={p.placeholder || 'prompt-file.txt'}
           disabled={p.disabled}
@@ -134,7 +159,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
     <Input
       id={p.fieldId}
       type="text"
-      value={String(p.value || '')}
+      value={valueToString(p.value)}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.onChange(e.target.value)}
       placeholder={p.placeholder}
       disabled={p.disabled}
@@ -147,7 +172,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
     <Input
       id={p.fieldId}
       type="number"
-      value={String(p.value || '')}
+      value={valueToString(p.value)}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.onChange(e.target.value ? Number(e.target.value) : null)}
       placeholder={p.placeholder}
       disabled={p.disabled}
@@ -162,7 +187,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
     <Input
       id={p.fieldId}
       type="number"
-      value={String(p.value || '')}
+      value={valueToString(p.value)}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
         const numValue = e.target.value ? Number(e.target.value) : 1; // Default to 1 instead of null
         p.onChange(numValue);
@@ -186,7 +211,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
       <div className="relative">
         <textarea
           id={p.fieldId}
-          value={String(p.value || '')}
+          value={valueToString(p.value)}
           onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => p.onChange(e.target.value)}
           placeholder={p.placeholder}
           disabled={p.disabled}
@@ -219,7 +244,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
   [FIELD_TYPES.SELECT]: (p) => (
     <Select
       id={p.fieldId}
-      value={String(p.value || '')}
+      value={valueToString(p.value)}
       onValueChange={(value: string) => {
         // Handle empty string as null/undefined for consistency
         p.onChange(value === '' ? null : value);
@@ -244,7 +269,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
   [FIELD_TYPES.PERSON_SELECT]: (p) => (
     <Select
       id={p.fieldId}
-      value={String(p.value || '')}
+      value={valueToString(p.value)}
       onValueChange={p.onChange}
       disabled={p.disabled}
       className={FULL_WIDTH}
@@ -296,7 +321,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
       <div className={SPACE_Y_2}>
         <Input
           id={p.fieldId}
-          value={String(p.value || '')}
+          value={valueToString(p.value)}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.onChange(e.target.value)}
           placeholder={p.placeholder || "Enter file path or upload below"}
           disabled={p.isLoadingState}
@@ -330,7 +355,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
     <Input
       id={p.fieldId}
       type="url"
-      value={String(p.value || '')}
+      value={valueToString(p.value)}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.onChange(e.target.value)}
       placeholder={p.placeholder || 'https://example.com'}
       disabled={p.disabled}
@@ -342,7 +367,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
   [FIELD_TYPES.CODE]: (p) => (
     <textarea
       id={p.fieldId}
-      value={String(p.value || '')}
+      value={valueToString(p.value)}
       onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => p.onChange(e.target.value)}
       placeholder={p.placeholder || '// Enter code here'}
       disabled={p.disabled}
@@ -357,7 +382,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
     <Input
       id={p.fieldId}
       type="text"
-      value={String(p.value || '')}
+      value={valueToString(p.value)}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.onChange(e.target.value)}
       placeholder={p.placeholder || '/path/to/file'}
       disabled={p.disabled}
@@ -370,7 +395,7 @@ const widgets: Record<UnifiedFieldType, (props: WidgetProps) => React.JSX.Elemen
     <Input
       id={p.fieldId}
       type="password"
-      value={String(p.value || '')}
+      value={valueToString(p.value)}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.onChange(e.target.value)}
       placeholder={p.placeholder || '••••••••'}
       disabled={p.disabled}

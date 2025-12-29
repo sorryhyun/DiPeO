@@ -42,8 +42,11 @@ async def get_api_key(
 
 async def get_api_keys(
     registry: ServiceRegistry, service: str | None = None
-) -> list[DomainApiKeyType]:
-    """List API keys, optionally filtered by service."""
+) -> list[dict]:
+    """List API keys, optionally filtered by service.
+
+    Returns JSON-serializable dicts since GraphQL schema expects JSON type.
+    """
     try:
         valid_services = {s.value for s in APIServiceType}
 
@@ -61,14 +64,12 @@ async def get_api_keys(
             if service and key_data.get("service") != service:
                 continue
 
-            domain_keys.append(
-                DomainApiKeyType(
-                    id=key_data["id"],
-                    label=key_data["label"],
-                    service=key_data["service"],
-                    key=key_data.get("key", "***hidden***"),
-                )
-            )
+            domain_keys.append({
+                "id": key_data["id"],
+                "label": key_data["label"],
+                "service": key_data["service"],
+                "key": key_data.get("key", "***hidden***"),
+            })
 
         return domain_keys
 

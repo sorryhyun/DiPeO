@@ -81,7 +81,7 @@ export const personFields: TypedPanelFieldConfig<ExtendedPersonData>[] = [
           query: GetAvailableModelsDocument,
           variables: {
             service: selectedKey.service,
-            apiKeyId
+            api_key_id: apiKeyId
           },
           fetchPolicy: 'network-only'
         });
