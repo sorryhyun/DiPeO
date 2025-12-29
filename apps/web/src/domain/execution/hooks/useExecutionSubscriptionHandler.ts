@@ -9,7 +9,8 @@ import { Status, nodeId } from '@/infrastructure/types';
  * This enables real-time node highlighting when diagrams are run from CLI in browser mode.
  */
 export function useExecutionSubscriptionHandler(executionIdParam: string | null) {
-  const executionActions = useUnifiedStore(state => state);
+  const updateNodeExecution = useUnifiedStore(state => state.updateNodeExecution);
+  const stopExecution = useUnifiedStore(state => state.stopExecution);
   const isRunning = useUnifiedStore(state => state.execution.isRunning);
   const pollIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -55,7 +56,7 @@ export function useExecutionSubscriptionHandler(executionIdParam: string | null)
               // Convert status to uppercase before mapping (database returns lowercase)
               const mappedStatus = statusMap[state.status.toUpperCase()];
               if (mappedStatus) {
-                executionActions.updateNodeExecution(nId, {
+                updateNodeExecution(nId, {
                   status: mappedStatus,
                   timestamp: Date.now(),
                   error: state.error
@@ -75,7 +76,7 @@ export function useExecutionSubscriptionHandler(executionIdParam: string | null)
         pollIntervalRef.current = null;
       }
     };
-  }, [executionIdParam, isRunning, refetch, executionActions]);
+  }, [executionIdParam, isRunning, refetch, updateNodeExecution]);
 
   // Process subscription updates
   useEffect(() => {
@@ -88,28 +89,28 @@ export function useExecutionSubscriptionHandler(executionIdParam: string | null)
     // Handle node events
     if (eventType === EventType.NODE_STARTED && eventData.node_id) {
       const nId = nodeId(String(eventData.node_id));
-      executionActions.updateNodeExecution(nId, {
+      updateNodeExecution(nId, {
         status: Status.RUNNING,
         timestamp: Date.now()
       });
     }
     else if (eventType === EventType.NODE_COMPLETED && eventData.node_id) {
       const nId = nodeId(String(eventData.node_id));
-      executionActions.updateNodeExecution(nId, {
+      updateNodeExecution(nId, {
         status: Status.COMPLETED,
         timestamp: Date.now()
       });
     }
     else if (eventType === EventType.NODE_ERROR && eventData.node_id) {
       const nId = nodeId(String(eventData.node_id));
-      executionActions.updateNodeExecution(nId, {
+      updateNodeExecution(nId, {
         status: Status.FAILED,
         timestamp: Date.now(),
         error: eventData.error ? String(eventData.error) : undefined
       });
     }
     else if (eventType === EventType.EXECUTION_COMPLETED) {
-      executionActions.stopExecution();
+      stopExecution();
     }
-  }, [data, executionIdParam, executionActions]);
+  }, [data, executionIdParam, updateNodeExecution, stopExecution]);
 }

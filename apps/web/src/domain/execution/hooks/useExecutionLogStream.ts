@@ -32,19 +32,20 @@ export function useExecutionLogStream(executionIdParam: ReturnType<typeof execut
     if (data?.executionUpdates) {
       const update = data.executionUpdates;
 
+      // Normalize event type for case-insensitive comparison
+      const eventType = (update.type as string).toLowerCase();
+
       // Handle batch updates (BATCH_UPDATE is sent by backend but not in EventType enum)
-      if ((update.type as string) === 'BATCH_UPDATE' && update.data) {
+      if (eventType === 'batch_update' && update.data) {
         const batchData = update.data;
         if (batchData.events && Array.isArray(batchData.events)) {
           // Process each event in the batch
           const newLogs: LogEntry[] = [];
           for (const event of batchData.events) {
-            if (event.type === 'EXECUTION_LOG' && event.data) {
+            const batchEventType = (event.type as string || '').toLowerCase();
+            if (batchEventType === 'execution_log' && event.data) {
               const logData = event.data;
               if (typeof logData === 'object' && logData !== null) {
-                // Debug log to understand the structure
-                console.log('Log data structure:', logData);
-
                 // Try different possible message field names
                 const message = logData.message || logData.msg || logData.text || logData.content ||
                                (typeof logData.args === 'string' ? logData.args :
@@ -67,13 +68,10 @@ export function useExecutionLogStream(executionIdParam: ReturnType<typeof execut
           }
         }
       }
-      // Also handle individual log events (for backward compatibility)
-      else if (update.type === 'EXECUTION_LOG' && update.data) {
+      // Also handle individual log events
+      else if (eventType === 'execution_log' && update.data) {
         const logData = update.data as any;
         if (typeof logData === 'object' && logData !== null) {
-          // Debug log to understand the structure
-          console.log('Individual log data structure:', logData);
-
           // Try different possible message field names
           const message = String(logData.message || logData.msg || logData.text || logData.content ||
                          (typeof logData.args === 'string' ? logData.args :

@@ -267,7 +267,6 @@ export const createExecutionSlice = (
       case EventType.EXECUTION_ERROR:
         // Handle execution errors
         if (event.error) {
-          console.error('[ExecutionSlice] Execution error:', event.error);
           state.stopExecution();
         }
         break;
@@ -280,19 +279,13 @@ export const createExecutionSlice = (
         break;
 
       case EventType.EXECUTION_LOG:
-        // Handle execution logs
-        if (event.data) {
-          console.log('[ExecutionSlice] Execution log:', event.data);
-        }
-        break;
-
       case EventType.INTERACTIVE_PROMPT:
       case EventType.INTERACTIVE_RESPONSE:
-        // These are handled by other parts of the system
+        // Handled by other parts of the system
         break;
 
       default:
-        console.warn('[ExecutionSlice] Unknown event type:', event.type);
+        // Unknown event types are silently ignored
     }
   })
 });

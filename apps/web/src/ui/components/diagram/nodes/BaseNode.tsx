@@ -29,11 +29,6 @@ function useNodeStatus(nodeIdStr: string) {
   const operations = useCanvasOperations();
   const hookNodeState = operations.executionOps.getNodeExecutionState(nodeId(nodeIdStr));
 
-  // Debug logging to verify store updates
-  if (nodeExecutionState?.status) {
-    console.log('[BaseNode] Node status for', nodeIdStr, ':', nodeExecutionState?.status, 'hookState:', hookNodeState);
-  }
-
   return useMemo(() => {
     // Check both enum values and string values for compatibility
     const isRunning =
