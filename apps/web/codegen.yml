@@ -1,7 +1,7 @@
 # GraphQL Code Generation Configuration
 
 overwrite: true
-schema: "../server/schema.graphql"
+schema: "../../server/schema.graphql"
 documents:
   - "src/__generated__/queries/all-queries.ts"  # Use only generated queries
   # - "src/**/*.{ts,tsx}"  # Old: scanned all files

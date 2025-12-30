@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for person_job.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-12-29T10:44:47.777860
+Generated at: 2025-12-30T20:10:36.162151
 """
 
 from typing import *
@@ -75,6 +75,8 @@ class PersonJobNode(BaseModel):
     batch_parallel: bool = Field(default=True, description="Execute batch items in parallel")
     
     max_concurrent: float = Field(default=10, description="Maximum concurrent executions in batch mode")
+    
+    subagents: Optional[List[Any]] = Field(default_factory=list, description="List of subagent names available to this node (references diagram-level subagent definitions)")
 
     class Config:
         # Make the instance immutable after creation
@@ -117,6 +119,7 @@ class PersonJobNode(BaseModel):
         data["batch_input_key"] = self.batch_input_key
         data["batch_parallel"] = self.batch_parallel
         data["max_concurrent"] = self.max_concurrent
+        data["subagents"] = self.subagents
 
         return data
 

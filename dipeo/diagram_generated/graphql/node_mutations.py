@@ -2,7 +2,7 @@
 Strawberry GraphQL mutations for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-12-29T10:44:45.432654
+Generated at: 2025-12-30T20:10:33.884860
 """
 
 import strawberry
@@ -892,6 +892,10 @@ class CreatePersonJobInput:
     max_concurrent: Optional[int] = None  # Maximum concurrent executions in batch mode
     
     
+    
+    subagents: Optional[str] = None  # List of subagent names available to this node (references diagram-level subagent definitions)
+    
+    
 
 @strawberry.input
 class UpdatePersonJobInput:
@@ -971,6 +975,10 @@ class UpdatePersonJobInput:
     
     
     max_concurrent: Optional[int] = None  # Maximum concurrent executions in batch mode
+    
+    
+    
+    subagents: Optional[str] = None  # List of subagent names available to this node (references diagram-level subagent definitions)
     
     
 

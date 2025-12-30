@@ -75,7 +75,8 @@
       "Bash(ngrok config:*)",
       "Bash(do echo '=== $dir ===')",
       "Bash(git mv:*)",
-      "Skill(import-refactor)"
+      "Skill(import-refactor)",
+      "Bash(xxd:*)"
     ],
     "deny": [],
     "ask": []

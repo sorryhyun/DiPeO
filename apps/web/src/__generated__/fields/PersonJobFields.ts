@@ -192,4 +192,14 @@ export const personJobFields: UnifiedFieldDefinition[] = [
       return { isValid: true };
     },
   },
+  {
+    name: 'subagents',
+    type: 'textarea',
+    label: 'Subagents',
+    required: false,
+    placeholder: 'Enter subagent names (one per line)',
+    description: 'List of subagent names available to this node (references diagram-level subagent definitions)',
+    rows: 3,
+    column: 1,
+  },
 ];

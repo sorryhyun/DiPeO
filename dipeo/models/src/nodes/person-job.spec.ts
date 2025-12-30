@@ -78,6 +78,18 @@ export const personJobSpec: NodeSpecification = {
       inputType: 'textarea'
     }),
     ...batchExecutionFields(),
+    {
+      name: "subagents",
+      type: "array",
+      required: false,
+      description: "List of subagent names available to this node (references diagram-level subagent definitions)",
+      uiConfig: {
+        column: 1,
+        inputType: "textarea",
+        placeholder: "Enter subagent names (one per line)",
+        rows: 3
+      }
+    },
   ],
 
   handles: {

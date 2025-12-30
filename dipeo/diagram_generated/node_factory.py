@@ -1,7 +1,7 @@
 """
 Node factory for creating executable nodes from data.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-12-29T10:44:47.983071
+Generated at: 2025-12-30T20:10:36.439376
 
 """
 
@@ -257,6 +257,7 @@ def create_executable_node(
             batch_input_key=data.get('batch_input_key', "items"),
             batch_parallel=data.get('batch_parallel', True),
             max_concurrent=data.get('max_concurrent', 10),
+            subagents=data.get('subagents', None),
         )
 
     elif node_type == NodeType.START:

@@ -2,7 +2,7 @@
 Strawberry GraphQL types for DiPeO nodes.
 Generated automatically from node specifications.
 
-Generated at: 2025-12-29T10:44:45.432654
+Generated at: 2025-12-30T20:10:33.884860
 """
 
 import strawberry
@@ -1161,6 +1161,10 @@ class PersonJobDataType:
     max_concurrent: Optional[int] = None  # Maximum concurrent executions in batch mode
     
     
+    
+    subagents: Optional[List[JSONScalar]] = None  # List of subagent names available to this node (references diagram-level subagent definitions)
+    
+    
 
     @classmethod
     def from_pydantic(cls, node: PersonJobNode) -> "PersonJobDataType":
@@ -1277,6 +1281,12 @@ class PersonJobDataType:
         
         # Direct assignment for other types
         field_values["max_concurrent"] = field_value
+        
+        
+        field_value = getattr(node, "subagents", None)
+        
+        # Direct assignment for other types
+        field_values["subagents"] = field_value
         
         
 

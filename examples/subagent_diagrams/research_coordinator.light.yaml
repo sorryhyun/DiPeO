@@ -1,0 +1,53 @@
+# Research Coordinator with Subagents
+# This diagram demonstrates how to use Claude Agent SDK subagents
+# to orchestrate complex multi-agent workflows.
+
+version: light
+
+# Node definitions
+nodes:
+- label: coordinator
+  type: person_job
+  person: coordinator_agent
+  subagents:
+    - researcher
+    - summarizer
+  default_prompt: |
+    You are a research coordinator. Your task is to analyze the user's request
+    and coordinate between specialized subagents to produce a comprehensive result.
+
+    Available subagents:
+    - researcher: Use for in-depth research and analysis
+    - summarizer: Use to create concise summaries of complex information
+
+    User request: {{input}}
+
+    Coordinate the subagents as needed to fulfill this request. You can:
+    1. Invoke the researcher subagent to gather detailed information
+    2. Invoke the summarizer subagent to distill findings
+
+    Provide a final synthesized response based on the subagent outputs.
+
+# Person configurations
+persons:
+  coordinator_agent:
+    service: claude-code
+    model: claude-code
+    api_key_id: APIKEY_ANTHROPIC
+
+# Subagent definitions (referenced by nodes)
+subagents:
+  researcher:
+    description: "Research specialist for in-depth information gathering and analysis"
+    prompt_file: files/agents/researcher/system.md
+    tools: []
+    model: inherit
+
+  summarizer:
+    description: "Summarization specialist for creating concise, high-quality summaries"
+    prompt_file: files/agents/summarizer/system.md
+    tools: []
+    model: inherit
+
+# Edge definitions
+edges: []

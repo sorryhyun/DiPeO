@@ -1,13 +1,22 @@
-"""Tool definitions for Claude Code structured output."""
+"""Tool definitions for Claude Code structured output.
 
-import logging
+This module provides backward-compatible access to MCP tools.
+The actual tool definitions are now in tool_definitions/ using Pydantic models.
+"""
+
 from typing import Any
 
 from claude_agent_sdk import create_sdk_mcp_server, tool
 
 from dipeo.config.base_logger import get_module_logger
 
+from .tool_definitions import ToolGroup, get_registry
+
 logger = get_module_logger(__name__)
+
+
+# Legacy tool functions for backward compatibility
+# These are still needed for direct MCP server creation
 
 
 @tool(
@@ -74,9 +83,39 @@ async def make_decision(args: dict[str, Any]) -> dict[str, Any]:
 
 
 def create_dipeo_mcp_server():
-    """Create MCP server with structured output tools."""
+    """Create MCP server with structured output tools.
+
+    This is the legacy function that creates MCP server directly.
+    For new code, prefer using MCPRegistry.build_mcp_config() for
+    group-based tool management.
+    """
     return create_sdk_mcp_server(
         name="dipeo_structured_output",
         version="1.0.0",
         tools=[select_memory_messages, make_decision],
+    )
+
+
+def create_mcp_config_from_registry(
+    enabled_groups: set[ToolGroup] | None = None,
+    include_subagent_tools: bool = False,
+):
+    """Create MCP configuration using the registry.
+
+    Args:
+        enabled_groups: Tool groups to enable (defaults to memory + decision)
+        include_subagent_tools: Whether to include Task/TaskOutput tools
+
+    Returns:
+        MCPServerConfig with servers and allowed tools
+    """
+    registry = get_registry()
+
+    extra_tools = None
+    if include_subagent_tools:
+        extra_tools = ["Task", "TaskOutput"]
+
+    return registry.build_mcp_config(
+        enabled_groups=enabled_groups,
+        extra_tools=extra_tools,
     )

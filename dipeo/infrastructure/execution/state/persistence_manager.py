@@ -207,11 +207,19 @@ class PersistenceManager:
                 async with atime_phase(str(execution_id), "system", "db_sync"):
                     # In autocommit mode (isolation_level=None), commit() does nothing
                     # Instead, force a WAL checkpoint to ensure data is written to main DB
-                    # and visible to other processes
-                    cursor = await loop.run_in_executor(
-                        self._executor, self._conn.execute, "PRAGMA wal_checkpoint(RESTART)"
-                    )
-                    result = await loop.run_in_executor(self._executor, cursor.fetchone)
+                    # and visible to other processes.
+                    # Use PASSIVE mode to avoid blocking - it checkpoints what it can
+                    # without waiting for locks. The data is already in the WAL file
+                    # and will be checkpointed eventually.
+                    try:
+                        cursor = await loop.run_in_executor(
+                            self._executor, self._conn.execute, "PRAGMA wal_checkpoint(PASSIVE)"
+                        )
+                        result = await loop.run_in_executor(self._executor, cursor.fetchone)
+                    except sqlite3.OperationalError as e:
+                        # Log but don't fail - data is already persisted in WAL
+                        # and will be checkpointed on next successful attempt
+                        logger.debug(f"WAL checkpoint skipped (concurrent access): {e}")
 
         finally:
             # Restore normal synchronous mode after critical write

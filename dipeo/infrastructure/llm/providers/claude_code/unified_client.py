@@ -148,9 +148,26 @@ class UnifiedClaudeCodeClient:
         response_format: type[BaseModel] | dict[str, Any] | None = None,
         execution_phase: ExecutionPhase | None = None,
         hooks_config: dict[str, list[dict]] | None = None,
+        subagent_definitions: dict[str, Any] | None = None,
         **kwargs,
     ) -> LLMResponse:
-        """Execute async chat with template forking and retry logic."""
+        """Execute async chat with template forking and retry logic.
+
+        Args:
+            messages: List of conversation messages
+            model: Model override (unused, determined by SDK)
+            temperature: Temperature override (unused)
+            max_tokens: Max tokens override (unused)
+            tools: Tool configurations (unused, MCP tools used instead)
+            response_format: Response format specification
+            execution_phase: Execution phase for tool selection
+            hooks_config: Hook configuration for SDK events
+            subagent_definitions: Dict mapping subagent names to AgentDefinitions
+            **kwargs: Additional options passed to SDK
+
+        Returns:
+            LLMResponse with completion result
+        """
         trace_id = kwargs.get("trace_id", "")
         phase_key = execution_phase.value if execution_phase else "default"
 
@@ -176,7 +193,12 @@ class UnifiedClaudeCodeClient:
 
         async with atime_phase(trace_id, "claude_code", f"{phase_key}__build_options"):
             options_dict = self._processor.build_claude_options(
-                system_prompt, tool_options, hooks_config, stream=False, **kwargs
+                system_prompt,
+                tool_options,
+                hooks_config,
+                stream=False,
+                subagent_definitions=subagent_definitions,
+                **kwargs,
             )
             options = ClaudeAgentOptions(**options_dict)
         retry = AsyncRetrying(
@@ -253,9 +275,23 @@ class UnifiedClaudeCodeClient:
         response_format: type[BaseModel] | dict[str, Any] | None = None,
         execution_phase: ExecutionPhase | None = None,
         hooks_config: dict[str, list[dict]] | None = None,
+        subagent_definitions: dict[str, Any] | None = None,
         **kwargs,
     ) -> AsyncIterator[str]:
-        """Stream chat completion with template forking."""
+        """Stream chat completion with template forking.
+
+        Args:
+            messages: List of conversation messages
+            model: Model override (unused)
+            temperature: Temperature override (unused)
+            max_tokens: Max tokens override (unused)
+            tools: Tool configurations (unused)
+            response_format: Response format specification
+            execution_phase: Execution phase for tool selection
+            hooks_config: Hook configuration for SDK events
+            subagent_definitions: Dict mapping subagent names to AgentDefinitions
+            **kwargs: Additional options
+        """
         system_message, formatted_messages = self._processor.prepare_message(messages)
 
         use_tools = execution_phase in (
@@ -274,7 +310,12 @@ class UnifiedClaudeCodeClient:
         self._setup_workspace(kwargs)
 
         options_dict = self._processor.build_claude_options(
-            system_prompt, tool_options, hooks_config, stream=True, **kwargs
+            system_prompt,
+            tool_options,
+            hooks_config,
+            stream=True,
+            subagent_definitions=subagent_definitions,
+            **kwargs,
         )
         options = ClaudeAgentOptions(**options_dict)
 

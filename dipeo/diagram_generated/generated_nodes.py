@@ -1,7 +1,7 @@
 """
 Compatibility shim for generated_nodes.py
 Re-exports from individual files for backward compatibility.
-Generated at: 2025-12-29T10:44:47.983071
+Generated at: 2025-12-30T20:10:36.439376
 """
 
 # Re-export all node classes from individual files
@@ -348,6 +348,8 @@ def create_executable_node(
             batch_parallel=data.get('batch_parallel', True),
             
             max_concurrent=data.get('max_concurrent', 10),
+            
+            subagents=data.get('subagents'),
             
         )
     

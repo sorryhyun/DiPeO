@@ -60,17 +60,42 @@ def build_claude_options(
     tool_options: dict,
     hooks_config: dict | None,
     stream: bool = False,
+    subagent_definitions: dict[str, Any] | None = None,
     **kwargs,
 ) -> dict[str, Any]:
-    """Build options dictionary for ClaudeAgentOptions."""
+    """Build options dictionary for ClaudeAgentOptions.
+
+    Args:
+        system_prompt: System prompt for the agent
+        tool_options: MCP tool configuration
+        hooks_config: Hook configuration for SDK events
+        stream: Whether to enable streaming
+        subagent_definitions: Dict mapping subagent names to AgentDefinition objects
+        **kwargs: Additional options passed to SDK
+
+    Returns:
+        Options dictionary for ClaudeAgentOptions
+    """
     options_dict = {"system_prompt": system_prompt, "model": "claude-sonnet-4-5-20250929"}
 
     if stream:
         options_dict["stream"] = True
 
+    # Tool configuration
+    allowed_tools = tool_options.get("allowed_tools", [])
+
     if "mcp_servers" in tool_options:
         options_dict["mcp_servers"] = tool_options["mcp_servers"]
-        options_dict["allowed_tools"] = tool_options.get("allowed_tools", [])
+
+    # Subagent configuration
+    if subagent_definitions:
+        options_dict["agents"] = subagent_definitions
+        # Add Task and TaskOutput to allowed tools for subagent invocation
+        if "Task" not in allowed_tools:
+            allowed_tools = list(allowed_tools) + ["Task", "TaskOutput"]
+
+    if allowed_tools:
+        options_dict["allowed_tools"] = allowed_tools
 
     if hooks_config:
         hooks_dict = format_hooks_config(hooks_config)

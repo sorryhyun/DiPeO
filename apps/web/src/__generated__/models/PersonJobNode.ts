@@ -21,6 +21,7 @@ export interface PersonJobNodeData {
   batch_input_key?: string | undefined;
   batch_parallel?: boolean | undefined;
   max_concurrent?: number | undefined;
+  subagents?: any[] | undefined;
 }
 
 // Zod schema for validation
@@ -43,4 +44,5 @@ export const PersonJobNodeDataSchema = z.object({
   batch_input_key: z.string().optional().describe("Key containing the array to iterate over in batch mode"),
   batch_parallel: z.boolean().optional().describe("Execute batch items in parallel"),
   max_concurrent: z.number().min(1).max(100).optional().describe("Maximum concurrent executions in batch mode"),
+  subagents: z.any().optional().describe("List of subagent names available to this node (references diagram-level subagent definitions)"),
 });
