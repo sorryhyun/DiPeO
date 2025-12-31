@@ -2,6 +2,23 @@ import { EntityQueryDefinitions } from './types';
 import { QueryOperationType } from '../query-enums';
 
 // Shared field patterns as const objects
+const FILE_OPERATION_RESULT_FIELDS = [
+  { name: 'success' },
+  { name: 'message' },
+  { name: 'error' },
+  { name: 'path' },
+  { name: 'content' },
+  { name: 'size_bytes' },
+  { name: 'content_type' }
+];
+
+const DIAGRAM_RESULT_FIELDS = [
+  { name: 'success' },
+  { name: 'message' },
+  { name: 'error' }
+  // Note: 'data' field omitted since DomainDiagramType requires subfield selection
+];
+
 const CONVERSION_RESULT_FIELDS = [
   { name: 'success' },
   { name: 'data' },
@@ -29,7 +46,7 @@ export const fileQueries: EntityQueryDefinitions = {
             { name: 'file', value: 'file', isVariable: true },
             { name: 'path', value: 'path', isVariable: true }
           ],
-          fields: []
+          fields: FILE_OPERATION_RESULT_FIELDS
         }
       ]
     },
@@ -47,7 +64,7 @@ export const fileQueries: EntityQueryDefinitions = {
             { name: 'file', value: 'file', isVariable: true },
             { name: 'format', value: 'format', isVariable: true }
           ],
-          fields: []
+          fields: DIAGRAM_RESULT_FIELDS
         }
       ]
     },

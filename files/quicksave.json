@@ -1,52 +1,213 @@
 {
   "nodes": [
     {
-      "id": "node_zox2zqw7",
+      "id": "node_0",
       "type": "start",
       "position": {
-        "x": 310,
-        "y": 270
+        "x": 50,
+        "y": 200
       },
       "data": {
-        "trigger_mode": "none",
         "custom_data": {},
         "output_data_structure": {},
         "label": "start"
       }
+    },
+    {
+      "id": "node_1",
+      "type": "person_job",
+      "position": {
+        "x": 303.70552147239266,
+        "y": 437.15337423312883
+      },
+      "data": {
+        "person": "NPC",
+        "max_iteration": 1,
+        "memorize_to": "GOLDFISH",
+        "default_prompt": "You are **{{name}}** in {{location}}.\n\n**Your personality:** {{personality}}\n**Your disposition toward the player:** {{disposition}}\n\nThe player just did this: \"{{player_action}}\"\n\nReact briefly in character (1-2 sentences). Show your reaction through\naction and body language. Do not narrate what happens to the player.\n\nExample reactions:\n- \"The goblin snarls and raises its club defensively, beady eyes darting for an escape route.\"\n- \"The guard's hand moves to his sword hilt, but he hesitates, watching carefully.\"\n",
+        "label": "generate reaction"
+      }
+    },
+    {
+      "id": "node_2",
+      "type": "code_job",
+      "position": {
+        "x": 581.4969325153374,
+        "y": -35.30061349693251
+      },
+      "data": {
+        "language": "python",
+        "code": "npc_name = name if 'name' in dir() else \"Unknown NPC\"\nreaction_text = npc_reaction if 'npc_reaction' in dir() else \"No reaction\"\n\n# Format as labeled reaction for the Action Manager\nresult = f\"**{npc_name}**: {reaction_text}\"\n",
+        "label": "format reaction"
+      }
+    },
+    {
+      "id": "node_3",
+      "type": "endpoint",
+      "position": {
+        "x": 800,
+        "y": 200
+      },
+      "data": {
+        "file_format": "txt",
+        "save_to_file": false,
+        "label": "output"
+      }
     }
   ],
-  "arrows": [],
+  "arrows": [
+    {
+      "id": "arrow_0",
+      "source": "node_0_default_output",
+      "target": "node_1_default_input",
+      "content_type": "raw_text",
+      "label": null,
+      "data": null
+    },
+    {
+      "id": "arrow_1",
+      "source": "node_0_default_output",
+      "target": "node_1_default_input",
+      "content_type": "raw_text",
+      "label": "name",
+      "data": null
+    },
+    {
+      "id": "arrow_2",
+      "source": "node_0_default_output",
+      "target": "node_1_default_input",
+      "content_type": "raw_text",
+      "label": "personality",
+      "data": null
+    },
+    {
+      "id": "arrow_3",
+      "source": "node_0_default_output",
+      "target": "node_1_default_input",
+      "content_type": "raw_text",
+      "label": "disposition",
+      "data": null
+    },
+    {
+      "id": "arrow_4",
+      "source": "node_0_default_output",
+      "target": "node_1_default_input",
+      "content_type": "raw_text",
+      "label": "player_action",
+      "data": null
+    },
+    {
+      "id": "arrow_5",
+      "source": "node_0_default_output",
+      "target": "node_1_default_input",
+      "content_type": "raw_text",
+      "label": "location",
+      "data": null
+    },
+    {
+      "id": "arrow_6",
+      "source": "node_1_default_output",
+      "target": "node_2_default_input",
+      "content_type": "raw_text",
+      "label": "npc_reaction",
+      "data": null
+    },
+    {
+      "id": "arrow_7",
+      "source": "node_0_default_output",
+      "target": "node_2_default_input",
+      "content_type": "raw_text",
+      "label": "name",
+      "data": null
+    },
+    {
+      "id": "arrow_8",
+      "source": "node_2_default_output",
+      "target": "node_3_default_input",
+      "content_type": "raw_text",
+      "label": null,
+      "data": null
+    }
+  ],
   "persons": [
     {
-      "id": "person_AW0D",
-      "label": "person 1",
+      "id": "NPC",
+      "label": "npc",
       "llm_config": {
-        "api_key_id": "default",
         "service": "openai",
-        "model": "gpt-4.1-nano",
-        "system_prompt": ""
+        "model": "gpt-5-nano-2025-08-07",
+        "api_key_id": "default",
+        "system_prompt": "You are an NPC in a text-based RPG. React to the player's action\nbriefly and in character. Your response should be 1-2 sentences\nthat capture your character's immediate reaction.\n\nStay in character. Show emotion through action and body language.\nDo not narrate what happens to the player - only your own reaction.\n"
       },
       "type": "person"
     }
   ],
   "handles": [
     {
-      "id": "node_zox2zqw7_default_output",
-      "node_id": "node_zox2zqw7",
+      "id": "node_0_default_output",
+      "node_id": "node_0",
       "label": "default",
       "direction": "output",
       "data_type": "any",
       "position": "right"
+    },
+    {
+      "id": "node_1_first_input",
+      "node_id": "node_1",
+      "label": "first",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_1_default_input",
+      "node_id": "node_1",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_1_default_output",
+      "node_id": "node_1",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_2_default_input",
+      "node_id": "node_2",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
+    },
+    {
+      "id": "node_2_default_output",
+      "node_id": "node_2",
+      "label": "default",
+      "direction": "output",
+      "data_type": "any",
+      "position": "right"
+    },
+    {
+      "id": "node_3_default_input",
+      "node_id": "node_3",
+      "label": "default",
+      "direction": "input",
+      "data_type": "any",
+      "position": "left"
     }
   ],
   "metadata": {
-    "name": "Untitled",
+    "name": "npc_reaction.light.yaml",
     "description": null,
     "author": null,
     "tags": null,
-    "created": "2025-12-29T02:48:26.145Z",
-    "modified": "2025-12-29T02:48:26.145Z",
+    "created": "2025-12-31T05:49:05.424Z",
+    "modified": "2025-12-31T05:49:05.424Z",
     "version": "1.0.0",
-    "id": null
+    "id": "examples/claudeworld/npc_reaction.light.yaml"
   }
 }

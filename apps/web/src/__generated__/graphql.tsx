@@ -319,6 +319,20 @@ export type ExecutionUpdateType = {
   type: EventType;
 };
 
+export type FileOperationResult = {
+  __typename?: 'FileOperationResult';
+  content?: Maybe<Scalars['String']['output']>;
+  content_type?: Maybe<Scalars['String']['output']>;
+  data?: Maybe<Scalars['JSON']['output']>;
+  envelope?: Maybe<Scalars['JSON']['output']>;
+  error?: Maybe<Scalars['String']['output']>;
+  error_type?: Maybe<Scalars['String']['output']>;
+  message?: Maybe<Scalars['String']['output']>;
+  path?: Maybe<Scalars['String']['output']>;
+  size_bytes?: Maybe<Scalars['Int']['output']>;
+  success: Scalars['Boolean']['output'];
+};
+
 export type FormatConversionResult = {
   __typename?: 'FormatConversionResult';
   data?: Maybe<Scalars['String']['output']>;
@@ -386,8 +400,8 @@ export type Mutation = {
   updateNode: NodeResult;
   updateNodeState: ExecutionResult;
   updatePerson: PersonResult;
-  uploadDiagram: Scalars['JSON']['output'];
-  uploadFile: Scalars['JSON']['output'];
+  uploadDiagram: DiagramResult;
+  uploadFile: FileOperationResult;
   validateDiagram: Scalars['JSON']['output'];
 };
 
@@ -1072,7 +1086,7 @@ export type UploadFileMutationVariables = Exact<{
 }>;
 
 
-export type UploadFileMutation = { __typename?: 'Mutation', uploadFile: Record<string, unknown> };
+export type UploadFileMutation = { __typename?: 'Mutation', uploadFile: { __typename?: 'FileOperationResult', success: boolean, message?: string | null, error?: string | null, path?: string | null, content?: string | null, size_bytes?: number | null, content_type?: string | null } };
 
 export type UploadDiagramMutationVariables = Exact<{
   file: Scalars['Upload']['input'];
@@ -1080,7 +1094,7 @@ export type UploadDiagramMutationVariables = Exact<{
 }>;
 
 
-export type UploadDiagramMutation = { __typename?: 'Mutation', uploadDiagram: Record<string, unknown> };
+export type UploadDiagramMutation = { __typename?: 'Mutation', uploadDiagram: { __typename?: 'DiagramResult', success: boolean, message?: string | null, error?: string | null } };
 
 export type ValidateDiagramMutationVariables = Exact<{
   content: Scalars['String']['input'];
@@ -2750,7 +2764,15 @@ export type UpdateNodeStateMutationResult = Apollo.MutationResult<UpdateNodeStat
 export type UpdateNodeStateMutationOptions = Apollo.BaseMutationOptions<UpdateNodeStateMutation, UpdateNodeStateMutationVariables>;
 export const UploadFileDocument = gql`
     mutation UploadFile($file: Upload!, $path: String) {
-  uploadFile(file: $file, path: $path)
+  uploadFile(file: $file, path: $path) {
+    success
+    message
+    error
+    path
+    content
+    size_bytes
+    content_type
+  }
 }
     `;
 export type UploadFileMutationFn = Apollo.MutationFunction<UploadFileMutation, UploadFileMutationVariables>;
@@ -2782,7 +2804,11 @@ export type UploadFileMutationResult = Apollo.MutationResult<UploadFileMutation>
 export type UploadFileMutationOptions = Apollo.BaseMutationOptions<UploadFileMutation, UploadFileMutationVariables>;
 export const UploadDiagramDocument = gql`
     mutation UploadDiagram($file: Upload!, $format: DiagramFormatGraphQL!) {
-  uploadDiagram(file: $file, format: $format)
+  uploadDiagram(file: $file, format: $format) {
+    success
+    message
+    error
+  }
 }
     `;
 export type UploadDiagramMutationFn = Apollo.MutationFunction<UploadDiagramMutation, UploadDiagramMutationVariables>;

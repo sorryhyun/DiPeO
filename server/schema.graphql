@@ -276,6 +276,19 @@ type ExecutionUpdateType {
   data: JSON
 }
 
+type FileOperationResult {
+  success: Boolean!
+  message: String
+  error: String
+  error_type: String
+  envelope: JSON
+  data: JSON
+  path: String
+  content: String
+  size_bytes: Int
+  content_type: String
+}
+
 type FormatConversionResult {
   success: Boolean!
   message: String
@@ -359,8 +372,8 @@ type Mutation {
   controlExecution(input: ExecutionControlInput!): ExecutionResult!
   sendInteractiveResponse(input: InteractiveResponseInput!): ExecutionResult!
   updateNodeState(input: UpdateNodeStateInput!): ExecutionResult!
-  uploadFile(file: Upload!, path: String = null): JSON!
-  uploadDiagram(file: Upload!, format: DiagramFormatGraphQL!): JSON!
+  uploadFile(file: Upload!, path: String = null): FileOperationResult!
+  uploadDiagram(file: Upload!, format: DiagramFormatGraphQL!): DiagramResult!
   validateDiagram(content: String!, format: DiagramFormatGraphQL!): JSON!
   convertDiagramFormat(content: String!, from_format: DiagramFormatGraphQL!, to_format: DiagramFormatGraphQL!): FormatConversionResult!
   createNode(diagram_id: String!, input: CreateNodeInput!): NodeResult!

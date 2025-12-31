@@ -2,7 +2,7 @@
 Generated Strawberry GraphQL enum definitions for DiPeO.
 Avoid editing THIS FILE DIRECTLY.
 
-Generated at: 2025-12-30T20:10:33.884860
+Generated at: 2025-12-31T14:47:03.761069
 """
 
 from enum import Enum

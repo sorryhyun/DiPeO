@@ -1,7 +1,7 @@
 """
 Auto-generated unified node model for ir_builder.
 Avoid editing THIS FILE DIRECTLY.
-Generated at: 2025-12-30T20:10:35.640123
+Generated at: 2025-12-31T14:47:05.861657
 """
 
 from typing import *

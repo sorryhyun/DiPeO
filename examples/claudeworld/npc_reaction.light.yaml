@@ -1,0 +1,80 @@
+$schema: "https://dipeo.dev/schemas/light-v1.json"
+version: light
+
+# NPC Reaction Sub-Diagram
+#
+# This diagram is called by gameplay_turn.light.yaml in batch mode.
+# Each NPC at the player's location reacts to the player's action.
+#
+# Input (from batch):
+#   - name: NPC name
+#   - personality: NPC personality traits
+#   - disposition: NPC's attitude toward player
+#   - player_action: What the player did
+#   - location: Current location name
+
+persons:
+  NPC:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    system_prompt: |
+      You are an NPC in a text-based RPG. React to the player's action
+      briefly and in character. Your response should be 1-2 sentences
+      that capture your character's immediate reaction.
+
+      Stay in character. Show emotion through action and body language.
+      Do not narrate what happens to the player - only your own reaction.
+
+nodes:
+  - label: Start
+    type: start
+    position: {x: 50, y: 200}
+
+  - label: Generate Reaction
+    type: person_job
+    position: {x: 300, y: 200}
+    person: NPC
+    max_iteration: 1
+    memorize_to: "GOLDFISH"
+    default_prompt: |
+      You are **{{name}}** in {{location}}.
+
+      **Your personality:** {{personality}}
+      **Your disposition toward the player:** {{disposition}}
+
+      The player just did this: "{{player_action}}"
+
+      React briefly in character (1-2 sentences). Show your reaction through
+      action and body language. Do not narrate what happens to the player.
+
+      Example reactions:
+      - "The goblin snarls and raises its club defensively, beady eyes darting for an escape route."
+      - "The guard's hand moves to his sword hilt, but he hesitates, watching carefully."
+
+  - label: Format Reaction
+    type: code_job
+    position: {x: 550, y: 200}
+    language: python
+    code: |
+      npc_name = name if 'name' in dir() else "Unknown NPC"
+      reaction_text = npc_reaction if 'npc_reaction' in dir() else "No reaction"
+
+      # Format as labeled reaction for the Action Manager
+      result = f"**{npc_name}**: {reaction_text}"
+
+  - label: Output
+    type: endpoint
+    position: {x: 800, y: 200}
+    file_format: txt
+    save_to_file: false
+
+connections:
+  - {from: Start, to: Generate Reaction}
+  - {from: Start, to: Generate Reaction, label: name}
+  - {from: Start, to: Generate Reaction, label: personality}
+  - {from: Start, to: Generate Reaction, label: disposition}
+  - {from: Start, to: Generate Reaction, label: player_action}
+  - {from: Start, to: Generate Reaction, label: location}
+  - {from: Generate Reaction, to: Format Reaction, label: npc_reaction}
+  - {from: Start, to: Format Reaction, label: name}
+  - {from: Format Reaction, to: Output}

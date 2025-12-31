@@ -1,0 +1,238 @@
+$schema: "https://dipeo.dev/schemas/light-v1.json"
+version: light
+
+# ClaudeWorld Gameplay Turn - DiPeO Visual Prototype
+#
+# This diagram represents ClaudeWorld's 2-cell tape system:
+#   Cell 1: NPC Reactions (concurrent, hidden)
+#   Cell 2: Action Manager (interprets, resolves, narrates)
+#
+# See: https://github.com/xxx/claudecodeworld for original project
+
+persons:
+  ActionManager:
+    service: openai
+    model: gpt-5-nano-2025-08-07
+    system_prompt: |
+      You are the Action Manager - interpreter and coordinator of player actions in a TRPG.
+
+      ## Role
+      You are the "behind-the-screen" adjudicator and storyteller: you translate free-form
+      player input into a fair ruling, concrete consequences, and vivid narration.
+
+      ## Core Principle: Agency First, Consequences Always
+      The player may attempt ANY action. You never gatekeep. You decide what happens
+      when the attempt is made:
+      - Reckless attempts → believable danger, losses, escalation
+      - Smart attempts → advantages, openings, reduced risk
+      - "Impossible" attempts → the closest logical outcome, a twist, or costly partial success
+
+      ## Ruling Tiers
+      - Clean Success: works as intended
+      - Success with Cost: works, but consumes resources / draws attention / causes harm
+      - Partial Success: progress + complication
+      - Reversal: the attempt backfires in a logical way
+      - Creative Redirect: an "impossible" attempt produces a nearby, interesting result
+
+      ## Narrative Guidelines
+      - Use present tense for immediacy
+      - Engage multiple senses (sight, sound, smell)
+      - Show NPC emotions through actions and body language
+      - Transform mechanical results into vivid description
+      - Keep paragraphs focused and punchy
+
+nodes:
+  # Entry point with game state
+  - label: Start
+    type: start
+    position: {x: 50, y: 200}
+    custom_data:
+      player_action: "I attack the goblin with my sword"
+      location: "Dark Cave"
+      location_description: "A damp cave lit by faint phosphorescent moss. Water drips somewhere in the darkness."
+      npcs:
+        - name: "Goblin"
+          personality: "Aggressive, cowardly when outnumbered, guards its treasure fiercely"
+          disposition: "hostile"
+        - name: "Cave Guard"
+          personality: "Stoic, follows orders, secretly sympathetic to adventurers"
+          disposition: "neutral"
+      player_stats:
+        hp: 85
+        max_hp: 100
+        stamina: 45
+        gold: 50
+      inventory:
+        - "Iron Sword"
+        - "Leather Armor"
+        - "Health Potion x2"
+
+  # Cell 1: NPC Reactions (concurrent batch)
+  - label: NPC Reactions
+    type: sub_diagram
+    position: {x: 300, y: 200}
+    diagram_name: claudeworld/npc_reaction
+    diagram_format: light
+    batch: true
+    batch_input_key: npcs
+    batch_parallel: true
+    passInputData: true
+
+  # Cell 2: Action Manager (interprets and resolves)
+  - label: Action Manager
+    type: person_job
+    position: {x: 600, y: 200}
+    person: ActionManager
+    max_iteration: 1
+    memorize_to: "GOLDFISH"
+    default_prompt: |
+      ## Current Situation
+      **Location:** {{location}}
+      {{location_description}}
+
+      **Player Stats:** HP {{player_stats.hp}}/{{player_stats.max_hp}}, Stamina {{player_stats.stamina}}, Gold {{player_stats.gold}}
+      **Inventory:** {{inventory}}
+
+      ## Player Action
+      "{{player_action}}"
+
+      ## NPC Reactions
+      {{npc_reactions}}
+
+      ---
+
+      ## Your Task
+
+      1. **Infer Intent**: What is the player trying to achieve? What method?
+      2. **Verify Context**: Is this feasible given location, NPCs, stats?
+      3. **Rule the Attempt**: Choose a ruling tier and determine consequences
+      4. **Narrate**: Create vivid 2-3 paragraph narrative in present tense
+      5. **Suggest**: Provide 2 possible next actions
+
+      Output your response in this exact JSON format:
+
+      ```json
+      {
+        "intent": "Brief description of what player is trying to do",
+        "ruling": "success | success_with_cost | partial | reversal | creative_redirect",
+        "stat_changes": [
+          {"stat": "hp", "delta": -10, "reason": "goblin counterattack"},
+          {"stat": "stamina", "delta": -5, "reason": "combat exertion"}
+        ],
+        "inventory_changes": [
+          {"item": "Iron Sword", "action": "use", "note": "used in attack"}
+        ],
+        "narration": "Your vivid narrative here. Use present tense. Engage the senses. Show consequences through description rather than telling.",
+        "suggestions": ["Loot the fallen goblin", "Check on the cave guard's reaction"]
+      }
+      ```
+
+  # Parse structured output
+  - label: Parse Response
+    type: code_job
+    position: {x: 900, y: 200}
+    language: python
+    code: |
+      import json
+      import re
+
+      response = action_manager_response
+
+      # Extract JSON block from response
+      json_match = re.search(r'```json\s*(.*?)\s*```', response, re.DOTALL)
+
+      if json_match:
+          try:
+              data = json.loads(json_match.group(1))
+              result = {
+                  "success": True,
+                  "intent": data.get("intent", ""),
+                  "ruling": data.get("ruling", ""),
+                  "narration": data.get("narration", ""),
+                  "suggestions": data.get("suggestions", []),
+                  "stat_changes": data.get("stat_changes", []),
+                  "inventory_changes": data.get("inventory_changes", [])
+              }
+          except json.JSONDecodeError as e:
+              result = {
+                  "success": False,
+                  "error": f"JSON parse error: {e}",
+                  "raw_response": response
+              }
+      else:
+          # Fallback: treat entire response as narration
+          result = {
+              "success": True,
+              "narration": response,
+              "suggestions": [],
+              "stat_changes": [],
+              "inventory_changes": []
+          }
+
+  # Format final output
+  - label: Format Output
+    type: code_job
+    position: {x: 1150, y: 200}
+    language: python
+    code: |
+      parsed = parsed_response
+
+      if not parsed.get("success", False) and "error" in parsed:
+          result = f"Error: {parsed['error']}\n\nRaw response:\n{parsed.get('raw_response', 'N/A')}"
+      else:
+          # Format narration
+          output_lines = []
+          output_lines.append("# Gameplay Turn Result\n")
+          output_lines.append(f"**Ruling:** {parsed.get('ruling', 'N/A')}\n")
+          output_lines.append(f"**Intent:** {parsed.get('intent', 'N/A')}\n")
+          output_lines.append("\n## Narration\n")
+          output_lines.append(parsed.get("narration", "No narration provided."))
+
+          # Stat changes
+          if parsed.get("stat_changes"):
+              output_lines.append("\n\n## Stat Changes\n")
+              for change in parsed["stat_changes"]:
+                  delta = change.get("delta", 0)
+                  sign = "+" if delta > 0 else ""
+                  output_lines.append(f"- **{change.get('stat', 'unknown')}**: {sign}{delta} ({change.get('reason', '')})")
+
+          # Inventory changes
+          if parsed.get("inventory_changes"):
+              output_lines.append("\n\n## Inventory Changes\n")
+              for change in parsed["inventory_changes"]:
+                  output_lines.append(f"- {change.get('action', 'used')}: {change.get('item', 'unknown')} ({change.get('note', '')})")
+
+          # Suggestions
+          if parsed.get("suggestions"):
+              output_lines.append("\n\n## What will you do next?\n")
+              for i, suggestion in enumerate(parsed["suggestions"], 1):
+                  output_lines.append(f"{i}. {suggestion}")
+
+          result = "\n".join(output_lines)
+
+  # Save output
+  - label: Save Result
+    type: endpoint
+    position: {x: 1400, y: 200}
+    file_format: md
+    save_to_file: true
+    file_path: temp/claudeworld_turn_result.md
+
+connections:
+  # Start provides context to both NPC Reactions and Action Manager
+  - {from: Start, to: NPC Reactions}
+
+  # Pass player action and context directly to Action Manager
+  - {from: Start, to: Action Manager, label: player_action}
+  - {from: Start, to: Action Manager, label: location}
+  - {from: Start, to: Action Manager, label: location_description}
+  - {from: Start, to: Action Manager, label: player_stats}
+  - {from: Start, to: Action Manager, label: inventory}
+
+  # NPC reactions feed into Action Manager
+  - {from: NPC Reactions, to: Action Manager, label: npc_reactions}
+
+  # Processing chain
+  - {from: Action Manager, to: Parse Response, label: action_manager_response}
+  - {from: Parse Response, to: Format Output, label: parsed_response}
+  - {from: Format Output, to: Save Result}

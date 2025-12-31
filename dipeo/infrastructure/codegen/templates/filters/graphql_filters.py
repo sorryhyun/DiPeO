@@ -173,8 +173,12 @@ class GraphQLFilters:
             return "CliSessionResult"
 
         # File operations (mutations)
-        if operation_name in ["SaveFile", "DeleteFile"]:
+        if operation_name in ["SaveFile", "DeleteFile", "UploadFile"]:
             return "FileOperationResult"
+
+        # UploadDiagram returns DiagramResult (loads and validates the diagram)
+        if operation_name == "UploadDiagram":
+            return "DiagramResult"
 
         # Default to JSON for unknown operations
         return "JSON"
